@@ -90,9 +90,9 @@ export function ShelfShowcase() {
                   <div
                     aria-hidden="true"
                     className={`parchment-card text-foreground shadow-warm pointer-events-none invisible absolute bottom-[calc(100%+1.25rem)] z-30 hidden w-80 rounded-[1.4rem] border border-[#caa978]/60 p-4 opacity-0 transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 md:block ${
-                      index === 0
+                      index % 4 === 0
                         ? "left-0"
-                        : index === mockGames.length - 1
+                        : index % 4 === 3 || index === mockGames.length - 1
                           ? "right-0"
                           : "left-1/2 -translate-x-1/2"
                     }`}

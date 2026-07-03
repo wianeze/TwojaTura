@@ -11,7 +11,7 @@ export default function AuthLayout({
         <div className="text-center">
           <div className="mx-auto max-w-sm rounded-[2.5rem] border border-[#d8b778]/20 bg-[#fffaf0] p-3 shadow-[0_30px_90px_rgba(18,8,5,0.42),0_0_70px_rgba(223,106,53,0.12)] sm:max-w-md">
             <Image
-              src="/twoja-tura-logo.png"
+              src="/brand/logo-tt.png"
               alt="Twoja Tura!"
               width={560}
               height={560}

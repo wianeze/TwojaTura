@@ -29,7 +29,7 @@ export function LibraryShowcase() {
         </div>
       </div>
 
-      <div className="rug-pattern relative grid gap-5 overflow-hidden p-4 sm:grid-cols-2 sm:p-6 lg:p-8 xl:grid-cols-4">
+      <div className="rug-pattern relative grid gap-5 overflow-hidden p-4 sm:grid-cols-2 sm:p-6 lg:p-8 xl:grid-cols-3">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_6%,rgba(225,142,63,0.2),transparent_30%),linear-gradient(180deg,rgba(42,24,18,0.1),rgba(24,13,10,0.3))]"
@@ -42,13 +42,13 @@ export function LibraryShowcase() {
               }`}
             >
               <span className="bg-gold/75 absolute top-0 right-5 h-8 w-3 shadow-sm" />
-              <div className="flex gap-4 sm:block xl:flex">
+              <div className="flex gap-4 sm:block">
                 <GameCover
                   game={game}
                   size="card"
-                  className="transition-transform duration-300 group-hover:-rotate-1"
+                  className="transition-transform duration-300 group-hover:-rotate-1 sm:mx-auto"
                 />
-                <div className="min-w-0 flex-1 pt-2 sm:pt-4 xl:pt-2">
+                <div className="min-w-0 flex-1 pt-2 sm:pt-4">
                   <span className="bg-moss-soft text-moss rounded-full px-2.5 py-1 text-[0.62rem] font-bold">
                     {game.type}
                   </span>

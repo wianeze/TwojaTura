@@ -147,17 +147,18 @@ body {
 .wood-grain {
   background-color: var(--wood-dark);
   background-image:
-    linear-gradient(105deg, rgba(255, 255, 255, 0.025), transparent 28%),
-    repeating-linear-gradient(
-      5deg,
-      transparent 0,
-      transparent 18px,
-      rgba(255, 255, 255, 0.018) 19px,
-      transparent 21px
-    );
+    linear-gradient(105deg, rgba(255, 255, 255, 0.04), transparent 32%),
+    linear-gradient(rgba(36, 20, 15, 0.78), rgba(36, 20, 15, 0.84)),
+    url("/textures/wood-dark-texture.png");
+  background-size:
+    auto,
+    auto,
+    640px 640px;
+  background-blend-mode: screen, multiply, soft-light;
 }
 
 .paper-wash {
+  background-color: #fffaf0;
   background-image:
     radial-gradient(
       circle at top right,
@@ -166,9 +167,15 @@ body {
     ),
     linear-gradient(
       140deg,
-      rgba(255, 255, 255, 0.72),
-      rgba(255, 250, 240, 0.92)
-    );
+      rgba(255, 255, 255, 0.8),
+      rgba(255, 250, 240, 0.78)
+    ),
+    url("/textures/paper-grain-light.png");
+  background-size:
+    auto,
+    auto,
+    680px 680px;
+  background-blend-mode: normal, normal, multiply;
 }
 
 .material-panel {
@@ -186,13 +193,24 @@ body {
 }
 
 .parchment-card {
+  background-color: #f6e8ce;
   background:
     radial-gradient(
       circle at 12% 4%,
       rgba(255, 255, 255, 0.8),
       transparent 12rem
     ),
-    linear-gradient(145deg, #fffaf0, #efe0c8);
+    linear-gradient(
+      145deg,
+      rgba(255, 250, 240, 0.88),
+      rgba(239, 224, 200, 0.88)
+    ),
+    url("/textures/paper-grain-light.png");
+  background-size:
+    auto,
+    auto,
+    720px 720px;
+  background-blend-mode: normal, normal, multiply;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.85) inset,
     0 18px 46px rgba(72, 43, 25, 0.16),
@@ -200,13 +218,24 @@ body {
 }
 
 .leather-panel {
+  background-color: #3b251e;
   background:
     radial-gradient(
       circle at 20% 0,
       rgba(216, 160, 68, 0.12),
       transparent 15rem
     ),
-    linear-gradient(150deg, #684331, #3b251e 75%);
+    linear-gradient(
+      150deg,
+      rgba(104, 67, 49, 0.92),
+      rgba(59, 37, 30, 0.96) 75%
+    ),
+    url("/textures/wood-dark-texture.png");
+  background-size:
+    auto,
+    auto,
+    720px 720px;
+  background-blend-mode: normal, normal, soft-light;
   box-shadow:
     0 0 0 1px rgba(246, 219, 167, 0.12) inset,
     0 20px 52px rgba(45, 25, 17, 0.24);
@@ -215,16 +244,12 @@ body {
 .rug-pattern {
   background-color: #ded0ba;
   background-image:
-    linear-gradient(45deg, rgba(111, 62, 40, 0.045) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(80, 103, 78, 0.045) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(111, 62, 40, 0.045) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(80, 103, 78, 0.045) 75%);
-  background-position:
-    0 0,
-    0 12px,
-    12px -12px,
-    -12px 0;
-  background-size: 24px 24px;
+    linear-gradient(rgba(222, 208, 186, 0.8), rgba(76, 46, 35, 0.28)),
+    url("/textures/felt-or-rug-pattern.png");
+  background-size:
+    auto,
+    760px 760px;
+  background-blend-mode: normal, soft-light;
 }
 
 .fire-glow {

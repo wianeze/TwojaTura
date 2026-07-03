@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { useId } from "react";
 
@@ -144,26 +145,24 @@ export function LogoMark({
       }`}
       aria-label="Twoja Tura! — strona główna"
     >
-      <LogoEmblem
-        className={`${hero ? "h-36 w-32 sm:h-44 sm:w-40" : "h-12 w-11"} drop-shadow-[0_12px_24px_rgba(30,15,9,0.25)] transition-transform duration-300 group-hover:-translate-y-0.5`}
-      />
-
-      {!compact && (
-        <span className="leading-none">
-          <span
-            className={`font-display block font-semibold tracking-tight ${
-              hero ? "text-4xl sm:text-5xl" : "text-xl"
-            } ${light ? "text-cream" : "text-foreground"}`}
-          >
-            Twoja Tura!
-          </span>
-          <span
-            className={`mt-1.5 block text-[0.62rem] font-bold tracking-[0.2em] uppercase ${
-              light ? "text-[#d8b979]" : "text-muted"
-            }`}
-          >
-            klub planszówkowy
-          </span>
+      {compact ? (
+        <LogoEmblem className="h-12 w-11 drop-shadow-[0_10px_20px_rgba(20,9,5,0.35)]" />
+      ) : (
+        <span
+          className={`relative block overflow-hidden rounded-2xl border ${
+            light
+              ? "border-[#d9a75d]/25 bg-[#fff9ec]"
+              : "border-[#9a6b45]/20 bg-[#fffaf0]"
+          } ${hero ? "size-64 sm:size-72" : "size-36"} shadow-[0_18px_40px_rgba(20,9,5,0.32)] transition-transform duration-300 group-hover:-translate-y-0.5`}
+        >
+          <Image
+            src="/brand/logo-tt.png"
+            alt="Twoja Tura!"
+            fill
+            sizes={hero ? "288px" : "144px"}
+            className="object-contain"
+            priority={hero}
+          />
         </span>
       )}
     </Link>

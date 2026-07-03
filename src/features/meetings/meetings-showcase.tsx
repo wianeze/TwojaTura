@@ -232,7 +232,7 @@ export function MeetingsShowcase() {
                   Arkusz punktacji
                 </p>
                 <h3 className="font-display mt-1 text-xl font-semibold">
-                  Leśny Szlak
+                  Nemesis
                 </h3>
               </div>
               <span className="bg-surface text-accent rotate-2 rounded-md px-2 py-1 text-[0.6rem] font-bold shadow-sm">
@@ -281,7 +281,8 @@ export function MeetingsShowcase() {
               ))}
             </div>
             <p className="mt-5 rounded-xl border border-dashed border-[#c7aa76] bg-[#f8edda]/70 p-3 text-xs leading-5 text-[#76654e]">
-              „Piękna mapa i dużo dobrych decyzji. Chętnie zagram ponownie.”
+              „Napięcie do ostatniej rundy i świetny finał. Chętnie zagram
+              ponownie.”
             </p>
           </div>
         </div>
