@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f3ecdf;
+  --foreground: #302923;
+  --surface: #fffaf0;
+  --surface-strong: #fffdf8;
+  --muted: #756b61;
+  --border: #dacdbb;
+  --brand: #56382b;
+  --brand-strong: #2e1d18;
+  --brand-soft: #eadcc8;
+  --accent: #c86638;
+  --accent-soft: #f4dfcf;
+  --gold: #d6a044;
+  --moss: #5c6d59;
+  --moss-soft: #e1e7dc;
+  --wood: #754a35;
+  --wood-dark: #2f1e19;
+  --graphite: #30332f;
+  --cream: #f8f0e2;
+  --ember: #df6a35;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-soft: var(--brand-soft);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-gold: var(--gold);
+  --color-moss: var(--moss);
+  --color-moss-soft: var(--moss-soft);
+  --color-wood: var(--wood);
+  --color-wood-dark: var(--wood-dark);
+  --color-graphite: var(--graphite);
+  --color-cream: var(--cream);
+  --color-ember: var(--ember);
+  --font-sans: "Aptos", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --shadow-soft: 0 18px 50px rgba(62, 39, 27, 0.1);
+  --shadow-warm: 0 22px 70px rgba(68, 39, 23, 0.18);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  min-height: 100%;
+  background:
+    radial-gradient(
+      circle at 78% 4%,
+      rgba(214, 160, 68, 0.12),
+      transparent 28rem
+    ),
+    radial-gradient(
+      circle at 12% 80%,
+      rgba(92, 109, 89, 0.08),
+      transparent 32rem
+    ),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.wood-grain {
+  background-color: var(--wood-dark);
+  background-image:
+    linear-gradient(105deg, rgba(255, 255, 255, 0.025), transparent 28%),
+    repeating-linear-gradient(
+      5deg,
+      transparent 0,
+      transparent 18px,
+      rgba(255, 255, 255, 0.018) 19px,
+      transparent 21px
+    );
+}
+
+.paper-wash {
+  background-image:
+    radial-gradient(
+      circle at top right,
+      rgba(214, 160, 68, 0.12),
+      transparent 14rem
+    ),
+    linear-gradient(
+      140deg,
+      rgba(255, 255, 255, 0.72),
+      rgba(255, 250, 240, 0.92)
+    );
+}
+
+.fire-glow {
+  box-shadow:
+    0 0 0 1px rgba(255, 220, 151, 0.1),
+    0 26px 80px rgba(223, 106, 53, 0.2);
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
