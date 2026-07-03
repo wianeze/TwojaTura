@@ -86,29 +86,35 @@ body {
   isolation: isolate;
   background:
     radial-gradient(
-      circle at 83% 9%,
-      rgba(255, 208, 122, 0.2),
-      transparent 20rem
+      circle at 76% 12%,
+      rgba(242, 176, 88, 0.31),
+      transparent 25rem
     ),
-    linear-gradient(
-      180deg,
-      rgba(255, 250, 239, 0.34),
-      rgba(229, 216, 196, 0.18)
-    );
+    radial-gradient(
+      ellipse at 48% 42%,
+      rgba(126, 82, 57, 0.6),
+      transparent 58rem
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 88px,
+      rgba(18, 10, 8, 0.08) 89px 91px
+    ),
+    linear-gradient(135deg, #2b211e 0%, #684934 48%, #251b19 100%);
 }
 
 .cabin-ambient::before {
   position: fixed;
   z-index: -1;
-  right: -8rem;
-  bottom: -11rem;
-  width: 34rem;
-  height: 34rem;
+  right: -7rem;
+  bottom: -9rem;
+  width: 38rem;
+  height: 38rem;
   border-radius: 999px;
   background: radial-gradient(
     circle,
-    rgba(223, 106, 53, 0.19),
-    rgba(214, 160, 68, 0.06) 42%,
+    rgba(238, 117, 53, 0.34),
+    rgba(214, 160, 68, 0.11) 42%,
     transparent 70%
   );
   filter: blur(14px);
@@ -120,13 +126,18 @@ body {
   position: fixed;
   z-index: -1;
   inset: auto 0 0;
-  height: 13rem;
+  height: 18rem;
   background:
-    linear-gradient(90deg, transparent, rgba(80, 49, 33, 0.07), transparent),
+    linear-gradient(
+      90deg,
+      rgba(25, 14, 11, 0.18),
+      rgba(133, 84, 52, 0.16),
+      rgba(25, 14, 11, 0.2)
+    ),
     repeating-linear-gradient(
       4deg,
       transparent 0 27px,
-      rgba(92, 57, 38, 0.035) 28px 30px
+      rgba(225, 167, 94, 0.035) 28px 30px
     );
   mask-image: linear-gradient(to bottom, transparent, black);
   content: "";

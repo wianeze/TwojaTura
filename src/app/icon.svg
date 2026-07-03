@@ -1,14 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 136">
   <defs>
-    <linearGradient id="wood" x1="18" y1="8" x2="102" y2="128">
-      <stop stop-color="#754a35"/>
-      <stop offset="1" stop-color="#2f1e19"/>
+    <linearGradient id="rim" x1="18" y1="8" x2="102" y2="128">
+      <stop stop-color="#f0bd68"/>
+      <stop offset=".5" stop-color="#b76032"/>
+      <stop offset="1" stop-color="#6c2f22"/>
+    </linearGradient>
+    <linearGradient id="face" x1="38" y1="34" x2="82" y2="92">
+      <stop stop-color="#ffe3a0"/>
+      <stop offset="1" stop-color="#c87835"/>
     </linearGradient>
   </defs>
-  <path d="M60 4 108 21v39c0 31-18 55-48 71C30 115 12 91 12 60V21L60 4Z" fill="url(#wood)" stroke="#e6ba66" stroke-width="4"/>
-  <path d="m25 60 20-22 14 17 9-11 27 31H25Z" fill="#9aa88f"/>
-  <path d="M28 78h64l-4 11H32l-4-11Z" fill="#b87345" stroke="#f1c276" stroke-width="2"/>
-  <circle cx="60" cy="72" r="5" fill="#ffe4a0"/>
-  <path d="M53 81c0-5 3-7 7-7s7 2 7 7l5 8-7 2-1 11h-8l-1-11-7-2 5-8Z" fill="#f0a24b" stroke="#fff0c8" stroke-width="1.5"/>
-  <path d="M60 112c-5-4-7-8-5-12 1 3 3 4 5 5 0-5 3-8 6-11 2 7 1 13-6 18Z" fill="#e96935"/>
+  <path d="M60 4 108 21v39c0 31-18 55-48 71C30 115 12 91 12 60V21L60 4Z" fill="url(#rim)" stroke="#f4cc7b" stroke-width="3"/>
+  <path d="M60 12 99 26v34c0 25-14 45-39 59-25-14-39-34-39-59V26L60 12Z" fill="#2b1916" stroke="#7e472e" stroke-width="2"/>
+  <path d="m60 31 24 16v29L60 94 36 76V47l24-16Z" fill="url(#face)" stroke="#ffe2a0" stroke-width="2"/>
+  <path d="m60 31 1 29 23-13M61 60 36 47M61 60l-1 34M61 60l23 16M61 60 36 76" fill="none" stroke="#8c421f" stroke-width="1.5"/>
+  <text x="61" y="70" text-anchor="middle" fill="#442319" font-family="Georgia,serif" font-size="18" font-weight="700">12</text>
+  <circle cx="60" cy="108" r="13" fill="#36201b" stroke="#e5a94c" stroke-width="3"/>
+  <path d="m60 97 3.5 7.5L72 108l-8.5 3.5L60 120l-3.5-8.5L48 108l8.5-3.5L60 97Z" fill="#f2b653"/>
 </svg>

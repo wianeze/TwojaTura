@@ -123,6 +123,41 @@ export function ShelfShowcase() {
             className="absolute inset-x-[-0.5rem] bottom-0 h-3 translate-y-2 rounded-b-lg bg-[#2a1914] shadow-[0_12px_24px_rgba(0,0,0,0.45)]"
           />
         </div>
+
+        <div className="relative mt-8 rounded-xl border border-white/5 bg-black/13 px-4 pt-7 pb-6 shadow-[inset_0_16px_32px_rgba(0,0,0,0.25)] sm:px-8">
+          <div className="flex min-h-30 items-end gap-2 overflow-hidden">
+            {[
+              ["h-23 w-8", "bg-[#6c4130]"],
+              ["h-27 w-11", "bg-[#3f5d4a]"],
+              ["h-21 w-7", "bg-[#9b643c]"],
+              ["h-25 w-12", "bg-[#394d58]"],
+              ["h-19 w-6", "bg-[#76533c]"],
+            ].map(([size, color], index) => (
+              <span
+                key={`${size}-${color}`}
+                aria-hidden="true"
+                className={`${size} ${color} relative block rounded-[2px_5px_5px_2px] border border-white/10 shadow-[4px_5px_10px_rgba(0,0,0,0.45)]`}
+              >
+                <span className="absolute inset-y-2 left-1/2 w-px bg-white/10" />
+                {index === 1 && (
+                  <span className="absolute inset-x-1 top-3 text-center text-[0.38rem] font-bold tracking-widest text-[#dbc79e] uppercase [writing-mode:vertical-rl]">
+                    dodatki
+                  </span>
+                )}
+              </span>
+            ))}
+            <div className="ml-auto max-w-48 self-center rounded-lg border border-dashed border-white/12 px-4 py-3 text-right">
+              <p className="text-[0.58rem] font-bold tracking-[0.16em] text-[#bca78f] uppercase">
+                Wolne miejsce
+              </p>
+              <p className="mt-1 text-xs text-[#8f7d6d]">na kolejne pudełka</p>
+            </div>
+          </div>
+          <span
+            aria-hidden="true"
+            className="absolute inset-x-[-0.5rem] bottom-0 h-4 translate-y-2 rounded-b-lg border-t border-[#9a674a] bg-gradient-to-b from-[#754932] to-[#351f18] shadow-[0_12px_26px_rgba(0,0,0,0.52)]"
+          />
+        </div>
       </section>
 
       {selectedGame && (

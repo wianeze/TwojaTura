@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { LogoMark } from "@/components/ui/logo-mark";
 import { Panel } from "@/components/ui/panel";
 
 const circleCards = [
@@ -7,119 +6,162 @@ const circleCards = [
     label: "Najbliższy wieczór",
     value: "Sobota · 18:00",
     note: "Górska Chata u Michała",
-    accent: "bg-[#f5e4ca] text-[#855727]",
-    surface: "parchment-card -rotate-[0.35deg]",
+    accent: "text-[#8b5938]",
+    surface: "-rotate-[0.45deg]",
+    tape: "bg-[#b98c60]/55",
   },
   {
     label: "Ankieta dostępności",
     value: "4 z 6 osób",
     note: "Dwie odpowiedzi jeszcze czekają",
-    accent: "bg-moss-soft text-moss",
-    surface: "bg-[#f2eadc] rotate-[0.25deg]",
+    accent: "text-moss",
+    surface: "rotate-[0.28deg] md:mt-3",
+    tape: "bg-[#7f9275]/45",
   },
   {
     label: "Propozycje na stół",
     value: "3 gry",
     note: "Ostatnia Latarnia prowadzi",
-    accent: "bg-accent-soft text-accent",
-    surface: "parchment-card -rotate-[0.2deg]",
+    accent: "text-accent",
+    surface: "-rotate-[0.2deg]",
+    tape: "bg-[#bd7451]/45",
   },
 ];
 
+function GameNightStillLife() {
+  return (
+    <div
+      className="relative h-[25rem] w-full max-w-[31rem] [perspective:900px]"
+      aria-hidden="true"
+    >
+      <div className="absolute top-5 right-2 size-72 rounded-full bg-[#e97b3f]/16 blur-[70px]" />
+      <div className="absolute top-20 right-12 size-36 rounded-full bg-[#ffc568]/14 blur-[42px]" />
+
+      <div className="absolute inset-x-5 bottom-2 h-60 [transform:rotateX(54deg)] rounded-[48%_52%_18%_18%] border border-[#b77a51]/24 bg-[linear-gradient(155deg,#80523c_0%,#4a2e24_52%,#261815_100%)] shadow-[0_36px_70px_rgba(10,5,3,0.62),inset_0_2px_0_rgba(255,225,185,0.14)]">
+        <div className="absolute inset-0 rounded-[inherit] bg-[repeating-linear-gradient(4deg,transparent_0_30px,rgba(255,229,196,0.025)_31px_33px)]" />
+      </div>
+
+      <div className="absolute top-25 left-22 h-42 w-42 -rotate-7 [transform:rotateX(42deg)_rotateZ(-8deg)] rounded-lg border-[6px] border-[#8c5a3d] bg-[#334b3d] shadow-[12px_18px_35px_rgba(8,4,3,0.62),inset_0_0_28px_rgba(13,28,20,0.65)]">
+        <span className="absolute inset-4 rounded-sm border border-[#d0bd8d]/25" />
+        <span className="absolute top-[32%] left-[18%] size-5 rounded-full border border-[#d5bd82]/45 bg-[#8d4c38] shadow-lg" />
+        <span className="absolute right-[22%] bottom-[25%] size-4 rounded-full border border-[#d5bd82]/45 bg-[#c08a48] shadow-lg" />
+        <span className="absolute top-[47%] left-[48%] size-3 rounded-full bg-[#75906f] shadow-lg" />
+        <span className="absolute inset-x-8 top-1/2 h-px rotate-12 bg-[#d8c792]/20" />
+        <span className="absolute inset-y-7 left-1/2 w-px -rotate-8 bg-[#d8c792]/20" />
+      </div>
+
+      <div className="absolute right-7 bottom-23 h-27 w-18 rotate-12 rounded-md border border-[#d8bb87]/40 bg-[#e8d8b8] shadow-[8px_12px_24px_rgba(10,5,3,0.55)]">
+        <span className="absolute inset-2 rounded-sm border border-[#9e5d47]/45" />
+        <span className="absolute top-4 left-1/2 h-13 w-px -translate-x-1/2 rotate-35 bg-[#9e5d47]/35" />
+      </div>
+      <div className="absolute right-19 bottom-18 h-25 w-17 -rotate-6 rounded-md border border-[#d8bb87]/35 bg-[#c78a58] shadow-[7px_10px_20px_rgba(10,5,3,0.48)]" />
+
+      <div className="absolute bottom-27 left-9 size-10 rotate-12 rounded-xl border border-[#f0d4a0]/50 bg-[#dfc08a] shadow-[6px_10px_18px_rgba(10,5,3,0.52),inset_-3px_-4px_8px_rgba(94,48,27,0.28)]">
+        {[
+          "top-2 left-2",
+          "top-2 right-2",
+          "bottom-2 left-2",
+          "bottom-2 right-2",
+        ].map((position) => (
+          <span
+            key={position}
+            className={`absolute size-1.5 rounded-full bg-[#5b3427] ${position}`}
+          />
+        ))}
+      </div>
+
+      {[
+        ["left-20 bottom-18", "bg-[#a9563d]"],
+        ["left-36 bottom-14", "bg-[#657a60]"],
+        ["right-34 bottom-12", "bg-[#c1914c]"],
+      ].map(([position, color]) => (
+        <span key={position} className={`absolute ${position}`}>
+          <span
+            className={`block size-5 rounded-full ${color} shadow-[0_7px_14px_rgba(8,4,3,0.55)]`}
+          />
+          <span
+            className={`mx-auto -mt-1 block h-8 w-7 rounded-[45%_45%_35%_35%] ${color} shadow-[0_8px_14px_rgba(8,4,3,0.45)]`}
+          />
+        </span>
+      ))}
+
+      <span className="bg-moss absolute right-5 bottom-10 size-7 rounded-full border border-[#edcf8d]/35 shadow-[0_9px_20px_rgba(8,4,3,0.58)]" />
+      <span className="bg-accent absolute right-14 bottom-8 size-6 rounded-full border border-[#edcf8d]/35 shadow-[0_9px_20px_rgba(8,4,3,0.58)]" />
+    </div>
+  );
+}
+
 export function DashboardShowcase() {
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <section className="wood-grain fire-glow text-cream relative isolate overflow-hidden rounded-[2.25rem] border border-white/10 px-5 pt-8 pb-20 sm:px-9 sm:pt-10 sm:pb-24 lg:grid lg:min-h-[34rem] lg:grid-cols-[1.18fr_0.82fr] lg:items-center lg:gap-8 lg:px-12">
-        <svg
-          viewBox="0 0 800 340"
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-auto w-full opacity-35"
-        >
-          <path
-            d="m0 290 180-170 100 95L400 74l184 173 76-75 140 118v50H0Z"
-            fill="#596A56"
-          />
-          <path
-            d="m180 120 100 95 35-41M400 74l184 173 35-34"
-            fill="none"
-            stroke="#F6E7C8"
-            strokeWidth="8"
-            opacity=".45"
-          />
-        </svg>
-        <div className="bg-ember/15 absolute -top-24 -left-20 -z-10 size-80 rounded-full blur-3xl" />
-        <div className="absolute top-8 right-8 -z-10 hidden h-40 w-52 rounded-t-[5rem] border-[10px] border-[#6e4632]/70 bg-[#17201d]/70 shadow-[0_0_0_2px_rgba(229,190,122,0.14),inset_0_0_35px_rgba(0,0,0,0.5)] lg:block">
-          <span className="absolute inset-x-2 top-1/2 h-1 bg-[#6e4632]/80" />
-          <span className="absolute inset-y-2 left-1/2 w-1 bg-[#6e4632]/80" />
-        </div>
+    <div className="space-y-7 sm:space-y-9">
+      <section className="text-cream relative isolate overflow-hidden rounded-[2.4rem] border border-[#c99768]/16 bg-[linear-gradient(125deg,rgba(25,15,13,0.98),rgba(71,43,32,0.96)_52%,rgba(30,18,16,0.98))] px-5 py-8 shadow-[0_38px_100px_rgba(12,6,4,0.52),inset_0_1px_0_rgba(255,226,188,0.08)] sm:px-9 sm:py-10 lg:grid lg:min-h-[32rem] lg:grid-cols-[1.06fr_0.94fr] lg:items-center lg:gap-4 lg:px-12">
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_78%_52%,rgba(228,105,46,0.22),transparent_30%),radial-gradient(circle_at_55%_0,rgba(231,170,93,0.09),transparent_38%)]" />
+        <div className="pointer-events-none absolute inset-0 -z-10 [background-image:repeating-linear-gradient(90deg,transparent_0_92px,rgba(255,230,200,0.022)_93px_95px)] opacity-40" />
 
-        <div>
-          <span className="inline-flex rounded-full border border-[#e9c481]/25 bg-[#e9c481]/10 px-3 py-1.5 text-[0.65rem] font-bold tracking-[0.2em] text-[#ebc985] uppercase">
-            Krąg Graczy · ogień już płonie
+        <div className="relative z-10">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#d8ab72]/20 bg-black/16 px-3 py-1.5 text-[0.63rem] font-bold tracking-[0.2em] text-[#d7ad74] uppercase backdrop-blur-sm">
+            <span className="size-1.5 rounded-full bg-[#d78548] shadow-[0_0_12px_rgba(240,137,61,0.9)]" />
+            Krąg Graczy · wieczór trwa
           </span>
-          <h1 className="font-display mt-6 text-4xl leading-[1.08] font-semibold tracking-tight sm:text-5xl xl:text-6xl">
+          <h1 className="font-display mt-6 text-4xl leading-[1.07] font-semibold tracking-tight text-[#f3e7d4] drop-shadow-[0_4px_22px_rgba(0,0,0,0.38)] sm:text-5xl xl:text-6xl">
             Zbierz ekipę.
             <br />
             Wybierz grę.
-            <span className="mt-1 block text-[#efb65c]">Twoja tura.</span>
+            <span className="mt-1 block text-[#d99455]">Twoja tura.</span>
           </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-[#d7c8b7] sm:text-lg">
+          <p className="mt-5 max-w-xl text-base leading-7 text-[#cdbdad] sm:text-lg">
             Jedno ciepłe miejsce dla wspólnej kolekcji, planów na wieczór i
             historii partii, do których chce się wracać.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link
               href="/moja-polka"
-              className="bg-gold text-wood-dark rounded-xl px-4 py-3 text-sm font-bold shadow-lg transition-transform hover:-translate-y-0.5"
+              className="rounded-xl border border-[#e5b67a]/35 bg-[#a95f3d] px-4 py-3 text-sm font-bold text-[#fff1dc] shadow-[0_12px_26px_rgba(35,13,7,0.35)] transition-transform hover:-translate-y-0.5 hover:bg-[#b86b45]"
             >
               Otwórz Półkę Gier
             </Link>
             <Link
               href="/spotkania"
-              className="text-cream rounded-xl border border-white/15 bg-white/7 px-4 py-3 text-sm font-bold transition-colors hover:bg-white/12"
+              className="rounded-xl border border-white/12 bg-white/6 px-4 py-3 text-sm font-bold text-[#e4d6c6] backdrop-blur-sm transition-colors hover:bg-white/10"
             >
               Usiądź Przy Stole
             </Link>
           </div>
         </div>
 
-        <div className="relative mt-10 hidden justify-center lg:flex">
-          <div className="relative flex min-h-80 flex-col items-center justify-center">
-            <div className="bg-ember/25 absolute inset-10 rounded-full blur-3xl" />
-            <LogoMark variant="hero" tone="light" />
-            <div className="relative mt-5 h-16 w-44 rounded-t-[2.4rem] border-8 border-[#80523b] bg-[#24130f] shadow-[0_-9px_0_#5a382b,0_18px_40px_rgba(223,106,53,0.24)]">
-              <span className="bg-ember absolute bottom-1 left-1/2 h-11 w-8 -translate-x-1/2 rounded-[55%_45%_52%_48%] shadow-[0_0_24px_rgba(255,150,60,0.8)]" />
-              <span className="absolute bottom-1 left-1/2 h-7 w-4 -translate-x-1/2 rounded-full bg-[#ffd06e]" />
-            </div>
-          </div>
+        <div className="relative hidden items-center justify-center lg:flex">
+          <GameNightStillLife />
         </div>
 
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-13 border-t border-[#b47b4d]/35 bg-gradient-to-b from-[#754731] to-[#3a241c] shadow-[0_-14px_35px_rgba(0,0,0,0.25)]"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-16 border-t border-[#b37950]/18 bg-[linear-gradient(180deg,rgba(111,68,48,0.55),rgba(38,23,19,0.82))] shadow-[0_-22px_45px_rgba(8,4,3,0.2)] lg:hidden"
         >
-          <span className="absolute top-3 left-[12%] size-5 rotate-12 rounded-md border border-[#f6d99d]/45 bg-[#e9d4a8] shadow-lg">
-            <i className="bg-wood absolute top-1 left-1 size-1 rounded-full" />
-            <i className="bg-wood absolute right-1 bottom-1 size-1 rounded-full" />
-          </span>
-          <span className="bg-moss absolute top-4 left-[31%] size-4 rounded-full border border-[#efd492]/50 shadow-lg" />
-          <span className="bg-accent absolute top-2 left-[38%] size-4 rounded-full border border-[#efd492]/50 shadow-lg" />
-          <span className="absolute top-3 right-[22%] h-7 w-11 -rotate-6 rounded-sm border border-[#d8b46f]/40 bg-[#efe2c2]/85 shadow-lg" />
+          <span className="absolute top-4 left-[15%] size-5 rotate-12 rounded-md border border-[#f1d29a]/35 bg-[#d9ba85] shadow-lg" />
+          <span className="bg-moss absolute top-5 left-[43%] size-4 rounded-full shadow-lg" />
+          <span className="absolute top-3 right-[20%] h-7 w-11 -rotate-6 rounded-sm bg-[#e4d5ba] shadow-lg" />
         </div>
       </section>
 
       <section
-        className="rug-pattern grid gap-4 rounded-[2rem] border border-[#bda98c]/40 p-3 sm:p-4 md:grid-cols-3"
+        className="leather-panel relative grid gap-5 rounded-[2rem] border border-white/8 p-4 sm:p-6 md:grid-cols-3"
         aria-label="Krąg Graczy"
       >
+        <div className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(circle_at_85%_20%,rgba(223,106,53,0.12),transparent_22rem)]" />
         {circleCards.map((card) => (
-          <Panel key={card.label} className={`${card.surface} p-5 sm:p-6`}>
+          <Panel
+            key={card.label}
+            className={`parchment-card relative border-[#c6a77b]/55 p-5 sm:p-6 ${card.surface}`}
+          >
             <span
-              className={`inline-flex rounded-full px-3 py-1.5 text-[0.65rem] font-bold ${card.accent}`}
+              className={`absolute -top-2 left-1/2 h-5 w-14 -translate-x-1/2 -rotate-2 ${card.tape} shadow-sm`}
+            />
+            <p
+              className={`text-[0.63rem] font-bold tracking-[0.12em] uppercase ${card.accent}`}
             >
               {card.label}
-            </span>
-            <p className="font-display mt-5 text-2xl font-semibold">
+            </p>
+            <p className="font-display text-foreground mt-5 text-2xl font-semibold">
               {card.value}
             </p>
             <p className="text-muted mt-2 text-sm leading-6">{card.note}</p>
@@ -127,9 +169,9 @@ export function DashboardShowcase() {
         ))}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <Panel className="parchment-card overflow-hidden">
-          <div className="border-border flex items-center justify-between border-b bg-[#efe2cf]/55 px-5 py-4 sm:px-6">
+      <section className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <Panel className="parchment-card overflow-hidden border-[#c2a174]/55">
+          <div className="flex items-center justify-between border-b border-[#ccb48d] bg-[#e8d4b7]/50 px-5 py-4 sm:px-6">
             <p className="text-wood text-xs font-bold tracking-[0.16em] uppercase">
               Wieczór przy stole
             </p>
@@ -138,9 +180,9 @@ export function DashboardShowcase() {
             </span>
           </div>
           <div className="grid gap-6 p-5 sm:grid-cols-[7rem_1fr] sm:p-7">
-            <div className="bg-wood-dark text-cream grid min-h-32 place-items-center rounded-2xl text-center shadow-inner">
+            <div className="bg-wood-dark text-cream grid min-h-32 place-items-center rounded-2xl text-center shadow-[0_14px_28px_rgba(42,23,16,0.25),inset_0_1px_0_rgba(255,255,255,0.08)]">
               <div>
-                <span className="block text-xs font-bold tracking-widest text-[#d8b673] uppercase">
+                <span className="block text-xs font-bold tracking-widest text-[#c9945a] uppercase">
                   lipiec
                 </span>
                 <span className="font-display mt-1 block text-5xl font-semibold">
@@ -164,9 +206,7 @@ export function DashboardShowcase() {
                 {["M", "A", "K", "J"].map((initial, index) => (
                   <span
                     key={initial}
-                    className={`border-surface text-cream grid size-8 place-items-center rounded-full border-2 text-[0.65rem] font-bold ${
-                      index % 2 ? "bg-moss" : "bg-accent"
-                    } ${index ? "-ml-3" : ""}`}
+                    className={`border-surface text-cream grid size-8 place-items-center rounded-[55%_55%_42%_42%] border-2 text-[0.65rem] font-bold ${index % 2 ? "bg-moss" : "bg-wood"} ${index ? "-ml-3" : ""}`}
                   >
                     {initial}
                   </span>
@@ -179,24 +219,26 @@ export function DashboardShowcase() {
           </div>
         </Panel>
 
-        <Panel className="leather-panel text-cream border-white/10 p-5 sm:p-6">
-          <p className="text-xs font-bold tracking-[0.16em] text-[#dfbd7e] uppercase">
-            Szybki rzut oka
+        <Panel className="text-cream border-white/8 bg-[linear-gradient(145deg,rgba(58,36,29,0.96),rgba(32,21,18,0.98))] p-5 sm:p-6">
+          <p className="text-xs font-bold tracking-[0.16em] text-[#cba36d] uppercase">
+            Na drewnianym blacie
           </p>
           <div className="mt-5 space-y-3">
             {[
               ["Ankieta do wypełnienia", "Weekend 18–19 lipca", "bg-accent"],
               ["Nowa gra na półce", "Kroniki Szczytu", "bg-moss"],
-              ["Ostatnia partia", "Leśny Szlak · 82 min", "bg-gold"],
-            ].map(([label, detail, color]) => (
+              ["Ostatnia partia", "Leśny Szlak · 82 min", "bg-[#b9864d]"],
+            ].map(([label, detail, color], index) => (
               <div
                 key={label}
-                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/7 p-4"
+                className={`flex items-center gap-3 rounded-xl border border-white/8 bg-white/6 p-4 shadow-[0_10px_24px_rgba(0,0,0,0.14)] ${index % 2 ? "ml-2" : "mr-2"}`}
               >
-                <span className={`size-2.5 shrink-0 rounded-full ${color}`} />
+                <span
+                  className={`size-2.5 shrink-0 rounded-full ${color} shadow-[0_0_12px_currentColor]`}
+                />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{label}</p>
-                  <p className="mt-0.5 truncate text-xs text-[#beae9d]">
+                  <p className="mt-0.5 truncate text-xs text-[#bcae9f]">
                     {detail}
                   </p>
                 </div>

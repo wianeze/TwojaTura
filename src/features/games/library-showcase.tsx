@@ -29,45 +29,51 @@ export function LibraryShowcase() {
         </div>
       </div>
 
-      <div className="rug-pattern grid gap-4 p-4 sm:grid-cols-2 sm:p-6 lg:p-8 xl:grid-cols-4">
+      <div className="rug-pattern relative grid gap-5 overflow-hidden p-4 sm:grid-cols-2 sm:p-6 lg:p-8 xl:grid-cols-4">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_6%,rgba(225,142,63,0.2),transparent_30%),linear-gradient(180deg,rgba(42,24,18,0.1),rgba(24,13,10,0.3))]"
+        />
         {mockGames.map((game, index) => (
-          <Panel
-            key={game.id}
-            className={`parchment-card group hover:shadow-warm relative overflow-hidden border-[#c8ad83]/60 p-4 transition-transform duration-300 hover:-translate-y-1 ${
-              index % 2 ? "rotate-[0.2deg]" : "-rotate-[0.2deg]"
-            }`}
-          >
-            <span className="bg-gold/75 absolute top-0 right-5 h-8 w-3 shadow-sm" />
-            <div className="flex gap-4 sm:block xl:flex">
-              <GameCover
-                game={game}
-                size="card"
-                className="transition-transform duration-300 group-hover:-rotate-1"
-              />
-              <div className="min-w-0 flex-1 pt-2 sm:pt-4 xl:pt-2">
-                <span className="bg-moss-soft text-moss rounded-full px-2.5 py-1 text-[0.62rem] font-bold">
-                  {game.type}
-                </span>
-                <h2 className="font-display mt-3 text-xl font-semibold">
-                  {game.title}
-                </h2>
-                <p className="text-muted mt-2 text-xs leading-5">
-                  {game.players} graczy
-                  <br />
-                  {game.duration}
-                </p>
-                <p className="text-accent mt-4 inline-flex items-center gap-1.5 text-sm font-bold">
-                  <span className="bg-gold text-wood-dark grid size-6 place-items-center rounded-full text-[0.65rem] shadow-sm">
-                    ◆
-                  </span>{" "}
-                  {game.rating}
-                </p>
-                <p className="mt-4 border-t border-dashed border-[#cbb896] pt-3 text-[0.62rem] font-bold tracking-wider text-[#8a755e] uppercase">
-                  z półki {index % 2 ? "Ani" : "Marty"}
-                </p>
+          <div key={game.id} className="relative z-10 pb-3">
+            <Panel
+              className={`parchment-card group hover:shadow-warm relative h-full overflow-hidden border-[#c8ad83]/60 p-4 shadow-[0_18px_28px_rgba(21,10,7,0.3)] transition-transform duration-300 hover:-translate-y-1 ${
+                index % 2 ? "rotate-[0.2deg]" : "-rotate-[0.2deg]"
+              }`}
+            >
+              <span className="bg-gold/75 absolute top-0 right-5 h-8 w-3 shadow-sm" />
+              <div className="flex gap-4 sm:block xl:flex">
+                <GameCover
+                  game={game}
+                  size="card"
+                  className="transition-transform duration-300 group-hover:-rotate-1"
+                />
+                <div className="min-w-0 flex-1 pt-2 sm:pt-4 xl:pt-2">
+                  <span className="bg-moss-soft text-moss rounded-full px-2.5 py-1 text-[0.62rem] font-bold">
+                    {game.type}
+                  </span>
+                  <h2 className="font-display mt-3 text-xl font-semibold">
+                    {game.title}
+                  </h2>
+                  <p className="text-muted mt-2 text-xs leading-5">
+                    {game.players} graczy
+                    <br />
+                    {game.duration}
+                  </p>
+                  <p className="text-accent mt-4 inline-flex items-center gap-1.5 text-sm font-bold">
+                    <span className="bg-gold text-wood-dark grid size-6 place-items-center rounded-full text-[0.65rem] shadow-sm">
+                      ◆
+                    </span>{" "}
+                    {game.rating}
+                  </p>
+                  <p className="mt-4 border-t border-dashed border-[#cbb896] pt-3 text-[0.62rem] font-bold tracking-wider text-[#8a755e] uppercase">
+                    z półki {index % 2 ? "Ani" : "Marty"}
+                  </p>
+                </div>
               </div>
-            </div>
-          </Panel>
+            </Panel>
+            <span className="absolute right-1 bottom-0 left-1 h-4 rounded-b-lg border-t border-[#be8153]/55 bg-[linear-gradient(180deg,#70412b,#3a1f18_55%,#28150f)] shadow-[0_9px_12px_rgba(14,7,5,0.55)]" />
+          </div>
         ))}
       </div>
     </section>

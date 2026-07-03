@@ -1,4 +1,6 @@
 import { Panel } from "@/components/ui/panel";
+import { GameCover } from "@/components/ui/game-cover";
+import { mockGames } from "@/features/games/mock-games";
 
 const meetings = [
   {
@@ -106,6 +108,37 @@ export function MeetingsShowcase() {
             </div>
           </Panel>
         ))}
+      </section>
+
+      <section className="text-cream shadow-warm relative overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(145deg,#533428,#2d1d18)] p-5 sm:p-7">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_24%,rgba(221,111,54,0.18),transparent_18rem)]" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-xs">
+            <p className="text-[0.63rem] font-bold tracking-[0.18em] text-[#d4a566] uppercase">
+              Na ten wieczór
+            </p>
+            <h2 className="font-display mt-2 text-2xl font-semibold">
+              Pudełka już leżą na stole
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-[#c9b7a5]">
+              Statyczna makieta propozycji gier — później w tym miejscu pojawią
+              się głosy znajomych.
+            </p>
+          </div>
+          <div className="flex gap-5 overflow-x-auto px-2 pt-3 pb-5 lg:overflow-visible">
+            {mockGames.slice(0, 3).map((game, index) => (
+              <div
+                key={game.id}
+                className={`relative shrink-0 ${index === 1 ? "-translate-y-2 rotate-2" : index === 2 ? "-rotate-2" : "rotate-[-1deg]"}`}
+              >
+                <GameCover game={game} size="card" />
+                <span className="text-cream absolute -right-3 -bottom-3 grid size-10 place-items-center rounded-full border-2 border-[#efd09a] bg-[#7d3f2d] text-xs font-bold shadow-lg">
+                  {5 - index}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="leather-panel text-cream shadow-warm relative overflow-hidden rounded-[2rem] border border-white/10 p-4 sm:p-6 lg:p-8">

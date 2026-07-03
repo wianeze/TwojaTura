@@ -16,8 +16,10 @@ export function LogoEmblem({
   className = "size-12",
   title = "Emblemat Twoja Tura!",
 }: LogoEmblemProps) {
-  const gradientId = useId().replaceAll(":", "");
-  const glowId = `${gradientId}-glow`;
+  const id = useId().replaceAll(":", "");
+  const woodId = `${id}-wood`;
+  const copperId = `${id}-copper`;
+  const faceId = `${id}-face`;
 
   return (
     <svg
@@ -27,73 +29,101 @@ export function LogoEmblem({
       className={className}
     >
       <defs>
-        <linearGradient id={gradientId} x1="18" y1="8" x2="102" y2="128">
-          <stop stopColor="#754A35" />
-          <stop offset="1" stopColor="#2F1E19" />
+        <linearGradient id={woodId} x1="20" y1="10" x2="100" y2="125">
+          <stop stopColor="#503027" />
+          <stop offset="1" stopColor="#211511" />
         </linearGradient>
-        <radialGradient id={glowId} cx="50%" cy="55%" r="48%">
-          <stop stopColor="#F4C66C" stopOpacity=".82" />
-          <stop offset="1" stopColor="#DF6A35" stopOpacity="0" />
-        </radialGradient>
+        <linearGradient id={copperId} x1="18" y1="8" x2="102" y2="124">
+          <stop stopColor="#F0BD68" />
+          <stop offset=".48" stopColor="#B76032" />
+          <stop offset="1" stopColor="#6C2F22" />
+        </linearGradient>
+        <linearGradient id={faceId} x1="38" y1="34" x2="82" y2="92">
+          <stop stopColor="#FFE3A0" />
+          <stop offset="1" stopColor="#C87835" />
+        </linearGradient>
       </defs>
 
       <path
         d="M60 4 108 21v39c0 31-18 55-48 71C30 115 12 91 12 60V21L60 4Z"
-        fill={`url(#${gradientId})`}
-        stroke="#E6BA66"
-        strokeWidth="4"
+        fill={`url(#${copperId})`}
+        stroke="#F4CC7B"
+        strokeWidth="3"
       />
       <path
-        d="M60 12 99 26v34c0 26-14 46-39 60-25-14-39-34-39-60V26L60 12Z"
-        fill="none"
-        stroke="#FFF2D2"
-        strokeOpacity=".24"
+        d="M60 12 99 26v34c0 25-14 45-39 59-25-14-39-34-39-59V26L60 12Z"
+        fill={`url(#${woodId})`}
+        stroke="#7E472E"
         strokeWidth="2"
       />
-      <circle cx="31" cy="31" r="2" fill="#F3C873" opacity=".8" />
-      <circle cx="89" cy="31" r="2" fill="#F3C873" opacity=".8" />
-      <circle cx="60" cy="69" r="38" fill={`url(#${glowId})`} />
 
-      <path d="m25 59 20-22 14 17 9-11 27 31H25Z" fill="#9AA88F" />
       <path
-        d="m45 37 14 17 4-5 8 9"
+        d="M28 76c5-20 12-33 24-43"
         fill="none"
-        stroke="#F7EBD4"
+        stroke="#4F8B77"
         strokeWidth="3"
+        strokeLinecap="round"
       />
       <path
-        d="M24 73h72"
-        stroke="#E7B15B"
+        d="M92 76C87 56 80 43 68 33"
+        fill="none"
+        stroke="#8E5B78"
         strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <path
+        d="m35 61-7-4M40 49l-6-7M85 61l7-4M80 49l6-7"
+        stroke="#D8A85D"
+        strokeWidth="2"
         strokeLinecap="round"
       />
 
       <path
-        d="M28 78h64l-4 11H32l-4-11Z"
-        fill="#B87345"
-        stroke="#F1C276"
+        d="m60 31 24 16v29L60 94 36 76V47l24-16Z"
+        fill={`url(#${faceId})`}
+        stroke="#FFE2A0"
         strokeWidth="2"
-      />
-      <path
-        d="m38 89-5 18M82 89l5 18"
-        stroke="#DDA35B"
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
-
-      <circle cx="60" cy="72" r="5" fill="#FFE4A0" />
-      <path
-        d="M53 81c0-5 3-7 7-7s7 2 7 7l5 8-7 2-1 11h-8l-1-11-7-2 5-8Z"
-        fill="#F0A24B"
-        stroke="#FFF0C8"
-        strokeWidth="1.5"
         strokeLinejoin="round"
       />
       <path
-        d="M60 109c-5-4-7-8-5-12 1 3 3 4 5 5 0-5 3-8 6-11 2 7 1 13-6 18Z"
-        fill="#E96935"
+        d="m60 31 1 29 23-13M61 60 36 47M61 60l-1 34M61 60l23 16M61 60 36 76"
+        fill="none"
+        stroke="#8C421F"
+        strokeWidth="1.5"
+        opacity=".82"
       />
-      <path d="M60 106c-2-2-2-4 0-7 2 2 3 4 0 7Z" fill="#FFD06F" />
+      <path
+        d="m60 31-24 16 25 13 23-13-24-16Z"
+        fill="#FFD98C"
+        fillOpacity=".58"
+      />
+      <path d="m36 47 25 13-1 34-24-18V47Z" fill="#E19A48" fillOpacity=".55" />
+      <text
+        x="61"
+        y="70"
+        textAnchor="middle"
+        fill="#442319"
+        fontFamily="Georgia, serif"
+        fontSize="18"
+        fontWeight="700"
+      >
+        12
+      </text>
+
+      <circle
+        cx="60"
+        cy="108"
+        r="13"
+        fill="#36201B"
+        stroke="#E5A94C"
+        strokeWidth="3"
+      />
+      <path
+        d="m60 97 3.5 7.5L72 108l-8.5 3.5L60 120l-3.5-8.5L48 108l8.5-3.5L60 97Z"
+        fill="#F2B653"
+      />
+      <circle cx="31" cy="31" r="2" fill="#F7D584" />
+      <circle cx="89" cy="31" r="2" fill="#F7D584" />
     </svg>
   );
 }
@@ -119,7 +149,7 @@ export function LogoMark({
       />
 
       {!compact && (
-        <span className={hero ? "leading-none" : "leading-none"}>
+        <span className="leading-none">
           <span
             className={`font-display block font-semibold tracking-tight ${
               hero ? "text-4xl sm:text-5xl" : "text-xl"
