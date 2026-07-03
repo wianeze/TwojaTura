@@ -60,18 +60,77 @@ body {
   min-height: 100%;
   background:
     radial-gradient(
-      circle at 78% 4%,
-      rgba(214, 160, 68, 0.12),
-      transparent 28rem
-    ),
-    radial-gradient(
-      circle at 12% 80%,
-      rgba(92, 109, 89, 0.08),
+      circle at 76% -10%,
+      rgba(236, 175, 78, 0.2),
       transparent 32rem
     ),
+    radial-gradient(
+      circle at 8% 72%,
+      rgba(83, 51, 35, 0.11),
+      transparent 34rem
+    ),
+    linear-gradient(90deg, rgba(100, 67, 45, 0.025) 1px, transparent 1px),
     var(--background);
+  background-size:
+    auto,
+    auto,
+    72px 100%,
+    auto;
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+.cabin-ambient {
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+  background:
+    radial-gradient(
+      circle at 83% 9%,
+      rgba(255, 208, 122, 0.2),
+      transparent 20rem
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 250, 239, 0.34),
+      rgba(229, 216, 196, 0.18)
+    );
+}
+
+.cabin-ambient::before {
+  position: fixed;
+  z-index: -1;
+  right: -8rem;
+  bottom: -11rem;
+  width: 34rem;
+  height: 34rem;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    rgba(223, 106, 53, 0.19),
+    rgba(214, 160, 68, 0.06) 42%,
+    transparent 70%
+  );
+  filter: blur(14px);
+  content: "";
+  pointer-events: none;
+}
+
+.cabin-ambient::after {
+  position: fixed;
+  z-index: -1;
+  inset: auto 0 0;
+  height: 13rem;
+  background:
+    linear-gradient(90deg, transparent, rgba(80, 49, 33, 0.07), transparent),
+    repeating-linear-gradient(
+      4deg,
+      transparent 0 27px,
+      rgba(92, 57, 38, 0.035) 28px 30px
+    );
+  mask-image: linear-gradient(to bottom, transparent, black);
+  content: "";
+  pointer-events: none;
 }
 
 .wood-grain {
@@ -99,6 +158,62 @@ body {
       rgba(255, 255, 255, 0.72),
       rgba(255, 250, 240, 0.92)
     );
+}
+
+.material-panel {
+  background-image:
+    radial-gradient(
+      circle at 100% 0,
+      rgba(214, 160, 68, 0.11),
+      transparent 12rem
+    ),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.6), rgba(255, 249, 238, 0.35));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 20px 48px rgba(58, 38, 27, 0.1),
+    0 3px 10px rgba(58, 38, 27, 0.05);
+}
+
+.parchment-card {
+  background:
+    radial-gradient(
+      circle at 12% 4%,
+      rgba(255, 255, 255, 0.8),
+      transparent 12rem
+    ),
+    linear-gradient(145deg, #fffaf0, #efe0c8);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 18px 46px rgba(72, 43, 25, 0.16),
+    0 3px 8px rgba(72, 43, 25, 0.08);
+}
+
+.leather-panel {
+  background:
+    radial-gradient(
+      circle at 20% 0,
+      rgba(216, 160, 68, 0.12),
+      transparent 15rem
+    ),
+    linear-gradient(150deg, #684331, #3b251e 75%);
+  box-shadow:
+    0 0 0 1px rgba(246, 219, 167, 0.12) inset,
+    0 20px 52px rgba(45, 25, 17, 0.24);
+}
+
+.rug-pattern {
+  background-color: #ded0ba;
+  background-image:
+    linear-gradient(45deg, rgba(111, 62, 40, 0.045) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(80, 103, 78, 0.045) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(111, 62, 40, 0.045) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(80, 103, 78, 0.045) 75%);
+  background-position:
+    0 0,
+    0 12px,
+    12px -12px,
+    -12px 0;
+  background-size: 24px 24px;
 }
 
 .fire-glow {

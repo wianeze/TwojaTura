@@ -6,7 +6,7 @@ export default function MeetingsPage() {
     <div className="space-y-7">
       <SectionHeading
         eyebrow="Przy Stole"
-        title="Spotkania"
+        title="Przy Stole"
         description="Zaproszenia na wspólny wieczór, proponowane terminy i decyzje podejmowane spokojnie przy jednym stole."
         action={
           <span className="border-border bg-surface text-muted w-fit rounded-full border px-4 py-2 text-xs font-bold shadow-sm">

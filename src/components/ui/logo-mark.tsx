@@ -41,14 +41,17 @@ export function LogoEmblem({
         d="M60 4 108 21v39c0 31-18 55-48 71C30 115 12 91 12 60V21L60 4Z"
         fill={`url(#${gradientId})`}
         stroke="#E6BA66"
-        strokeWidth="3"
+        strokeWidth="4"
       />
       <path
         d="M60 12 99 26v34c0 26-14 46-39 60-25-14-39-34-39-60V26L60 12Z"
         fill="none"
         stroke="#FFF2D2"
         strokeOpacity=".24"
+        strokeWidth="2"
       />
+      <circle cx="31" cy="31" r="2" fill="#F3C873" opacity=".8" />
+      <circle cx="89" cy="31" r="2" fill="#F3C873" opacity=".8" />
       <circle cx="60" cy="69" r="38" fill={`url(#${glowId})`} />
 
       <path d="m25 59 20-22 14 17 9-11 27 31H25Z" fill="#9AA88F" />

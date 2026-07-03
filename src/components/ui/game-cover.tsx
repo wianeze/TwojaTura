@@ -2,7 +2,7 @@ import type { MockGame } from "@/features/games/mock-games";
 
 type GameCoverProps = {
   game: MockGame;
-  size?: "shelf" | "preview" | "card";
+  size?: "shelf" | "preview" | "card" | MockGame["coverSize"];
   className?: string;
 };
 
@@ -73,6 +73,10 @@ const sizeClasses = {
   shelf: "h-48 w-32 sm:h-56 sm:w-36",
   preview: "h-64 w-44",
   card: "h-52 w-36",
+  tall: "h-52 w-31 sm:h-62 sm:w-37",
+  wide: "h-46 w-35 sm:h-55 sm:w-42",
+  classic: "h-49 w-32 sm:h-58 sm:w-38",
+  slim: "h-50 w-28 sm:h-60 sm:w-33",
 };
 
 export function GameCover({

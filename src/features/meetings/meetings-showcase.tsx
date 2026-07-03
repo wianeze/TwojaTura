@@ -10,6 +10,7 @@ const meetings = [
     place: "Górska Chata u Michała",
     status: "Potwierdzone",
     statusClass: "bg-moss-soft text-moss",
+    participants: ["M", "A", "K", "J"],
   },
   {
     date: "18",
@@ -20,6 +21,7 @@ const meetings = [
     place: "Przy dużym stole u Ani",
     status: "Trwa ankieta",
     statusClass: "bg-accent-soft text-accent",
+    participants: ["A", "M", "K"],
   },
   {
     date: "01",
@@ -30,6 +32,7 @@ const meetings = [
     place: "Lokalizacja do ustalenia",
     status: "Planowane",
     statusClass: "bg-[#f3e6c8] text-[#896527]",
+    participants: ["J", "A"],
   },
 ];
 
@@ -50,9 +53,13 @@ export function MeetingsShowcase() {
         {meetings.map((meeting, index) => (
           <Panel
             key={`${meeting.date}-${meeting.title}`}
-            className={`relative overflow-hidden p-5 sm:p-6 ${index === 0 ? "ring-gold/40 ring-1" : ""}`}
+            className={`parchment-card relative overflow-hidden border-[#cbae7f]/60 p-5 sm:p-6 ${index === 0 ? "ring-gold/40 -rotate-[0.25deg] ring-1" : index === 1 ? "rotate-[0.2deg]" : "-rotate-[0.15deg]"}`}
           >
             <span className="via-gold absolute inset-x-5 top-0 h-1 rounded-b-full bg-gradient-to-r from-transparent to-transparent opacity-70" />
+            <span
+              aria-hidden="true"
+              className="border-accent/12 absolute top-4 -right-5 size-17 rotate-12 rounded-full border-[5px]"
+            />
             <div className="flex items-start justify-between gap-4">
               <div className="bg-wood-dark text-cream grid size-18 shrink-0 place-items-center rounded-2xl text-center shadow-inner">
                 <span>
@@ -76,15 +83,36 @@ export function MeetingsShowcase() {
             <h2 className="font-display mt-5 min-h-14 text-xl leading-7 font-semibold">
               {meeting.title}
             </h2>
-            <div className="border-border text-muted mt-5 border-t border-dashed pt-4 text-xs leading-5">
-              <p className="text-foreground font-bold">{meeting.time}</p>
-              <p>{meeting.place}</p>
+            <div className="border-border text-muted mt-5 flex items-end justify-between gap-3 border-t border-dashed pt-4 text-xs leading-5">
+              <div>
+                <p className="text-foreground font-bold">{meeting.time}</p>
+                <p>{meeting.place}</p>
+              </div>
+              <div
+                className="flex -space-x-2"
+                aria-label={`${meeting.participants.length} uczestników`}
+              >
+                {meeting.participants.map((initial, participantIndex) => (
+                  <span
+                    key={`${initial}-${participantIndex}`}
+                    className={`text-cream relative grid size-8 place-items-center rounded-[55%_55%_45%_45%] border-2 border-[#f7ead4] text-[0.6rem] font-bold shadow-sm ${
+                      participantIndex % 2 ? "bg-moss" : "bg-wood"
+                    }`}
+                  >
+                    {initial}
+                  </span>
+                ))}
+              </div>
             </div>
           </Panel>
         ))}
       </section>
 
-      <section className="wood-grain text-cream shadow-warm rounded-[2rem] border border-white/10 p-4 sm:p-6 lg:p-8">
+      <section className="leather-panel text-cream shadow-warm relative overflow-hidden rounded-[2rem] border border-white/10 p-4 sm:p-6 lg:p-8">
+        <span
+          aria-hidden="true"
+          className="absolute -top-12 right-[12%] h-28 w-40 rotate-3 rounded-md border border-white/8 bg-[#efe1c4]/6 shadow-lg"
+        />
         <div className="flex flex-col gap-3 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[0.65rem] font-bold tracking-[0.2em] text-[#d8b773] uppercase">

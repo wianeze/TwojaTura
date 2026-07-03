@@ -8,25 +8,28 @@ const circleCards = [
     value: "Sobota · 18:00",
     note: "Górska Chata u Michała",
     accent: "bg-[#f5e4ca] text-[#855727]",
+    surface: "parchment-card -rotate-[0.35deg]",
   },
   {
     label: "Ankieta dostępności",
     value: "4 z 6 osób",
     note: "Dwie odpowiedzi jeszcze czekają",
     accent: "bg-moss-soft text-moss",
+    surface: "bg-[#f2eadc] rotate-[0.25deg]",
   },
   {
     label: "Propozycje na stół",
     value: "3 gry",
     note: "Ostatnia Latarnia prowadzi",
     accent: "bg-accent-soft text-accent",
+    surface: "parchment-card -rotate-[0.2deg]",
   },
 ];
 
 export function DashboardShowcase() {
   return (
     <div className="space-y-6 sm:space-y-8">
-      <section className="wood-grain fire-glow text-cream relative isolate overflow-hidden rounded-[2.25rem] border border-white/10 px-5 py-8 sm:px-9 sm:py-10 lg:grid lg:min-h-[32rem] lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:gap-8 lg:px-12">
+      <section className="wood-grain fire-glow text-cream relative isolate overflow-hidden rounded-[2.25rem] border border-white/10 px-5 pt-8 pb-20 sm:px-9 sm:pt-10 sm:pb-24 lg:grid lg:min-h-[34rem] lg:grid-cols-[1.18fr_0.82fr] lg:items-center lg:gap-8 lg:px-12">
         <svg
           viewBox="0 0 800 340"
           aria-hidden="true"
@@ -45,17 +48,21 @@ export function DashboardShowcase() {
           />
         </svg>
         <div className="bg-ember/15 absolute -top-24 -left-20 -z-10 size-80 rounded-full blur-3xl" />
+        <div className="absolute top-8 right-8 -z-10 hidden h-40 w-52 rounded-t-[5rem] border-[10px] border-[#6e4632]/70 bg-[#17201d]/70 shadow-[0_0_0_2px_rgba(229,190,122,0.14),inset_0_0_35px_rgba(0,0,0,0.5)] lg:block">
+          <span className="absolute inset-x-2 top-1/2 h-1 bg-[#6e4632]/80" />
+          <span className="absolute inset-y-2 left-1/2 w-1 bg-[#6e4632]/80" />
+        </div>
 
         <div>
           <span className="inline-flex rounded-full border border-[#e9c481]/25 bg-[#e9c481]/10 px-3 py-1.5 text-[0.65rem] font-bold tracking-[0.2em] text-[#ebc985] uppercase">
-            Planszówkowy Krąg
+            Krąg Graczy · ogień już płonie
           </span>
-          <p className="font-display mt-6 text-4xl leading-[1.08] font-semibold tracking-tight sm:text-5xl xl:text-6xl">
+          <h1 className="font-display mt-6 text-4xl leading-[1.08] font-semibold tracking-tight sm:text-5xl xl:text-6xl">
             Zbierz ekipę.
             <br />
             Wybierz grę.
             <span className="mt-1 block text-[#efb65c]">Twoja tura.</span>
-          </p>
+          </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-[#d7c8b7] sm:text-lg">
             Jedno ciepłe miejsce dla wspólnej kolekcji, planów na wieczór i
             historii partii, do których chce się wracać.
@@ -65,31 +72,48 @@ export function DashboardShowcase() {
               href="/moja-polka"
               className="bg-gold text-wood-dark rounded-xl px-4 py-3 text-sm font-bold shadow-lg transition-transform hover:-translate-y-0.5"
             >
-              Otwórz moją półkę
+              Otwórz Półkę Gier
             </Link>
             <Link
               href="/spotkania"
               className="text-cream rounded-xl border border-white/15 bg-white/7 px-4 py-3 text-sm font-bold transition-colors hover:bg-white/12"
             >
-              Zobacz spotkania
+              Usiądź Przy Stole
             </Link>
           </div>
         </div>
 
-        <div className="mt-10 flex justify-center lg:mt-0">
-          <div className="relative">
+        <div className="relative mt-10 hidden justify-center lg:flex">
+          <div className="relative flex min-h-80 flex-col items-center justify-center">
             <div className="bg-ember/25 absolute inset-10 rounded-full blur-3xl" />
             <LogoMark variant="hero" tone="light" />
+            <div className="relative mt-5 h-16 w-44 rounded-t-[2.4rem] border-8 border-[#80523b] bg-[#24130f] shadow-[0_-9px_0_#5a382b,0_18px_40px_rgba(223,106,53,0.24)]">
+              <span className="bg-ember absolute bottom-1 left-1/2 h-11 w-8 -translate-x-1/2 rounded-[55%_45%_52%_48%] shadow-[0_0_24px_rgba(255,150,60,0.8)]" />
+              <span className="absolute bottom-1 left-1/2 h-7 w-4 -translate-x-1/2 rounded-full bg-[#ffd06e]" />
+            </div>
           </div>
+        </div>
+
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 h-13 border-t border-[#b47b4d]/35 bg-gradient-to-b from-[#754731] to-[#3a241c] shadow-[0_-14px_35px_rgba(0,0,0,0.25)]"
+        >
+          <span className="absolute top-3 left-[12%] size-5 rotate-12 rounded-md border border-[#f6d99d]/45 bg-[#e9d4a8] shadow-lg">
+            <i className="bg-wood absolute top-1 left-1 size-1 rounded-full" />
+            <i className="bg-wood absolute right-1 bottom-1 size-1 rounded-full" />
+          </span>
+          <span className="bg-moss absolute top-4 left-[31%] size-4 rounded-full border border-[#efd492]/50 shadow-lg" />
+          <span className="bg-accent absolute top-2 left-[38%] size-4 rounded-full border border-[#efd492]/50 shadow-lg" />
+          <span className="absolute top-3 right-[22%] h-7 w-11 -rotate-6 rounded-sm border border-[#d8b46f]/40 bg-[#efe2c2]/85 shadow-lg" />
         </div>
       </section>
 
       <section
-        className="grid gap-4 md:grid-cols-3"
-        aria-label="Planszówkowy Krąg"
+        className="rug-pattern grid gap-4 rounded-[2rem] border border-[#bda98c]/40 p-3 sm:p-4 md:grid-cols-3"
+        aria-label="Krąg Graczy"
       >
         {circleCards.map((card) => (
-          <Panel key={card.label} className="paper-wash p-5 sm:p-6">
+          <Panel key={card.label} className={`${card.surface} p-5 sm:p-6`}>
             <span
               className={`inline-flex rounded-full px-3 py-1.5 text-[0.65rem] font-bold ${card.accent}`}
             >
@@ -104,7 +128,7 @@ export function DashboardShowcase() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <Panel className="overflow-hidden">
+        <Panel className="parchment-card overflow-hidden">
           <div className="border-border flex items-center justify-between border-b bg-[#efe2cf]/55 px-5 py-4 sm:px-6">
             <p className="text-wood text-xs font-bold tracking-[0.16em] uppercase">
               Wieczór przy stole
@@ -155,8 +179,8 @@ export function DashboardShowcase() {
           </div>
         </Panel>
 
-        <Panel className="paper-wash p-5 sm:p-6">
-          <p className="text-wood text-xs font-bold tracking-[0.16em] uppercase">
+        <Panel className="leather-panel text-cream border-white/10 p-5 sm:p-6">
+          <p className="text-xs font-bold tracking-[0.16em] text-[#dfbd7e] uppercase">
             Szybki rzut oka
           </p>
           <div className="mt-5 space-y-3">
@@ -167,12 +191,14 @@ export function DashboardShowcase() {
             ].map(([label, detail, color]) => (
               <div
                 key={label}
-                className="border-border/70 bg-surface/75 flex items-center gap-3 rounded-2xl border p-4"
+                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/7 p-4"
               >
                 <span className={`size-2.5 shrink-0 rounded-full ${color}`} />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{label}</p>
-                  <p className="text-muted mt-0.5 truncate text-xs">{detail}</p>
+                  <p className="mt-0.5 truncate text-xs text-[#beae9d]">
+                    {detail}
+                  </p>
                 </div>
               </div>
             ))}

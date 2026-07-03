@@ -4,24 +4,24 @@ import { mockGames } from "./mock-games";
 
 export function LibraryShowcase() {
   return (
-    <section className="border-border/80 rounded-[2rem] border bg-[#e9dfcf]/70 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <section className="shadow-warm overflow-hidden rounded-[2rem] border border-[#8b674f]/35">
+      <div className="leather-panel text-cream flex flex-col gap-3 border-b border-white/10 p-4 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
         <label className="relative block max-w-xl flex-1">
           <span className="sr-only">Wyszukaj grę</span>
-          <span className="text-muted absolute top-1/2 left-4 -translate-y-1/2">
+          <span className="absolute top-1/2 left-4 -translate-y-1/2 text-[#dfbd7e]">
             ⌕
           </span>
           <input
             readOnly
             placeholder="Znajdź grę w salonie…"
-            className="border-border bg-surface placeholder:text-muted/75 focus:border-gold h-12 w-full rounded-2xl border pl-10 text-sm outline-none"
+            className="text-cream focus:border-gold h-12 w-full rounded-2xl border border-white/12 bg-black/12 pl-10 text-sm outline-none placeholder:text-[#c7b7a5]"
           />
         </label>
         <div className="flex flex-wrap gap-2" aria-label="Przykładowe filtry">
           {["2–4 graczy", "do 60 min", "strategiczne"].map((filter) => (
             <span
               key={filter}
-              className="border-border bg-surface text-muted rounded-full border px-3 py-2 text-xs font-semibold"
+              className="rounded-full border border-white/12 bg-white/7 px-3 py-2 text-xs font-semibold text-[#d8c9b8]"
             >
               {filter}
             </span>
@@ -29,12 +29,15 @@ export function LibraryShowcase() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {mockGames.map((game) => (
+      <div className="rug-pattern grid gap-4 p-4 sm:grid-cols-2 sm:p-6 lg:p-8 xl:grid-cols-4">
+        {mockGames.map((game, index) => (
           <Panel
             key={game.id}
-            className="group hover:shadow-warm overflow-hidden p-4 transition-transform duration-300 hover:-translate-y-1"
+            className={`parchment-card group hover:shadow-warm relative overflow-hidden border-[#c8ad83]/60 p-4 transition-transform duration-300 hover:-translate-y-1 ${
+              index % 2 ? "rotate-[0.2deg]" : "-rotate-[0.2deg]"
+            }`}
           >
+            <span className="bg-gold/75 absolute top-0 right-5 h-8 w-3 shadow-sm" />
             <div className="flex gap-4 sm:block xl:flex">
               <GameCover
                 game={game}
@@ -54,7 +57,13 @@ export function LibraryShowcase() {
                   {game.duration}
                 </p>
                 <p className="text-accent mt-4 inline-flex items-center gap-1.5 text-sm font-bold">
-                  <span className="text-gold">◆</span> {game.rating}
+                  <span className="bg-gold text-wood-dark grid size-6 place-items-center rounded-full text-[0.65rem] shadow-sm">
+                    ◆
+                  </span>{" "}
+                  {game.rating}
+                </p>
+                <p className="mt-4 border-t border-dashed border-[#cbb896] pt-3 text-[0.62rem] font-bold tracking-wider text-[#8a755e] uppercase">
+                  z półki {index % 2 ? "Ani" : "Marty"}
                 </p>
               </div>
             </div>

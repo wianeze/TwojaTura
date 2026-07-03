@@ -9,6 +9,7 @@ export type MockGame = {
   description: string;
   gradient: string;
   symbol: "mountain" | "harbor" | "lighthouse" | "compass";
+  coverSize: "tall" | "wide" | "classic" | "slim";
 };
 
 export const mockGames: MockGame[] = [
@@ -24,6 +25,7 @@ export const mockGames: MockGame[] = [
       "Spokojna strategia o wytyczaniu szlaków, odkrywaniu polan i budowaniu wspólnej mapy lasu.",
     gradient: "from-[#31483a] via-[#52674d] to-[#17231d]",
     symbol: "mountain",
+    coverSize: "tall",
   },
   {
     id: "portowe-opowiesci",
@@ -37,6 +39,7 @@ export const mockGames: MockGame[] = [
       "Lekka gra ekonomiczna o rozwijaniu portu i opowieściach przywożonych z dalekich wypraw.",
     gradient: "from-[#28434b] via-[#3f6870] to-[#172b31]",
     symbol: "harbor",
+    coverSize: "wide",
   },
   {
     id: "ostatnia-latarnia",
@@ -50,6 +53,7 @@ export const mockGames: MockGame[] = [
       "Kooperacyjna wyprawa przez zimne wybrzeże, w której każde światło może wskazać drogę do domu.",
     gradient: "from-[#6c3529] via-[#a85737] to-[#2b1c19]",
     symbol: "lighthouse",
+    coverSize: "slim",
   },
   {
     id: "kroniki-szczytu",
@@ -63,5 +67,6 @@ export const mockGames: MockGame[] = [
       "Dynamiczna gra rodzinna o planowaniu górskiej trasy i odrobinie przyjaznego blefu.",
     gradient: "from-[#76552d] via-[#ae8242] to-[#3a2819]",
     symbol: "compass",
+    coverSize: "classic",
   },
 ];

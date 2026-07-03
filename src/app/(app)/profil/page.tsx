@@ -4,7 +4,7 @@ export default function ProfilePage() {
   return (
     <FeaturePlaceholder
       eyebrow="Twoje konto"
-      title="Profil"
+      title="Karta Gracza"
       description="Nazwa, email i opcjonalny avatar będą dostępne po podłączeniu logowania."
       icon="profile"
     />

@@ -16,24 +16,34 @@ type NavigationItem = {
 };
 
 const navigationItems: NavigationItem[] = [
-  { href: "/", label: "Dashboard", shortLabel: "Start", icon: "dashboard" },
+  {
+    href: "/",
+    label: "Krąg Graczy",
+    shortLabel: "Krąg",
+    icon: "dashboard",
+  },
   {
     href: "/moja-polka",
-    label: "Moja półka",
+    label: "Półka Gier",
     shortLabel: "Półka",
     icon: "shelf",
   },
-  { href: "/gry", label: "Biblioteka", shortLabel: "Gry", icon: "games" },
+  {
+    href: "/gry",
+    label: "Salon Gier",
+    shortLabel: "Salon",
+    icon: "games",
+  },
   {
     href: "/spotkania",
-    label: "Spotkania",
-    shortLabel: "Spotkania",
+    label: "Przy Stole",
+    shortLabel: "Stół",
     icon: "meetings",
   },
   {
     href: "/rozgrywki",
-    label: "Rozgrywki",
-    shortLabel: "Partie",
+    label: "Kronika Partii",
+    shortLabel: "Kronika",
     icon: "plays",
   },
 ];
@@ -87,7 +97,7 @@ export function DesktopNavigation() {
           <span className="block truncate text-sm font-semibold">
             Gość przy stole
           </span>
-          <span className="block text-xs text-[#aa9a8a]">Profil</span>
+          <span className="block text-xs text-[#aa9a8a]">Karta Gracza</span>
         </span>
       </Link>
     </aside>

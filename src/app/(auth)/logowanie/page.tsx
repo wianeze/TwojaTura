@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Panel } from "@/components/ui/panel";
 
 export const metadata: Metadata = {
-  title: "Logowanie",
+  title: "Wejście do Chaty",
 };
 
 export default function LoginPage() {
@@ -12,7 +12,7 @@ export default function LoginPage() {
         Tylko dla zaproszonych
       </p>
       <h1 className="font-display mt-3 text-3xl font-semibold">
-        Zajmij swoje miejsce
+        Wejście do Chaty
       </h1>
       <p className="text-muted mt-3 text-sm leading-6">
         Dostęp do klubu będzie możliwy wyłącznie z zaproszenia. Formularz jest

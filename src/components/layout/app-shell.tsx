@@ -14,7 +14,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
       <DesktopNavigation />
-      <div className="min-w-0">
+      <div className="cabin-ambient min-w-0">
         <header className="wood-grain flex h-17 items-center justify-between border-b border-white/8 px-4 lg:hidden">
           <LogoMark compact tone="light" />
           <Link
@@ -25,11 +25,11 @@ export function AppShell({ children }: AppShellProps) {
             G
           </Link>
         </header>
-        <main className="mx-auto w-full max-w-[90rem] px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:py-10 xl:px-12">
+        <main className="relative mx-auto w-full max-w-[90rem] px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:py-10 xl:px-12">
           {children}
         </main>
+        <MobileNavigation />
       </div>
-      <MobileNavigation />
     </div>
   );
 }
