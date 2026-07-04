@@ -4,16 +4,20 @@ import { useEffect, useState } from "react";
 import { GameCover } from "@/components/ui/game-cover";
 import { mockGames, type MockGame } from "./mock-games";
 
+function formatRating(value: number) {
+  return value.toFixed(1).replace(".", ",");
+}
+
 function GameFacts({ game }: { game: MockGame }) {
   return (
-    <dl className="grid grid-cols-2 gap-2 text-xs">
+    <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
       {[
         ["Gracze", game.players],
         ["Czas", game.duration],
         ["Typ", game.type],
-        ["Ocena", `${game.rating} / 10`],
+        ["Rok", String(game.releaseYear)],
       ].map(([label, value]) => (
-        <div key={label} className="bg-background/80 rounded-xl px-3 py-2.5">
+        <div key={label} className="paper-wash rounded-xl px-3 py-2.5">
           <dt className="text-muted text-[0.62rem] font-bold tracking-wider uppercase">
             {label}
           </dt>
@@ -24,8 +28,180 @@ function GameFacts({ game }: { game: MockGame }) {
   );
 }
 
+function TagList({ label, values }: { label: string; values: string[] }) {
+  return (
+    <div>
+      <p className="text-muted text-[0.6rem] font-bold tracking-wider uppercase">
+        {label}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {values.map((value) => (
+          <span
+            key={value}
+            className="rounded-full bg-[#ead9b9] px-2.5 py-1 text-[0.65rem] font-semibold text-[#705538] shadow-sm"
+          >
+            {value}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type ShelfSegmentProps = {
+  games: MockGame[];
+  label: string;
+  onSelect: (game: MockGame) => void;
+};
+
+function ShelfSegment({ games, label, onSelect }: ShelfSegmentProps) {
+  return (
+    <div
+      className="shelf-row-bg premium-edge relative overflow-visible rounded-[1.5rem] px-3 pt-7 pb-8 shadow-[inset_0_16px_34px_rgba(8,4,3,0.42)] sm:px-5 sm:pt-8 sm:pb-10 xl:pt-9 xl:pb-11"
+      aria-label={label}
+    >
+      <div className="absolute inset-0 rounded-[inherit] bg-[linear-gradient(180deg,rgba(12,6,4,0.08),rgba(12,6,4,0.12)_45%,rgba(12,6,4,0.58))]" />
+      <div className="shelf-segment-grid relative items-end">
+        {games.map((game, index) => (
+          <div
+            key={game.id}
+            className="relative flex min-w-0 items-end justify-center"
+          >
+            <button
+              type="button"
+              onClick={() => onSelect(game)}
+              className="group focus-visible:ring-gold focus-visible:ring-offset-wood-dark relative rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-offset-4"
+              aria-label={`Otwórz kartę gry ${game.title}`}
+              aria-haspopup="dialog"
+            >
+              <GameCover
+                game={game}
+                size="shelf"
+                className="transition-transform duration-300 group-hover:-translate-y-2 group-focus-visible:-translate-y-2"
+              />
+
+              <div
+                aria-hidden="true"
+                className={`parchment-card text-foreground shadow-warm pointer-events-none invisible absolute bottom-[calc(100%+0.75rem)] z-40 hidden w-80 rounded-[1.4rem] p-4 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 lg:block ${
+                  index === 0
+                    ? "left-0"
+                    : index === games.length - 1
+                      ? "right-0"
+                      : "left-1/2 -translate-x-1/2"
+                }`}
+              >
+                <div className="flex gap-3">
+                  <GameCover game={game} size="mini" />
+                  <div className="min-w-0 flex-1 py-1">
+                    <p className="font-display text-lg font-semibold">
+                      {game.title}
+                    </p>
+                    <p className="text-muted mt-2 line-clamp-3 text-xs leading-5">
+                      {game.description}
+                    </p>
+                    <p className="text-accent mt-2 text-xs font-bold">
+                      {game.players} · {game.duration} · {game.releaseYear}
+                    </p>
+                    <dl className="text-muted mt-2 space-y-1 text-[0.65rem]">
+                      <div className="flex justify-between gap-2">
+                        <dt>Właściciel / u kogo</dt>
+                        <dd className="text-right font-semibold">
+                          {game.owner} / {game.currentHolder}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt>BGG</dt>
+                        <dd className="text-right font-semibold">
+                          #{game.bgg.rank} · {formatRating(game.bgg.rating)} ·
+                          waga {formatRating(game.bgg.weight)}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt>Grupa</dt>
+                        <dd className="text-right font-semibold">
+                          {formatRating(game.community.averageRating)} ·{" "}
+                          {game.community.playsCount} partii
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt>Ostatnio</dt>
+                        <dd className="text-right font-semibold">
+                          {game.community.lastPlayedAt ??
+                            "jeszcze nie graliśmy"}
+                        </dd>
+                      </div>
+                    </dl>
+                    {game.expansions.length > 0 && (
+                      <p className="mt-2 text-[0.65rem] font-semibold text-[#76532f]">
+                        Dodatki: {game.expansions.join(", ")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function groupGames(games: MockGame[], groupSize: number) {
+  const groups: MockGame[][] = [];
+
+  for (let index = 0; index < games.length; index += groupSize) {
+    groups.push(games.slice(index, index + groupSize));
+  }
+
+  const lastGroup = groups.at(-1);
+  const previousGroup = groups.at(-2);
+
+  if (lastGroup?.length === 1 && previousGroup && previousGroup.length > 2) {
+    lastGroup.unshift(previousGroup.pop() as MockGame);
+  }
+
+  return groups;
+}
+
 export function ShelfShowcase() {
   const [selectedGame, setSelectedGame] = useState<MockGame | null>(null);
+  const [groupSize, setGroupSize] = useState(3);
+
+  useEffect(() => {
+    const smallMobileQuery = window.matchMedia("(min-width: 360px)");
+    const tabletQuery = window.matchMedia("(min-width: 768px)");
+    const desktopQuery = window.matchMedia("(min-width: 1280px)");
+    const wideQuery = window.matchMedia("(min-width: 1920px)");
+    const updateGroupSize = () => {
+      setGroupSize(
+        wideQuery.matches
+          ? 9
+          : desktopQuery.matches
+            ? 6
+            : tabletQuery.matches
+              ? 4
+              : smallMobileQuery.matches
+                ? 3
+                : 2,
+      );
+    };
+
+    updateGroupSize();
+    smallMobileQuery.addEventListener("change", updateGroupSize);
+    tabletQuery.addEventListener("change", updateGroupSize);
+    desktopQuery.addEventListener("change", updateGroupSize);
+    wideQuery.addEventListener("change", updateGroupSize);
+
+    return () => {
+      smallMobileQuery.removeEventListener("change", updateGroupSize);
+      tabletQuery.removeEventListener("change", updateGroupSize);
+      desktopQuery.removeEventListener("change", updateGroupSize);
+      wideQuery.removeEventListener("change", updateGroupSize);
+    };
+  }, []);
+
+  const gameGroups = groupGames(mockGames, groupSize);
 
   useEffect(() => {
     if (!selectedGame) return;
@@ -40,171 +216,209 @@ export function ShelfShowcase() {
 
   return (
     <>
-      <section className="wood-grain fire-glow text-cream relative overflow-hidden rounded-[2rem] border border-white/10 p-4 sm:p-7 lg:p-9">
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-52 bg-[radial-gradient(ellipse_at_50%_0,rgba(244,190,101,0.15),transparent_62%)]"
-        />
-        <span
-          aria-hidden="true"
-          className="absolute top-16 left-7 hidden h-24 w-10 rounded-full bg-[#f0bc63]/9 blur-xl sm:block"
-        />
-        <span
-          aria-hidden="true"
-          className="absolute top-16 right-7 hidden h-24 w-10 rounded-full bg-[#f0bc63]/9 blur-xl sm:block"
-        />
-        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
+      <section className="wood-grain fire-glow premium-edge text-cream relative overflow-visible rounded-[2rem] p-4 sm:p-7 lg:p-9">
+        <div className="flex flex-wrap items-end justify-between gap-4 pb-6">
           <div>
             <p className="text-[0.65rem] font-bold tracking-[0.2em] text-[#d9b773] uppercase">
-              Drewniana półka · makieta
+              Wspólna kolekcja · makieta
             </p>
             <h2 className="font-display mt-2 text-2xl font-semibold sm:text-3xl">
-              Pudełka czekają na swój wieczór
+              Pudełka całej ekipy w jednym miejscu
             </h2>
           </div>
-          <p className="max-w-sm text-sm leading-6 text-[#c9b9a7]">
-            Najedź na pudełko albo stuknij je, żeby otworzyć szybki podgląd.
+          <p className="max-w-sm text-sm leading-6 text-[#d3c2ae]">
+            Regał płynnie dopasowuje liczbę pudełek do szerokości ekranu. Otwórz
+            grę, aby zobaczyć jej właściciela, dodatki i historię grupy.
           </p>
         </div>
 
-        <div className="relative mt-10 rounded-xl border border-white/6 bg-black/10 px-2 pt-8 shadow-[inset_0_18px_34px_rgba(0,0,0,0.22)] sm:px-5">
-          <div className="grid grid-cols-2 items-end gap-x-2 gap-y-10 sm:grid-cols-4 sm:gap-x-4 lg:gap-x-8">
-            {mockGames.map((game, index) => (
-              <div
-                key={game.id}
-                className="relative flex items-end justify-center pb-6"
-              >
-                <button
-                  type="button"
-                  onClick={() => setSelectedGame(game)}
-                  className="group focus-visible:ring-gold focus-visible:ring-offset-wood-dark relative rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-offset-4"
-                  aria-label={`Szybki podgląd gry ${game.title}`}
-                  aria-haspopup="dialog"
-                >
-                  <GameCover
-                    game={game}
-                    size={game.coverSize}
-                    className="transition-transform duration-300 group-hover:-translate-y-3 group-focus-visible:-translate-y-3"
-                  />
-
-                  <div
-                    aria-hidden="true"
-                    className={`parchment-card text-foreground shadow-warm pointer-events-none invisible absolute bottom-[calc(100%+1.25rem)] z-30 hidden w-80 rounded-[1.4rem] border border-[#caa978]/60 p-4 opacity-0 transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 md:block ${
-                      index % 4 === 0
-                        ? "left-0"
-                        : index % 4 === 3 || index === mockGames.length - 1
-                          ? "right-0"
-                          : "left-1/2 -translate-x-1/2"
-                    }`}
-                  >
-                    <div className="flex gap-4">
-                      <GameCover game={game} size="card" />
-                      <div className="min-w-0 flex-1 py-1">
-                        <p className="font-display text-xl font-semibold">
-                          {game.title}
-                        </p>
-                        <p className="text-muted mt-2 text-xs leading-5">
-                          {game.description}
-                        </p>
-                        <p className="text-accent mt-3 text-xs font-bold">
-                          {game.players} graczy · {game.duration} ·{" "}
-                          {game.rating}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-                <span className="absolute inset-x-0 bottom-0 h-5 rounded-sm border-t border-[#b98760] bg-gradient-to-b from-[#80523b] to-[#4f3025] shadow-[0_9px_14px_rgba(14,8,5,0.7)]" />
-              </div>
-            ))}
-          </div>
-          <div
-            aria-hidden="true"
-            className="absolute inset-x-[-0.5rem] bottom-0 h-3 translate-y-2 rounded-b-lg bg-[#2a1914] shadow-[0_12px_24px_rgba(0,0,0,0.45)]"
-          />
-        </div>
-
-        <div className="relative mt-8 rounded-xl border border-white/5 bg-black/13 px-4 pt-7 pb-6 shadow-[inset_0_16px_32px_rgba(0,0,0,0.25)] sm:px-8">
-          <div className="flex min-h-30 items-end gap-2 overflow-hidden">
-            {[
-              ["h-23 w-8", "bg-[#6c4130]"],
-              ["h-27 w-11", "bg-[#3f5d4a]"],
-              ["h-21 w-7", "bg-[#9b643c]"],
-              ["h-25 w-12", "bg-[#394d58]"],
-              ["h-19 w-6", "bg-[#76533c]"],
-            ].map(([size, color], index) => (
-              <span
-                key={`${size}-${color}`}
-                aria-hidden="true"
-                className={`${size} ${color} relative block rounded-[2px_5px_5px_2px] border border-white/10 shadow-[4px_5px_10px_rgba(0,0,0,0.45)]`}
-              >
-                <span className="absolute inset-y-2 left-1/2 w-px bg-white/10" />
-                {index === 1 && (
-                  <span className="absolute inset-x-1 top-3 text-center text-[0.38rem] font-bold tracking-widest text-[#dbc79e] uppercase [writing-mode:vertical-rl]">
-                    dodatki
-                  </span>
-                )}
-              </span>
-            ))}
-            <div className="ml-auto max-w-48 self-center rounded-lg border border-dashed border-white/12 px-4 py-3 text-right">
-              <p className="text-[0.58rem] font-bold tracking-[0.16em] text-[#bca78f] uppercase">
-                Wolne miejsce
-              </p>
-              <p className="mt-1 text-xs text-[#8f7d6d]">na kolejne pudełka</p>
-            </div>
-          </div>
-          <span
-            aria-hidden="true"
-            className="absolute inset-x-[-0.5rem] bottom-0 h-4 translate-y-2 rounded-b-lg border-t border-[#9a674a] bg-gradient-to-b from-[#754932] to-[#351f18] shadow-[0_12px_26px_rgba(0,0,0,0.52)]"
-          />
+        <div className="space-y-4 sm:space-y-5">
+          {gameGroups.map((games, index) => (
+            <ShelfSegment
+              key={games[0].id}
+              games={games}
+              label={`Segment półki ${index + 1} — ${games.length} gier`}
+              onSelect={setSelectedGame}
+            />
+          ))}
         </div>
       </section>
 
       {selectedGame && (
         <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-[#1d120e]/72 p-3 backdrop-blur-sm sm:items-center sm:p-6"
-          style={{ zIndex: 60 }}
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-[#1d120e]/76 p-3 backdrop-blur-sm sm:items-center sm:p-6"
           role="dialog"
           aria-modal="true"
-          aria-label={`Szybki podgląd gry ${selectedGame.title}`}
+          aria-label={`Karta gry ${selectedGame.title}`}
           onClick={() => setSelectedGame(null)}
         >
           <div
-            className="parchment-card shadow-warm relative max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-[#d2b27f]/70 p-5 sm:max-h-[calc(100dvh-3rem)] sm:p-7"
+            className="parchment-card premium-edge relative max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl overflow-y-auto rounded-[2rem] p-5 sm:max-h-[calc(100dvh-3rem)] sm:p-7"
             onClick={(event) => event.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setSelectedGame(null)}
-              className="bg-wood-dark text-cream hover:bg-brand absolute top-4 right-4 z-10 grid size-9 place-items-center rounded-full text-lg transition-colors"
-              aria-label="Zamknij szybki podgląd"
+              className="wood-grain text-cream absolute top-4 right-4 z-40 grid size-9 place-items-center rounded-full text-lg transition-transform hover:scale-105"
+              aria-label="Zamknij kartę gry"
             >
               ×
             </button>
-            <span
-              aria-hidden="true"
-              className="border-accent/15 absolute -top-6 -left-6 size-20 rotate-12 rounded-full border-[6px]"
-            />
-            <div className="relative flex flex-col gap-6 sm:flex-row">
+
+            <div className="grid gap-6 md:grid-cols-[auto_1fr]">
               <GameCover
                 game={selectedGame}
                 size="preview"
-                className="mx-auto sm:mx-0"
+                className="mx-auto md:mx-0"
               />
-              <div className="min-w-0 flex-1 pt-1 sm:pt-6">
+              <div className="min-w-0 pt-1 md:pt-5">
                 <p className="text-accent text-[0.65rem] font-bold tracking-[0.18em] uppercase">
-                  Karta kolekcjonera
+                  Karta wspólnej kolekcji
                 </p>
-                <h3 className="font-display mt-2 text-3xl font-semibold">
+                <h3 className="font-display mt-2 pr-10 text-3xl font-semibold">
                   {selectedGame.title}
                 </h3>
+                <p className="text-muted mt-1 text-sm font-semibold">
+                  {selectedGame.kicker}
+                </p>
                 <p className="text-muted mt-3 text-sm leading-6">
                   {selectedGame.description}
                 </p>
                 <div className="mt-5">
                   <GameFacts game={selectedGame} />
                 </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <div className="paper-wash rounded-xl p-3">
+                    <p className="text-muted text-[0.6rem] font-bold tracking-wider uppercase">
+                      Właściciel
+                    </p>
+                    <p className="mt-1 font-semibold">{selectedGame.owner}</p>
+                  </div>
+                  <div className="paper-wash rounded-xl p-3">
+                    <p className="text-muted text-[0.6rem] font-bold tracking-wider uppercase">
+                      Aktualnie u
+                    </p>
+                    <p className="mt-1 font-semibold">
+                      {selectedGame.currentHolder}
+                    </p>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            <div className="mt-7 grid gap-5 border-t border-dashed border-[#b99d72] pt-6 lg:grid-cols-2">
+              <section>
+                <p className="text-accent text-[0.62rem] font-bold tracking-[0.16em] uppercase">
+                  Dane BoardGameGeek
+                </p>
+                <dl className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                  {[
+                    ["Ranking", `#${selectedGame.bgg.rank}`],
+                    ["Ocena", formatRating(selectedGame.bgg.rating)],
+                    [
+                      "Trudność",
+                      `${formatRating(selectedGame.bgg.weight)} / 5`,
+                    ],
+                    ["Wiek", `${selectedGame.bgg.minAge}+`],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-xl bg-[#e8d6b5] p-3">
+                      <dt className="text-muted text-[0.58rem] font-bold uppercase">
+                        {label}
+                      </dt>
+                      <dd className="mt-1 font-bold">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <div className="mt-4 space-y-4">
+                  <TagList
+                    label="Mechaniki"
+                    values={selectedGame.bgg.mechanics}
+                  />
+                  <TagList
+                    label="Kategorie"
+                    values={selectedGame.bgg.categories}
+                  />
+                  <div>
+                    <p className="text-muted text-[0.6rem] font-bold tracking-wider uppercase">
+                      Powiązane dodatki
+                    </p>
+                    {selectedGame.expansions.length > 0 ? (
+                      <ul className="mt-2 flex flex-wrap gap-1.5">
+                        {selectedGame.expansions.map((expansion) => (
+                          <li
+                            key={expansion}
+                            className="rounded-lg bg-[#d9c099] px-2.5 py-1.5 text-[0.68rem] font-bold text-[#65482e] shadow-sm"
+                          >
+                            {expansion}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-muted mt-2 text-xs">
+                        Brak dodatków w kolekcji.
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <p className="text-muted mt-4 text-xs leading-5">
+                  Projekt: <strong>{selectedGame.bgg.designer}</strong>
+                  <br />
+                  Wydawca: <strong>{selectedGame.bgg.publisher}</strong>
+                </p>
+                <a
+                  href={selectedGame.bgg.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-accent mt-3 inline-flex text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
+                >
+                  Otwórz ręcznie zapisany link BGG ↗
+                </a>
+              </section>
+
+              <section className="rounded-[1.4rem] bg-[#38251d] p-5 text-[#f7ead5] shadow-inner">
+                <p className="text-[0.62rem] font-bold tracking-[0.16em] text-[#e8b870] uppercase">
+                  Ślad w grupie
+                </p>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-3xl font-bold text-[#f0c47e]">
+                      {formatRating(selectedGame.community.averageRating)}
+                    </p>
+                    <p className="text-[0.65rem] text-[#cbb9a7]">
+                      średnia z {selectedGame.community.ratingsCount} ocen
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold text-[#f0c47e]">
+                      {selectedGame.community.playsCount}
+                    </p>
+                    <p className="text-[0.65rem] text-[#cbb9a7]">
+                      zapisanych partii
+                    </p>
+                  </div>
+                </div>
+                <dl className="mt-5 space-y-3 border-t border-white/10 pt-4 text-xs">
+                  <div>
+                    <dt className="text-[#a9998a]">Ostatnia partia</dt>
+                    <dd className="mt-1 font-semibold">
+                      {selectedGame.community.lastPlayedAt ??
+                        "Jeszcze nie graliśmy"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[#a9998a]">Chcesz zagrać ponownie?</dt>
+                    <dd className="mt-1 font-semibold">
+                      {selectedGame.community.currentUserWantsToPlayAgain ===
+                      null
+                        ? "Brak Twojej oceny"
+                        : selectedGame.community.currentUserWantsToPlayAgain
+                          ? "Tak"
+                          : "Nie"}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
             </div>
           </div>
         </div>

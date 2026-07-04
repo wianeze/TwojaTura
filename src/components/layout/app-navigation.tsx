@@ -11,39 +11,33 @@ import {
 type NavigationItem = {
   href: string;
   label: string;
-  shortLabel: string;
   icon: NavigationIconName;
 };
 
 const navigationItems: NavigationItem[] = [
   {
     href: "/",
-    label: "Krąg Graczy",
-    shortLabel: "Krąg",
+    label: "Stół",
     icon: "dashboard",
   },
   {
-    href: "/moja-polka",
-    label: "Półka Gier",
-    shortLabel: "Półka",
+    href: "/gry",
+    label: "Półka",
     icon: "shelf",
   },
   {
-    href: "/gry",
-    label: "Salon Gier",
-    shortLabel: "Salon",
+    href: "/legendarium",
+    label: "Legendarium",
     icon: "games",
   },
   {
-    href: "/spotkania",
-    label: "Przy Stole",
-    shortLabel: "Stół",
+    href: "/kalendarium",
+    label: "Kalendarium",
     icon: "meetings",
   },
   {
-    href: "/rozgrywki",
-    label: "Kronika Partii",
-    shortLabel: "Kronika",
+    href: "/kronika",
+    label: "Kronika",
     icon: "plays",
   },
 ];
@@ -57,12 +51,12 @@ export function DesktopNavigation() {
 
   return (
     <aside className="wood-grain text-cream sticky top-0 hidden h-screen border-r border-white/8 px-5 py-7 lg:flex lg:flex-col">
-      <div className="px-2">
+      <div className="flex min-h-40 items-center justify-center px-2">
         <LogoMark tone="light" />
       </div>
 
       <nav
-        className="mt-11 flex flex-1 flex-col gap-1.5"
+        className="mt-5 flex flex-1 flex-col gap-1.5"
         aria-label="Główna nawigacja"
       >
         {navigationItems.map((item) => {
@@ -120,12 +114,12 @@ export function MobileNavigation() {
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[0.65rem] font-semibold transition-colors ${
+            className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-0.5 py-2 text-[clamp(0.5rem,2.45vw,0.65rem)] leading-none font-semibold transition-colors ${
               active ? "bg-gold text-wood-dark" : "text-[#cdbfae]"
             }`}
           >
             <NavigationIcon name={item.icon} className="size-[1.15rem]" />
-            <span className="truncate">{item.shortLabel}</span>
+            <span className="whitespace-nowrap">{item.label}</span>
           </Link>
         );
       })}

@@ -84,71 +84,56 @@ body {
   position: relative;
   min-height: 100vh;
   isolation: isolate;
-  background:
-    radial-gradient(
-      circle at 76% 12%,
-      rgba(242, 176, 88, 0.31),
-      transparent 25rem
-    ),
-    radial-gradient(
-      ellipse at 48% 42%,
-      rgba(126, 82, 57, 0.6),
-      transparent 58rem
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent 0 88px,
-      rgba(18, 10, 8, 0.08) 89px 91px
-    ),
-    linear-gradient(135deg, #2b211e 0%, #684934 48%, #251b19 100%);
+  background: #241610;
 }
 
-.cabin-ambient::before {
+.section-background-root {
   position: fixed;
-  z-index: -1;
-  right: -7rem;
-  bottom: -9rem;
-  width: 38rem;
-  height: 38rem;
-  border-radius: 999px;
-  background: radial-gradient(
-    circle,
-    rgba(238, 117, 53, 0.34),
-    rgba(214, 160, 68, 0.11) 42%,
-    transparent 70%
-  );
-  filter: blur(14px);
-  content: "";
+  z-index: 0;
+  inset: 0 0 0 17rem;
+  overflow: hidden;
+  background: #241610;
   pointer-events: none;
 }
 
-.cabin-ambient::after {
-  position: fixed;
-  z-index: -1;
-  inset: auto 0 0;
-  height: 18rem;
+.section-background-image {
+  position: absolute;
+  inset: 0;
+  background-image: var(--section-bg-desktop);
+  background-position: var(--section-bg-position-desktop);
+  background-size: cover;
+  background-repeat: no-repeat;
+  will-change: opacity;
+}
+
+.section-background-enter {
+  animation: section-background-crossfade 420ms ease-out both;
+}
+
+.section-background-overlay {
+  position: absolute;
+  inset: 0;
   background:
-    linear-gradient(
-      90deg,
-      rgba(25, 14, 11, 0.18),
-      rgba(133, 84, 52, 0.16),
-      rgba(25, 14, 11, 0.2)
-    ),
-    repeating-linear-gradient(
-      4deg,
-      transparent 0 27px,
-      rgba(225, 167, 94, 0.035) 28px 30px
-    );
-  mask-image: linear-gradient(to bottom, transparent, black);
-  content: "";
-  pointer-events: none;
+    linear-gradient(90deg, rgba(24, 13, 10, 0.74), rgba(24, 13, 10, 0.48)),
+    linear-gradient(180deg, rgba(17, 9, 7, 0.28), rgba(17, 9, 7, 0.68));
+  box-shadow: inset 0 0 12rem rgba(8, 4, 3, 0.26);
+}
+
+@keyframes section-background-crossfade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .wood-grain {
   background-color: var(--wood-dark);
   background-image:
     linear-gradient(105deg, rgba(255, 255, 255, 0.04), transparent 32%),
-    linear-gradient(rgba(36, 20, 15, 0.78), rgba(36, 20, 15, 0.84)),
+    linear-gradient(rgba(36, 20, 15, 0.62), rgba(36, 20, 15, 0.74)),
     url("/textures/wood-dark-texture.png");
   background-size:
     auto,
@@ -167,8 +152,8 @@ body {
     ),
     linear-gradient(
       140deg,
-      rgba(255, 255, 255, 0.8),
-      rgba(255, 250, 240, 0.78)
+      rgba(255, 255, 255, 0.7),
+      rgba(255, 250, 240, 0.68)
     ),
     url("/textures/paper-grain-light.png");
   background-size:
@@ -185,7 +170,17 @@ body {
       rgba(214, 160, 68, 0.11),
       transparent 12rem
     ),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.6), rgba(255, 249, 238, 0.35));
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.72),
+      rgba(255, 249, 238, 0.54)
+    ),
+    url("/textures/paper-grain-light.png");
+  background-size:
+    auto,
+    auto,
+    720px 720px;
+  background-blend-mode: normal, normal, multiply;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.8) inset,
     0 20px 48px rgba(58, 38, 27, 0.1),
@@ -202,8 +197,8 @@ body {
     ),
     linear-gradient(
       145deg,
-      rgba(255, 250, 240, 0.88),
-      rgba(239, 224, 200, 0.88)
+      rgba(255, 250, 240, 0.78),
+      rgba(239, 224, 200, 0.8)
     ),
     url("/textures/paper-grain-light.png");
   background-size:
@@ -250,6 +245,139 @@ body {
     auto,
     760px 760px;
   background-blend-mode: normal, soft-light;
+}
+
+.premium-edge {
+  position: relative;
+  border: 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 230, 183, 0.38),
+    inset 0 0 0 1px rgba(92, 50, 30, 0.44),
+    inset 0 0 0 3px rgba(218, 160, 79, 0.08),
+    0 24px 55px rgba(17, 8, 5, 0.3);
+}
+
+.premium-edge::after {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px rgba(240, 192, 117, 0.2),
+    inset 0 -2px 0 rgba(40, 20, 13, 0.2);
+  content: "";
+  pointer-events: none;
+}
+
+.shelf-row-bg {
+  background-color: #24120b;
+  background-image:
+    linear-gradient(rgba(25, 13, 9, 0.18), rgba(17, 8, 5, 0.5)),
+    url("/empty/empty-shelf-bg.png");
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.shelf-segment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem 0.5rem;
+}
+
+.calendar-wood-panel {
+  background-color: #3b251e;
+  background-image:
+    radial-gradient(
+      circle at 18% 0,
+      rgba(232, 174, 88, 0.16),
+      transparent 17rem
+    ),
+    linear-gradient(rgba(54, 31, 23, 0.5), rgba(35, 19, 15, 0.7)),
+    url("/textures/wood-dark-texture.png");
+  background-size:
+    auto,
+    auto,
+    520px 520px;
+  background-blend-mode: screen, multiply, normal;
+  box-shadow:
+    inset 0 1px 0 rgba(250, 220, 164, 0.14),
+    inset 0 -24px 60px rgba(18, 8, 5, 0.24),
+    0 24px 56px rgba(24, 11, 7, 0.3);
+}
+
+@media (min-width: 360px) {
+  .shelf-segment-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.875rem 0.25rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .shelf-segment-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem 0.625rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .shelf-segment-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    column-gap: 0.75rem;
+  }
+}
+
+@media (min-width: 1920px) {
+  .shelf-segment-grid {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    column-gap: 0.625rem;
+  }
+}
+
+.cork-board-bg {
+  background-color: #8d5f3f;
+  background-image:
+    linear-gradient(rgba(38, 20, 12, 0.12), rgba(25, 12, 8, 0.38)),
+    url("/textures/cork-texture.png");
+  background-position:
+    center,
+    center top;
+  background-size:
+    auto,
+    680px 680px;
+  background-repeat: no-repeat, repeat;
+  background-blend-mode: multiply, normal;
+}
+
+.chronicle-room-bg {
+  background:
+    linear-gradient(rgba(25, 14, 10, 0.3), rgba(18, 9, 6, 0.62)),
+    url("/empty/empty-chronicle-bg.png") center top / cover;
+}
+
+@media (max-width: 1023px) {
+  .section-background-root {
+    left: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .section-background-image {
+    background-image: var(--section-bg-mobile);
+    background-position: var(--section-bg-position-mobile);
+  }
+
+  .shelf-row-bg,
+  .cork-board-bg,
+  .chronicle-room-bg {
+    background-attachment: scroll;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-background-enter {
+    animation-duration: 1ms;
+  }
 }
 
 .fire-glow {

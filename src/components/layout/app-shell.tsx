@@ -4,6 +4,7 @@ import {
   DesktopNavigation,
   MobileNavigation,
 } from "@/components/layout/app-navigation";
+import { SectionBackground } from "@/components/layout/section-background";
 import { LogoMark } from "@/components/ui/logo-mark";
 
 type AppShellProps = {
@@ -15,7 +16,8 @@ export function AppShell({ children }: AppShellProps) {
     <div className="min-h-screen lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
       <DesktopNavigation />
       <div className="cabin-ambient min-w-0">
-        <header className="wood-grain flex h-17 items-center justify-between border-b border-white/8 px-4 lg:hidden">
+        <SectionBackground />
+        <header className="wood-grain relative z-10 flex h-17 items-center justify-between border-b border-white/8 px-4 lg:hidden">
           <LogoMark compact tone="light" />
           <Link
             href="/profil"
@@ -25,7 +27,7 @@ export function AppShell({ children }: AppShellProps) {
             G
           </Link>
         </header>
-        <main className="relative mx-auto w-full max-w-[90rem] px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:py-10 xl:px-12">
+        <main className="relative z-10 mx-auto w-full max-w-[90rem] px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:py-10 xl:px-12">
           {children}
         </main>
         <MobileNavigation />

@@ -1,20 +1,20 @@
 import { SectionHeading } from "@/components/ui/section-heading";
-import { LibraryShowcase } from "@/features/games/library-showcase";
+import { ShelfShowcase } from "@/features/games/shelf-showcase";
 
 export default function GamesPage() {
   return (
     <div className="space-y-7">
       <SectionHeading
-        eyebrow="Salon Gier"
-        title="Salon Gier"
-        description="Wspólna kolekcja pod jednym dachem. Przeglądaj pudełka, odkrywaj nowe tytuły i sprawdzaj, co pasuje do ekipy."
+        eyebrow="Wspólna kolekcja"
+        title="Półka"
+        description="Wszystkie fizyczne egzemplarze gier należące do naszej grupy — niezależnie od właściciela i tego, kto ma je obecnie."
         action={
           <span className="bg-moss-soft text-moss w-fit rounded-full px-4 py-2 text-xs font-bold">
-            9 gier w salonie
+            9 gier na półce
           </span>
         }
       />
-      <LibraryShowcase />
+      <ShelfShowcase />
     </div>
   );
 }

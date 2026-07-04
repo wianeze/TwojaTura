@@ -47,7 +47,7 @@ const people = [
 
 export function MeetingsShowcase() {
   return (
-    <div className="space-y-6">
+    <div className="calendar-wood-panel premium-edge relative isolate space-y-6 overflow-hidden rounded-[2rem] p-4 sm:p-6 lg:p-8">
       <section
         className="grid gap-4 lg:grid-cols-3"
         aria-label="Przykładowe spotkania"

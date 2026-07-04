@@ -5,7 +5,7 @@ type PanelProps = ComponentPropsWithoutRef<"section">;
 export function Panel({ className = "", ...props }: PanelProps) {
   return (
     <section
-      className={`material-panel border-border bg-surface shadow-soft rounded-[1.75rem] border ${className}`}
+      className={`material-panel premium-edge bg-surface shadow-soft rounded-[1.75rem] ${className}`}
       {...props}
     />
   );

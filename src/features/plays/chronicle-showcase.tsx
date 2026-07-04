@@ -1,36 +1,75 @@
-const chronicleEntries = [
+type ChronicleResult = {
+  name: string;
+  initial: string;
+  placement: number;
+  score: number | null;
+  winner: boolean;
+};
+
+type ChronicleEntry = {
+  date: string;
+  game: string;
+  meeting: string;
+  winner: string;
+  duration: string;
+  results: ChronicleResult[];
+  comment: string;
+  marker: string;
+};
+
+const chronicleEntries: ChronicleEntry[] = [
   {
     date: "28 czerwca 2026",
     game: "Frostpunk",
+    meeting: "Strategiczna sobota u Michała",
     winner: "Marta",
     duration: "82 min",
-    players: ["M", "A", "K", "J"],
-    note: "Miasto przetrwało burzę, choć ostatnia runda kosztowała nas niemal wszystkie zapasy.",
+    results: [
+      { name: "Marta", initial: "M", placement: 1, score: 68, winner: true },
+      { name: "Ania", initial: "A", placement: 2, score: 61, winner: false },
+      { name: "Kuba", initial: "K", placement: 3, score: 54, winner: false },
+      { name: "Jan", initial: "J", placement: 4, score: 48, winner: false },
+    ],
+    comment:
+      "Miasto przetrwało burzę, choć ostatnia runda kosztowała nas niemal wszystkie zapasy.",
     marker: "bg-moss",
   },
   {
     date: "14 czerwca 2026",
     game: "Nemesis",
+    meeting: "Wieczór z kosmicznym horrorem",
     winner: "Wspólne zwycięstwo",
     duration: "108 min",
-    players: ["A", "K", "M"],
-    note: "Silniki ruszyły w ostatnim możliwym ruchu. Nie wszyscy ufali właściwej osobie.",
+    results: [
+      { name: "Ania", initial: "A", placement: 1, score: null, winner: true },
+      { name: "Kuba", initial: "K", placement: 1, score: null, winner: true },
+      { name: "Marta", initial: "M", placement: 1, score: null, winner: true },
+    ],
+    comment:
+      "Silniki ruszyły w ostatnim możliwym ruchu. Nie wszyscy ufali właściwej osobie.",
     marker: "bg-accent",
   },
   {
     date: "31 maja 2026",
     game: "Wyspa Skarbów",
+    meeting: "Lekki finał maja",
     winner: "Kuba",
     duration: "64 min",
-    players: ["K", "J", "A", "M"],
-    note: "Skarb leżał bliżej obozu, niż ktokolwiek podejrzewał. Blef wytrzymał prawie do końca.",
+    results: [
+      { name: "Kuba", initial: "K", placement: 1, score: 42, winner: true },
+      { name: "Jan", initial: "J", placement: 2, score: 35, winner: false },
+      { name: "Ania", initial: "A", placement: 3, score: 29, winner: false },
+      { name: "Marta", initial: "M", placement: 4, score: 21, winner: false },
+    ],
+    comment:
+      "Skarb leżał bliżej obozu, niż ktokolwiek podejrzewał. Blef wytrzymał prawie do końca.",
     marker: "bg-gold",
   },
 ];
 
 export function ChronicleShowcase() {
   return (
-    <section className="leather-panel shadow-warm relative overflow-hidden rounded-[2rem] border border-white/10 p-4 sm:p-7 lg:p-9">
+    <section className="chronicle-room-bg premium-edge shadow-warm relative overflow-hidden rounded-[2rem] p-4 sm:p-7 lg:p-9">
       <div
         aria-hidden="true"
         className="absolute inset-y-0 left-7 w-px bg-[#d1aa67]/25 sm:left-[8.25rem]"
@@ -49,12 +88,12 @@ export function ChronicleShowcase() {
                 {entry.date}
               </p>
               <p className="mt-1 text-[0.62rem] text-[#9f8d7c]">
-                wpis #{3 - index}
+                wpis #{chronicleEntries.length - index}
               </p>
             </div>
 
             <div
-              className={`parchment-card relative rounded-[1.5rem] border border-[#c9aa78]/55 p-5 sm:p-6 ${index % 2 ? "rotate-[0.15deg]" : "-rotate-[0.15deg]"}`}
+              className={`parchment-card premium-edge relative rounded-[1.5rem] p-5 sm:p-6 ${index % 2 ? "rotate-[0.15deg]" : "-rotate-[0.15deg]"}`}
             >
               <span
                 aria-hidden="true"
@@ -63,18 +102,18 @@ export function ChronicleShowcase() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-accent text-[0.62rem] font-bold tracking-[0.16em] uppercase">
-                    Zapis z wieczoru
+                    {entry.meeting}
                   </p>
                   <h2 className="font-display text-foreground mt-1.5 text-2xl font-semibold">
                     {entry.game}
                   </h2>
                 </div>
-                <span className="w-fit rounded-full border border-[#c9ad80] bg-[#f4e6ca] px-3 py-1.5 text-xs font-bold text-[#73562f]">
+                <span className="w-fit rounded-full bg-[#ead9b9] px-3 py-1.5 text-xs font-bold text-[#73562f] shadow-inner">
                   {entry.duration}
                 </span>
               </div>
 
-              <div className="mt-5 grid gap-4 border-t border-dashed border-[#ccb892] pt-4 sm:grid-cols-[1fr_auto] sm:items-end">
+              <div className="mt-5 grid gap-5 border-t border-dashed border-[#ccb892] pt-4 lg:grid-cols-[0.75fr_1.25fr]">
                 <div>
                   <p className="text-muted text-[0.6rem] font-bold tracking-wider uppercase">
                     Zwycięzca
@@ -82,24 +121,38 @@ export function ChronicleShowcase() {
                   <p className="font-display text-wood mt-1 text-lg font-semibold">
                     {entry.winner}
                   </p>
-                  <p className="text-muted mt-3 max-w-xl text-xs leading-5">
-                    {entry.note}
+                  <p className="text-muted mt-3 text-xs leading-5">
+                    {entry.comment}
                   </p>
                 </div>
+
                 <div>
-                  <p className="text-muted mb-2 text-right text-[0.58rem] font-bold tracking-wider uppercase">
-                    Przy stole
+                  <p className="text-muted mb-2 text-[0.58rem] font-bold tracking-wider uppercase">
+                    Uczestnicy i wynik
                   </p>
-                  <div className="flex -space-x-2">
-                    {entry.players.map((player, playerIndex) => (
-                      <span
-                        key={`${player}-${playerIndex}`}
-                        className={`text-cream grid size-9 place-items-center rounded-[55%_55%_45%_45%] border-2 border-[#f7ead4] text-[0.62rem] font-bold shadow-sm ${
-                          playerIndex % 2 ? "bg-moss" : "bg-wood"
-                        }`}
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {entry.results.map((result) => (
+                      <div
+                        key={result.name}
+                        className={`flex items-center gap-2 rounded-xl px-3 py-2 shadow-sm ${result.winner ? "bg-[#e5d2a8]" : "paper-wash"}`}
                       >
-                        {player}
-                      </span>
+                        <span
+                          className={`text-cream grid size-8 shrink-0 place-items-center rounded-[55%_55%_45%_45%] text-[0.62rem] font-bold ${result.winner ? "bg-moss" : "bg-wood"}`}
+                        >
+                          {result.initial}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-xs font-bold">
+                            {result.name}
+                          </span>
+                          <span className="text-muted block text-[0.6rem]">
+                            {result.placement}. miejsce
+                          </span>
+                        </span>
+                        <span className="text-accent text-xs font-bold">
+                          {result.score === null ? "—" : `${result.score} pkt`}
+                        </span>
+                      </div>
                     ))}
                   </div>
                 </div>
