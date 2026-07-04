@@ -221,6 +221,8 @@ Widok `game_rating_summaries` wylicza co najmniej `average_overall` i `ratings_c
 | `created_at`         | `timestamptz`    | automatycznie                   |
 | `updated_at`         | `timestamptz`    | automatycznie                   |
 
+`selected_option_id` jest chronione złożonym kluczem obcym `(meetings.id, meetings.selected_option_id) -> (meeting_options.meeting_id, meeting_options.id)`. Dzięki temu wybrany termin zawsze należy do tego samego spotkania; zwykły FK do `meeting_options.id` byłby niewystarczający. Relacja jest cykliczna, ale bezpieczna: spotkanie powstaje z pustym `selected_option_id`, następnie powstają terminy, a wybór jest ustawiany osobną aktualizacją.
+
 #### `meeting_options`
 
 | Kolumna      | Typ                    | Uwagi                                 |
@@ -266,13 +268,15 @@ Klucz główny: `(meeting_id, game_id, user_id)`. Jeden użytkownik może zagło
 | ------------------ | ------------------ | ------------------------------------------- |
 | `id`               | `uuid` PK          | automatycznie                               |
 | `game_id`          | `uuid`             | FK do `games`; usunięcie gry jest blokowane |
-| `meeting_id`       | `uuid`             | FK do `meetings`                            |
+| `meeting_id`       | `uuid` nullable    | FK do `meetings`; `null` dla partii spontanicznej |
 | `created_by`       | `uuid`             | FK do `profiles`                            |
 | `played_at`        | `timestamptz`      | faktyczna data partii                       |
 | `duration_minutes` | `integer` nullable | wartość dodatnia                            |
 | `comment`          | `text` nullable    | komentarz                                   |
 | `created_at`       | `timestamptz`      | automatycznie                               |
 | `updated_at`       | `timestamptz`      | automatycznie                               |
+
+Partia może wynikać ze spotkania w Kalendarium albo być spontaniczna. Usunięcie powiązanego spotkania ustawia `meeting_id = null`, zachowując wpis historyczny w Kronice.
 
 #### `play_participants`
 
@@ -304,7 +308,9 @@ Klucz główny: `(play_id, user_id)`. Interfejs MVP 1 wymusza co najmniej jedneg
 
 Pola powiązania spełniają regułę „oba puste albo oba ustawione”: `related_entity_type` nie może istnieć bez `related_entity_id` i odwrotnie. Ledger jest append-only: rekordów nie edytujemy i nie usuwamy. Błąd koryguje nowe zdarzenie, a ręczna korekta administratora używa `action_type = 'admin_adjustment'`. W MVP 1 nie istnieją triggery automatycznie przyznające punkty ani UI grywalizacji.
 
-Widok `user_point_balances` wylicza saldo jako `COALESCE(SUM(points), 0)` grupowane po użytkowniku. Widok ma `security_invoker = true`. Member może odczytać własne zdarzenia i saldo, admin wszystkie; w MVP 1 tylko admin może dodać ręczne zdarzenie.
+Widok `user_point_balances` wylicza saldo jako `COALESCE(SUM(points), 0)` grupowane po użytkowniku i ma `security_invoker = true`. Member widzi w nim tylko własne saldo, a admin salda wszystkich aktywnych członków. Szczegółowy ledger pozostaje ograniczony do własnych zdarzeń membera i wszystkich zdarzeń admina; w MVP 1 tylko admin może dodać ręczne zdarzenie.
+
+Globalny ranking udostępnia osobny, wąski kontrakt RPC `get_leaderboard()`. Funkcja przed odczytem wymaga aktywnego członkostwa, ma `SECURITY DEFINER` i pusty `search_path`, obejmuje wyłącznie aktywnych członków oraz zwraca tylko `user_id`, `display_name`, `avatar_url`, `total_points` i `rank`. Nie ujawnia opisów, powiązań, autora ani innych szczegółów `point_events` i nie poszerza polityki `SELECT` surowego ledgeru.
 
 ### Audyt zmian administracyjnych
 
@@ -494,6 +500,7 @@ Trigger nie audytuje zwykłych odczytów ani standardowych zmian własnych danyc
 - Zaproszenie użytkownika nadal wymaga zaufanego kodu serwerowego korzystającego z Admin API Supabase; klient nie dostaje klucza administracyjnego.
 - Ochrona tras w Next.js poprawia UX, lecz bezpieczeństwo danych zapewnia RLS.
 - Widoki agregujące używają `security_invoker = true`, aby respektować polityki tabel źródłowych.
+- Wyjątkiem od widoków jest celowo wąskie RPC `get_leaderboard()`: używa `SECURITY DEFINER`, weryfikuje aktywne członkostwo i zwraca wyłącznie publiczny kontrakt rankingu, bez danych ledgeru.
 - Konto wyłączamy logicznie przez `app_members.is_active = false`; dane historyczne pozostają spójne.
 
 ## 6. Stół — reguły danych
@@ -517,7 +524,7 @@ Nie powstaje tabela `quests`, trigger tworzący questy ani automatyczne naliczan
 ### Pozostałe sekcje Stołu
 
 - **Najbliższy wieczór:** potwierdzone spotkanie według wybranego terminu; jeśli brak, najbliższy przyszły termin spotkania planowanego. Widok pokazuje termin, lokalizację, uczestników i proponowane/wybrane gry bez powielania komunikatu akcji.
-- **Legendy przy Stole:** pięć najwyższych sald z widoku `user_point_balances`; ten sam widok jest docelowym źródłem rankingu na Stole i w Legendarium. W Etapie 1 oba miejsca są wyłącznie statyczną makietą.
+- **Legendy przy Stole:** pięć najwyższych sald z bezpiecznego RPC `get_leaderboard()`; ten sam kontrakt jest docelowym źródłem rankingu na Stole i w Legendarium. `user_point_balances` służy memberowi do własnego salda, a adminowi do kontroli sald. W Etapie 1 oba miejsca są wyłącznie statyczną makietą.
 - **Ostatnio przy Stole:** kompaktowy strumień zdarzeń złożony z istniejących danych gier, ocen i partii. W MVP 1 nie tworzymy osobnej tabeli activity feed.
 - **Odznaki w Legendarium:** obecnie są wyłącznie statycznym preview ze stanem zdobyta/niezdobyta oraz opcjonalną grafiką. Tabele i logika trwałych odznak pozostają poza backendowym zakresem MVP 1.
 
@@ -578,7 +585,7 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 - Ochrona `games.owner_id`: member zachowuje własność, admin może wykonać transfer.
 - Administracyjne wyjątki RLS dla gier, spotkań, rozgrywek i uczestników.
 - Trigger/funkcja audytu najważniejszych mutacji administracyjnych, w tym atomowego audytu `admin_adjustment` dodawanego do `point_events`.
-- Widoki `game_rating_summaries`, `meeting_option_summaries`, `meeting_game_rankings` i `user_point_balances`, wszystkie z `security_invoker = true`.
+- Widoki `game_rating_summaries`, `meeting_option_summaries`, `meeting_game_rankings` i `user_point_balances`, wszystkie z `security_invoker = true`, oraz wąskie RPC `get_leaderboard()` dla rankingu aktywnej grupy.
 - Generowanie typów TypeScript z bazy.
 - Testy polityk potwierdzające co najmniej:
   - brak dostępu anonima i użytkownika nieaktywnego;
@@ -627,7 +634,7 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 
 - Derived actions użytkownika wyliczane z `meeting_availability`, `meeting_game_votes`, `ratings`, `meetings` i `plays`, bez tabeli questów oraz ręcznego stanu ukończenia.
 - Najbliższy wieczór z terminem, lokalizacją, uczestnikami i grami.
-- Ranking „Legendy przy Stole” z `user_point_balances` oraz kompaktowa ostatnia aktywność bez osobnej tabeli feedu.
+- Ranking „Legendy przy Stole” z `get_leaderboard()` oraz kompaktowa ostatnia aktywność bez osobnej tabeli feedu.
 - Puste stany i linki prowadzące do odpowiednich działań.
 - Weryfikacja zapytań dla braku danych, brakującej oceny, potwierdzonego terminu, niezapisanej partii i niepełnej ankiety; lint/test/build.
 

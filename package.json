@@ -10,7 +10,15 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm lint && pnpm typecheck && pnpm format:check"
+    "check": "pnpm lint && pnpm typecheck && pnpm format:check",
+    "supabase:start": "pnpm dlx supabase@2.109.0 start",
+    "supabase:status": "pnpm dlx supabase@2.109.0 status",
+    "supabase:stop": "pnpm dlx supabase@2.109.0 stop",
+    "db:migrate": "pnpm dlx supabase@2.109.0 migration up --local",
+    "db:reset": "pnpm dlx supabase@2.109.0 db reset --local",
+    "db:test": "pnpm dlx supabase@2.109.0 test db --local",
+    "db:types": "pnpm dlx supabase@2.109.0 gen types typescript --local --schema public > src/types/database.generated.ts",
+    "db:verify": "pnpm db:reset && pnpm db:test && pnpm db:types"
   },
   "dependencies": {
     "next": "16.2.10",
