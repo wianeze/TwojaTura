@@ -703,6 +703,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_own_membership_status: {
+        Args: never
+        Returns: {
+          is_active: boolean
+          role: Database["public"]["Enums"]["membership_role"]
+        }[]
+      }
     }
     Enums: {
       game_status: "available" | "unavailable" | "loaned"

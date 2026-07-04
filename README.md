@@ -4,121 +4,110 @@ Prywatna, responsywna aplikacja do zarządzania kolekcją planszówek, spotkania
 
 > Zbierz ekipę. Wybierz grę. Twoja tura.
 
-Aktualny stan: statyczny interfejs Etapu 1 oraz migracje, seed i polityki bezpieczeństwa Etapu 2. Ekrany i logowanie nie są jeszcze podłączone do Supabase.
-
-## Branding
-
-„Twoja Tura!” korzysta z klubowego emblematu i lokalnych assetów inspirowanych planszówkowym wieczorem w górskiej chacie.
+Aktualny stan: interfejs Etapu 1, baza i RLS Etapu 2 oraz Supabase Auth, aktywne członkostwo i profil Etapu 3. Dane domenowe głównych ekranów pozostają makietami do kolejnych etapów.
 
 ## Wymagania
 
 - Node.js 20.9 lub nowszy
 - pnpm 10 lub nowszy
-- Docker Desktop albo inny runtime zgodny z Docker API, uruchomiony przed startem Supabase
+- Docker Desktop albo inny runtime zgodny z Docker API
 
-Supabase CLI nie wymaga instalacji globalnej. Skrypty projektu uruchamiają przypiętą wersję CLI przez `pnpm dlx`.
-
-## Instalacja
+## Instalacja i konfiguracja
 
 ```bash
 pnpm install
+copy .env.example .env.local
 ```
 
-## Lokalne Supabase
+W `.env.local` ustaw wartości pokazane przez `pnpm supabase:status`:
 
-Pierwsze uruchomienie pobierze CLI i obrazy kontenerów:
+- `NEXT_PUBLIC_SUPABASE_URL` — lokalny API URL,
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — lokalny publishable key,
+- `NEXT_PUBLIC_SITE_URL=http://localhost:3000`.
+
+`SUPABASE_SERVICE_ROLE_KEY` jest potrzebny wyłącznie zaufanemu skryptowi zaproszeń i dla lokalnego Auth Admin invite flow powinien być legacy JWT `service_role`, nie `sb_secret_...`. `SUPABASE_SECRET_KEY` może nadal istnieć dla innych operacji backendowych, ale operatorski invite nie korzysta już z niego. Żaden z tych sekretów nie może mieć prefiksu `NEXT_PUBLIC_`, trafiać do kodu klienta, logów ani repozytorium.
+
+## Lokalne Supabase
 
 ```bash
 pnpm supabase:start
 pnpm supabase:status
-```
-
-Studio będzie dostępne pod `http://127.0.0.1:54323`, API pod `http://127.0.0.1:54321`, a Postgres na porcie `54322`.
-
-Pełny reset od pustej bazy uruchamia wszystkie migracje, a następnie `supabase/seed.sql`:
-
-```bash
 pnpm db:reset
 ```
 
-Zastosowanie wyłącznie oczekujących migracji:
+Lokalne usługi:
+
+- Studio: `http://127.0.0.1:54323`
+- API: `http://127.0.0.1:54321`
+- Mailpit: `http://127.0.0.1:54324`
+- Postgres: port `54322`
+
+Pozostałe komendy bazy:
 
 ```bash
 pnpm db:migrate
-```
-
-Automatyczne testy bazy i RLS:
-
-```bash
 pnpm db:test
-```
-
-Generowanie typów bez ręcznej edycji pliku wynikowego:
-
-```bash
 pnpm db:types
-```
-
-Pełna weryfikacja bazy (`reset → testy → typy`):
-
-```bash
 pnpm db:verify
-```
-
-Zatrzymanie lokalnego środowiska:
-
-```bash
 pnpm supabase:stop
 ```
 
-## Lokalne konta testowe
-
-Wszystkie konta używają wyłącznie lokalnego hasła `TwojaTura123!`:
-
-| Rola              | Email                      |
-| ----------------- | -------------------------- |
-| Admin             | `admin@twojatura.local`    |
-| Member            | `marta@twojatura.local`    |
-| Member            | `michal@twojatura.local`   |
-| Member            | `ania@twojatura.local`     |
-| Member            | `kuba@twojatura.local`     |
-| Nieaktywny member | `inactive@twojatura.local` |
-
-Logowanie tymi kontami zostanie podłączone dopiero w Etapie 3. Dane są deterministyczne i nie mogą być używane w środowisku produkcyjnym.
+`db:types` generuje `src/types/database.generated.ts`. Plik jest celowo wyłączony wyłącznie z kontroli Prettier.
 
 ## Uruchomienie aplikacji
 
-Supabase nie musi działać, aby obejrzeć nadal statyczne ekrany:
+Po uruchomieniu Supabase:
 
 ```bash
 pnpm dev
 ```
 
-Aplikacja będzie dostępna pod adresem [http://localhost:3000](http://localhost:3000).
+Aplikacja działa pod [http://localhost:3000](http://localhost:3000).
+
+## Lokalne konta testowe
+
+Wszystkie konta używają lokalnego hasła `TwojaTura123!`:
+
+| Rola             | Email                      |
+| ---------------- | -------------------------- |
+| Administrator    | `admin@twojatura.local`    |
+| Gracz            | `marta@twojatura.local`    |
+| Gracz            | `michal@twojatura.local`   |
+| Gracz            | `ania@twojatura.local`     |
+| Gracz            | `kuba@twojatura.local`     |
+| Nieaktywny gracz | `inactive@twojatura.local` |
+
+Konta i hasło służą wyłącznie lokalnym testom.
+
+## Recovery i zaproszenia
+
+Wiadomości recovery oraz invite są widoczne w lokalnym Mailpit pod `http://127.0.0.1:54324`. Link przechodzi przez `/auth/callback` i prowadzi do `/ustaw-haslo`.
+
+Zaproszenie nowej osoby wykonuje zaufany operator:
+
+```bash
+pnpm invite:user -- --email osoba@example.com --name "Imię Gracza"
+```
+
+Skrypt korzysta z Admin API i `SUPABASE_SERVICE_ROLE_KEY` w formacie JWT `service_role`. Trigger bazy tworzy profil oraz aktywne członkostwo z rolą `member`; roli administratora nie można przekazać w zaproszeniu.
 
 ## Kontrola jakości
 
 ```bash
+pnpm test
 pnpm lint
 pnpm typecheck
 pnpm format:check
 pnpm build
 ```
 
-Wszystkie statyczne kontrole można uruchomić poleceniem `pnpm check`.
-
-Kontrola kompletna przed zmianą schematu:
-
-```bash
-pnpm db:verify
-pnpm check
-pnpm build
-```
+`pnpm check` uruchamia lint, typecheck i format check. Po zmianie migracji użyj również `pnpm db:verify`.
 
 ## Stack
 
-- Next.js 16 z App Routerem
+- Next.js 16 z App Routerem i `proxy.ts`
 - React 19
-- TypeScript w trybie `strict`
+- TypeScript `strict`
 - Tailwind CSS 4
+- Supabase Auth/Postgres z `@supabase/ssr`
 - ESLint i Prettier

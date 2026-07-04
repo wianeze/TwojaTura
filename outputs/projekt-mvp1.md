@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: zatwierdzony projekt MVP 1 po Etapie 1 UI; Supabase, logowanie i baza danych nie są jeszcze podłączone.
+Status: Etapy 1–2 zamknięte; Etap 3 podłącza Supabase Auth, aktywne członkostwo i profil bez uruchamiania danych domenowych głównych ekranów.
 
 ## 1. Decyzje projektowe
 
@@ -668,3 +668,12 @@ Przed rozpoczęciem implementacji warto zaakceptować trzy decyzje produktowe:
 3. bez osobnych komentarzy poza komentarzem w ocenie.
 
 Pozostałe elementy można wdrażać zgodnie z powyższym planem bez dodatkowego rozszerzania zakresu.
+
+## 11. Doprecyzowanie implementacji Auth — Etap 3
+
+- Auth korzysta z `@supabase/ssr`, dwóch typowanych klientów (`client.ts` i `server.ts`) oraz sesji przechowywanej w cookies. Kod serwerowy nie ufa `getSession()`; tożsamość jest weryfikowana przez `getClaims()`.
+- `src/proxy.ts` odświeża sesję i przenosi cookies do requestu oraz response. Proxy wykonuje szybki gate tras, a layout aplikacji ponownie egzekwuje dostęp po stronie serwera; RLS pozostaje warstwą ostateczną.
+- Centralny kontrakt `CurrentMember` rozróżnia użytkownika anonimowego, uwierzytelnionego bez członkostwa, nieaktywnego członka oraz aktywnego członka. Dostęp do aplikacji wymaga `app_members.is_active = true`.
+- Publiczna rejestracja pozostaje wyłączona. Zaufany skrypt operatorski korzysta z Admin API oraz sekretu dostępnego tylko po stronie serwera.
+- Provisioning zaproszenia jest kontrolowany triggerem na `auth.users`, aktywowanym wyłącznie metadaną techniczną skryptu. Trigger tworzy `profiles` i `app_members` w tej samej transakcji, zawsze z rolą `member` i `is_active = true`.
+- Profil jest edytowany w kontekście sesji użytkownika przez RLS. Użytkownik zmienia wyłącznie `display_name` i `avatar_url`; email oraz rola pozostają tylko do odczytu.

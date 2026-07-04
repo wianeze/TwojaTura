@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(40);
+select plan(48);
 
 -- 1. Anonymous users have no table privileges.
 set local role anon;
@@ -615,6 +615,126 @@ select ok(
 );
 
 reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000006","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$select is_active from public.get_own_membership_status()$$,
+  $$values (false)$$,
+  '41. inactive user can read only their own membership gate state'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"90000000-0000-0000-0000-000000000099","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$select count(*)::bigint from public.get_own_membership_status()$$,
+  $$values (0::bigint)$$,
+  '42. authenticated user without membership receives no membership row'
+);
+reset role;
+
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  '90000000-0000-0000-0000-000000000001',
+  'authenticated', 'authenticated', 'invite-test@twojatura.local',
+  extensions.crypt('TwojaTura123!', extensions.gen_salt('bf')), now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"display_name":"Zaproszony Gracz","twoja_tura_invite":true}',
+  now(), now()
+);
+
+select ok(
+  exists (
+    select 1 from public.profiles
+    where id = '90000000-0000-0000-0000-000000000001'
+      and display_name = 'Zaproszony Gracz'
+  ),
+  '43. marked invite provisions a profile'
+);
+
+select results_eq(
+  $$select role from public.app_members where user_id = '90000000-0000-0000-0000-000000000001'$$,
+  $$values ('member'::public.membership_role)$$,
+  '44. invite provisioning always assigns member role'
+);
+
+select results_eq(
+  $$select is_active from public.app_members where user_id = '90000000-0000-0000-0000-000000000001'$$,
+  $$values (true)$$,
+  '45. invite provisioning activates membership'
+);
+
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  '90000000-0000-0000-0000-000000000002',
+  'authenticated', 'authenticated', 'unmarked-test@twojatura.local',
+  extensions.crypt('TwojaTura123!', extensions.gen_salt('bf')), now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"display_name":"Bez Zaproszenia"}',
+  now(), now()
+);
+
+select ok(
+  not exists (
+    select 1 from public.profiles
+    where id = '90000000-0000-0000-0000-000000000002'
+  ),
+  '46. unmarked auth user is not provisioned as an app member'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from auth.users
+    where email in (
+      'admin@twojatura.local',
+      'marta@twojatura.local',
+      'michal@twojatura.local',
+      'ania@twojatura.local',
+      'kuba@twojatura.local',
+      'inactive@twojatura.local'
+    )
+  $$,
+  $$values (6::bigint)$$,
+  '47. all expected seeded password users exist'
+);
+
+select ok(
+  not exists (
+    select 1
+    from auth.users
+    where email in (
+      'admin@twojatura.local',
+      'marta@twojatura.local',
+      'michal@twojatura.local',
+      'ania@twojatura.local',
+      'kuba@twojatura.local',
+      'inactive@twojatura.local'
+    )
+      and (
+        confirmation_token is null
+        or recovery_token is null
+        or email_change is null
+        or email_change_token_new is null
+      )
+  ),
+  '48. seeded password users satisfy GoTrue string field expectations'
+);
+
 select * from finish();
 rollback;
-

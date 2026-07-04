@@ -9,6 +9,10 @@ insert into auth.users (
   email,
   encrypted_password,
   email_confirmed_at,
+  confirmation_token,
+  recovery_token,
+  email_change,
+  email_change_token_new,
   raw_app_meta_data,
   raw_user_meta_data,
   created_at,
@@ -21,6 +25,7 @@ values
     'authenticated', 'authenticated', 'admin@twojatura.local',
     extensions.crypt('TwojaTura123!', extensions.gen_salt('bf')),
     '2026-01-01 10:00:00+00',
+    '', '', '', '',
     '{"provider":"email","providers":["email"]}',
     '{"display_name":"Przemek"}',
     '2026-01-01 10:00:00+00', '2026-01-01 10:00:00+00'
@@ -31,6 +36,7 @@ values
     'authenticated', 'authenticated', 'marta@twojatura.local',
     extensions.crypt('TwojaTura123!', extensions.gen_salt('bf')),
     '2026-01-01 10:00:00+00',
+    '', '', '', '',
     '{"provider":"email","providers":["email"]}',
     '{"display_name":"Marta"}',
     '2026-01-01 10:00:00+00', '2026-01-01 10:00:00+00'
@@ -41,6 +47,7 @@ values
     'authenticated', 'authenticated', 'michal@twojatura.local',
     extensions.crypt('TwojaTura123!', extensions.gen_salt('bf')),
     '2026-01-01 10:00:00+00',
+    '', '', '', '',
     '{"provider":"email","providers":["email"]}',
     '{"display_name":"Michał"}',
     '2026-01-01 10:00:00+00', '2026-01-01 10:00:00+00'
@@ -51,6 +58,7 @@ values
     'authenticated', 'authenticated', 'ania@twojatura.local',
     extensions.crypt('TwojaTura123!', extensions.gen_salt('bf')),
     '2026-01-01 10:00:00+00',
+    '', '', '', '',
     '{"provider":"email","providers":["email"]}',
     '{"display_name":"Ania"}',
     '2026-01-01 10:00:00+00', '2026-01-01 10:00:00+00'
@@ -61,6 +69,7 @@ values
     'authenticated', 'authenticated', 'kuba@twojatura.local',
     extensions.crypt('TwojaTura123!', extensions.gen_salt('bf')),
     '2026-01-01 10:00:00+00',
+    '', '', '', '',
     '{"provider":"email","providers":["email"]}',
     '{"display_name":"Kuba"}',
     '2026-01-01 10:00:00+00', '2026-01-01 10:00:00+00'
@@ -71,6 +80,7 @@ values
     'authenticated', 'authenticated', 'inactive@twojatura.local',
     extensions.crypt('TwojaTura123!', extensions.gen_salt('bf')),
     '2026-01-01 10:00:00+00',
+    '', '', '', '',
     '{"provider":"email","providers":["email"]}',
     '{"display_name":"Nieaktywny"}',
     '2026-01-01 10:00:00+00', '2026-01-01 10:00:00+00'
@@ -336,4 +346,3 @@ values
     690, 'seed_baseline', 'Lokalny stan rankingu',
     '10000000-0000-0000-0000-000000000001', '2026-07-01 12:00:00+00'
   );
-
