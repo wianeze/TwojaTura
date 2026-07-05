@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: Etapy 1–4 są zamknięte. Auth, aktywne członkostwo, profil, wspólna Półka, oceny i dodatki działają na prawdziwym Supabase; Etap 5 jest w toku i obejmuje prawdziwe Kalendarium na Supabase.
+Status: Etapy 1–5 są zamknięte. Auth, aktywne członkostwo, profil, wspólna Półka, oceny, dodatki i Kalendarium działają na prawdziwym Supabase; Etap 6 nie został jeszcze rozpoczęty.
 
 ## 1. Decyzje projektowe
 
@@ -240,7 +240,7 @@ Widok `game_rating_summaries` wylicza co najmniej `average_overall` i `ratings_c
 | `created_at`  | `timestamptz`    | automatycznie                       |
 | `updated_at`  | `timestamptz`    | automatycznie                       |
 
-Jedno spotkanie oznacza dokładnie jedno wydarzenie kalendarzowe od `starts_at` do `ends_at`. Nie utrzymujemy już modelu wielu proponowanych terminów, osobnej tabeli opcji ani pola `selected_option_id`.
+Jedno spotkanie oznacza dokładnie jedno wydarzenie kalendarzowe od `starts_at` do `ends_at`. Model spotkania został uproszczony do jednego zakresu czasu dla całego wydarzenia.
 
 #### `meeting_availability`
 
@@ -251,7 +251,7 @@ Jedno spotkanie oznacza dokładnie jedno wydarzenie kalendarzowe od `starts_at` 
 | `is_available` | `boolean`   | jawne RSVP: będzie / nie może     |
 | `updated_at` | `timestamptz` | automatycznie                     |
 
-Klucz główny: `(meeting_id, user_id)`. Każdy aktywny członek zapisuje wyłącznie własną odpowiedź `true` lub `false`. Brak rekordu oznacza `Brak odpowiedzi`. To jest prosty model RSVP dla jednego wydarzenia, bez macierzy terminów.
+Klucz główny: `(meeting_id, user_id)`. Każdy aktywny członek zapisuje wyłącznie własną odpowiedź `true` lub `false`. Brak rekordu oznacza `Brak odpowiedzi`. To jest prosty model RSVP dla jednego wydarzenia.
 
 #### `meeting_game_votes`
 
@@ -337,7 +337,7 @@ Audytujemy przede wszystkim:
 
 - zmianę roli lub aktywności użytkownika;
 - administracyjną edycję/archiwizację gry oraz zmianę `owner_id` lub `current_holder_id`;
-- administracyjną korektę spotkania i terminów;
+- administracyjną korektę spotkania;
 - administracyjną korektę rozgrywki oraz jej uczestników, zwycięzców, miejsc i punktów;
 - zmianę `app_content`;
 - dodanie ręcznej korekty `point_events`.
@@ -355,8 +355,7 @@ erDiagram
   GAMES ||--o{ RATINGS : receives
   PROFILES ||--o{ RATINGS : writes
   PROFILES ||--o{ MEETINGS : creates
-  MEETINGS ||--o{ MEETING_OPTIONS : proposes
-  MEETING_OPTIONS ||--o{ MEETING_AVAILABILITY : collects
+  MEETINGS ||--o{ MEETING_AVAILABILITY : collects
   PROFILES ||--o{ MEETING_AVAILABILITY : answers
   MEETINGS ||--o{ MEETING_GAME_VOTES : ranks
   GAMES ||--o{ MEETING_GAME_VOTES : candidate
@@ -419,7 +418,7 @@ W MVP 1 nie powstaje trasa `/admin` ani jej UI. Etap 2 ma jednak przygotować st
 
 - Użytkownicy — `profiles`, `app_members` i audyt zmian roli/aktywności;
 - Gry — administracyjna korekta, archiwizacja i transfer `owner_id`;
-- Spotkania — korekta dowolnego spotkania i terminów;
+- Spotkania — korekta dowolnego spotkania;
 - Rozgrywki — korekta `plays` oraz `play_participants`;
 - Treści — CRUD zatwierdzonych kluczy `app_content`;
 - Punkty — podgląd ledgeru/sald i `admin_adjustment`;
@@ -433,8 +432,8 @@ Przyszły kod UI trafi do `features/admin`, ale nie będzie zawierał własnych 
 - Desktop: stały panel boczny lub kompaktowy pasek nawigacji.
 - Półka: wspólne egzemplarze całej grupy, dwa pudełka w rzędzie na telefonie i do sześciu na desktopie.
 - Filtry: wysuwany panel na telefonie, panel boczny lub pasek na desktopie.
-- Macierz dostępności: na telefonie terminy jako kolumny przewijane poziomo; pierwsza kolumna z osobami pozostaje czytelna.
-- Formularze mają duże pola dotykowe, natywne kontrolki daty/czasu i wyraźne stany zapisu/błędu.
+- RSVP: na telefonie kompaktowe kafle osób i dwie czytelne akcje `Będę / Nie mogę`.
+- Formularze mają duże pola dotykowe, ręczne wpisywanie `dd/MM/yyyy` i `HH:mm`, monthly date picker oraz wyraźne stany zapisu/błędu.
 
 ## 5. Uprawnienia i RLS
 
@@ -459,7 +458,7 @@ Funkcje będą `STABLE SECURITY DEFINER`, będą w pełni kwalifikować nazwy ta
 | Członkostwo           | brak zmiany roli i `is_active`                                                           | zmiana roli oraz aktywacji konta; zmiana audytowana                                                  |
 | Gry                   | dodanie z `owner_id = auth.uid()`; edycja i archiwizacja własnych; bez zmiany `owner_id` | dodanie dla dowolnego właściciela; edycja/archiwizacja dowolnej gry; zmiana właściciela i posiadacza |
 | Oceny                 | własny `INSERT/UPDATE/DELETE`                                                            | bez specjalnego wyjątku w MVP 1; obowiązują reguły autora                                            |
-| Spotkania             | dodanie jako `created_by`; edycja własnych                                               | edycja dowolnego spotkania i jego terminów                                                           |
+| Spotkania             | dodanie jako `created_by`; edycja własnych                                               | edycja dowolnego spotkania                                                                           |
 | Dostępność            | wyłącznie własne odpowiedzi                                                              | bez podszywania się pod odpowiedź użytkownika                                                        |
 | Głosy na gry          | wyłącznie własne głosy                                                                   | bez podszywania się pod głos użytkownika                                                             |
 | Rozgrywki             | dodanie jako `created_by`; edycja własnych wpisów i uczestników                          | edycja dowolnej partii oraz uczestników, zwycięzców, miejsc i punktów                                |
@@ -527,7 +526,7 @@ Nie powstaje tabela `quests`, trigger tworzący questy ani automatyczne naliczan
 
 ### Pozostałe sekcje Stołu
 
-- **Najbliższy wieczór:** potwierdzone spotkanie według wybranego terminu; jeśli brak, najbliższy przyszły termin spotkania planowanego. Widok pokazuje termin, lokalizację, uczestników i proponowane/wybrane gry bez powielania komunikatu akcji.
+- **Najbliższy wieczór:** najbliższe przyszłe potwierdzone spotkanie według `meetings.starts_at`; jeśli brak, najbliższe przyszłe spotkanie planowane. Widok pokazuje termin z `starts_at`–`ends_at`, lokalizację, uczestników i proponowane gry bez powielania komunikatu akcji.
 - **Legendy przy Stole:** pięć najwyższych sald z bezpiecznego RPC `get_leaderboard()`; ten sam kontrakt jest docelowym źródłem rankingu na Stole i w Legendarium. `user_point_balances` służy memberowi do własnego salda, a adminowi do kontroli sald. W Etapie 1 oba miejsca są wyłącznie statyczną makietą.
 - **Ostatnio przy Stole:** kompaktowy strumień zdarzeń złożony z istniejących danych gier, ocen i partii. W MVP 1 nie tworzymy osobnej tabeli activity feed.
 - **Odznaki w Legendarium:** obecnie są wyłącznie statycznym preview ze stanem zdobyta/niezdobyta oraz opcjonalną grafiką. Tabele i logika trwałych odznak pozostają poza backendowym zakresem MVP 1.
@@ -623,15 +622,19 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 
 ### Etap 5 — Kalendarium, RSVP i propozycje gier
 
-- Etap jest w toku: lista, tworzenie, edycja i szczegóły spotkania są podłączone do prawdziwego Supabase i korzystają z read layer w `src/features/meetings`.
-- Jedno spotkanie oznacza jedno wydarzenie od `starts_at` do `ends_at`; model wielu terminów został świadomie usunięty jeszcze przed zamknięciem Etapu 5.
-- Formularz spotkania używa prostego UX `dd/MM/yyyy` + `HH:mm`, nie pokazuje pola statusu i zachowuje wpisane wartości po błędzie walidacji.
-- Dostępność działa jako kompaktowe RSVP TAK/NIE dla jednego spotkania. Użytkownik zapisuje wyłącznie własną odpowiedź, a szczegóły spotkania pokazują listę `Będzie / Nie może / Brak odpowiedzi`.
-- Twórca spotkania lub admin może z poziomu szczegółów wykonać małą akcję „Potwierdź spotkanie”, która zmienia `planned` → `confirmed`.
-- Głosy na gry działają na niearchiwizowanych egzemplarzach z Półki, ranking pochodzi z `meeting_game_rankings`, a pojedynczy klik przełącza własny głos użytkownika.
-- Pierwszy głos nadal jednocześnie proponuje grę do spotkania. Domyślnie karta spotkania pokazuje tylko gry, które mają już co najmniej jeden głos, a picker `+ Proponuj grę` pozwala dodać kolejne kandydatury z całej Półki.
-- Etap 5 pozostaje „w toku” do czasu lokalnego manual smoke testu uproszczonego modelu Kalendarium.
-- Weryfikacja: testy walidacji pojedynczego przedziału czasu, wielodniowego renderowania kalendarza, RSVP, linkowania dnia kalendarza i głosowania na gry; lint/test/build oraz `db:verify`.
+- Etap zamknięty: lista, tworzenie, edycja i szczegóły spotkania są podłączone do prawdziwego Supabase i korzystają z read layer w `src/features/meetings`.
+- Jedno spotkanie oznacza jeden zakres `starts_at`–`ends_at`.
+- Formularz spotkania używa prostego UX `dd/MM/yyyy` + `HH:mm`, wspiera ręczne wpisywanie oraz monthly date picker i nie pokazuje pola statusu.
+- Formularz zachowuje `submitted values` po validation error, dzięki czemu użytkownik nie traci wpisanych danych.
+- Lokalizacja pozostaje free-text, a formularz pokazuje sugestie z historii wcześniejszych spotkań.
+- Dostępność działa jako proste RSVP TAK/NIE dla jednego spotkania. Użytkownik zapisuje wyłącznie własną odpowiedź, a szczegóły spotkania pokazują listę `Będzie / Nie może / Brak odpowiedzi`.
+- Kafle RSVP mają kolor całego panelu zależny od stanu odpowiedzi.
+- Kalendarium korzysta z centralnej logiki user-specific presentation state: brak własnego RSVP ma najwyższy priorytet i daje `Do decyzji`, żółto-złoty stan oraz `exclamation-nobg`; po własnym RSVP `confirmed` jest zielone `Potwierdzone`, a `planned` bordowe `Do ustalenia`.
+- Górny timeline i dolny monthly calendar korzystają z tej samej logiki wizualnej. Timeline pokazuje attendee count liczony wyłącznie z `is_available = true`.
+- Multi-day events renderują się we wszystkich dniach zakresu, a kliknięcie pustego dnia otwiera tworzenie spotkania z prefill `date`.
+- Propozycje gier działają przez `meeting_game_votes`, a pierwszy głos jednocześnie proponuje grę. Ranking pochodzi z `meeting_game_rankings`.
+- Twórca spotkania lub admin może wykonać `planned → confirmed`, a także `confirmed → planned` przez akcję `Cofnij potwierdzenie`; cofnięcie nie zmienia RSVP ani głosów.
+- Weryfikacja zamykająca Etap 5: lokalne `pnpm db:verify` PASS po migracji uproszczonego modelu spotkań, `pnpm test` PASS 96/96, `pnpm check` PASS, `pnpm build` PASS oraz finalny manualny odbiór Kalendarium.
 
 ### Etap 6 — Kronika
 
