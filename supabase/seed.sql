@@ -137,19 +137,20 @@ values
   ('chronicle.heading', 'Kronika rozegranych partii');
 
 insert into public.games (
-  id, title, owner_id, current_holder_id, bgg_rank, game_type,
+  id, title, owner_id, current_holder_id, cover_url, bgg_rank, game_type,
   min_players, max_players, play_time_minutes, release_year,
   mechanics, categories, bgg_weight, min_age, designer, publisher,
-  expansions, description, status, created_at
+  description, status, created_at
 )
 values
   (
     '30000000-0000-0000-0000-000000000001', 'Nemesis',
     '10000000-0000-0000-0000-000000000003',
     '10000000-0000-0000-0000-000000000004',
+    '/games/nemezis.webp',
     20, 'Półkooperacyjna', 1, 5, 120, 2018,
     array['Ukryte cele', 'Eksploracja'], array['Science fiction', 'Horror'],
-    3.50, 12, 'Adam Kwapiński', 'Awaken Realms', 'Carnomorphs',
+    3.50, 12, 'Adam Kwapiński', 'Awaken Realms',
     'Wyprawa na pokład uszkodzonego statku.', 'loaned',
     '2026-05-01 12:00:00+00'
   ),
@@ -157,9 +158,10 @@ values
     '30000000-0000-0000-0000-000000000002', 'Frostpunk',
     '10000000-0000-0000-0000-000000000002',
     '10000000-0000-0000-0000-000000000002',
+    '/games/frostpunk.webp',
     310, 'Strategiczna', 1, 4, 135, 2022,
     array['Zarządzanie zasobami', 'Budowanie miasta'], array['Postapokalipsa', 'Strategia'],
-    4.20, 16, 'Adam Kwapiński', 'Glass Cannon Unplugged', 'Lodowe Kry',
+    4.20, 16, 'Adam Kwapiński', 'Glass Cannon Unplugged',
     'Ostatnie miasto musi przetrwać.', 'available',
     '2026-06-20 12:00:00+00'
   ),
@@ -167,9 +169,10 @@ values
     '30000000-0000-0000-0000-000000000003', 'XCOM',
     '10000000-0000-0000-0000-000000000001',
     '10000000-0000-0000-0000-000000000001',
+    '/games/xcom.webp',
     463, 'Kooperacyjna', 1, 4, 75, 2015,
     array['Czas rzeczywisty', 'Kooperacja'], array['Science fiction', 'Walka'],
-    2.90, 14, 'Eric M. Lang', 'Fantasy Flight Games', 'Evolution',
+    2.90, 14, 'Eric M. Lang', 'Fantasy Flight Games',
     'Globalna obrona w czasie rzeczywistym.', 'available',
     '2026-04-01 12:00:00+00'
   ),
@@ -177,12 +180,21 @@ values
     '30000000-0000-0000-0000-000000000004', 'Wyspa Skarbów',
     '10000000-0000-0000-0000-000000000005',
     '10000000-0000-0000-0000-000000000005',
+    '/games/treasure-island.webp',
     522, 'Dedukcyjna', 2, 5, 45, 2018,
     array['Dedukcja', 'Blef'], array['Piraci', 'Przygodowa'],
-    2.10, 10, 'Marc Paquien', 'Matagot', null,
+    2.10, 10, 'Marc Paquien', 'Matagot',
     'Mapa, blef i zakopany skarb.', 'available',
     '2026-03-01 12:00:00+00'
   );
+
+insert into public.game_expansions (game_id, name, is_owned)
+values
+  ('30000000-0000-0000-0000-000000000001', 'Carnomorphs', true),
+  ('30000000-0000-0000-0000-000000000002', 'Lodowe Kry', true),
+  ('30000000-0000-0000-0000-000000000002', 'Timber City', false),
+  ('30000000-0000-0000-0000-000000000002', 'Playing with Fire', false),
+  ('30000000-0000-0000-0000-000000000003', 'Evolution', true);
 
 insert into public.ratings (
   id, game_id, user_id, overall, replayability, theme,

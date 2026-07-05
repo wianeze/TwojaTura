@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(48);
+select plan(62);
 
 -- 1. Anonymous users have no table privileges.
 set local role anon;
@@ -734,6 +734,209 @@ select ok(
       )
   ),
   '48. seeded password users satisfy GoTrue string field expectations'
+);
+
+reset role;
+
+set local role anon;
+select throws_ok(
+  $$select * from public.game_expansions$$,
+  '42501',
+  null,
+  '49. anon cannot read game_expansions'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000006","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$select count(*)::bigint from public.game_expansions$$,
+  $$values (0::bigint)$$,
+  '50. inactive member cannot read game_expansions'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select cmp_ok(
+  (select count(*) from public.game_expansions),
+  '>=',
+  5::bigint,
+  '51. active member reads game_expansions'
+);
+
+select lives_ok(
+  $$
+    insert into public.game_expansions (id, game_id, name, is_owned)
+    values (
+      '72000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000002',
+      'Testowy Dodatek Marty',
+      true
+    )
+  $$,
+  '52. owner inserts expansion for own game'
+);
+
+select results_eq(
+  $$
+    with changed as (
+      update public.game_expansions
+      set is_owned = false
+      where id = '72000000-0000-0000-0000-000000000001'
+      returning 1
+    )
+    select count(*)::bigint from changed
+  $$,
+  $$values (1::bigint)$$,
+  '53. owner updates own expansion'
+);
+
+select results_eq(
+  $$
+    with deleted as (
+      delete from public.game_expansions
+      where id = '72000000-0000-0000-0000-000000000001'
+      returning 1
+    )
+    select count(*)::bigint from deleted
+  $$,
+  $$values (1::bigint)$$,
+  '54. owner deletes own expansion'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000004","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$
+    insert into public.game_expansions (id, game_id, name, is_owned)
+    values (
+      '72000000-0000-0000-0000-000000000002',
+      '30000000-0000-0000-0000-000000000002',
+      'Niedozwolony dodatek',
+      true
+    )
+  $$,
+  '42501',
+  null,
+  '55. different member cannot insert expansion for someone else game'
+);
+
+select results_eq(
+  $$
+    with changed as (
+      update public.game_expansions
+      set is_owned = false
+      where game_id = '30000000-0000-0000-0000-000000000002'
+        and name = 'Lodowe Kry'
+      returning 1
+    )
+    select count(*)::bigint from changed
+  $$,
+  $$values (0::bigint)$$,
+  '56. different member cannot update expansion for someone else game'
+);
+
+select results_eq(
+  $$
+    with deleted as (
+      delete from public.game_expansions
+      where game_id = '30000000-0000-0000-0000-000000000002'
+        and name = 'Lodowe Kry'
+      returning 1
+    )
+    select count(*)::bigint from deleted
+  $$,
+  $$values (0::bigint)$$,
+  '57. different member cannot delete expansion for someone else game'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select lives_ok(
+  $$
+    insert into public.game_expansions (id, game_id, name, is_owned)
+    values (
+      '72000000-0000-0000-0000-000000000003',
+      '30000000-0000-0000-0000-000000000002',
+      'Admin Test',
+      false
+    )
+  $$,
+  '58. admin can insert any expansion'
+);
+
+select results_eq(
+  $$
+    with changed as (
+      update public.game_expansions
+      set is_owned = true
+      where id = '72000000-0000-0000-0000-000000000003'
+      returning 1
+    )
+    select count(*)::bigint from changed
+  $$,
+  $$values (1::bigint)$$,
+  '59. admin can update any expansion'
+);
+
+select results_eq(
+  $$
+    with deleted as (
+      delete from public.game_expansions
+      where id = '72000000-0000-0000-0000-000000000003'
+      returning 1
+    )
+    select count(*)::bigint from deleted
+  $$,
+  $$values (1::bigint)$$,
+  '60. admin can delete any expansion'
+);
+
+select throws_ok(
+  $$
+    insert into public.game_expansions (id, game_id, name, is_owned)
+    values (
+      '72000000-0000-0000-0000-000000000004',
+      '30000000-0000-0000-0000-000000000002',
+      '  lodowe kry  ',
+      true
+    )
+  $$,
+  '23505',
+  null,
+  '61. duplicate expansion name for same game is rejected'
+);
+
+select lives_ok(
+  $$
+    insert into public.game_expansions (id, game_id, name, is_owned)
+    values (
+      '72000000-0000-0000-0000-000000000005',
+      '30000000-0000-0000-0000-000000000003',
+      'Lodowe Kry',
+      false
+    )
+  $$,
+  '62. same expansion name for different physical game copy is allowed'
 );
 
 select * from finish();

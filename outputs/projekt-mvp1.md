@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: Etapy 1–2 zamknięte; Etap 3 podłącza Supabase Auth, aktywne członkostwo i profil bez uruchamiania danych domenowych głównych ekranów.
+Status: Etapy 1–3 zamknięte, Etap 4 w toku. Auth, aktywne członkostwo i profil działają na prawdziwym Supabase, a domeny `games`, `game_expansions` i `ratings` są już podłączone do sekcji Półka, formularzy gier i kart gier.
 
 ## 1. Decyzje projektowe
 
@@ -170,7 +170,6 @@ Aktywni członkowie mogą odczytywać treści, ale tylko admin może je dodawać
 | `min_age`           | `smallint` nullable     | wartość nieujemna                                 |
 | `designer`          | `text` nullable         | autor/projektant                                  |
 | `publisher`         | `text` nullable         | wydawca                                           |
-| `expansions`        | `text` nullable         | zwykły tekst w MVP 1                              |
 | `description`       | `text` nullable         | opis                                              |
 | `status`            | `game_status`           | domyślnie `available`                             |
 | `created_at`        | `timestamptz`           | automatycznie                                     |
@@ -185,6 +184,25 @@ Reguły interfejsu:
 - member może edytować i archiwizować wyłącznie własny egzemplarz;
 - member może zmieniać `current_holder_id` własnej gry, ale `owner_id` w jego operacji musi pozostać równy `auth.uid()`;
 - admin może edytować lub archiwizować dowolny egzemplarz oraz zmieniać `owner_id` i `current_holder_id`; transfer właściciela jest zapisywany w `audit_log`.
+
+#### `game_expansions`
+
+| Kolumna      | Typ           | Uwagi                                                    |
+| ------------ | ------------- | -------------------------------------------------------- |
+| `id`         | `uuid` PK     | automatycznie                                            |
+| `game_id`    | `uuid`        | FK do `games`, kasowanie kaskadowe                       |
+| `name`       | `text`        | wymagane, `btrim(name) <> ''`                            |
+| `is_owned`   | `boolean`     | `true` = dodatek fizycznie posiadany, `false` = brak go na półce |
+| `created_at` | `timestamptz` | automatycznie                                            |
+| `updated_at` | `timestamptz` | automatycznie                                            |
+
+Relacje i zasady:
+
+- każdy rekord należy do konkretnego fizycznego egzemplarza z `games`;
+- ta sama nazwa dodatku może istnieć przy dwóch różnych kopiach gry;
+- w obrębie jednego `game_id` nazwa jest unikalna bez rozróżniania wielkości liter;
+- aktywny member może czytać listy dodatków, ale tylko właściciel egzemplarza albo admin może dodawać, usuwać i przełączać `is_owned`;
+- karta gry pokazuje pełną listę checkboxów, a szybki podgląd Półki pokazuje wyłącznie dodatki oznaczone jako posiadane.
 
 #### `ratings`
 
@@ -560,7 +578,7 @@ Nie powstaje tabela `quests`, trigger tworzący questy ani automatyczne naliczan
 | Minimalny Wiek   | `min_age`                    | liczba nieujemna                                                     |
 | Autor            | `designer`                   | tekst                                                                |
 | Wydawca          | `publisher`                  | tekst                                                                |
-| Dodatki          | `expansions`                 | tekst bez normalizacji relacyjnej                                    |
+| Dodatki          | `game_expansions[]`          | import do listy dzieci gry; jednoznaczny wpis → `is_owned = true`, niejednoznaczne wartości trafiają do raportu |
 
 Status nie istnieje w arkuszu, więc import domyślnie ustawia `available`, chyba że aktualny posiadacz różni się od właściciela — wtedy `loaned`. Opis pozostaje pusty.
 
@@ -612,6 +630,10 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 - Wspólna Półka wszystkich fizycznych egzemplarzy grupy z wyszukiwaniem i wszystkimi filtrami.
 - Karta gry.
 - Jedna edytowalna ocena użytkownika oraz agregaty ocen.
+- Odczyt Półki i kart gier działa przez server-side read layer oparty o session Supabase client oraz RLS.
+- Kontrakt filtrów URL: `q`, `owner`, `status`, `players`, `maxTime`, `type`, `mechanic`, `category`; `mechanic` i `category` wspierają wielokrotne wartości z semantyką OR.
+- Walidacja formularza gry i oceny jest współdzielona między UI oraz Server Actions; member nigdy nie ustala `owner_id` po stronie klienta.
+- Agregaty ocen pochodzą z `game_rating_summaries`; średnia grupy nie jest cache’owana w tabeli `games`.
 - Weryfikacja: test uprawnień właściciela, walidacji zakresów, filtrów i oceny; lint/test/build.
 
 ### Etap 5 — Kalendarium, ankiety i propozycje gier

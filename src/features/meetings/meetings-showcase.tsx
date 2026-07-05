@@ -131,7 +131,11 @@ export function MeetingsShowcase() {
                 key={game.id}
                 className={`relative shrink-0 ${index === 1 ? "-translate-y-2 rotate-2" : index === 2 ? "-rotate-2" : "rotate-[-1deg]"}`}
               >
-                <GameCover game={game} size="card" />
+                <GameCover
+                  title={game.title}
+                  coverUrl={game.coverSrc}
+                  size="card"
+                />
                 <span className="text-cream absolute -right-3 -bottom-3 grid size-10 place-items-center rounded-full border-2 border-[#efd09a] bg-[#7d3f2d] text-xs font-bold shadow-lg">
                   {5 - index}
                 </span>

@@ -4,7 +4,7 @@ Prywatna, responsywna aplikacja do zarządzania kolekcją planszówek, spotkania
 
 > Zbierz ekipę. Wybierz grę. Twoja tura.
 
-Aktualny stan: interfejs Etapu 1, baza i RLS Etapu 2 oraz Supabase Auth, aktywne członkostwo i profil Etapu 3. Dane domenowe głównych ekranów pozostają makietami do kolejnych etapów.
+Aktualny stan: Etapy 1–4 są zaimplementowane lokalnie. Auth działa z zaproszeniami i aktywnym członkostwem, a domeny `games` oraz `ratings` korzystają już z prawdziwych danych Supabase w sekcji Półka i na kartach gier.
 
 ## Wymagania
 

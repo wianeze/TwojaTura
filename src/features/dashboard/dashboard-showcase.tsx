@@ -257,7 +257,12 @@ export function DashboardShowcase() {
             </p>
             <div className="flex gap-3 overflow-x-auto px-1 pt-1 pb-4 lg:justify-end lg:overflow-visible">
               {eveningGames.map((game) => (
-                <GameCover key={game.id} game={game} size="mini" />
+                <GameCover
+                  key={game.id}
+                  title={game.title}
+                  coverUrl={game.coverSrc}
+                  size="mini"
+                />
               ))}
             </div>
           </div>

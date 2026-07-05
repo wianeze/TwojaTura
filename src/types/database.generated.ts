@@ -111,6 +111,41 @@ export type Database = {
           },
         ]
       }
+      game_expansions: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          is_owned: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          is_owned?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          is_owned?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_expansions_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           archived_at: string | null
@@ -123,7 +158,6 @@ export type Database = {
           current_holder_id: string | null
           description: string | null
           designer: string | null
-          expansions: string | null
           game_type: string | null
           id: string
           max_players: number | null
@@ -149,7 +183,6 @@ export type Database = {
           current_holder_id?: string | null
           description?: string | null
           designer?: string | null
-          expansions?: string | null
           game_type?: string | null
           id?: string
           max_players?: number | null
@@ -175,7 +208,6 @@ export type Database = {
           current_holder_id?: string | null
           description?: string | null
           designer?: string | null
-          expansions?: string | null
           game_type?: string | null
           id?: string
           max_players?: number | null
@@ -693,6 +725,32 @@ export type Database = {
       }
     }
     Functions: {
+      create_game_with_expansions: {
+        Args: {
+          p_archived_at?: string
+          p_bgg_rank: number
+          p_bgg_url: string
+          p_bgg_weight: number
+          p_categories: string[]
+          p_cover_url: string
+          p_current_holder_id: string
+          p_description: string
+          p_designer: string
+          p_expansions?: Json
+          p_game_type: string
+          p_max_players: number
+          p_mechanics: string[]
+          p_min_age: number
+          p_min_players: number
+          p_owner_id: string
+          p_play_time_minutes: number
+          p_publisher: string
+          p_release_year: number
+          p_status: Database["public"]["Enums"]["game_status"]
+          p_title: string
+        }
+        Returns: string
+      }
       get_leaderboard: {
         Args: never
         Returns: {
@@ -709,6 +767,32 @@ export type Database = {
           is_active: boolean
           role: Database["public"]["Enums"]["membership_role"]
         }[]
+      }
+      update_game_with_expansions: {
+        Args: {
+          p_bgg_rank: number
+          p_bgg_url: string
+          p_bgg_weight: number
+          p_categories: string[]
+          p_cover_url: string
+          p_current_holder_id: string
+          p_description: string
+          p_designer: string
+          p_expansions?: Json
+          p_game_id: string
+          p_game_type: string
+          p_max_players: number
+          p_mechanics: string[]
+          p_min_age: number
+          p_min_players: number
+          p_owner_id: string
+          p_play_time_minutes: number
+          p_publisher: string
+          p_release_year: number
+          p_status: Database["public"]["Enums"]["game_status"]
+          p_title: string
+        }
+        Returns: string
       }
     }
     Enums: {

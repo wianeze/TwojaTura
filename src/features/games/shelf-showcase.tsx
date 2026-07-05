@@ -1,21 +1,21 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { GameCover } from "@/components/ui/game-cover";
-import { mockGames, type MockGame } from "./mock-games";
+import { getOwnedExpansionNames } from "./expansions";
+import { formatDecimal, formatPlayerRange, formatPlayTime } from "./formatting";
+import type { GameShelfItem } from "./types";
 
-function formatRating(value: number) {
-  return value.toFixed(1).replace(".", ",");
-}
-
-function GameFacts({ game }: { game: MockGame }) {
+function GameFacts({ game }: { game: GameShelfItem }) {
   return (
     <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
       {[
-        ["Gracze", game.players],
-        ["Czas", game.duration],
-        ["Typ", game.type],
-        ["Rok", String(game.releaseYear)],
+        ["Gracze", formatPlayerRange(game.minPlayers, game.maxPlayers)],
+        ["Czas", formatPlayTime(game.playTimeMinutes)],
+        ["Typ", game.gameType ?? "—"],
+        ["Rok", game.releaseYear ? String(game.releaseYear) : "—"],
       ].map(([label, value]) => (
         <div key={label} className="paper-wash rounded-xl px-3 py-2.5">
           <dt className="text-muted text-[0.62rem] font-bold tracking-wider uppercase">
@@ -29,6 +29,8 @@ function GameFacts({ game }: { game: MockGame }) {
 }
 
 function TagList({ label, values }: { label: string; values: string[] }) {
+  if (values.length === 0) return null;
+
   return (
     <div>
       <p className="text-muted text-[0.6rem] font-bold tracking-wider uppercase">
@@ -49,106 +51,122 @@ function TagList({ label, values }: { label: string; values: string[] }) {
 }
 
 type ShelfSegmentProps = {
-  games: MockGame[];
+  games: GameShelfItem[];
   label: string;
-  onSelect: (game: MockGame) => void;
+  onSelect: (game: GameShelfItem) => void;
 };
 
 function ShelfSegment({ games, label, onSelect }: ShelfSegmentProps) {
+  const router = useRouter();
+
+  const handleGameClick = (game: GameShelfItem) => {
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      onSelect(game);
+      return;
+    }
+
+    router.push(`/gry/${game.id}`);
+  };
+
   return (
     <div
-      className="shelf-row-bg premium-edge relative overflow-visible rounded-[1.5rem] px-3 pt-7 pb-8 shadow-[inset_0_16px_34px_rgba(8,4,3,0.42)] sm:px-5 sm:pt-8 sm:pb-10 xl:pt-9 xl:pb-11"
+      className="shelf-row-bg premium-edge relative overflow-visible rounded-[1.5rem] px-3 pt-6 pb-6 shadow-[inset_0_16px_34px_rgba(8,4,3,0.42)] sm:px-5 sm:pt-7 sm:pb-7 xl:pt-8 xl:pb-8"
       aria-label={label}
     >
       <div className="absolute inset-0 rounded-[inherit] bg-[linear-gradient(180deg,rgba(12,6,4,0.08),rgba(12,6,4,0.12)_45%,rgba(12,6,4,0.58))]" />
       <div className="shelf-segment-grid relative items-end">
-        {games.map((game, index) => (
-          <div
-            key={game.id}
-            className="relative flex min-w-0 items-end justify-center"
-          >
-            <button
-              type="button"
-              onClick={() => onSelect(game)}
-              className="group focus-visible:ring-gold focus-visible:ring-offset-wood-dark relative rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-offset-4"
-              aria-label={`Otwórz kartę gry ${game.title}`}
-              aria-haspopup="dialog"
-            >
-              <GameCover
-                game={game}
-                size="shelf"
-                className="transition-transform duration-300 group-hover:-translate-y-2 group-focus-visible:-translate-y-2"
-              />
+        {games.map((game, index) => {
+          const ownedExpansions = getOwnedExpansionNames(game.expansions);
 
-              <div
-                aria-hidden="true"
-                className={`parchment-card text-foreground shadow-warm pointer-events-none invisible absolute bottom-[calc(100%+0.75rem)] z-40 hidden w-80 rounded-[1.4rem] p-4 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 lg:block ${
-                  index === 0
-                    ? "left-0"
-                    : index === games.length - 1
-                      ? "right-0"
-                      : "left-1/2 -translate-x-1/2"
-                }`}
+          return (
+            <div
+              key={game.id}
+              className="relative flex min-w-0 items-end justify-center"
+            >
+              <button
+                type="button"
+                onClick={() => handleGameClick(game)}
+                className="group focus-visible:ring-gold focus-visible:ring-offset-wood-dark relative w-full rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-offset-4"
+                aria-label={`Otwórz kartę gry ${game.title}`}
               >
-                <div className="flex gap-3">
-                  <GameCover game={game} size="mini" />
-                  <div className="min-w-0 flex-1 py-1">
-                    <p className="font-display text-lg font-semibold">
-                      {game.title}
-                    </p>
-                    <p className="text-muted mt-2 line-clamp-3 text-xs leading-5">
-                      {game.description}
-                    </p>
-                    <p className="text-accent mt-2 text-xs font-bold">
-                      {game.players} · {game.duration} · {game.releaseYear}
-                    </p>
-                    <dl className="text-muted mt-2 space-y-1 text-[0.65rem]">
-                      <div className="flex justify-between gap-2">
-                        <dt>Właściciel / u kogo</dt>
-                        <dd className="text-right font-semibold">
-                          {game.owner} / {game.currentHolder}
-                        </dd>
-                      </div>
-                      <div className="flex justify-between gap-2">
-                        <dt>BGG</dt>
-                        <dd className="text-right font-semibold">
-                          #{game.bgg.rank} · {formatRating(game.bgg.rating)} ·
-                          waga {formatRating(game.bgg.weight)}
-                        </dd>
-                      </div>
-                      <div className="flex justify-between gap-2">
-                        <dt>Grupa</dt>
-                        <dd className="text-right font-semibold">
-                          {formatRating(game.community.averageRating)} ·{" "}
-                          {game.community.playsCount} partii
-                        </dd>
-                      </div>
-                      <div className="flex justify-between gap-2">
-                        <dt>Ostatnio</dt>
-                        <dd className="text-right font-semibold">
-                          {game.community.lastPlayedAt ??
-                            "jeszcze nie graliśmy"}
-                        </dd>
-                      </div>
-                    </dl>
-                    {game.expansions.length > 0 && (
-                      <p className="mt-2 text-[0.65rem] font-semibold text-[#76532f]">
-                        Dodatki: {game.expansions.join(", ")}
+                <GameCover
+                  title={game.title}
+                  coverUrl={game.coverUrl}
+                  size="shelf"
+                  className="mx-auto transition-transform duration-300 group-hover:-translate-y-2 group-focus-visible:-translate-y-2"
+                />
+
+                <div
+                  aria-hidden="true"
+                  className={`parchment-card text-foreground shadow-warm pointer-events-none invisible absolute bottom-[calc(100%+0.75rem)] z-40 hidden w-80 rounded-[1.4rem] p-4 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 lg:block ${
+                    index === 0
+                      ? "left-0"
+                      : index === games.length - 1
+                        ? "right-0"
+                        : "left-1/2 -translate-x-1/2"
+                  }`}
+                >
+                  <div className="flex gap-3">
+                    <GameCover
+                      title={game.title}
+                      coverUrl={game.coverUrl}
+                      size="mini"
+                    />
+                    <div className="min-w-0 flex-1 py-1">
+                      <p className="font-display text-lg font-semibold">
+                        {game.title}
                       </p>
-                    )}
+                      <p className="text-muted mt-2 line-clamp-3 text-xs leading-5">
+                        {game.description ??
+                          "Ta gra czeka jeszcze na krótki opis."}
+                      </p>
+                      <p className="text-accent mt-2 text-xs font-bold">
+                        {formatPlayerRange(game.minPlayers, game.maxPlayers)} ·{" "}
+                        {formatPlayTime(game.playTimeMinutes)} ·{" "}
+                        {game.gameType ?? "bez typu"}
+                      </p>
+                      <dl className="text-muted mt-2 space-y-1 text-[0.65rem]">
+                        <div className="flex justify-between gap-2">
+                          <dt>Właściciel / u kogo</dt>
+                          <dd className="text-right font-semibold">
+                            {game.owner.displayName} /{" "}
+                            {game.currentHolder?.displayName ?? "nieustalone"}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                          <dt>BGG</dt>
+                          <dd className="text-right font-semibold">
+                            {game.bggRank ? `#${game.bggRank}` : "brak"} · waga{" "}
+                            {formatDecimal(game.bggWeight)}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                          <dt>Średnia grupy</dt>
+                          <dd className="text-right font-semibold">
+                            {formatDecimal(game.ratingSummary.averageOverall)} ·{" "}
+                            {game.ratingSummary.ratingsCount} ocen
+                          </dd>
+                        </div>
+                      </dl>
+                      {ownedExpansions.length > 0 && (
+                        <p className="mt-2 text-[0.65rem] font-semibold text-[#76532f]">
+                          Dodatki: {ownedExpansions.join(", ")}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </button>
-          </div>
-        ))}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function groupGames(games: MockGame[], groupSize: number) {
-  const groups: MockGame[][] = [];
+function groupGames(games: GameShelfItem[], groupSize: number) {
+  const groups: GameShelfItem[][] = [];
 
   for (let index = 0; index < games.length; index += groupSize) {
     groups.push(games.slice(index, index + groupSize));
@@ -158,14 +176,18 @@ function groupGames(games: MockGame[], groupSize: number) {
   const previousGroup = groups.at(-2);
 
   if (lastGroup?.length === 1 && previousGroup && previousGroup.length > 2) {
-    lastGroup.unshift(previousGroup.pop() as MockGame);
+    lastGroup.unshift(previousGroup.pop() as GameShelfItem);
   }
 
   return groups;
 }
 
-export function ShelfShowcase() {
-  const [selectedGame, setSelectedGame] = useState<MockGame | null>(null);
+type ShelfShowcaseProps = {
+  games: GameShelfItem[];
+};
+
+export function ShelfShowcase({ games }: ShelfShowcaseProps) {
+  const [selectedGame, setSelectedGame] = useState<GameShelfItem | null>(null);
   const [groupSize, setGroupSize] = useState(3);
 
   useEffect(() => {
@@ -201,7 +223,7 @@ export function ShelfShowcase() {
     };
   }, []);
 
-  const gameGroups = groupGames(mockGames, groupSize);
+  const gameGroups = groupGames(games, groupSize);
 
   useEffect(() => {
     if (!selectedGame) return;
@@ -214,30 +236,19 @@ export function ShelfShowcase() {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [selectedGame]);
 
+  const selectedOwnedExpansions = selectedGame
+    ? getOwnedExpansionNames(selectedGame.expansions)
+    : [];
+
   return (
     <>
-      <section className="wood-grain fire-glow premium-edge text-cream relative overflow-visible rounded-[2rem] p-4 sm:p-7 lg:p-9">
-        <div className="flex flex-wrap items-end justify-between gap-4 pb-6">
-          <div>
-            <p className="text-[0.65rem] font-bold tracking-[0.2em] text-[#d9b773] uppercase">
-              Wspólna kolekcja · makieta
-            </p>
-            <h2 className="font-display mt-2 text-2xl font-semibold sm:text-3xl">
-              Pudełka całej ekipy w jednym miejscu
-            </h2>
-          </div>
-          <p className="max-w-sm text-sm leading-6 text-[#d3c2ae]">
-            Regał płynnie dopasowuje liczbę pudełek do szerokości ekranu. Otwórz
-            grę, aby zobaczyć jej właściciela, dodatki i historię grupy.
-          </p>
-        </div>
-
+      <section className="wood-grain fire-glow premium-edge text-cream relative overflow-visible rounded-[2rem] p-4 sm:p-5 lg:p-6">
         <div className="space-y-4 sm:space-y-5">
-          {gameGroups.map((games, index) => (
+          {gameGroups.map((group, index) => (
             <ShelfSegment
-              key={games[0].id}
-              games={games}
-              label={`Segment półki ${index + 1} — ${games.length} gier`}
+              key={group[0].id}
+              games={group}
+              label={`Segment półki ${index + 1} — ${group.length} gier`}
               onSelect={setSelectedGame}
             />
           ))}
@@ -249,41 +260,41 @@ export function ShelfShowcase() {
           className="fixed inset-0 z-[60] flex items-end justify-center bg-[#1d120e]/76 p-3 backdrop-blur-sm sm:items-center sm:p-6"
           role="dialog"
           aria-modal="true"
-          aria-label={`Karta gry ${selectedGame.title}`}
+          aria-label={`Szybki podgląd gry ${selectedGame.title}`}
           onClick={() => setSelectedGame(null)}
         >
           <div
-            className="parchment-card premium-edge relative max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl overflow-y-auto rounded-[2rem] p-5 sm:max-h-[calc(100dvh-3rem)] sm:p-7"
+            className="parchment-card premium-edge relative max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl overflow-y-auto rounded-[2rem] p-5 sm:max-h-[calc(100dvh-3rem)] sm:p-7"
             onClick={(event) => event.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setSelectedGame(null)}
               className="wood-grain text-cream absolute top-4 right-4 z-40 grid size-9 place-items-center rounded-full text-lg transition-transform hover:scale-105"
-              aria-label="Zamknij kartę gry"
+              aria-label="Zamknij szybki podgląd"
             >
               ×
             </button>
 
             <div className="grid gap-6 md:grid-cols-[auto_1fr]">
               <GameCover
-                game={selectedGame}
+                title={selectedGame.title}
+                coverUrl={selectedGame.coverUrl}
                 size="preview"
                 className="mx-auto md:mx-0"
               />
-              <div className="min-w-0 pt-1 md:pt-5">
+              <div className="min-w-0 pt-1 md:pt-3">
                 <p className="text-accent text-[0.65rem] font-bold tracking-[0.18em] uppercase">
-                  Karta wspólnej kolekcji
+                  Szybki podgląd Półki
                 </p>
                 <h3 className="font-display mt-2 pr-10 text-3xl font-semibold">
                   {selectedGame.title}
                 </h3>
-                <p className="text-muted mt-1 text-sm font-semibold">
-                  {selectedGame.kicker}
-                </p>
                 <p className="text-muted mt-3 text-sm leading-6">
-                  {selectedGame.description}
+                  {selectedGame.description ??
+                    "Ta gra nie ma jeszcze opisu, ale możesz już zapisać jej ocenę i uzupełnić dane na pełnej karcie."}
                 </p>
+
                 <div className="mt-5">
                   <GameFacts game={selectedGame} />
                 </div>
@@ -293,132 +304,82 @@ export function ShelfShowcase() {
                     <p className="text-muted text-[0.6rem] font-bold tracking-wider uppercase">
                       Właściciel
                     </p>
-                    <p className="mt-1 font-semibold">{selectedGame.owner}</p>
+                    <p className="mt-1 font-semibold">
+                      {selectedGame.owner.displayName}
+                    </p>
                   </div>
                   <div className="paper-wash rounded-xl p-3">
                     <p className="text-muted text-[0.6rem] font-bold tracking-wider uppercase">
                       Aktualnie u
                     </p>
                     <p className="mt-1 font-semibold">
-                      {selectedGame.currentHolder}
+                      {selectedGame.currentHolder?.displayName ?? "nieustalone"}
                     </p>
                   </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto]">
+                  <div className="space-y-4">
+                    <TagList
+                      label="Mechaniki"
+                      values={selectedGame.mechanics}
+                    />
+                    <TagList
+                      label="Kategorie"
+                      values={selectedGame.categories}
+                    />
+                    <div>
+                      <p className="text-muted text-[0.6rem] font-bold tracking-wider uppercase">
+                        Dodatki
+                      </p>
+                      <p className="mt-2 text-sm text-[#6f5640]">
+                        {selectedOwnedExpansions.length > 0
+                          ? selectedOwnedExpansions.join(", ")
+                          : "Brak posiadanych dodatków."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="leather-panel rounded-[1.5rem] p-4 text-[#f7ead5]">
+                    <p className="text-[0.62rem] font-bold tracking-[0.16em] text-[#e8b870] uppercase">
+                      Ślad w grupie
+                    </p>
+                    <p className="mt-3 text-3xl font-bold text-[#f0c47e]">
+                      {formatDecimal(selectedGame.ratingSummary.averageOverall)}
+                    </p>
+                    <p className="text-[0.7rem] text-[#cbb9a7]">
+                      średnia z {selectedGame.ratingSummary.ratingsCount} ocen
+                    </p>
+                    <p className="mt-4 text-xs leading-5 text-[#d7c8b5]">
+                      BGG Rank:{" "}
+                      <strong>
+                        {selectedGame.bggRank
+                          ? `#${selectedGame.bggRank}`
+                          : "brak"}
+                      </strong>
+                      <br />
+                      BGG Weight:{" "}
+                      <strong>{formatDecimal(selectedGame.bggWeight)}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Link
+                    href={`/gry/${selectedGame.id}`}
+                    className="bg-brand hover:bg-brand-strong rounded-xl px-4 py-3 text-sm font-semibold text-white transition-colors"
+                  >
+                    Otwórz pełną kartę gry
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedGame(null)}
+                    className="paper-wash rounded-xl px-4 py-3 text-sm font-semibold text-[#6d5037]"
+                  >
+                    Wróć do Półki
+                  </button>
                 </div>
               </div>
-            </div>
-
-            <div className="mt-7 grid gap-5 border-t border-dashed border-[#b99d72] pt-6 lg:grid-cols-2">
-              <section>
-                <p className="text-accent text-[0.62rem] font-bold tracking-[0.16em] uppercase">
-                  Dane BoardGameGeek
-                </p>
-                <dl className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-                  {[
-                    ["Ranking", `#${selectedGame.bgg.rank}`],
-                    ["Ocena", formatRating(selectedGame.bgg.rating)],
-                    [
-                      "Trudność",
-                      `${formatRating(selectedGame.bgg.weight)} / 5`,
-                    ],
-                    ["Wiek", `${selectedGame.bgg.minAge}+`],
-                  ].map(([label, value]) => (
-                    <div key={label} className="rounded-xl bg-[#e8d6b5] p-3">
-                      <dt className="text-muted text-[0.58rem] font-bold uppercase">
-                        {label}
-                      </dt>
-                      <dd className="mt-1 font-bold">{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <div className="mt-4 space-y-4">
-                  <TagList
-                    label="Mechaniki"
-                    values={selectedGame.bgg.mechanics}
-                  />
-                  <TagList
-                    label="Kategorie"
-                    values={selectedGame.bgg.categories}
-                  />
-                  <div>
-                    <p className="text-muted text-[0.6rem] font-bold tracking-wider uppercase">
-                      Powiązane dodatki
-                    </p>
-                    {selectedGame.expansions.length > 0 ? (
-                      <ul className="mt-2 flex flex-wrap gap-1.5">
-                        {selectedGame.expansions.map((expansion) => (
-                          <li
-                            key={expansion}
-                            className="rounded-lg bg-[#d9c099] px-2.5 py-1.5 text-[0.68rem] font-bold text-[#65482e] shadow-sm"
-                          >
-                            {expansion}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-muted mt-2 text-xs">
-                        Brak dodatków w kolekcji.
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <p className="text-muted mt-4 text-xs leading-5">
-                  Projekt: <strong>{selectedGame.bgg.designer}</strong>
-                  <br />
-                  Wydawca: <strong>{selectedGame.bgg.publisher}</strong>
-                </p>
-                <a
-                  href={selectedGame.bgg.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-accent mt-3 inline-flex text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
-                >
-                  Otwórz ręcznie zapisany link BGG ↗
-                </a>
-              </section>
-
-              <section className="rounded-[1.4rem] bg-[#38251d] p-5 text-[#f7ead5] shadow-inner">
-                <p className="text-[0.62rem] font-bold tracking-[0.16em] text-[#e8b870] uppercase">
-                  Ślad w grupie
-                </p>
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-3xl font-bold text-[#f0c47e]">
-                      {formatRating(selectedGame.community.averageRating)}
-                    </p>
-                    <p className="text-[0.65rem] text-[#cbb9a7]">
-                      średnia z {selectedGame.community.ratingsCount} ocen
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-3xl font-bold text-[#f0c47e]">
-                      {selectedGame.community.playsCount}
-                    </p>
-                    <p className="text-[0.65rem] text-[#cbb9a7]">
-                      zapisanych partii
-                    </p>
-                  </div>
-                </div>
-                <dl className="mt-5 space-y-3 border-t border-white/10 pt-4 text-xs">
-                  <div>
-                    <dt className="text-[#a9998a]">Ostatnia partia</dt>
-                    <dd className="mt-1 font-semibold">
-                      {selectedGame.community.lastPlayedAt ??
-                        "Jeszcze nie graliśmy"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-[#a9998a]">Chcesz zagrać ponownie?</dt>
-                    <dd className="mt-1 font-semibold">
-                      {selectedGame.community.currentUserWantsToPlayAgain ===
-                      null
-                        ? "Brak Twojej oceny"
-                        : selectedGame.community.currentUserWantsToPlayAgain
-                          ? "Tak"
-                          : "Nie"}
-                    </dd>
-                  </div>
-                </dl>
-              </section>
             </div>
           </div>
         </div>
