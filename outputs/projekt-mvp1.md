@@ -1,13 +1,13 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: Etapy 1–3 zamknięte, Etap 4 w toku. Auth, aktywne członkostwo i profil działają na prawdziwym Supabase, a domeny `games`, `game_expansions` i `ratings` są już podłączone do sekcji Półka, formularzy gier i kart gier.
+Status: Etapy 1–4 są zamknięte. Auth, aktywne członkostwo, profil, wspólna Półka, oceny i dodatki działają na prawdziwym Supabase; Etap 5 jest w toku i obejmuje prawdziwe Kalendarium na Supabase.
 
 ## 1. Decyzje projektowe
 
 1. Aplikacja obsługuje jedną zamkniętą grupę znajomych. Nie budujemy systemu wielu grup ani publicznych profili.
 2. Rekord `game` oznacza fizyczny egzemplarz gry należący do konkretnej osoby. Dwie osoby mogą dodać tę samą grę jako dwa osobne rekordy.
 3. Konto można utworzyć wyłącznie przez zaproszenie administratora. W aplikacji nie będzie publicznej rejestracji.
-4. Średnia ocena, najlepszy termin i ranking gier na spotkanie są wyliczane z danych źródłowych, a nie zapisywane ręcznie.
+4. Średnia ocena i ranking gier na spotkanie są wyliczane z danych źródłowych, a nie zapisywane ręcznie.
 5. Mechaniki i kategorie są przechowywane jako listy tagów (`text[]`). Dla małej, prywatnej biblioteki jest to prostsze niż osobne słowniki i tabele pośrednie, a nadal pozwala skutecznie filtrować dane.
 6. „Usunięcie” gry z biblioteki oznacza archiwizację przez ustawienie `archived_at`. Zachowujemy rekord, aby nie zniszczyć ocen i historii partii.
 7. Komentarze na karcie gry w MVP 1 pochodzą z ocen użytkowników. Nie powstaje osobny moduł dyskusji.
@@ -27,7 +27,7 @@ Status: Etapy 1–3 zamknięte, Etap 4 w toku. Auth, aktywne członkostwo i prof
 
 - Next.js z App Routerem i TypeScript w trybie `strict`.
 - React Server Components do odczytu danych i Server Actions do mutacji formularzy.
-- Client Components tylko tam, gdzie potrzebna jest bezpośrednia interakcja: filtry, formularze, ankiety i głosowanie.
+- Client Components tylko tam, gdzie potrzebna jest bezpośrednia interakcja: filtry, formularze, RSVP i głosowanie.
 - Tailwind CSS oraz mały zestaw lokalnych komponentów UI.
 - Supabase: Postgres, Auth i opcjonalnie Storage dla avatarów/okładek w dalszej części MVP.
 - Walidacja tych samych reguł po stronie formularzy i serwera.
@@ -223,49 +223,35 @@ Unikalność: `(game_id, user_id)`. Jedna osoba ma jedną edytowalną ocenę dan
 
 Widok `game_rating_summaries` wylicza co najmniej `average_overall` i `ratings_count`. Można także pokazać średnie składowe, ale głównym rankingiem jest ocena ogólna.
 
-### Spotkania i ankiety
+### Spotkania i RSVP
 
 #### `meetings`
 
-| Kolumna              | Typ              | Uwagi                           |
-| -------------------- | ---------------- | ------------------------------- |
-| `id`                 | `uuid` PK        | automatycznie                   |
-| `created_by`         | `uuid`           | FK do `profiles`                |
-| `title`              | `text`           | wymagane                        |
-| `description`        | `text` nullable  | opis                            |
-| `location`           | `text` nullable  | lokalizacja                     |
-| `status`             | `meeting_status` | domyślnie `planned`             |
-| `selected_option_id` | `uuid` nullable  | wybrany termin po potwierdzeniu |
-| `created_at`         | `timestamptz`    | automatycznie                   |
-| `updated_at`         | `timestamptz`    | automatycznie                   |
+| Kolumna       | Typ              | Uwagi                               |
+| ------------- | ---------------- | ----------------------------------- |
+| `id`          | `uuid` PK        | automatycznie                       |
+| `created_by`  | `uuid`           | FK do `profiles`                    |
+| `title`       | `text`           | wymagane                            |
+| `description` | `text` nullable  | opis                                |
+| `location`    | `text` nullable  | lokalizacja                         |
+| `starts_at`   | `timestamptz`    | początek wydarzenia                 |
+| `ends_at`     | `timestamptz`    | koniec wydarzenia, zawsze > start   |
+| `status`      | `meeting_status` | `planned`, `confirmed`, `completed` |
+| `created_at`  | `timestamptz`    | automatycznie                       |
+| `updated_at`  | `timestamptz`    | automatycznie                       |
 
-`selected_option_id` jest chronione złożonym kluczem obcym `(meetings.id, meetings.selected_option_id) -> (meeting_options.meeting_id, meeting_options.id)`. Dzięki temu wybrany termin zawsze należy do tego samego spotkania; zwykły FK do `meeting_options.id` byłby niewystarczający. Relacja jest cykliczna, ale bezpieczna: spotkanie powstaje z pustym `selected_option_id`, następnie powstają terminy, a wybór jest ustawiany osobną aktualizacją.
-
-#### `meeting_options`
-
-| Kolumna      | Typ                    | Uwagi                                 |
-| ------------ | ---------------------- | ------------------------------------- |
-| `id`         | `uuid` PK              | automatycznie                         |
-| `meeting_id` | `uuid`                 | FK do `meetings`, kasowanie kaskadowe |
-| `starts_at`  | `timestamptz`          | wymagane                              |
-| `ends_at`    | `timestamptz` nullable | musi być późniejsze od początku       |
-| `label`      | `text` nullable        | np. „sobota wieczorem”                |
-| `created_at` | `timestamptz`          | automatycznie                         |
-
-Unikalność praktyczna: `(meeting_id, starts_at)`.
+Jedno spotkanie oznacza dokładnie jedno wydarzenie kalendarzowe od `starts_at` do `ends_at`. Nie utrzymujemy już modelu wielu proponowanych terminów, osobnej tabeli opcji ani pola `selected_option_id`.
 
 #### `meeting_availability`
 
-| Kolumna             | Typ           | Uwagi                   |
-| ------------------- | ------------- | ----------------------- |
-| `meeting_option_id` | `uuid`        | FK do `meeting_options` |
-| `user_id`           | `uuid`        | FK do `profiles`        |
-| `is_available`      | `boolean`     | jawne tak/nie           |
-| `updated_at`        | `timestamptz` | automatycznie           |
+| Kolumna      | Typ           | Uwagi                             |
+| ------------ | ------------- | --------------------------------- |
+| `meeting_id` | `uuid`        | FK do `meetings`                  |
+| `user_id`    | `uuid`        | FK do `profiles`                  |
+| `is_available` | `boolean`   | jawne RSVP: będzie / nie może     |
+| `updated_at` | `timestamptz` | automatycznie                     |
 
-Klucz główny: `(meeting_option_id, user_id)`. Formularz zapisuje odpowiedź dla każdego terminu, także `false`. Dzięki temu można odróżnić „nie pasuje mi żaden termin” od „jeszcze nie odpowiedziałem”. Ankieta jest wypełniona, kiedy liczba odpowiedzi użytkownika odpowiada liczbie aktualnych terminów spotkania.
-
-Widok `meeting_option_summaries` wylicza liczbę dostępnych osób dla każdego terminu. Najlepszy termin to najwyższa liczba odpowiedzi `true`; przy remisie jako pierwszy pokazujemy wcześniejszy termin, ale wybór ostatecznie należy do twórcy spotkania.
+Klucz główny: `(meeting_id, user_id)`. Każdy aktywny członek zapisuje wyłącznie własną odpowiedź `true` lub `false`. Brak rekordu oznacza `Brak odpowiedzi`. To jest prosty model RSVP dla jednego wydarzenia, bez macierzy terminów.
 
 #### `meeting_game_votes`
 
@@ -276,7 +262,7 @@ Widok `meeting_option_summaries` wylicza liczbę dostępnych osób dla każdego 
 | `user_id`    | `uuid`        | FK do `profiles` |
 | `created_at` | `timestamptz` | automatycznie    |
 
-Klucz główny: `(meeting_id, game_id, user_id)`. Jeden użytkownik może zagłosować na wiele gier, ale tylko raz na każdą. Widok `meeting_game_rankings` grupuje głosy według spotkania i gry.
+Klucz główny: `(meeting_id, game_id, user_id)`. Jeden użytkownik może zagłosować na wiele gier, ale tylko raz na każdą. Pierwszy głos jednocześnie dodaje grę do puli kandydatów spotkania. Widok `meeting_game_rankings` grupuje głosy według spotkania i gry.
 
 ### Historia rozgrywek
 
@@ -356,7 +342,7 @@ Audytujemy przede wszystkim:
 - zmianę `app_content`;
 - dodanie ręcznej korekty `point_events`.
 
-Nie zapisujemy zwykłych odczytów, filtrowania, głosów, odpowiedzi ankietowych ani każdej standardowej edycji własnego rekordu przez membera.
+Nie zapisujemy zwykłych odczytów, filtrowania, głosów, odpowiedzi RSVP ani każdej standardowej edycji własnego rekordu przez membera.
 
 ### Relacje
 
@@ -391,7 +377,7 @@ erDiagram
 - indeks po `lower(title)`; dla większej liczby rekordów można dołożyć `pg_trgm`, ale nie jest wymagany na start.
 - indeksy GIN na `games(mechanics)` i `games(categories)`.
 - `ratings(game_id)`.
-- `meetings(status)` i `meeting_options(meeting_id, starts_at)`.
+- `meetings(status)` i `meetings(starts_at)`.
 - `meeting_availability(user_id)`.
 - `meeting_game_votes(meeting_id, game_id)`.
 - `plays(played_at desc)`, `plays(game_id)`, `plays(meeting_id)`.
@@ -407,15 +393,15 @@ erDiagram
 | `/logowanie`               | Wejście do Chaty            | email + hasło, link odzyskania/ustawienia hasła                    |
 | `/auth/callback`           | Obsługa linku z zaproszenia | techniczna trasa bez stałego widoku                                |
 | `/ustaw-haslo`             | Ustawienie hasła            | używane po zaproszeniu lub odzyskaniu dostępu                      |
-| `/`                        | Stół                        | najbliższe spotkanie, ankiety, nowe gry, ostatnie partie, top ocen |
+| `/`                        | Stół                        | najbliższe spotkanie, RSVP do uzupełnienia, nowe gry, ostatnie partie, top ocen |
 | `/gry`                     | Półka                       | wspólna kolekcja grupy, wyszukiwanie i wszystkie wymagane filtry   |
 | `/gry/nowa`                | Dodanie gry                 | formularz egzemplarza; właścicielem jest zalogowana osoba          |
 | `/gry/[id]`                | Karta gry                   | dane podstawowe, właściciel, BGG, oceny i historia partii          |
 | `/gry/[id]/edytuj`         | Edycja gry                  | właściciel lub admin; member bez zmiany właściciela                |
 | `/legendarium`             | Legendarium                 | statyczna makieta rankingu, wyzwań, punktów i osiągnięć dla MVP 2  |
 | `/kalendarium`             | Kalendarium                 | najbliższe, planowane i zakończone spotkania                       |
-| `/kalendarium/nowe`        | Nowe spotkanie              | dane i wiele proponowanych terminów                                |
-| `/kalendarium/[id]`        | Szczegóły spotkania         | terminy, macierz dostępności, najlepszy termin, głosowanie na gry  |
+| `/kalendarium/nowe`        | Nowe spotkanie              | prosty formularz wydarzenia od–do                                  |
+| `/kalendarium/[id]`        | Szczegóły spotkania         | metadata spotkania, RSVP grupy i propozycje gier                   |
 | `/kalendarium/[id]/edytuj` | Edycja spotkania            | twórca lub admin                                                   |
 | `/kronika`                 | Kronika                     | historia wszystkich partii z uczestnikami i pełnymi wynikami       |
 | `/kronika/nowa`            | Zapis partii                | gra, spotkanie, gracze, wynik, czas, komentarz                     |
@@ -425,7 +411,7 @@ erDiagram
 
 Stare wejścia `/moja-polka`, `/spotkania` i `/rozgrywki` pozostają wyłącznie jako przekierowania odpowiednio do `/gry`, `/kalendarium` i `/kronika`. Nie utrzymujemy pod nimi duplikatów widoków ani logiki.
 
-Ocena jest formularzem na karcie gry, a ankieta i głosowanie są częścią szczegółów spotkania. Nie tworzymy dla nich dodatkowych ekranów.
+Ocena jest formularzem na karcie gry, a RSVP i głosowanie na gry są częścią szczegółów spotkania. Nie tworzymy dla nich dodatkowych ekranów.
 
 ### Architektura przyszłego panelu administracyjnego
 
@@ -496,7 +482,7 @@ Połączenie `USING` i `WITH CHECK` oznacza, że member może edytować własny 
 
 - member edytuje rekord, gdy `created_by = auth.uid()`;
 - admin przechodzi alternatywną gałęzią `private.is_admin()`;
-- polityki `meeting_options` sprawdzają twórcę/admina przez rekord nadrzędnego spotkania;
+- polityki `meeting_availability` pozwalają aktywnemu memberowi zapisać wyłącznie własne RSVP dla danego spotkania;
 - polityki `play_participants` sprawdzają twórcę/admina przez nadrzędny rekord `plays`, dzięki czemu admin może poprawić listę uczestników, zwycięzcę, miejsce i punkty.
 
 #### Treści, punkty i audyt
@@ -507,7 +493,7 @@ Połączenie `USING` i `WITH CHECK` oznacza, że member może edytować własny 
 
 ### Audyt administracyjny
 
-Trigger `private.audit_admin_change()` będzie działał po najważniejszych mutacjach na `app_members`, `games`, `meetings`, `meeting_options`, `plays`, `play_participants`, `app_content` oraz po `INSERT` do `point_events`. Zapisze dane tylko wtedy, gdy aktor jest adminem. Dzięki triggerowi dodanie `admin_adjustment` i wpis audytu następują atomowo w tej samej transakcji.
+Trigger `private.audit_admin_change()` będzie działał po najważniejszych mutacjach na `app_members`, `games`, `meetings`, `plays`, `play_participants`, `app_content` oraz po `INSERT` do `point_events`. Zapisze dane tylko wtedy, gdy aktor jest adminem. Dzięki triggerowi dodanie `admin_adjustment` i wpis audytu następują atomowo w tej samej transakcji.
 
 Trigger nie audytuje zwykłych odczytów ani standardowych zmian własnych danych przez membera. `old_data` i `new_data` przechowują snapshot rekordu, przy czym przyszłe pola wrażliwe muszą zostać jawnie wykluczone przed zapisem.
 
@@ -531,10 +517,10 @@ Questy na Stole nie są osobnymi rekordami w MVP 1. Aplikacja wylicza je podczas
 
 Planowane źródła akcji:
 
-- `meeting_availability`: brak pełnego zestawu odpowiedzi dla aktualnych terminów daje pytanie „Kiedy możesz grać?”;
+- `meeting_availability`: brak własnej odpowiedzi RSVP dla przyszłego spotkania daje pytanie „Będziesz na spotkaniu?”;
 - `meeting_game_votes`: brak głosu użytkownika dla aktywnego spotkania daje pytanie „W co chcesz zagrać?”;
 - `ratings` razem z uczestnictwem w `plays`: brak oceny rozegranej gry daje pytanie „Jak podobała Ci się gra?”;
-- `meetings.selected_option_id`: wybór terminu daje informację „Spotkanie potwierdzone”;
+- `meetings.status = confirmed`: potwierdzenie wydarzenia daje informację „Spotkanie potwierdzone”;
 - zakończone `meetings` oraz `plays`: brak zapisu partii po spotkaniu daje akcję „Uzupełnij wynik partii”.
 
 Nie powstaje tabela `quests`, trigger tworzący questy ani automatyczne naliczanie punktów. Quest nie ma checkboxa i nie jest ręcznie oznaczany jako ukończony, odrzucony lub ukryty. Znika automatycznie, gdy warunek źródłowy przestaje być spełniony — przykładowo po zapisaniu dostępności, dodaniu oceny albo zapisaniu brakującej partii. `optionalPoints` jest wyłącznie miejscem w kontrakcie UI przygotowanym pod MVP 2. Ewentualne ręczne lub sezonowe questy będą później osobnym mechanizmem.
@@ -603,7 +589,7 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 - Ochrona `games.owner_id`: member zachowuje własność, admin może wykonać transfer.
 - Administracyjne wyjątki RLS dla gier, spotkań, rozgrywek i uczestników.
 - Trigger/funkcja audytu najważniejszych mutacji administracyjnych, w tym atomowego audytu `admin_adjustment` dodawanego do `point_events`.
-- Widoki `game_rating_summaries`, `meeting_option_summaries`, `meeting_game_rankings` i `user_point_balances`, wszystkie z `security_invoker = true`, oraz wąskie RPC `get_leaderboard()` dla rankingu aktywnej grupy.
+- Widoki `game_rating_summaries`, `meeting_game_rankings` i `user_point_balances`, wszystkie z `security_invoker = true`, oraz wąskie RPC `get_leaderboard()` dla rankingu aktywnej grupy.
 - Generowanie typów TypeScript z bazy.
 - Testy polityk potwierdzające co najmniej:
   - brak dostępu anonima i użytkownika nieaktywnego;
@@ -626,24 +612,26 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 
 ### Etap 4 — gry, półka i oceny
 
-- Dodawanie, edycja i archiwizacja własnej gry.
-- Wspólna Półka wszystkich fizycznych egzemplarzy grupy z wyszukiwaniem i wszystkimi filtrami.
-- Karta gry.
-- Jedna edytowalna ocena użytkownika oraz agregaty ocen.
-- Odczyt Półki i kart gier działa przez server-side read layer oparty o session Supabase client oraz RLS.
-- Kontrakt filtrów URL: `q`, `owner`, `status`, `players`, `maxTime`, `type`, `mechanic`, `category`; `mechanic` i `category` wspierają wielokrotne wartości z semantyką OR.
-- Walidacja formularza gry i oceny jest współdzielona między UI oraz Server Actions; member nigdy nie ustala `owner_id` po stronie klienta.
-- Agregaty ocen pochodzą z `game_rating_summaries`; średnia grupy nie jest cache’owana w tabeli `games`.
-- Weryfikacja: test uprawnień właściciela, walidacji zakresów, filtrów i oceny; lint/test/build.
+- Etap zamknięty: działa prawdziwa wspólna Półka na Supabase obejmująca wszystkie fizyczne egzemplarze grupy.
+- Półka i karta gry korzystają z server-side read layer opartego o session Supabase client oraz RLS.
+- Filtry działają przez URL (`q`, `owner`, `status`, `players`, `maxTime`, `type`, `mechanic`, `category`) i zachowują semantykę OR dla `mechanic` oraz `category`; UI filtrów jest kompaktowe i responsywne.
+- Działa tworzenie, edycja i archiwizacja gier, z uprawnieniami owner/admin; member nie może zmienić `owner_id`, a admin może korygować dowolny egzemplarz.
+- Działa jedna edytowalna ocena użytkownika oraz agregaty z `game_rating_summaries`; średnia grupy nie jest cache’owana w tabeli `games`.
+- Działa `game_expansions` z rozróżnieniem owned/unowned oraz zarządzaniem dodatkami w formularzu i na karcie gry zgodnie z uprawnieniami owner/admin.
+- Walidacja formularza gry i oceny pozostaje współdzielona między UI oraz Server Actions.
+- Weryfikacja zamykająca Etap 4: lokalne `pnpm db:verify` 62/62 PASS, `pnpm test` PASS, `pnpm check` PASS, `pnpm build` PASS oraz manualny odbiór Półki i UI.
 
-### Etap 5 — Kalendarium, ankiety i propozycje gier
+### Etap 5 — Kalendarium, RSVP i propozycje gier
 
-- Lista, tworzenie, edycja i szczegóły spotkania.
-- Wiele proponowanych terminów.
-- Macierz dostępności, kompletność ankiety i wskazanie najlepszego terminu.
-- Potwierdzenie terminu przez twórcę.
-- Głosowanie na gry i ranking propozycji.
-- Weryfikacja: test remisu terminów, wielokrotnego głosu i uprawnień twórcy; lint/test/build.
+- Etap jest w toku: lista, tworzenie, edycja i szczegóły spotkania są podłączone do prawdziwego Supabase i korzystają z read layer w `src/features/meetings`.
+- Jedno spotkanie oznacza jedno wydarzenie od `starts_at` do `ends_at`; model wielu terminów został świadomie usunięty jeszcze przed zamknięciem Etapu 5.
+- Formularz spotkania używa prostego UX `dd/MM/yyyy` + `HH:mm`, nie pokazuje pola statusu i zachowuje wpisane wartości po błędzie walidacji.
+- Dostępność działa jako kompaktowe RSVP TAK/NIE dla jednego spotkania. Użytkownik zapisuje wyłącznie własną odpowiedź, a szczegóły spotkania pokazują listę `Będzie / Nie może / Brak odpowiedzi`.
+- Twórca spotkania lub admin może z poziomu szczegółów wykonać małą akcję „Potwierdź spotkanie”, która zmienia `planned` → `confirmed`.
+- Głosy na gry działają na niearchiwizowanych egzemplarzach z Półki, ranking pochodzi z `meeting_game_rankings`, a pojedynczy klik przełącza własny głos użytkownika.
+- Pierwszy głos nadal jednocześnie proponuje grę do spotkania. Domyślnie karta spotkania pokazuje tylko gry, które mają już co najmniej jeden głos, a picker `+ Proponuj grę` pozwala dodać kolejne kandydatury z całej Półki.
+- Etap 5 pozostaje „w toku” do czasu lokalnego manual smoke testu uproszczonego modelu Kalendarium.
+- Weryfikacja: testy walidacji pojedynczego przedziału czasu, wielodniowego renderowania kalendarza, RSVP, linkowania dnia kalendarza i głosowania na gry; lint/test/build oraz `db:verify`.
 
 ### Etap 6 — Kronika
 
@@ -658,7 +646,7 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 - Najbliższy wieczór z terminem, lokalizacją, uczestnikami i grami.
 - Ranking „Legendy przy Stole” z `get_leaderboard()` oraz kompaktowa ostatnia aktywność bez osobnej tabeli feedu.
 - Puste stany i linki prowadzące do odpowiednich działań.
-- Weryfikacja zapytań dla braku danych, brakującej oceny, potwierdzonego terminu, niezapisanej partii i niepełnej ankiety; lint/test/build.
+- Weryfikacja zapytań dla braku danych, brakującej oceny, potwierdzonego terminu, niezapisanej partii i brakującego RSVP; lint/test/build.
 
 ### Etap 8 — import CSV
 
@@ -669,7 +657,7 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 ### Etap 9 — dopracowanie i odbiór
 
 - Test telefonu i desktopu, dostępność klawiatury, kontrast, stany ładowania i błędów.
-- Krytyczny test E2E: logowanie → dodanie gry → ocena → spotkanie → ankieta/głos → zapis partii.
+- Krytyczny test E2E: logowanie → dodanie gry → ocena → spotkanie → RSVP/głos → zapis partii.
 - Pełne lint, test i build.
 - Instrukcja lokalnego uruchomienia, migracji, seeda i wdrożenia.
 

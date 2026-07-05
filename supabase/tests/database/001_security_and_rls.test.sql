@@ -195,15 +195,20 @@ select set_config(
   true
 );
 set local role authenticated;
-select throws_ok(
+select lives_ok(
   $$
-    update public.meetings
-    set selected_option_id = '41000000-0000-0000-0000-000000000001'
-    where id = '40000000-0000-0000-0000-000000000002'
+    insert into public.meetings (
+      id, created_by, title, status, starts_at, ends_at
+    ) values (
+      '70000000-0000-0000-0000-000000000030',
+      '10000000-0000-0000-0000-000000000002',
+      'Nowe spotkanie Marty',
+      'planned',
+      '2026-07-22 16:00:00+00',
+      '2026-07-22 20:00:00+00'
+    )
   $$,
-  '23503',
-  null,
-  '13. selected option from a different meeting is rejected'
+  '13. member creates their own meeting'
 );
 
 select results_eq(
@@ -211,14 +216,14 @@ select results_eq(
     with changed as (
       update public.meeting_availability
       set is_available = false
-      where meeting_option_id = '41000000-0000-0000-0000-000000000001'
+      where meeting_id = '40000000-0000-0000-0000-000000000001'
         and user_id = '10000000-0000-0000-0000-000000000002'
       returning 1
     )
     select count(*)::bigint from changed
   $$,
   $$values (1::bigint)$$,
-  '14. user updates only their own availability'
+  '14. user updates only their own RSVP response'
 );
 reset role;
 
@@ -231,15 +236,15 @@ set local role authenticated;
 select throws_ok(
   $$
     insert into public.meeting_availability (
-      meeting_option_id, user_id, is_available
+      meeting_id, user_id, is_available
     ) values (
-      '41000000-0000-0000-0000-000000000003',
+      '40000000-0000-0000-0000-000000000001',
       '10000000-0000-0000-0000-000000000005', true
     )
   $$,
   '42501',
   null,
-  '15. admin cannot impersonate another availability response'
+  '15. admin cannot impersonate another RSVP response'
 );
 reset role;
 

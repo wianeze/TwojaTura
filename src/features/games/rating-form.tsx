@@ -58,8 +58,8 @@ export function RatingForm({ ownRating, action }: RatingFormProps) {
     "paper-wash focus:border-gold focus:ring-gold/20 mt-1.5 min-h-28 w-full rounded-xl border border-[#9a7657]/35 px-3.5 py-3 text-sm text-[#503828] outline-none transition focus:ring-4";
 
   return (
-    <form action={formAction} className="space-y-5">
-      <div className="grid gap-4 md:grid-cols-3">
+    <form action={formAction} className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-3">
         <RatingSelect
           name="overall"
           label="Ocena ogólna"
@@ -84,10 +84,10 @@ export function RatingForm({ ownRating, action }: RatingFormProps) {
         <legend className="text-sm font-semibold text-[#503828]">
           Chęć zagrania ponownie
         </legend>
-        <div className="mt-2 flex flex-wrap gap-3">
+        <div className="mt-2 grid grid-cols-2 gap-2">
           {[
-            { value: "true", label: "Tak" },
-            { value: "false", label: "Nie" },
+            { value: "true", label: "TAK" },
+            { value: "false", label: "NIE" },
           ].map((option) => (
             <label key={option.value} className="cursor-pointer">
               <input
@@ -101,7 +101,7 @@ export function RatingForm({ ownRating, action }: RatingFormProps) {
                 }
                 className="peer sr-only"
               />
-              <span className="paper-wash peer-checked:bg-brand peer-checked:text-cream inline-flex rounded-full px-4 py-2 text-sm font-semibold text-[#6d5037] transition-colors">
+              <span className="paper-wash peer-checked:bg-brand peer-checked:text-cream peer-checked:ring-brand/20 inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold tracking-[0.12em] text-[#6d5037] transition-colors peer-checked:ring-2">
                 {option.label}
               </span>
             </label>

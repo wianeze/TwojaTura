@@ -242,35 +242,28 @@ export type Database = {
       meeting_availability: {
         Row: {
           is_available: boolean
-          meeting_option_id: string
+          meeting_id: string
           updated_at: string
           user_id: string
         }
         Insert: {
           is_available: boolean
-          meeting_option_id: string
+          meeting_id: string
           updated_at?: string
           user_id: string
         }
         Update: {
           is_available?: boolean
-          meeting_option_id?: string
+          meeting_id?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "meeting_availability_meeting_option_id_fkey"
-            columns: ["meeting_option_id"]
+            foreignKeyName: "meeting_availability_meeting_id_fkey"
+            columns: ["meeting_id"]
             isOneToOne: false
-            referencedRelation: "meeting_option_summaries"
-            referencedColumns: ["meeting_option_id"]
-          },
-          {
-            foreignKeyName: "meeting_availability_meeting_option_id_fkey"
-            columns: ["meeting_option_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_options"
+            referencedRelation: "meetings"
             referencedColumns: ["id"]
           },
           {
@@ -325,49 +318,15 @@ export type Database = {
           },
         ]
       }
-      meeting_options: {
-        Row: {
-          created_at: string
-          ends_at: string | null
-          id: string
-          label: string | null
-          meeting_id: string
-          starts_at: string
-        }
-        Insert: {
-          created_at?: string
-          ends_at?: string | null
-          id?: string
-          label?: string | null
-          meeting_id: string
-          starts_at: string
-        }
-        Update: {
-          created_at?: string
-          ends_at?: string | null
-          id?: string
-          label?: string | null
-          meeting_id?: string
-          starts_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "meeting_options_meeting_id_fkey"
-            columns: ["meeting_id"]
-            isOneToOne: false
-            referencedRelation: "meetings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       meetings: {
         Row: {
           created_at: string
           created_by: string
           description: string | null
+          ends_at: string
           id: string
           location: string | null
-          selected_option_id: string | null
+          starts_at: string
           status: Database["public"]["Enums"]["meeting_status"]
           title: string
           updated_at: string
@@ -376,9 +335,10 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          ends_at: string
           id?: string
           location?: string | null
-          selected_option_id?: string | null
+          starts_at: string
           status?: Database["public"]["Enums"]["meeting_status"]
           title: string
           updated_at?: string
@@ -387,9 +347,10 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          ends_at?: string
           id?: string
           location?: string | null
-          selected_option_id?: string | null
+          starts_at?: string
           status?: Database["public"]["Enums"]["meeting_status"]
           title?: string
           updated_at?: string
@@ -401,20 +362,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meetings_selected_option_same_meeting_fk"
-            columns: ["id", "selected_option_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_option_summaries"
-            referencedColumns: ["meeting_id", "meeting_option_id"]
-          },
-          {
-            foreignKeyName: "meetings_selected_option_same_meeting_fk"
-            columns: ["id", "selected_option_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_options"
-            referencedColumns: ["meeting_id", "id"]
           },
         ]
       }
@@ -684,23 +631,6 @@ export type Database = {
           },
           {
             foreignKeyName: "meeting_game_votes_meeting_id_fkey"
-            columns: ["meeting_id"]
-            isOneToOne: false
-            referencedRelation: "meetings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      meeting_option_summaries: {
-        Row: {
-          available_count: number | null
-          meeting_id: string | null
-          meeting_option_id: string | null
-          starts_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "meeting_options_meeting_id_fkey"
             columns: ["meeting_id"]
             isOneToOne: false
             referencedRelation: "meetings"
