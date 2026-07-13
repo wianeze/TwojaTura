@@ -1,7 +1,16 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(62);
+select plan(72);
+
+create temporary table pgtap_created_plays (
+  label text primary key,
+  play_id uuid not null
+);
+
+grant select, insert, update, delete
+on table pgtap_created_plays
+to authenticated;
 
 -- 1. Anonymous users have no table privileges.
 set local role anon;
@@ -942,6 +951,249 @@ select lives_ok(
     )
   $$,
   '62. same expansion name for different physical game copy is allowed'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select lives_ok(
+  $$
+    insert into pgtap_created_plays (label, play_id)
+    select
+      'rpc_create_member',
+      public.create_play_with_participants(
+        '30000000-0000-0000-0000-000000000001',
+        now(),
+        '40000000-0000-0000-0000-000000000001',
+        88,
+        'RPC create',
+        jsonb_build_array(
+          jsonb_build_object(
+            'user_id', '10000000-0000-0000-0000-000000000002',
+            'placement', 1,
+            'score', 52,
+            'is_winner', true
+          ),
+          jsonb_build_object(
+            'user_id', '10000000-0000-0000-0000-000000000003',
+            'placement', 2,
+            'score', 44,
+            'is_winner', false
+          )
+        )
+      )
+  $$,
+  '63. member can create own play through create_play_with_participants'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.play_participants
+    where play_id = (
+      select play_id
+      from pgtap_created_plays
+      where label = 'rpc_create_member'
+    )
+  $$,
+  $$values (2::bigint)$$,
+  '64. atomowy create zapisuje play_participants'
+);
+
+select lives_ok(
+  $$
+    select public.update_play_with_participants(
+      '50000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000001',
+      now(),
+      '40000000-0000-0000-0000-000000000002',
+      111,
+      'RPC update owner',
+      jsonb_build_array(
+        jsonb_build_object(
+          'user_id', '10000000-0000-0000-0000-000000000002',
+          'placement', 1,
+          'score', 60,
+          'is_winner', true
+        ),
+        jsonb_build_object(
+          'user_id', '10000000-0000-0000-0000-000000000004',
+          'placement', 2,
+          'score', 42,
+          'is_winner', false
+        )
+      )
+    )
+  $$,
+  '65. owner can update own play through RPC'
+);
+
+select results_eq(
+  $$
+    select
+      array_agg(user_id::text order by user_id),
+      count(*)::bigint
+    from public.play_participants
+    where play_id = '50000000-0000-0000-0000-000000000001'
+  $$,
+  $$
+    values (
+      array[
+        '10000000-0000-0000-0000-000000000002',
+        '10000000-0000-0000-0000-000000000004'
+      ]::text[],
+      2::bigint
+    )
+  $$,
+  '66. owner update replaces participant set exactly'
+);
+
+select throws_ok(
+  $$
+    select public.create_play_with_participants(
+      '30000000-0000-0000-0000-000000000001',
+      now(),
+      null,
+      45,
+      'RPC create without participants',
+      '[]'::jsonb
+    )
+  $$,
+  '23514',
+  null,
+  '67. create RPC rejects zero participants'
+);
+
+select throws_ok(
+  $$
+    select public.create_play_with_participants(
+      '30000000-0000-0000-0000-000000000001',
+      now(),
+      null,
+      45,
+      'RPC create without winner',
+      jsonb_build_array(
+        jsonb_build_object(
+          'user_id', '10000000-0000-0000-0000-000000000002',
+          'placement', 1,
+          'score', 40,
+          'is_winner', false
+        )
+      )
+    )
+  $$,
+  '23514',
+  null,
+  '68. create RPC rejects zero winners'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$
+    select public.update_play_with_participants(
+      '50000000-0000-0000-0000-000000000002',
+      '30000000-0000-0000-0000-000000000003',
+      now(),
+      null,
+      70,
+      'RPC update denied',
+      jsonb_build_array(
+        jsonb_build_object(
+          'user_id', '10000000-0000-0000-0000-000000000003',
+          'placement', 1,
+          'score', 40,
+          'is_winner', true
+        )
+      )
+    )
+  $$,
+  '42501',
+  null,
+  '69. different member cannot update someone else play through RPC'
+);
+
+select results_eq(
+  $$
+    select
+      array_agg(user_id::text order by user_id),
+      count(*)::bigint
+    from public.play_participants
+    where play_id = '50000000-0000-0000-0000-000000000002'
+  $$,
+  $$
+    values (
+      array[
+        '10000000-0000-0000-0000-000000000001',
+        '10000000-0000-0000-0000-000000000005'
+      ]::text[],
+      2::bigint
+    )
+  $$,
+  '70. denied foreign update leaves participant set unchanged'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select lives_ok(
+  $$
+    select public.update_play_with_participants(
+      '50000000-0000-0000-0000-000000000002',
+      '30000000-0000-0000-0000-000000000003',
+      now(),
+      null,
+      71,
+      'RPC update admin',
+      jsonb_build_array(
+        jsonb_build_object(
+          'user_id', '10000000-0000-0000-0000-000000000001',
+          'placement', 1,
+          'score', 48,
+          'is_winner', true
+        ),
+        jsonb_build_object(
+          'user_id', '10000000-0000-0000-0000-000000000003',
+          'placement', 2,
+          'score', 35,
+          'is_winner', false
+        )
+      )
+    )
+  $$,
+  '71. admin can update any play through RPC'
+);
+
+select results_eq(
+  $$
+    select
+      array_agg(user_id::text order by user_id),
+      count(*)::bigint
+    from public.play_participants
+    where play_id = '50000000-0000-0000-0000-000000000002'
+  $$,
+  $$
+    values (
+      array[
+        '10000000-0000-0000-0000-000000000001',
+        '10000000-0000-0000-0000-000000000003'
+      ]::text[],
+      2::bigint
+    )
+  $$,
+  '72. admin update replaces foreign participant set exactly'
 );
 
 select * from finish();

@@ -7,7 +7,7 @@ import {
 } from "./formatting";
 
 type MeetingDateFieldProps = {
-  name: "startDate" | "endDate";
+  name: string;
   label: string;
   defaultValue: string;
   error?: string;

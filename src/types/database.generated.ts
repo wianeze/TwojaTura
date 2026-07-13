@@ -681,6 +681,17 @@ export type Database = {
         }
         Returns: string
       }
+      create_play_with_participants: {
+        Args: {
+          p_comment?: string
+          p_duration_minutes?: number
+          p_game_id: string
+          p_meeting_id?: string
+          p_participants?: Json
+          p_played_at: string
+        }
+        Returns: string
+      }
       get_leaderboard: {
         Args: never
         Returns: {
@@ -696,6 +707,14 @@ export type Database = {
         Returns: {
           is_active: boolean
           role: Database["public"]["Enums"]["membership_role"]
+        }[]
+      }
+      get_play_profiles: {
+        Args: { p_user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          id: string
         }[]
       }
       update_game_with_expansions: {
@@ -721,6 +740,18 @@ export type Database = {
           p_release_year: number
           p_status: Database["public"]["Enums"]["game_status"]
           p_title: string
+        }
+        Returns: string
+      }
+      update_play_with_participants: {
+        Args: {
+          p_comment?: string
+          p_duration_minutes?: number
+          p_game_id: string
+          p_meeting_id?: string
+          p_participants?: Json
+          p_play_id: string
+          p_played_at: string
         }
         Returns: string
       }

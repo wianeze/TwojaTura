@@ -73,13 +73,28 @@ export default async function MeetingDetailsPage({
         </div>
 
         {meeting.canEdit ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/kronika/nowa?meeting=${meeting.id}`}
+              className="rounded-full bg-[#7d2f3d] px-4 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
+            >
+              Zapisz partię
+            </Link>
+            <Link
+              href={`/kalendarium/${meeting.id}/edytuj`}
+              className="paper-wash self-start rounded-full px-4 py-2 text-xs font-bold text-[#6a4d36]"
+            >
+              Edytuj
+            </Link>
+          </div>
+        ) : (
           <Link
-            href={`/kalendarium/${meeting.id}/edytuj`}
-            className="paper-wash self-start rounded-full px-4 py-2 text-xs font-bold text-[#6a4d36]"
+            href={`/kronika/nowa?meeting=${meeting.id}`}
+            className="rounded-full bg-[#7d2f3d] px-4 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
           >
-            Edytuj
+            Zapisz partię
           </Link>
-        ) : null}
+        )}
       </header>
 
       <Panel className="parchment-card space-y-4 p-4 sm:p-5">

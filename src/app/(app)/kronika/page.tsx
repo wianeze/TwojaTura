@@ -1,20 +1,31 @@
-import { SectionHeading } from "@/components/ui/section-heading";
-import { ChronicleShowcase } from "@/features/plays/chronicle-showcase";
+import Link from "next/link";
+import { ChronicleFeed } from "@/features/plays/chronicle-feed";
+import { listChroniclePlays } from "@/features/plays/queries";
 
-export default function ChroniclePage() {
+export default async function ChroniclePage() {
+  const plays = await listChroniclePlays();
+
   return (
-    <div className="space-y-7">
-      <SectionHeading
-        eyebrow="Dziennik rozegranych wieczorów"
-        title="Kronika"
-        description="Historia wszystkich partii — gry, spotkania, uczestnicy, zwycięzcy, miejsca, punkty i komentarze."
-        action={
-          <span className="paper-wash text-muted w-fit rounded-full px-4 py-2 text-xs font-bold shadow-sm">
-            3 ostatnie wpisy
-          </span>
-        }
-      />
-      <ChronicleShowcase />
+    <div className="space-y-4">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[0.62rem] font-bold tracking-[0.18em] text-[#e3ae67] uppercase">
+            Historia stołu
+          </p>
+          <h1 className="font-display text-cream mt-2 text-[1.85rem] font-semibold tracking-tight sm:text-[2.2rem]">
+            Kronika
+          </h1>
+        </div>
+
+        <Link
+          href="/kronika/nowa"
+          className="self-start rounded-full bg-[#7d2f3d] px-4 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747] sm:self-auto"
+        >
+          Zapisz partię
+        </Link>
+      </header>
+
+      <ChronicleFeed items={plays} />
     </div>
   );
 }

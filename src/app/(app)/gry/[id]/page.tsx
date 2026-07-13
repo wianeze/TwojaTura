@@ -20,6 +20,8 @@ import {
 } from "@/features/games/formatting";
 import { getGameDetails } from "@/features/games/queries";
 import { RatingForm } from "@/features/games/rating-form";
+import { listRecentGamePlays } from "@/features/plays/queries";
+import { GameRecentPlaysList } from "@/features/plays/recent-plays-list";
 
 export const metadata: Metadata = { title: "Karta gry" };
 
@@ -87,6 +89,7 @@ export default async function GameDetailsPage({
 
   const game = await getGameDetails(id, memberState.member.id);
   if (!game) notFound();
+  const recentPlays = await listRecentGamePlays(game.id);
 
   const canEdit =
     memberState.member.role === "admin" ||
@@ -328,6 +331,29 @@ export default async function GameDetailsPage({
           )}
         </Panel>
       </div>
+
+      <Panel className="paper-wash p-3.5 sm:p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div>
+            <p className="text-accent text-[0.56rem] font-bold tracking-[0.18em] uppercase">
+              Kronika
+            </p>
+            <h2 className="font-display mt-1 text-[1.4rem] font-semibold text-[#4c3528]">
+              Ostatnie partie
+            </h2>
+          </div>
+          <Link
+            href="/kronika"
+            className="text-accent text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
+          >
+            Pełna Kronika
+          </Link>
+        </div>
+
+        <div className="mt-3">
+          <GameRecentPlaysList items={recentPlays} />
+        </div>
+      </Panel>
     </div>
   );
 }

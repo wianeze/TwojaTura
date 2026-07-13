@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: Etapy 1–5 są zamknięte. Auth, aktywne członkostwo, profil, wspólna Półka, oceny, dodatki i Kalendarium działają na prawdziwym Supabase; Etap 6 nie został jeszcze rozpoczęty.
+Status: Etapy 1–6 są zamknięte. Auth, aktywne członkostwo, profil, wspólna Półka, oceny, dodatki, Kalendarium i Kronika działają na prawdziwym Supabase; Etap 7 nie został jeszcze rozpoczęty.
 
 ## 1. Decyzje projektowe
 
@@ -638,10 +638,16 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 
 ### Etap 6 — Kronika
 
-- Formularz partii i uczestników.
-- Zwycięzca, miejsca, punkty, czas i komentarz.
-- Historia globalna, na karcie gry oraz na profilu użytkownika.
-- Weryfikacja: spójność uczestników/wyników, uprawnienia autora, lint/test/build.
+- Etap 6 jest zamknięty: `/kronika`, `/kronika/nowa`, `/kronika/[id]` i `/kronika/[id]/edytuj` działają na prawdziwym Supabase.
+- Kronika ma compact-first UI: krótki hero, zwarty feed partii grupowany po miesiącu i roku oraz zaakceptowany layout mobile, bez dużych kart showcase ani zbędnych opisów.
+- Tworzenie i edycja partii zapisują `plays` oraz `play_participants` atomowo przez wąskie RPC `SECURITY INVOKER`, respektujące istniejące RLS oraz `auth.uid()`.
+- Formularz używa `dd/MM/yyyy + HH:mm`, opcjonalnego powiązania ze spotkaniem, dynamicznej listy graczy, wielu zwycięzców, remisów, opcjonalnych miejsc, wyniku partii (`score`, nie punkty Legendarium), czasu i komentarza.
+- Walidacja zachowuje submitted values po błędzie i pilnuje: wymaganej gry, co najmniej jednego gracza, co najmniej jednego zwycięzcy, braku duplikatów graczy oraz dodatnich wartości dla `placement` i `duration_minutes`. Te same minimalne inwarianty są utwardzone także w RPC.
+- Widoki Kroniki pokazują kompaktowe wyniki uczestników oraz medale `gamewin1` / `gamewin2` / `gamewin3` dla miejsc 1–3.
+- Szczegóły partii i formularze wspierają edycję autora albo admina; usuwanie wpisu Kroniki jest dostępne dla autora albo admina, jeśli wpis został już zapisany.
+- Integracje Etapu 6 obejmują: akcję „Zapisz partię” w Kalendarium, prawdziwą historię partii na karcie gry, historię uczestnictwa na `/profil` i `/znajomi/[id]` oraz zachowanie spotkania bez automatycznego przełączania na `completed`.
+- Etap 6 nie dodaje `point_events`, grywalizacji ani punktów Legendarium do modelu partii.
+- Weryfikacja zamykająca Etap 6: lokalne `pnpm db:verify` PASS 72/72 potwierdziło migracje, RPC i RLS Etapu 6; finalne zmiany UI przeszły `pnpm test` PASS, `pnpm check` PASS, `pnpm build` PASS oraz manualny odbiór Kroniki PASS.
 
 ### Etap 7 — Stół
 

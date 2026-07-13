@@ -9,6 +9,7 @@ type GameCoverProps = {
   coverUrl: string | null;
   size?: GameCoverSize;
   className?: string;
+  fitParent?: boolean;
 };
 
 const sizeClasses: Record<GameCoverSize, string> = {
@@ -52,6 +53,7 @@ export function GameCover({
   coverUrl,
   size = "shelf",
   className = "",
+  fitParent = false,
 }: GameCoverProps) {
   const [hasError, setHasError] = useState(false);
 
@@ -70,7 +72,9 @@ export function GameCover({
 
   return (
     <div
-      className={`relative shrink-0 overflow-hidden rounded-[0.55rem] border ${frameClasses[size]} ${sizeClasses[size]} ${className}`}
+      className={`relative shrink-0 overflow-hidden rounded-[0.55rem] border ${frameClasses[size]} ${
+        fitParent ? "aspect-square w-full max-w-full" : sizeClasses[size]
+      } ${className}`}
     >
       {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element -- cover_url can be external or local public asset
