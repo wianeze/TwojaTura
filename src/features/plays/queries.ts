@@ -81,7 +81,7 @@ async function getProfilesMap(
     });
 
   if (historicalProfilesError) {
-    throw new Error("Nie udaÅ‚o siÄ™ domknÄ…Ä‡ historycznych profili graczy.");
+    throw new Error("Nie udało się domknąć historycznych profili graczy.");
   }
 
   for (const profile of (historicalProfiles ?? []) as HistoricalProfileRow[]) {

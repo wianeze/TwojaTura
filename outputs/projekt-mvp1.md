@@ -520,7 +520,7 @@ Planowane źródła akcji:
 - `meeting_game_votes`: brak własnego głosu dla aktywnego spotkania daje pytanie „W co chcesz zagrać?”;
 - `ratings` razem z uczestnictwem w `plays`: brak oceny rozegranej gry daje pytanie „Oceń ostatnio rozegraną grę”;
 - zakończone `meetings` bez wpisu w `plays`: brak zapisu partii po spotkaniu daje akcję „Uzupełnij wynik spotkania”;
-- onboarding Półki: przy 0 własnych aktywnych egzemplarzy pojawia się akcja „Dodaj pierwszą grę do Półki” (+40 preview), a przy 1–4 — „Rozbuduj Półkę do 5 gier” (+30 preview i progres); po osiągnięciu 5 gier quest onboardingowy znika;
+- onboarding Półki: przy 0 własnych aktywnych egzemplarzy pojawia się „Dodaj pierwszą grę do Półki” (+40 preview); przy 1–4 — „Dodaj 5 gier do wspólnej Półki” (+30 preview i progres); przy 5–9 — „Dodaj 10 gier do wspólnej Półki” (+20 preview i progres); przy 10–14 — „Dodaj 15 gier do wspólnej Półki” (+15 preview i progres); od 15 gier nie ma punktowego questa Półki. Wyświetlany jest najwyżej jeden aktywny quest Półki, a wszystkie jego punkty są wyłącznie preview — bez automatycznego zapisu `point_events`;
 - brak bliskiego spotkania: Stół może pokazać akcję „Zaproponuj spotkanie”.
 
 Nie powstaje tabela `quests`, trigger tworzący questy ani automatyczne naliczanie punktów. Quest nie ma checkboxa i nie jest ręcznie oznaczany jako ukończony, odrzucony lub ukryty. Znika automatycznie, gdy warunek źródłowy przestaje być spełniony — przykładowo po zapisaniu dostępności, dodaniu oceny albo zapisaniu brakującej partii. `optionalPoints` pozostaje kompatybilnym polem prezentacyjnym UI i oznacza immediate reward, a pełny preview punktów jest budowany przez `reward`. Ewentualne ręczne lub sezonowe questy będą później osobnym mechanizmem.
