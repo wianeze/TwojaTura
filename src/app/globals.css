@@ -247,6 +247,19 @@ body {
   background-blend-mode: normal, soft-light;
 }
 
+.leaderboard-rug-panel {
+  background-color: #4b2e23;
+  background-image:
+    linear-gradient(rgba(73, 44, 32, 0.34), rgba(28, 14, 10, 0.46)),
+    url("/textures/felt-or-rug-pattern.png");
+  background-position: center, center;
+  background-size:
+    auto,
+    760px 760px;
+  background-repeat: no-repeat, repeat;
+  background-blend-mode: normal, soft-light;
+}
+
 .premium-edge {
   position: relative;
   border: 0;
@@ -304,6 +317,29 @@ body {
     inset 0 1px 0 rgba(250, 220, 164, 0.14),
     inset 0 -24px 60px rgba(18, 8, 5, 0.24),
     0 24px 56px rgba(24, 11, 7, 0.3);
+}
+
+.table-wood-panel {
+  background-color: #2f1e19;
+  background-image:
+    radial-gradient(
+      circle at 16% 6%,
+      rgba(246, 182, 92, 0.18),
+      transparent 18rem
+    ),
+    linear-gradient(rgba(37, 21, 16, 0.42), rgba(21, 10, 8, 0.62)),
+    url("/textures/wood-dark-texture.png");
+  background-position: center, center, center;
+  background-size:
+    auto,
+    auto,
+    560px 560px;
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-blend-mode: screen, multiply, normal;
+  box-shadow:
+    inset 0 1px 0 rgba(250, 220, 164, 0.12),
+    inset 0 -24px 60px rgba(18, 8, 5, 0.26),
+    0 24px 56px rgba(24, 11, 7, 0.28);
 }
 
 @media (min-width: 360px) {

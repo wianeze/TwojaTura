@@ -1,351 +1,432 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Panel } from "@/components/ui/panel";
-import { GameCover } from "@/components/ui/game-cover";
-import { mockGames } from "@/features/games/mock-games";
-import {
-  QuestCard,
-  type DashboardQuest,
-} from "@/features/dashboard/action-card";
+import { formatMeetingDateRange } from "@/features/meetings/formatting";
+import { formatPlayShortDate } from "@/features/plays/formatting";
+import { QuestCard } from "./action-card";
+import { getDashboardData } from "./queries";
 
-const dashboardQuests: DashboardQuest[] = [
-  {
-    id: "confirmed-meeting",
-    type: "action",
-    title: "Spotkanie potwierdzone",
-    description: "Sobota, 18:00 u Michała",
-    href: "/kalendarium",
-    createdAt: "dzisiaj",
-  },
-  {
-    id: "availability-question",
-    type: "question",
-    title: "Kiedy możesz grać?",
-    description: "Wybierz termin lipcowego spotkania",
-    href: "/kalendarium",
-    optionalPoints: 5,
-    createdAt: "do jutra",
-  },
-  {
-    id: "complete-play",
-    type: "action",
-    title: "Uzupełnij wynik partii",
-    description: "Wczoraj graliście w Nemesis",
-    href: "/kronika",
-    createdAt: "wczoraj",
-  },
-  {
-    id: "rate-nemesis",
-    type: "question",
-    title: "Jak podobało Ci się Nemesis?",
-    description: "Oceń ostatnią rozgrywkę",
-    href: "/gry",
-    optionalPoints: 10,
-    createdAt: "wczoraj",
-  },
-  {
-    id: "new-game",
-    type: "action",
-    title: "Nowa gra na Półce",
-    description: "Marta dodała Frostpunk",
-    href: "/gry",
-    createdAt: "2 dni temu",
-  },
-  {
-    id: "game-vote",
-    type: "question",
-    title: "W co chcesz zagrać?",
-    description: "Zagłosuj na gry na najbliższy wieczór",
-    href: "/kalendarium",
-    createdAt: "nowe",
-  },
-];
+function MeetingStatusBadge({
+  label,
+  state,
+}: {
+  label: string;
+  state: "confirmed" | "decision-required" | "awaiting-group" | "completed";
+}) {
+  const classes =
+    state === "confirmed"
+      ? "bg-[#e6f0e5] text-[#456247]"
+      : state === "decision-required"
+        ? "bg-[#f7e7b8] text-[#6d5319]"
+        : "bg-[#f1d9dd] text-[#7b3340]";
 
-const leaderboard = [
-  {
-    place: 1,
-    name: "Przemek",
-    points: 1240,
-    trophy: "/brand/1st-place-nobg.png",
-  },
-  {
-    place: 2,
-    name: "Marta",
-    points: 1080,
-    trophy: "/brand/2nd-place-nobg.png",
-  },
-  {
-    place: 3,
-    name: "Michał",
-    points: 940,
-    trophy: "/brand/3rd-place-nobg.png",
-  },
-  {
-    place: 4,
-    name: "Ania",
-    points: 810,
-    trophy: "/brand/4th-place-nobg.png",
-  },
-  {
-    place: 5,
-    name: "Kuba",
-    points: 690,
-    trophy: "/brand/5th-place-nobg.png",
-  },
-];
-
-const recentActivity = [
-  {
-    title: "Marta dodała Frostpunk",
-    detail: "Nowy egzemplarz na wspólnej Półce",
-    time: "35 min temu",
-    color: "bg-moss",
-  },
-  {
-    title: "Nemesis rozegrane — wygrał Michał",
-    detail: "4 graczy · 108 minut",
-    time: "wczoraj",
-    color: "bg-accent",
-  },
-  {
-    title: "Przemek ocenił XCOM 9/10",
-    detail: "Chce zagrać ponownie",
-    time: "2 dni temu",
-    color: "bg-gold",
-  },
-];
-
-const eveningGames = mockGames.filter((game) =>
-  ["nemesis", "frostpunk", "xcom"].includes(game.id),
-);
-
-export function DashboardShowcase() {
   return (
-    <div className="space-y-7 sm:space-y-9">
-      <section className="premium-edge text-cream relative isolate flex min-h-[20rem] overflow-hidden rounded-[2.4rem] shadow-[0_38px_100px_rgba(12,6,4,0.58)] sm:min-h-[22rem] lg:min-h-[23rem]">
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.65rem] font-bold ${classes}`}
+    >
+      {state === "decision-required" ? (
         <Image
-          src="/brand/hero-desktop.png"
-          alt="Wieczór planszówkowy w górskiej chacie przy kominku"
-          fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 80vw"
-          className="-z-30 hidden object-cover object-center md:block"
+          src="/brand/exclamation-nobg.png"
+          alt=""
+          width={16}
+          height={16}
+          className="size-4 object-contain"
         />
-        <Image
-          src="/brand/hero-mobile.png"
-          alt="Wieczór planszówkowy w górskiej chacie przy kominku"
-          fill
-          priority
-          sizes="(max-width: 767px) calc(100vw - 2rem), 0px"
-          className="-z-30 object-cover object-[center_58%] md:hidden"
-        />
-        <div className="absolute inset-0 -z-20 bg-[linear-gradient(90deg,rgba(17,9,7,0.94),rgba(17,9,7,0.76))] md:bg-[linear-gradient(90deg,rgba(17,9,7,0.94)_0%,rgba(20,11,8,0.79)_38%,rgba(20,11,8,0.32)_68%,rgba(12,7,5,0.14)_100%)]" />
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(13,7,5,0.42),rgba(13,7,5,0.2)_35%,rgba(13,7,5,0.92)_100%)] md:bg-[radial-gradient(circle_at_20%_50%,rgba(220,116,53,0.13),transparent_34rem)]" />
+      ) : null}
+      {label}
+    </span>
+  );
+}
 
-        <div className="relative flex w-full max-w-2xl flex-col justify-end px-5 py-5 sm:px-8 sm:py-6 md:justify-center lg:px-10">
-          <span className="w-fit rounded-full border border-[#e4b16c]/25 bg-black/30 px-3 py-1.5 text-[0.63rem] font-bold tracking-[0.2em] text-[#e3bd86] uppercase backdrop-blur-md">
-            Stół · centrum klubowego wieczoru
-          </span>
-          <h1 className="font-display mt-3 text-3xl leading-[1.04] font-semibold tracking-tight text-[#fff2df] drop-shadow-[0_5px_24px_rgba(0,0,0,0.72)] sm:text-4xl xl:text-5xl">
-            Zbierz ekipę.
-            <br />
-            Wybierz grę.
-            <span className="mt-1 block text-[#e2a05d]">Twoja tura.</span>
-          </h1>
-          <p className="mt-3 max-w-xl text-xs leading-5 text-[#e2d2c0] drop-shadow-md sm:text-sm sm:leading-6">
-            Jedno ciepłe miejsce dla wspólnej kolekcji, planów na wieczór i
-            historii partii, do których chce się wracać.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2.5">
-            <Link
-              href="/gry"
-              className="rounded-xl border border-[#efbf82]/35 bg-[#a95f3d]/95 px-4 py-2.5 text-sm font-bold text-[#fff1dc] shadow-[0_12px_30px_rgba(20,8,4,0.52)] backdrop-blur transition-transform hover:-translate-y-0.5 hover:bg-[#b86b45]"
-            >
-              Otwórz Półkę
-            </Link>
-            <Link
-              href="/kalendarium"
-              className="rounded-xl border border-white/18 bg-black/30 px-4 py-2.5 text-sm font-bold text-[#f2e4d3] backdrop-blur-md transition-colors hover:bg-black/42"
-            >
-              Otwórz Kalendarium
-            </Link>
-          </div>
-        </div>
-      </section>
+function getUpcomingMeetingPanelClasses(
+  state: "confirmed" | "decision-required" | "awaiting-group" | "completed",
+) {
+  if (state === "confirmed") {
+    return {
+      panel:
+        "border border-[#b7ccb5] bg-[linear-gradient(145deg,rgba(241,248,239,0.97),rgba(218,232,214,0.92))] shadow-[0_18px_36px_rgba(26,56,31,0.14)]",
+      tile: "border-[#bfd2bc] bg-[linear-gradient(145deg,rgba(252,255,251,0.94),rgba(226,238,223,0.86))]",
+      tileLabel: "text-[#62815f]",
+      tileValue: "text-[#39533d]",
+      attendees: "bg-[#e7f0e5] text-[#567056]",
+      coverFrame:
+        "border-[#bfd2bc] bg-[linear-gradient(145deg,rgba(250,254,248,0.96),rgba(224,237,220,0.9))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55),0_10px_24px_rgba(36,69,40,0.14)]",
+      coverBorder: "border-[#c9d8c5] bg-[#eef5ea]",
+      coverFallback: "border-[#bfd2bc] bg-[#edf4e9] text-[#6f886d]",
+      link: "text-[#4f7a54] underline decoration-[#4f7a54]/30 underline-offset-4",
+      action: "border-[#bfd2bc] bg-[#f3faf1] text-[#4f7a54]",
+    };
+  }
 
-      <section aria-labelledby="quests-heading">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+  return {
+    panel:
+      "border border-[#d8b3b9] bg-[linear-gradient(145deg,rgba(252,244,246,0.97),rgba(241,217,221,0.92))] shadow-[0_18px_36px_rgba(66,25,32,0.14)]",
+    tile: "border-[#dfbcc1] bg-[linear-gradient(145deg,rgba(255,251,251,0.94),rgba(246,229,232,0.86))]",
+    tileLabel: "text-[#b46d78]",
+    tileValue: "text-[#633a40]",
+    attendees: "bg-[#f4e6e8] text-[#8a5963]",
+    coverFrame:
+      "border-[#dfbcc1] bg-[linear-gradient(145deg,rgba(255,250,250,0.96),rgba(244,226,229,0.9))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55),0_10px_24px_rgba(76,31,37,0.14)]",
+    coverBorder: "border-[#e1c4c7] bg-[#f8edef]",
+    coverFallback: "border-[#dfbcc1] bg-[#f7ebed] text-[#94626b]",
+    link: "text-[#b14833] underline decoration-[#b14833]/35 underline-offset-4",
+    action: "border-[#dfbcc1] bg-[#fff7f8] text-[#b14833]",
+  };
+}
+
+function getRankMedal(rank: number) {
+  if (rank === 1) return "/brand/1st-place-nobg.png";
+  if (rank === 2) return "/brand/2nd-place-nobg.png";
+  if (rank === 3) return "/brand/3rd-place-nobg.png";
+  if (rank === 4) return "/brand/4th-place-nobg.png";
+  return "/brand/5th-place-nobg.png";
+}
+
+export async function DashboardShowcase() {
+  const data = await getDashboardData();
+  const upcoming = data.upcomingMeeting;
+  const upcomingVisual = upcoming
+    ? getUpcomingMeetingPanelClasses(upcoming.visualState)
+    : null;
+  const upcomingRange = upcoming
+    ? formatMeetingDateRange({
+        startsAt: upcoming.startsAt,
+        endsAt: upcoming.endsAt,
+      })
+    : null;
+
+  const leaderboardSection = (
+    <Panel className="leaderboard-rug-panel p-4 text-[#fff6ea] shadow-[inset_0_0_0_1px_rgba(255,230,184,0.08),0_18px_42px_rgba(22,9,5,0.24)] sm:p-4.5">
+      <div className="space-y-3">
+        <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-bold tracking-[0.2em] text-[#e6b36e] uppercase">
-              Aktywne zadania
-            </p>
-            <h2
-              id="quests-heading"
-              className="font-display mt-1 text-3xl font-semibold text-[#fff1dc]"
-            >
-              Questy!
-            </h2>
-          </div>
-          <p className="max-w-md text-xs leading-5 text-[#d0bdab]">
-            Rzeczy, które czekają na Twój ruch.
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {dashboardQuests.map((quest) => (
-            <QuestCard key={quest.id} quest={quest} />
-          ))}
-        </div>
-      </section>
-
-      <Panel className="parchment-card premium-edge overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ccb48d] bg-[#e8d4b7]/50 px-5 py-4 sm:px-6">
-          <div>
-            <p className="text-accent text-[0.62rem] font-bold tracking-[0.16em] uppercase">
-              Najbliższy wieczór
-            </p>
-            <h2 className="font-display mt-1 text-2xl font-semibold">
-              Letnia strategia w Górskiej Chacie
-            </h2>
-          </div>
-          <Link
-            href="/kalendarium"
-            className="text-accent text-xs font-bold underline decoration-[#a96a42]/35 underline-offset-4"
-          >
-            Zobacz spotkanie →
-          </Link>
-        </div>
-
-        <div className="grid gap-6 p-5 lg:grid-cols-[7rem_1fr_auto] lg:items-center lg:p-7">
-          <div className="wood-grain text-cream grid min-h-31 place-items-center rounded-2xl text-center shadow-[0_14px_28px_rgba(42,23,16,0.25)]">
-            <div>
-              <span className="block text-[0.62rem] font-bold tracking-widest text-[#c9945a] uppercase">
-                lipiec
-              </span>
-              <span className="font-display mt-1 block text-5xl font-semibold">
-                11
-              </span>
-              <span className="block text-xs text-[#c5b5a3]">
-                sobota · 18:00
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <p className="text-muted text-[0.62rem] font-bold tracking-wider uppercase">
-              Lokalizacja
-            </p>
-            <p className="mt-1 font-semibold">Górska Chata u Michała</p>
-            <p className="text-muted mt-4 text-[0.62rem] font-bold tracking-wider uppercase">
-              Przy stole
-            </p>
-            <div className="mt-2 flex items-center gap-2">
-              {["P", "M", "A", "K", "J"].map((initial, index) => (
-                <span
-                  key={initial}
-                  className={`text-cream grid size-9 place-items-center rounded-[55%_55%_45%_45%] text-xs font-bold shadow-sm ${index % 2 ? "bg-moss" : "bg-wood"}`}
-                >
-                  {initial}
-                </span>
-              ))}
-              <span className="text-muted ml-1 text-xs">5 osób</span>
-            </div>
-          </div>
-
-          <div className="min-w-0">
-            <p className="text-muted mb-3 text-[0.62rem] font-bold tracking-wider uppercase lg:text-right">
-              Gry na wieczór
-            </p>
-            <div className="flex gap-3 overflow-x-auto px-1 pt-1 pb-4 lg:justify-end lg:overflow-visible">
-              {eveningGames.map((game) => (
-                <GameCover
-                  key={game.id}
-                  title={game.title}
-                  coverUrl={game.coverSrc}
-                  size="mini"
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </Panel>
-
-      <section className="wood-grain premium-edge text-cream rounded-[2rem] p-4 sm:p-6 lg:p-8">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-[0.62rem] font-bold tracking-[0.2em] text-[#e0ad69] uppercase">
-              Ranking punktów · makieta MVP 2
-            </p>
-            <h2 className="font-display mt-1 text-3xl font-semibold">
+            <p className="text-[0.58rem] font-bold tracking-[0.18em] text-[#f1ca8f] uppercase">
               Legendy przy Stole
+            </p>
+            <h2 className="font-display mt-1 text-[1.3rem] font-semibold text-[#fff3e0]">
+              Ranking drużyny
             </h2>
           </div>
           <Link
             href="/legendarium"
-            className="w-fit rounded-xl border border-[#e9b875]/28 bg-white/8 px-4 py-2.5 text-xs font-bold transition-colors hover:bg-white/13"
+            className="text-xs font-bold text-[#ffe0b8] underline decoration-white/25 underline-offset-4"
           >
-            Otwórz Legendarium →
+            Otwórz →
           </Link>
         </div>
 
-        <ol className="mt-6 grid grid-cols-2 items-end gap-3 lg:grid-cols-[1.2fr_repeat(4,minmax(0,1fr))]">
-          {leaderboard.map((player) => {
-            const firstPlace = player.place === 1;
-            const compactPlace = player.place >= 4;
-
-            return (
-              <li
-                key={player.name}
-                className={`relative rounded-[1.4rem] border border-white/10 bg-black/17 p-3 text-center shadow-inner ${firstPlace ? "col-span-2 min-h-55 lg:col-span-1 lg:-translate-y-3" : compactPlace ? "min-h-38" : "min-h-46"}`}
-              >
-                <span className="absolute top-3 left-3 text-[0.58rem] font-bold tracking-wider text-[#bca58e] uppercase">
-                  {player.place}. miejsce
-                </span>
-                <Image
-                  src={player.trophy}
-                  alt={`Puchar za ${player.place}. miejsce`}
-                  width={160}
-                  height={160}
-                  sizes={firstPlace ? "144px" : compactPlace ? "72px" : "96px"}
-                  className={`mx-auto object-contain drop-shadow-[0_12px_20px_rgba(0,0,0,0.45)] ${firstPlace ? "size-32" : compactPlace ? "mt-5 size-17" : "mt-3 size-22"}`}
-                />
-                <p className="font-display mt-1 text-lg font-semibold">
-                  {player.name}
-                </p>
-                <p className="mt-1 text-xs font-bold text-[#e9b86f]">
-                  {player.points.toLocaleString("pl-PL")} pkt
-                </p>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
-
-      <section className="parchment-card premium-edge rounded-[2rem] p-4 sm:p-6">
-        <p className="text-accent text-[0.62rem] font-bold tracking-[0.2em] uppercase">
-          Ostatnio przy Stole
-        </p>
-        <div className="mt-4 grid gap-3 lg:grid-cols-3">
-          {recentActivity.map((activity) => (
-            <article
-              key={activity.title}
-              className="paper-wash flex items-start gap-3 rounded-xl p-4 shadow-sm"
+        <ol className="space-y-2">
+          {data.leaderboard.entries.map((entry) => (
+            <li
+              key={entry.userId}
+              className="flex items-center gap-3 rounded-[1.05rem] border border-white/8 bg-[rgba(33,18,14,0.36)] px-3 py-2"
             >
-              <span
-                className={`mt-1.5 size-2.5 shrink-0 rounded-full ${activity.color}`}
+              <Image
+                src={getRankMedal(entry.rank)}
+                alt={`${entry.rank}. miejsce`}
+                width={36}
+                height={36}
+                className="size-8 shrink-0 object-contain"
               />
               <div className="min-w-0 flex-1">
-                <h2 className="text-sm font-bold">{activity.title}</h2>
-                <p className="text-muted mt-1 text-xs leading-5">
-                  {activity.detail}
+                <p className="truncate text-sm font-semibold text-[#fff2dc]">
+                  {entry.displayName}
                 </p>
-                <p className="text-muted mt-2 text-[0.58rem]">
-                  {activity.time}
+                <p className="text-xs text-[#f2d8b8]">
+                  {entry.totalPoints.toLocaleString("pl-PL")} pkt
                 </p>
               </div>
-            </article>
+              <span className="text-xs text-[#f0cf9f]">
+                {entry.rank}. miejsce
+              </span>
+            </li>
           ))}
+        </ol>
+
+        {data.leaderboard.viewerRank &&
+        data.leaderboard.viewerRank > data.leaderboard.entries.length ? (
+          <p className="text-xs text-[#f2d8b8]">
+            Twoje miejsce: {data.leaderboard.viewerRank}.
+          </p>
+        ) : null}
+      </div>
+    </Panel>
+  );
+
+  const upcomingMeetingSection = (
+    <Panel
+      className={`${upcomingVisual?.panel ?? "paper-wash shadow-[0_18px_36px_rgba(32,16,8,0.16)]"} overflow-hidden p-3.5 sm:p-4`}
+    >
+      <div className="flex h-full flex-col gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
+              Najbliższe spotkanie
+            </p>
+            <h2 className="font-display mt-1 truncate text-[1.25rem] font-semibold text-[#4c3528]">
+              {upcoming ? upcoming.title : "Nowy wieczorek"}
+            </h2>
+          </div>
+
+          {upcoming ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <MeetingStatusBadge
+                label={upcoming.visualLabel}
+                state={upcoming.visualState}
+              />
+              <span
+                className={`rounded-full px-2.5 py-1 text-[0.65rem] font-semibold ${upcomingVisual?.attendees ?? "bg-[#f4ead3] text-[#705338]"}`}
+              >
+                {upcoming.confirmedAttendeesCount} osób potwierdziło
+              </span>
+            </div>
+          ) : null}
         </div>
-      </section>
+
+        {upcoming && upcomingRange ? (
+          <div className="grid grid-cols-[minmax(0,1fr)_5.7rem] gap-3">
+            <div className="grid gap-1.5">
+              <div
+                className={`grid grid-cols-[3.95rem_minmax(0,1fr)] items-center gap-2 rounded-[0.9rem] border px-3 py-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${upcomingVisual?.tile ?? "border-[#e6cfb1] bg-[linear-gradient(145deg,rgba(255,252,247,0.92),rgba(245,234,216,0.82))]"}`}
+              >
+                <span
+                  className={`text-[0.56rem] font-bold tracking-[0.16em] uppercase ${upcomingVisual?.tileLabel ?? "text-[#b4764a]"}`}
+                >
+                  Termin
+                </span>
+                <span
+                  className={`truncate text-[0.82rem] font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
+                >
+                  {`${upcomingRange.startDate} · ${upcomingRange.startTime}`}
+                </span>
+              </div>
+
+              <div
+                className={`grid grid-cols-[3.95rem_minmax(0,1fr)] items-center gap-2 rounded-[0.9rem] border px-3 py-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${upcomingVisual?.tile ?? "border-[#e6cfb1] bg-[linear-gradient(145deg,rgba(255,252,247,0.92),rgba(245,234,216,0.82))]"}`}
+              >
+                <span
+                  className={`text-[0.56rem] font-bold tracking-[0.16em] uppercase ${upcomingVisual?.tileLabel ?? "text-[#b4764a]"}`}
+                >
+                  Miejsce
+                </span>
+                <span
+                  className={`truncate text-[0.82rem] font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
+                >
+                  {upcoming.location ?? "Do ustalenia"}
+                </span>
+              </div>
+
+              <div
+                className={`grid grid-cols-[3.95rem_minmax(0,1fr)] items-center gap-2 rounded-[0.9rem] border px-3 py-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${upcomingVisual?.tile ?? "border-[#e6cfb1] bg-[linear-gradient(145deg,rgba(255,252,247,0.92),rgba(245,234,216,0.82))]"}`}
+              >
+                <span
+                  className={`text-[0.56rem] font-bold tracking-[0.16em] uppercase ${upcomingVisual?.tileLabel ?? "text-[#b4764a]"}`}
+                >
+                  Prowadzi
+                </span>
+                <span
+                  className={`truncate text-[0.82rem] font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
+                >
+                  {upcoming.leadingGame
+                    ? `${upcoming.leadingGame.title} · ${upcoming.leadingGame.votesCount} gł.`
+                    : "Jeszcze bez lidera"}
+                </span>
+                <Link href={upcoming.href} className="hidden">
+                  Przejdź →
+                </Link>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-end justify-start gap-1.5">
+              <div
+                className={`flex w-[5.7rem] items-center justify-center rounded-[1rem] border p-2 ${upcomingVisual?.coverFrame ?? "border-[#d6b188] bg-[linear-gradient(145deg,rgba(255,251,244,0.96),rgba(237,223,201,0.9))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55),0_10px_24px_rgba(58,31,12,0.16)]"}`}
+              >
+                {upcoming.leadingGame?.coverUrl ? (
+                  <Image
+                    src={upcoming.leadingGame.coverUrl}
+                    alt={upcoming.leadingGame.title}
+                    width={62}
+                    height={86}
+                    unoptimized
+                    className={`h-[5.35rem] w-[3.95rem] rounded-[0.68rem] border object-cover shadow-[0_6px_16px_rgba(61,34,16,0.18)] ${upcomingVisual?.coverBorder ?? "border-[#dcc3a1] bg-[#f6ecdd]"}`}
+                  />
+                ) : (
+                  <div
+                    className={`flex h-[5.35rem] w-[3.95rem] items-center justify-center rounded-[0.68rem] border border-dashed px-2 text-center text-[0.68rem] font-semibold ${upcomingVisual?.coverFallback ?? "border-[#d2ba99] bg-[#f5ead9] text-[#8a6749]"}`}
+                  >
+                    Brak okładki
+                  </div>
+                )}
+              </div>
+              <Link
+                href={upcoming.href}
+                className={`inline-flex w-[5.7rem] items-center justify-center rounded-[0.78rem] border px-2 py-1.5 text-[0.68rem] font-bold ${upcomingVisual?.action ?? "border-[#d8b3b9] bg-[#fff7f8] text-[#b14833]"}`}
+              >
+                Przejdź {"→"}
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-sm text-[#5f4738]">
+              Nie ma jeszcze kolejnego wieczoru.
+            </p>
+            <Link
+              href="/kalendarium/nowe"
+              className="text-accent inline-flex text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
+            >
+              Zorganizuj spotkanie →
+            </Link>
+          </div>
+        )}
+      </div>
+    </Panel>
+  );
+
+  return (
+    <div className="space-y-2 sm:space-y-3">
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(17.5rem,0.9fr)]">
+        <Panel className="table-wood-panel fire-glow overflow-hidden p-3.5 text-[#fff1dc] shadow-[inset_0_0_0_1px_rgba(255,233,184,0.08),0_24px_54px_rgba(24,9,5,0.32)] sm:p-4">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,198,105,0.18),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.08),transparent_18%)]" />
+          <div className="relative flex flex-col gap-2.5 lg:flex-row lg:items-stretch lg:gap-5">
+            <div className="min-w-0 flex-1 space-y-2.5">
+              <div className="space-y-1">
+                <p className="text-[0.58rem] font-bold tracking-[0.18em] text-[#e2b578] uppercase">
+                  Stół
+                </p>
+                <h1 className="font-display text-[1.75rem] leading-tight font-semibold text-[#fff1dc] sm:text-[1.95rem]">
+                  {data.summary.title}
+                </h1>
+                <p className="text-[0.7rem] font-semibold text-[#e6c79f] sm:text-[0.78rem]">
+                  {data.summary.subtitle}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                <Link
+                  href="/kalendarium/nowe"
+                  className="min-w-0 rounded-xl border border-[#efbf82]/30 bg-[#9b5538]/92 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#fff0db] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
+                >
+                  Zorganizuj spotkanie
+                </Link>
+                <Link
+                  href="/gry/nowa"
+                  className="min-w-0 rounded-xl border border-white/14 bg-black/20 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#f2e4d3] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
+                >
+                  Dodaj grę do Półki
+                </Link>
+                <Link
+                  href="/kronika/nowa"
+                  className="min-w-0 rounded-xl border border-white/14 bg-black/20 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#f2e4d3] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
+                >
+                  Zapisz wynik gry
+                </Link>
+              </div>
+            </div>
+
+            <div className="hidden w-fit shrink-0 self-stretch rounded-[1.2rem] border border-white/12 bg-[linear-gradient(145deg,rgba(19,10,7,0.32),rgba(31,17,11,0.18))] px-3.5 py-3 text-center shadow-[0_18px_36px_rgba(17,8,5,0.22)] lg:ml-auto lg:flex lg:min-h-full lg:flex-col lg:items-center lg:justify-center">
+              <p className="text-center text-[0.58rem] font-bold tracking-[0.16em] text-[#d7b486] uppercase">
+                Twoje punkty
+              </p>
+              <p className="font-display mt-1 text-center text-[1.95rem] font-semibold text-[#fff1dc]">
+                {data.pointsSummary.currentPoints.toLocaleString("pl-PL")} pkt
+              </p>
+            </div>
+          </div>
+        </Panel>
+
+        {leaderboardSection}
+      </div>
+
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(17.5rem,0.9fr)] xl:gap-5">
+        <div className="space-y-4 xl:-mt-[15.25rem] 2xl:-mt-[15.5rem]">
+          <section aria-labelledby="quests-heading" className="space-y-2.5">
+            <h2
+              id="quests-heading"
+              className="font-display text-[1.9rem] font-semibold text-[#fff1dc] sm:text-[2.05rem]"
+            >
+              Questy do wykonania!
+            </h2>
+
+            {data.quests.length === 0 ? (
+              <Panel className="paper-wash p-4">
+                <p className="text-sm text-[#5f4738]">
+                  Nie masz teraz żadnych zadań.
+                </p>
+                <Link
+                  href={data.summary.emptyCtaHref}
+                  className="text-accent mt-3 inline-flex text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
+                >
+                  {data.summary.emptyCtaLabel} →
+                </Link>
+              </Panel>
+            ) : (
+              <div className="grid auto-rows-fr gap-x-2 gap-y-2 md:grid-cols-2">
+                {data.quests.map((quest) => (
+                  <QuestCard key={quest.id} quest={quest} />
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        <div className="space-y-4">
+          {upcomingMeetingSection}
+
+          <Panel className="paper-wash p-3.5 sm:p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
+                  Ostatnio przy Stole
+                </p>
+                <h2 className="font-display mt-1 text-[1.1rem] font-semibold text-[#4c3528]">
+                  Świeże wpisy z Kroniki
+                </h2>
+              </div>
+              <Link
+                href="/kronika"
+                className="text-accent text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
+              >
+                Pełna Kronika →
+              </Link>
+            </div>
+
+            {data.recentPlays.length === 0 ? (
+              <div className="mt-2.5 space-y-2">
+                <p className="text-sm text-[#5f4738]">
+                  Jeszcze nic nie zapisano w Kronice.
+                </p>
+                <Link
+                  href="/kronika/nowa"
+                  className="text-accent inline-flex text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
+                >
+                  Zapisz wynik gry →
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-2.5 space-y-1.5">
+                {data.recentPlays.map((play) => (
+                  <Link key={play.id} href={play.href} className="block">
+                    <div className="rounded-[0.95rem] bg-white/70 px-3 py-2 transition hover:bg-white/85">
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <p className="font-semibold text-[#4d3528]">
+                          {play.gameTitle}
+                        </p>
+                        <span className="text-[#6a4d36]">
+                          {formatPlayShortDate(play.playedAt)}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-[#5f4738]">
+                        {play.winnerLabel} · {play.playersCount} graczy
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </Panel>
+        </div>
+      </div>
     </div>
   );
 }

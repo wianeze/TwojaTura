@@ -9,16 +9,28 @@ import { LogoMark } from "@/components/ui/logo-mark";
 import { getMemberInitial } from "@/features/auth/current-member";
 import type { CurrentMember } from "@/features/auth/types";
 
-type AppShellProps = { children: ReactNode; member: CurrentMember };
+type AppShellProps = {
+  children: ReactNode;
+  member: CurrentMember;
+  currentPoints: number;
+};
 
-export function AppShell({ children, member }: AppShellProps) {
+export function AppShell({ children, member, currentPoints }: AppShellProps) {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
       <DesktopNavigation member={member} />
       <div className="cabin-ambient min-w-0">
         <SectionBackground />
-        <header className="wood-grain relative z-10 flex h-17 items-center justify-between border-b border-white/8 px-4 lg:hidden">
+        <header className="wood-grain relative z-10 flex h-17 items-center justify-between gap-3 border-b border-white/8 px-4 lg:hidden">
           <LogoMark compact tone="light" />
+          <div className="rounded-full border border-white/10 bg-black/18 px-3.5 py-1.5 text-center shadow-[0_10px_18px_rgba(17,8,5,0.18)]">
+            <span className="font-display text-[0.84rem] font-semibold text-[#e2b578]">
+              Twoje Punkty:
+            </span>{" "}
+            <span className="font-display text-[1.05rem] font-semibold text-[#fff1dc]">
+              {currentPoints.toLocaleString("pl-PL")} pkt
+            </span>
+          </div>
           <Link
             href="/profil"
             aria-label="Przejdź do profilu"

@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: Etapy 1–6 są zamknięte. Auth, aktywne członkostwo, profil, wspólna Półka, oceny, dodatki, Kalendarium i Kronika działają na prawdziwym Supabase; Etap 7 nie został jeszcze rozpoczęty.
+Status: Etapy 1–7 są zamknięte. Auth, aktywne członkostwo, profil, wspólna Półka, oceny, dodatki, Kalendarium, Kronika i Stół działają na prawdziwym Supabase; Etap 8 nie został jeszcze rozpoczęty.
 
 ## 1. Decyzje projektowe
 
@@ -512,17 +512,18 @@ Stół jest centrum bieżących wydarzeń grupy i spraw wymagających reakcji za
 
 ### Derived actions („Questy!”)
 
-Questy na Stole nie są osobnymi rekordami w MVP 1. Aplikacja wylicza je podczas odczytu z istniejących danych i przedstawia przez wspólny kontrakt `DashboardQuest`: `id`, `type: action | question`, `title`, opcjonalne `description`, `href`, opcjonalne `optionalPoints` oraz opcjonalne `createdAt`.
+Questy na Stole nie są osobnymi rekordami w MVP 1. Aplikacja wylicza je podczas odczytu z istniejących danych i przedstawia przez wspólny kontrakt `DashboardQuest`: `id`, `type: action | question`, `title`, opcjonalne `description`, `href`, prezentacyjne `optionalPoints` jako immediate reward, rozszerzony `reward` preview (`immediatePoints`, opcjonalne `followUpPoints`, etykiety UI) oraz opcjonalne `createdAt`.
 
 Planowane źródła akcji:
 
 - `meeting_availability`: brak własnej odpowiedzi RSVP dla przyszłego spotkania daje pytanie „Będziesz na spotkaniu?”;
-- `meeting_game_votes`: brak głosu użytkownika dla aktywnego spotkania daje pytanie „W co chcesz zagrać?”;
-- `ratings` razem z uczestnictwem w `plays`: brak oceny rozegranej gry daje pytanie „Jak podobała Ci się gra?”;
-- `meetings.status = confirmed`: potwierdzenie wydarzenia daje informację „Spotkanie potwierdzone”;
-- zakończone `meetings` oraz `plays`: brak zapisu partii po spotkaniu daje akcję „Uzupełnij wynik partii”.
+- `meeting_game_votes`: brak własnego głosu dla aktywnego spotkania daje pytanie „W co chcesz zagrać?”;
+- `ratings` razem z uczestnictwem w `plays`: brak oceny rozegranej gry daje pytanie „Oceń ostatnio rozegraną grę”;
+- zakończone `meetings` bez wpisu w `plays`: brak zapisu partii po spotkaniu daje akcję „Uzupełnij wynik spotkania”;
+- onboarding Półki: brak pierwszej własnej gry daje akcję „Dodaj grę do Półki”;
+- brak bliskiego spotkania: Stół może pokazać akcję „Zaproponuj spotkanie”.
 
-Nie powstaje tabela `quests`, trigger tworzący questy ani automatyczne naliczanie punktów. Quest nie ma checkboxa i nie jest ręcznie oznaczany jako ukończony, odrzucony lub ukryty. Znika automatycznie, gdy warunek źródłowy przestaje być spełniony — przykładowo po zapisaniu dostępności, dodaniu oceny albo zapisaniu brakującej partii. `optionalPoints` jest wyłącznie miejscem w kontrakcie UI przygotowanym pod MVP 2. Ewentualne ręczne lub sezonowe questy będą później osobnym mechanizmem.
+Nie powstaje tabela `quests`, trigger tworzący questy ani automatyczne naliczanie punktów. Quest nie ma checkboxa i nie jest ręcznie oznaczany jako ukończony, odrzucony lub ukryty. Znika automatycznie, gdy warunek źródłowy przestaje być spełniony — przykładowo po zapisaniu dostępności, dodaniu oceny albo zapisaniu brakującej partii. `optionalPoints` pozostaje kompatybilnym polem prezentacyjnym UI i oznacza immediate reward, a pełny preview punktów jest budowany przez `reward`. Ewentualne ręczne lub sezonowe questy będą później osobnym mechanizmem.
 
 ### Pozostałe sekcje Stołu
 
@@ -651,11 +652,13 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 
 ### Etap 7 — Stół
 
-- Derived actions użytkownika wyliczane z `meeting_availability`, `meeting_game_votes`, `ratings`, `meetings` i `plays`, bez tabeli questów oraz ręcznego stanu ukończenia.
-- Najbliższy wieczór z terminem, lokalizacją, uczestnikami i grami.
-- Ranking „Legendy przy Stole” z `get_leaderboard()` oraz kompaktowa ostatnia aktywność bez osobnej tabeli feedu.
-- Puste stany i linki prowadzące do odpowiednich działań.
-- Weryfikacja zapytań dla braku danych, brakującej oceny, potwierdzonego terminu, niezapisanej partii i brakującego RSVP; lint/test/build.
+- Etap 7 jest zamknięty. Stół jest quest boardem / ekranem motywacyjnym, a nie dashboardem SaaS, i działa na prawdziwych danych Supabase.
+- Questy są derived actions z istniejących danych (`meeting_availability`, `meeting_game_votes`, `ratings`, `meetings`, `plays`), bez tabeli `quests`. Obejmują RSVP, głosowanie, Kronikę, oceny gier, organizację spotkań i onboarding Półki.
+- Questy spotkaniowe działają dla wszystkich przyszłych spotkań `planned` i `confirmed`, także poza bieżącym miesiącem. Mają osobne identyfikatory po `meeting_id` (`missing-rsvp:${meetingId}`, `missing-vote:${meetingId}`) i nie są scalane ani ukrywane przez limit.
+- Rewardy są wyłącznie preview UI: „pkt teraz” i „pkt później”. Etap 7 nie nalicza automatycznie `point_events`; własne saldo pochodzi z `user_point_balances`.
+- Wszystkie questy używają wykrzykników: `meeting` jest pomarańczowy, `chronicle` fioletowy, `vote` niebieski, `rating` zielony, a `shelf` biały/kremowy. Layout questów został zaakceptowany po poprawkach.
+- **Legendy przy Stole** korzystają z `get_leaderboard()`, a **Ostatnio przy Stole** pochodzi z Kroniki. Read layer działa przez session Supabase client i istniejące RLS; Etap 7 nie wprowadza zmian SQL, RLS ani migracji.
+- Weryfikacja zamykająca: `pnpm test` PASS, `pnpm check` PASS, `pnpm build` PASS; `db:verify` nie było wymagane, ponieważ SQL nie uległ zmianie; manualny odbiór Stołu PASS.
 
 ### Etap 8 — import CSV
 
