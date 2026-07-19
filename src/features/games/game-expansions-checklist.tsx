@@ -35,11 +35,11 @@ function ExpansionRow({
   return (
     <div>
       <label
-        className={`paper-wash flex items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-sm ${
+        className={`paper-wash flex items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 text-sm ${
           canManage ? "cursor-pointer" : "cursor-default opacity-90"
         }`}
       >
-        <span className="flex min-w-0 items-start gap-2">
+        <span className="flex min-w-0 items-center gap-2">
           <input
             type="checkbox"
             checked={optimisticOwned}
@@ -62,10 +62,10 @@ function ExpansionRow({
             className="accent-[#b86c39]"
           />
           <span className="min-w-0">
-            <span className="block text-[0.92rem] leading-5 font-semibold text-[#4f382a]">
+            <span className="block text-[0.82rem] leading-4.5 font-semibold text-[#4f382a]">
               {cleanBggExpansionName(expansion.name, gameTitle)}
             </span>
-            <span className="text-muted mt-0.5 block text-[0.68rem]">
+            <span className="text-muted block text-[0.62rem]">
               {optimisticOwned ? "Posiadany" : "Nieposiadany"}
             </span>
           </span>
@@ -102,7 +102,7 @@ export function GameExpansionsChecklist({
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className="grid grid-cols-3 gap-1.5 lg:grid-cols-1">
       {expansions.slice(0, showAll ? undefined : 6).map((expansion) => (
         <ExpansionRow
           key={`${expansion.id}:${expansion.isOwned ? "owned" : "missing"}`}
@@ -116,7 +116,7 @@ export function GameExpansionsChecklist({
         <button
           type="button"
           onClick={() => setShowAll((current) => !current)}
-          className="text-accent mt-1 text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
+          className="text-accent col-span-3 mt-1 text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4 lg:col-span-1"
         >
           {showAll ? "Ukryj dodatki" : "Pokaż wszystkie dodatki"}
         </button>

@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: Etapy 1–7 są zamknięte. Auth, aktywne członkostwo, profil, wspólna Półka, oceny, dodatki, Kalendarium, Kronika i Stół działają na prawdziwym Supabase; Etap 8 jest w toku.
+Status: Etapy 1–8 są zamknięte. Auth, aktywne członkostwo, profil, wspólna Półka, oceny, dodatki, Kalendarium, Kronika, Stół i grywalizowany onboarding Półki działają na prawdziwych danych. Etap 9 nie został jeszcze rozpoczęty.
 
 ## 1. Decyzje projektowe
 
@@ -534,6 +534,8 @@ Nie powstaje tabela `quests`, trigger tworzący questy ani automatyczne naliczan
 
 ## 7. Opcjonalny import danych z Google Sheets przez CSV
 
+Import CSV nie jest częścią głównego flow MVP 1 ani Etapu 8. Pozostaje późniejszym, opcjonalnym narzędziem operatorskim; nie budujemy panelu importu w aplikacji.
+
 ### Przebieg
 
 1. Eksport arkusza jako UTF-8 CSV.
@@ -662,15 +664,12 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 
 ### Etap 8 — Grywalizowany onboarding Półki
 
-- Etap 8 jest w toku. Gracze dodają gry samodzielnie, a Półka rośnie przez onboardingowe questy na Stole.
-- Przy 0 własnych aktywnych egzemplarzy widoczny jest quest „Dodaj pierwszą grę do Półki” z preview `+40 teraz`; przy 1–4 — „Rozbuduj Półkę do 5 gier” z preview `+30 teraz` i postępem `n/5`; od 5 egzemplarzy quest onboardingowy znika.
-- Punkty są wyłącznie preview UI: Etap 8 nie tworzy ani nie zapisuje automatycznie `point_events`. Dodawanie kolejnych setek gier nie daje punktów ani nie premiuje samej wielkości kolekcji.
-- `owner_id` pozostaje technicznym opiekunem fizycznego egzemplarza, nie pełnym modelem współwłasności domowników lub par.
-- Duży import kolekcji zostaje odłożony jako późniejsze, opcjonalne narzędzie operatorskie: może dawać badge/prestiż, ale nie punkty za każdą grę. Nie budujemy panelu importu w MVP 1.
-- Przyszłe uzupełnianie brakujących danych Półki (okładka, BGG, typ, liczba graczy, czas gry) może otrzymać małe, limitowane tygodniowo preview punktów; pełna logika nie jest częścią bieżącego Etapu 8.
-- Formularze dodawania i edycji gry wspierają ręcznie uruchamiany autofill z linku BGG. Żądanie do `api.geekdo.com` wykonuje wyłącznie serwer dla aktywnego użytkownika, a `BGG_TOKEN` pozostaje w zmiennych środowiskowych po stronie serwera.
-- Autofill uzupełnia domyślnie tylko puste pola i nigdy nie zapisuje gry automatycznie. Użytkownik sprawdza dane i sam zatwierdza formularz; opcjonalnie może świadomie włączyć nadpisanie istniejących pól.
-- Powiązania dodatków zwrócone przez BGG są wyłącznie sugestiami. Nie tworzą automatycznie `game_expansions` i nie oznaczają żadnego dodatku jako posiadanego.
+- **Zamknięty.** Etap 8 nie jest importem CSV. Gracze dodają gry ręcznie, aby wspierać quest loop i grywalizowany onboarding Półki; import CSV pozostaje późniejszym, opcjonalnym narzędziem operatorskim poza głównym flow MVP 1.
+- Formularze `/gry/nowa` i `/gry/[id]/edytuj` obsługują ręcznie uruchamiany autofill z linku BGG. `BGG_TOKEN` jest używany wyłącznie server-side; „Uzupełnij z BGG” wypełnia formularz, ale nigdy nie zapisuje gry automatycznie ani nie nadpisuje ręcznych pól bez świadomie włączonej opcji nadpisania.
+- Autofill uzupełnia dane gry, heurystycznie typ gry, opis, mechaniki, kategorie, wydawcę, autora, rankingi i okładkę. Dodatki z BGG są sugestiami, nie są automatycznie oznaczane jako posiadane, a ich nazwy są czyszczone z powtarzanej nazwy gry i wyświetlane kompaktowo.
+- Questy Półki są milestone-based, nie per każda gra: 0 gier — „Dodaj pierwszą grę do Półki” (`+40`); 1–4 — „Dodaj 5 gier do wspólnej Półki” (`+30`); 5–9 — „Dodaj 10 gier do wspólnej Półki” (`+20`); 10–14 — „Dodaj 15 gier do wspólnej Półki” (`+15`); od 15 gier nie ma punktowego questa Półki. Pokazywany jest najwyżej jeden aktywny quest Półki z postępem do aktualnego progu.
+- Punkty questów pozostają wyłącznie preview — Etap 8 nie tworzy ani nie zapisuje automatycznie `point_events`. Duże kolekcje i importy nie dają punktów per gra; w przyszłości mogą dawać badge lub prestiż. `owner_id` nadal jest technicznym opiekunem fizycznego egzemplarza, nie modelem współwłasności.
+- Weryfikacja zamykająca: `pnpm test` 167/167 PASS, `pnpm check` PASS, `pnpm build` PASS; `db:verify` nie było wymagane, ponieważ SQL nie uległ zmianie; manualny odbiór Etapu 8 PASS. Nie było zmian SQL, RLS ani migracji.
 
 ### Etap 9 — dopracowanie i odbiór
 

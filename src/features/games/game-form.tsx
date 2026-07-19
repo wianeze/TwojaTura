@@ -213,17 +213,17 @@ function GameExpansionsEditor({
         </div>
       ) : null}
 
-      <div className="mt-4 max-h-[28rem] space-y-2 overflow-y-auto pr-1">
+      <div className="mt-3 grid max-h-[28rem] gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
         {items.length > 0 ? (
           items.map((item) => (
             <div
               key={item.clientKey}
-              className="paper-wash grid gap-3 rounded-[1.3rem] p-3 md:grid-cols-[minmax(0,1fr)_auto_auto]"
+              className="paper-wash grid gap-2 rounded-[1.1rem] p-2.5"
             >
-              <label className="block text-sm font-semibold text-[#503828]">
+              <label className="block text-xs font-semibold text-[#503828]">
                 Nazwa dodatku
                 <input
-                  className="paper-wash focus:border-gold focus:ring-gold/20 mt-1.5 h-11 w-full rounded-xl border border-[#9a7657]/35 px-3.5 text-sm text-[#503828] transition outline-none focus:ring-4"
+                  className="paper-wash focus:border-gold focus:ring-gold/20 mt-1 h-10 w-full rounded-xl border border-[#9a7657]/35 px-3 text-sm text-[#503828] transition outline-none focus:ring-4"
                   value={item.name}
                   onChange={(event) =>
                     updateItem(item.clientKey, { name: event.target.value })
@@ -232,27 +232,29 @@ function GameExpansionsEditor({
                 />
               </label>
 
-              <label className="paper-wash flex h-11 items-center gap-2 rounded-xl border border-[#9a7657]/22 px-3.5 text-sm font-semibold text-[#6b5038]">
-                <input
-                  type="checkbox"
-                  checked={item.isOwned}
-                  onChange={(event) =>
-                    updateItem(item.clientKey, {
-                      isOwned: event.target.checked,
-                    })
-                  }
-                  className="accent-[#b86c39]"
-                />
-                Posiadamy
-              </label>
+              <div className="flex items-center justify-between gap-2">
+                <label className="paper-wash flex h-9 items-center gap-2 rounded-xl border border-[#9a7657]/22 px-2.5 text-xs font-semibold text-[#6b5038]">
+                  <input
+                    type="checkbox"
+                    checked={item.isOwned}
+                    onChange={(event) =>
+                      updateItem(item.clientKey, {
+                        isOwned: event.target.checked,
+                      })
+                    }
+                    className="accent-[#b86c39]"
+                  />
+                  Posiadamy
+                </label>
 
-              <button
-                type="button"
-                onClick={() => removeItem(item.clientKey)}
-                className="rounded-xl border border-[#8f3528]/20 px-3.5 py-3 text-sm font-semibold text-[#8f3528] transition hover:bg-[#8f3528]/6"
-              >
-                Usuń
-              </button>
+                <button
+                  type="button"
+                  onClick={() => removeItem(item.clientKey)}
+                  className="h-9 rounded-xl border border-[#8f3528]/20 px-2.5 text-xs font-semibold text-[#8f3528] transition hover:bg-[#8f3528]/6"
+                >
+                  Usuń
+                </button>
+              </div>
             </div>
           ))
         ) : (
@@ -327,8 +329,8 @@ export function GameForm({
 
   return (
     <form ref={formRef} action={formAction} className="space-y-6">
-      <div className="grid gap-4 xl:grid-cols-2">
-        <label className="block text-sm font-semibold text-[#503828]">
+      <div className="space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 xl:grid-cols-4">
+        <label className="block text-sm font-semibold text-[#503828] md:order-[1] md:col-span-2">
           Nazwa gry
           <input
             className={inputClass}
@@ -340,20 +342,7 @@ export function GameForm({
           <FieldError error={state.fieldErrors?.title} />
         </label>
 
-        <label className="block text-sm font-semibold text-[#503828]">
-          Okładka URL lub ścieżka
-          <input
-            className={inputClass}
-            name="coverUrl"
-            defaultValue={initialValues.coverUrl}
-            placeholder="/games/nemezis.webp lub https://…"
-          />
-          <FieldError error={state.fieldErrors?.coverUrl} />
-        </label>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="text-sm font-semibold text-[#503828]">
+        <div className="text-sm font-semibold text-[#503828] md:order-[3]">
           <label htmlFor="bggUrl">Link BGG</label>
           <div className="flex flex-wrap items-center gap-2">
             <input
@@ -395,115 +384,140 @@ export function GameForm({
           ) : null}
         </div>
 
-        <label className="block text-sm font-semibold text-[#503828]">
-          BGG Rank
+        <label className="block text-sm font-semibold text-[#503828] md:order-[2] md:col-span-2">
+          Okładka URL lub ścieżka
           <input
             className={inputClass}
-            name="bggRank"
-            defaultValue={initialValues.bggRank}
-            inputMode="numeric"
+            name="coverUrl"
+            defaultValue={initialValues.coverUrl}
+            placeholder="/games/nemezis.webp lub https://…"
           />
-          <FieldError error={state.fieldErrors?.bggRank} />
+          <FieldError error={state.fieldErrors?.coverUrl} />
         </label>
 
-        <label className="block text-sm font-semibold text-[#503828]">
-          Typ gry
-          <input
-            className={inputClass}
-            name="gameType"
-            defaultValue={initialValues.gameType}
-            placeholder="np. Kooperacyjna"
-          />
-          <FieldError error={state.fieldErrors?.gameType} />
-        </label>
+        <div className="grid grid-cols-3 gap-2 md:contents">
+          <label className="block text-sm font-semibold text-[#503828] md:order-[4]">
+            BGG Rank
+            <input
+              className={inputClass}
+              name="bggRank"
+              defaultValue={initialValues.bggRank}
+              inputMode="numeric"
+            />
+            <FieldError error={state.fieldErrors?.bggRank} />
+          </label>
 
-        <label className="block text-sm font-semibold text-[#503828]">
-          Status
-          <select
-            className={inputClass}
-            name="status"
-            defaultValue={initialValues.status}
-          >
-            {Object.entries(GAME_STATUS_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-          <FieldError error={state.fieldErrors?.status} />
-        </label>
-      </div>
+          <label className="block text-sm font-semibold text-[#503828] md:order-[7]">
+            Minimum graczy
+            <input
+              className={inputClass}
+              name="minPlayers"
+              defaultValue={initialValues.minPlayers}
+              inputMode="numeric"
+            />
+            <FieldError error={state.fieldErrors?.minPlayers} />
+          </label>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <label className="block text-sm font-semibold text-[#503828]">
-          Minimum graczy
-          <input
-            className={inputClass}
-            name="minPlayers"
-            defaultValue={initialValues.minPlayers}
-            inputMode="numeric"
-          />
-          <FieldError error={state.fieldErrors?.minPlayers} />
-        </label>
+          <label className="block text-sm font-semibold text-[#503828] md:order-[8]">
+            Maksimum graczy
+            <input
+              className={inputClass}
+              name="maxPlayers"
+              defaultValue={initialValues.maxPlayers}
+              inputMode="numeric"
+            />
+            <FieldError error={state.fieldErrors?.maxPlayers} />
+          </label>
+        </div>
 
-        <label className="block text-sm font-semibold text-[#503828]">
-          Maksimum graczy
-          <input
-            className={inputClass}
-            name="maxPlayers"
-            defaultValue={initialValues.maxPlayers}
-            inputMode="numeric"
-          />
-          <FieldError error={state.fieldErrors?.maxPlayers} />
-        </label>
+        <div className="grid grid-cols-2 gap-2 md:contents">
+          <label className="block text-sm font-semibold text-[#503828] md:order-[5]">
+            Typ gry
+            <input
+              className={inputClass}
+              name="gameType"
+              defaultValue={initialValues.gameType}
+              placeholder="np. Kooperacyjna"
+            />
+            <FieldError error={state.fieldErrors?.gameType} />
+          </label>
 
-        <label className="block text-sm font-semibold text-[#503828]">
-          Czas gry (min)
-          <input
-            className={inputClass}
-            name="playTimeMinutes"
-            defaultValue={initialValues.playTimeMinutes}
-            inputMode="numeric"
-          />
-          <FieldError error={state.fieldErrors?.playTimeMinutes} />
-        </label>
+          <label className="block text-sm font-semibold text-[#503828] md:order-[6]">
+            Status
+            <select
+              className={inputClass}
+              name="status"
+              defaultValue={initialValues.status}
+            >
+              {Object.entries(GAME_STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <FieldError error={state.fieldErrors?.status} />
+          </label>
+        </div>
 
-        <label className="block text-sm font-semibold text-[#503828]">
-          Rok wydania
-          <input
-            className={inputClass}
-            name="releaseYear"
-            defaultValue={initialValues.releaseYear}
-            inputMode="numeric"
-          />
-          <FieldError error={state.fieldErrors?.releaseYear} />
-        </label>
-      </div>
+        <div className="grid grid-cols-3 gap-2 md:contents">
+          <label className="block text-sm font-semibold text-[#503828] md:order-[9]">
+            Czas gry (min)
+            <input
+              className={inputClass}
+              name="playTimeMinutes"
+              defaultValue={initialValues.playTimeMinutes}
+              inputMode="numeric"
+            />
+            <FieldError error={state.fieldErrors?.playTimeMinutes} />
+          </label>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <label className="block text-sm font-semibold text-[#503828]">
-          Trudność BGG
-          <input
-            className={inputClass}
-            name="bggWeight"
-            defaultValue={initialValues.bggWeight}
-            placeholder="np. 3,42"
-          />
-          <FieldError error={state.fieldErrors?.bggWeight} />
-        </label>
+          <label className="block text-sm font-semibold text-[#503828] md:order-[12]">
+            Minimalny wiek
+            <input
+              className={inputClass}
+              name="minAge"
+              defaultValue={initialValues.minAge}
+              inputMode="numeric"
+            />
+            <FieldError error={state.fieldErrors?.minAge} />
+          </label>
 
-        <label className="block text-sm font-semibold text-[#503828]">
-          Minimalny wiek
-          <input
-            className={inputClass}
-            name="minAge"
-            defaultValue={initialValues.minAge}
-            inputMode="numeric"
-          />
-          <FieldError error={state.fieldErrors?.minAge} />
-        </label>
+          <label className="block text-sm font-semibold text-[#503828] md:order-[10]">
+            Rok wydania
+            <input
+              className={inputClass}
+              name="releaseYear"
+              defaultValue={initialValues.releaseYear}
+              inputMode="numeric"
+            />
+            <FieldError error={state.fieldErrors?.releaseYear} />
+          </label>
+        </div>
 
-        <label className="block text-sm font-semibold text-[#503828]">
+        <div className="grid grid-cols-2 gap-2 md:contents">
+          <label className="block text-sm font-semibold text-[#503828] md:order-[14]">
+            Wydawca
+            <input
+              className={inputClass}
+              name="publisher"
+              defaultValue={initialValues.publisher}
+            />
+            <FieldError error={state.fieldErrors?.publisher} />
+          </label>
+
+          <label className="block text-sm font-semibold text-[#503828] md:order-[11]">
+            Trudność BGG
+            <input
+              className={inputClass}
+              name="bggWeight"
+              defaultValue={initialValues.bggWeight}
+              placeholder="np. 3,42"
+            />
+            <FieldError error={state.fieldErrors?.bggWeight} />
+          </label>
+        </div>
+
+        <label className="block text-sm font-semibold text-[#503828] md:order-[13]">
           Autor / projektant
           <input
             className={inputClass}
@@ -511,16 +525,6 @@ export function GameForm({
             defaultValue={initialValues.designer}
           />
           <FieldError error={state.fieldErrors?.designer} />
-        </label>
-
-        <label className="block text-sm font-semibold text-[#503828]">
-          Wydawca
-          <input
-            className={inputClass}
-            name="publisher"
-            defaultValue={initialValues.publisher}
-          />
-          <FieldError error={state.fieldErrors?.publisher} />
         </label>
       </div>
 

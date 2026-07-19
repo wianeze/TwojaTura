@@ -72,6 +72,9 @@ function decodeEntities(value: string) {
     lt: "<",
     quot: '"',
     nbsp: " ",
+    mdash: "—",
+    ndash: "–",
+    hellip: "…",
   };
 
   return value.replace(

@@ -19,7 +19,7 @@ const SAMPLE_XML = `
     <thumbnail>https://example.com/thumb.jpg</thumbnail>
     <image>https://example.com/image.jpg</image>
     <name type="primary" value="Nemesis &amp; Spółka" />
-    <description>Kooperacyjna &lt;b&gt;gra&lt;/b&gt;&lt;br/&gt;z ukrytymi celami.</description>
+    <description>Kooperacyjna &lt;b&gt;gra&lt;/b&gt;&lt;br/&gt;z ukrytymi celami &amp;mdash; bez surowego HTML.</description>
     <yearpublished value="2018" />
     <minplayers value="1" />
     <maxplayers value="5" />
@@ -92,7 +92,10 @@ test("BGG XML parser maps game fields and removes raw HTML", () => {
   assert.deepEqual(game.categories, ["Science Fiction"]);
   assert.equal(game.designer, "Adam Kwapiński");
   assert.equal(game.publisher, "Awaken Realms");
-  assert.equal(game.description, "Kooperacyjna gra\nz ukrytymi celami.");
+  assert.equal(
+    game.description,
+    "Kooperacyjna gra\nz ukrytymi celami — bez surowego HTML.",
+  );
   assert.deepEqual(game.expansionSuggestions, [
     { id: "789", name: "Aftermath" },
   ]);

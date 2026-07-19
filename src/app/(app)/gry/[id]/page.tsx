@@ -37,7 +37,7 @@ function MetaItem({
   if (!value) return null;
 
   return (
-    <div className="flex items-baseline gap-2 text-sm">
+    <div className="flex min-w-0 items-baseline gap-1.5 text-xs">
       <span
         className={`shrink-0 text-[0.6rem] font-bold tracking-[0.14em] uppercase ${
           subtle ? "text-[#9a7c61]" : "text-[#a56c42]"
@@ -68,13 +68,62 @@ function TagBlock({ label, values }: { label: string; values: string[] }) {
         {values.map((value) => (
           <span
             key={value}
-            className="rounded-full bg-[#ead9b9] px-2.5 py-1 text-[0.68rem] font-semibold text-[#705538]"
+            className="rounded-full bg-[#ead9b9] px-2 py-0.5 text-[0.65rem] font-semibold text-[#705538]"
           >
             {value}
           </span>
         ))}
       </div>
     </section>
+  );
+}
+
+function GroupRatingBox({
+  ratingSummary,
+  className = "",
+}: {
+  ratingSummary: {
+    averageOverall: number | null;
+    ratingsCount: number;
+    wantsToPlayAgainCount: number;
+    averageReplayability: number | null;
+    averageTheme: number | null;
+  };
+  className?: string;
+}) {
+  return (
+    <aside
+      className={`leather-panel h-fit min-w-0 rounded-[1.25rem] p-2.5 text-[#f7ead5] ${className}`}
+    >
+      <p className="text-[0.52rem] font-bold tracking-[0.14em] text-[#e8b870] uppercase">
+        Ocena grupy
+      </p>
+      <div className="mt-1.5">
+        <p className="text-[1.45rem] leading-none font-bold text-[#f0c47e]">
+          {formatDecimal(ratingSummary.averageOverall)}
+        </p>
+        <p className="mt-1 text-[0.62rem] text-[#cbb9a7]">
+          {ratingSummary.ratingsCount} ocen
+        </p>
+      </div>
+      <p className="mt-2 border-t border-white/10 pt-2 text-[0.65rem] text-[#d8c3ae]">
+        Zagra ponownie: {ratingSummary.wantsToPlayAgainCount}
+      </p>
+      <dl className="mt-1.5 grid grid-cols-2 gap-1 text-[0.62rem] text-[#bcae9d]">
+        <div>
+          <dt>Regryw.</dt>
+          <dd className="font-semibold text-[#f6e7d1]">
+            {formatDecimal(ratingSummary.averageReplayability)}
+          </dd>
+        </div>
+        <div>
+          <dt>Klimat</dt>
+          <dd className="font-semibold text-[#f6e7d1]">
+            {formatDecimal(ratingSummary.averageTheme)}
+          </dd>
+        </div>
+      </dl>
+    </aside>
   );
 }
 
@@ -130,15 +179,22 @@ export default async function GameDetailsPage({
         </Panel>
       ) : null}
 
-      <Panel className="paper-wash overflow-hidden p-3.5 sm:p-4">
-        <div className="grid gap-3 xl:grid-cols-[10.5rem_minmax(0,1fr)_14rem]">
-          <div className="space-y-2.5">
-            <GameCover
-              title={game.title}
-              coverUrl={game.coverUrl}
-              size="card"
-              className="mx-auto w-[7.75rem] sm:w-[8.5rem] lg:w-[9.5rem] xl:mx-0"
-            />
+      <Panel className="paper-wash overflow-hidden p-3 sm:p-3.5">
+        <div className="grid gap-3 md:grid-cols-[8.5rem_minmax(0,1fr)] xl:grid-cols-[10.5rem_minmax(0,1fr)_14rem]">
+          <div className="space-y-2 md:row-span-2">
+            <div className="grid grid-cols-2 items-stretch gap-2.5 md:block">
+              <GameCover
+                title={game.title}
+                coverUrl={game.coverUrl}
+                size="card"
+                fitParent
+                className="mx-auto w-full max-w-none xl:mx-0 xl:w-[9.5rem]"
+              />
+              <GroupRatingBox
+                ratingSummary={game.ratingSummary}
+                className="md:hidden"
+              />
+            </div>
 
             <section className="space-y-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -166,16 +222,16 @@ export default async function GameDetailsPage({
             </section>
           </div>
 
-          <div className="min-w-0 space-y-3">
+          <div className="min-w-0 space-y-2.5">
             <div className="flex flex-wrap items-start justify-between gap-2.5">
               <div className="min-w-0">
                 <p className="text-accent text-[0.56rem] font-bold tracking-[0.18em] uppercase">
                   Karta gry
                 </p>
-                <h1 className="font-display mt-1 text-[1.75rem] leading-tight font-semibold text-[#4c3528] sm:text-[2.05rem]">
+                <h1 className="font-display mt-1 text-[1.6rem] leading-tight font-semibold text-[#4c3528] sm:text-[1.85rem]">
                   {game.title}
                 </h1>
-                <p className="text-muted mt-1.5 max-w-3xl text-sm leading-5.5">
+                <p className="text-muted mt-1 max-w-3xl text-[0.82rem] leading-5 sm:text-sm">
                   {game.description ??
                     "Ta karta nie ma jeszcze pełnego opisu, ale dane egzemplarza i oceny grupy są już zapisane."}
                 </p>
@@ -186,7 +242,7 @@ export default async function GameDetailsPage({
               </span>
             </div>
 
-            <div className="grid gap-x-4 gap-y-1.5 border-t border-dashed border-[#b99d72] pt-2.5 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-dashed border-[#b99d72] pt-2 sm:grid-cols-3 xl:grid-cols-3">
               <MetaItem label="Właściciel" value={game.owner.displayName} />
               <MetaItem
                 label="Aktualnie u"
@@ -225,52 +281,17 @@ export default async function GameDetailsPage({
             </div>
 
             {(game.mechanics.length > 0 || game.categories.length > 0) && (
-              <div className="grid gap-2.5 xl:grid-cols-2">
+              <div className="grid gap-2 min-[440px]:grid-cols-2 xl:grid-cols-2">
                 <TagBlock label="Mechaniki" values={game.mechanics} />
                 <TagBlock label="Kategorie" values={game.categories} />
               </div>
             )}
           </div>
 
-          <aside className="leather-panel h-fit rounded-[1.25rem] p-3.5 text-[#f7ead5]">
-            <p className="text-[0.56rem] font-bold tracking-[0.16em] text-[#e8b870] uppercase">
-              Ocena grupy
-            </p>
-            <div className="mt-2.5 space-y-2.5">
-              <div>
-                <p className="text-[1.75rem] leading-none font-bold text-[#f0c47e]">
-                  {formatDecimal(game.ratingSummary.averageOverall)}
-                </p>
-                <p className="mt-1 text-[0.68rem] text-[#cbb9a7]">
-                  średnia z {game.ratingSummary.ratingsCount} ocen
-                </p>
-              </div>
-
-              <div className="rounded-xl bg-white/6 px-3 py-2">
-                <p className="text-[0.58rem] font-bold tracking-[0.14em] text-[#d8c3ae] uppercase">
-                  Chce zagrać ponownie
-                </p>
-                <p className="mt-1 text-sm font-semibold text-[#f6e7d1]">
-                  {game.ratingSummary.wantsToPlayAgainCount} osób
-                </p>
-              </div>
-
-              <dl className="space-y-1.5 border-t border-white/10 pt-2.5 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-[#bcae9d]">Regrywalność</dt>
-                  <dd className="font-semibold">
-                    {formatDecimal(game.ratingSummary.averageReplayability)}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-[#bcae9d]">Klimat</dt>
-                  <dd className="font-semibold">
-                    {formatDecimal(game.ratingSummary.averageTheme)}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-          </aside>
+          <GroupRatingBox
+            ratingSummary={game.ratingSummary}
+            className="hidden md:col-span-2 md:block xl:col-auto"
+          />
         </div>
       </Panel>
 

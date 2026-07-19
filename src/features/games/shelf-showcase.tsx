@@ -268,132 +268,159 @@ export function ShelfShowcase({ games }: ShelfShowcaseProps) {
 
       {selectedGame && (
         <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-[#1d120e]/76 p-3 backdrop-blur-sm sm:items-center sm:p-6"
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-[#1d120e]/76 p-3 pb-[calc(env(safe-area-inset-bottom)+5.75rem)] backdrop-blur-sm sm:items-center sm:px-6 sm:pt-6 sm:pb-[calc(env(safe-area-inset-bottom)+5.75rem)] lg:p-6"
           role="dialog"
           aria-modal="true"
           aria-label={`Szybki podgląd gry ${selectedGame.title}`}
           onClick={() => setSelectedGame(null)}
         >
-          <div
-            className="parchment-card premium-edge relative max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl overflow-y-auto rounded-[2rem] p-5 sm:max-h-[calc(100dvh-3rem)] sm:p-7"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() => setSelectedGame(null)}
-              className="wood-grain text-cream absolute top-4 right-4 z-40 grid size-9 place-items-center rounded-full text-lg transition-transform hover:scale-105"
-              aria-label="Zamknij szybki podgląd"
+          <div className="premium-edge relative w-full max-w-3xl rounded-[2rem]">
+            <div
+              className="parchment-card relative max-h-[calc(100dvh-env(safe-area-inset-bottom)-6.5rem)] w-full overflow-y-auto rounded-[2rem] p-5 sm:max-h-[calc(100dvh-env(safe-area-inset-bottom)-6.5rem)] sm:p-7 lg:max-h-[calc(100dvh-3rem)]"
+              onClick={(event) => event.stopPropagation()}
             >
-              ×
-            </button>
+              <button
+                type="button"
+                onClick={() => setSelectedGame(null)}
+                className="wood-grain text-cream absolute top-4 right-4 z-40 grid size-9 place-items-center rounded-full text-lg transition-transform hover:scale-105"
+                aria-label="Zamknij szybki podgląd"
+              >
+                ×
+              </button>
 
-            <div className="grid gap-6 md:grid-cols-[auto_1fr]">
-              <GameCover
-                title={selectedGame.title}
-                coverUrl={selectedGame.coverUrl}
-                size="preview"
-                className="mx-auto md:mx-0"
-              />
-              <div className="min-w-0 pt-1 md:pt-3">
-                <p className="text-accent text-[0.65rem] font-bold tracking-[0.18em] uppercase">
-                  Szybki podgląd Półki
-                </p>
-                <h3 className="font-display mt-2 pr-10 text-3xl font-semibold">
-                  {selectedGame.title}
-                </h3>
-                <p className="text-muted mt-3 text-sm leading-6">
-                  {selectedGame.description ??
-                    "Ta gra nie ma jeszcze opisu, ale możesz już zapisać jej ocenę i uzupełnić dane na pełnej karcie."}
-                </p>
-
-                <div className="mt-5">
-                  <GameFacts game={selectedGame} />
-                </div>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <div className="paper-wash rounded-xl p-3">
-                    <p className="text-muted text-[0.6rem] font-bold tracking-wider uppercase">
-                      Właściciel
-                    </p>
-                    <p className="mt-1 font-semibold">
-                      {selectedGame.owner.displayName}
-                    </p>
-                  </div>
-                  <div className="paper-wash rounded-xl p-3">
-                    <p className="text-muted text-[0.6rem] font-bold tracking-wider uppercase">
-                      Aktualnie u
-                    </p>
-                    <p className="mt-1 font-semibold">
-                      {selectedGame.currentHolder?.displayName ?? "nieustalone"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto]">
-                  <div className="space-y-4">
-                    <TagList
-                      label="Mechaniki"
-                      values={selectedGame.mechanics}
-                    />
-                    <TagList
-                      label="Kategorie"
-                      values={selectedGame.categories}
-                    />
+              <div className="space-y-5">
+                <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] items-stretch gap-3 md:grid-cols-[13rem_minmax(0,1fr)] md:gap-5">
+                  <GameCover
+                    title={selectedGame.title}
+                    coverUrl={selectedGame.coverUrl}
+                    size="preview"
+                    fitParent
+                    className="mx-auto max-w-[10.5rem] md:mx-0 md:max-w-none"
+                  />
+                  <div className="leather-panel flex h-full min-w-0 flex-col justify-between rounded-[1.5rem] p-3 text-[#f7ead5] sm:p-4">
                     <div>
-                      <p className="text-muted text-[0.6rem] font-bold tracking-wider uppercase">
-                        Dodatki
+                      <p className="text-[0.58rem] font-bold tracking-[0.14em] text-[#e8b870] uppercase">
+                        Ocena grupy
                       </p>
-                      <p className="mt-2 text-sm text-[#6f5640]">
-                        {selectedExpansionPreview &&
-                        selectedExpansionPreview.names.length > 0
-                          ? `${selectedExpansionPreview.names.join(", ")}${
-                              selectedExpansionPreview.remainingCount > 0
-                                ? ` +${selectedExpansionPreview.remainingCount} więcej`
-                                : ""
-                            }`
-                          : "Brak posiadanych dodatków."}
+                      <p className="mt-2 text-3xl leading-none font-bold text-[#f0c47e] sm:text-4xl">
+                        {formatDecimal(
+                          selectedGame.ratingSummary.averageOverall,
+                        )}
+                      </p>
+                      <p className="mt-1 text-[0.68rem] text-[#cbb9a7]">
+                        średnia z {selectedGame.ratingSummary.ratingsCount} ocen
                       </p>
                     </div>
-                  </div>
-
-                  <div className="leather-panel rounded-[1.5rem] p-4 text-[#f7ead5]">
-                    <p className="text-[0.62rem] font-bold tracking-[0.16em] text-[#e8b870] uppercase">
-                      Ślad w grupie
-                    </p>
-                    <p className="mt-3 text-3xl font-bold text-[#f0c47e]">
-                      {formatDecimal(selectedGame.ratingSummary.averageOverall)}
-                    </p>
-                    <p className="text-[0.7rem] text-[#cbb9a7]">
-                      średnia z {selectedGame.ratingSummary.ratingsCount} ocen
-                    </p>
-                    <p className="mt-4 text-xs leading-5 text-[#d7c8b5]">
-                      BGG Rank:{" "}
-                      <strong>
-                        {selectedGame.bggRank
-                          ? `#${selectedGame.bggRank}`
-                          : "brak"}
-                      </strong>
-                      <br />
-                      BGG Weight:{" "}
+                    <p className="mt-3 border-t border-white/10 pt-2 text-[0.68rem] leading-5 text-[#d7c8b5]">
+                      BGG #{selectedGame.bggRank ?? "—"} · waga{" "}
                       <strong>{formatDecimal(selectedGame.bggWeight)}</strong>
                     </p>
                   </div>
                 </div>
+                <div className="min-w-0 pt-1 md:pt-3">
+                  <p className="text-accent text-[0.65rem] font-bold tracking-[0.18em] uppercase">
+                    Szybki podgląd Półki
+                  </p>
+                  <h3 className="font-display mt-2 pr-10 text-3xl font-semibold">
+                    {selectedGame.title}
+                  </h3>
+                  <p className="text-muted mt-3 text-sm leading-6">
+                    {selectedGame.description ??
+                      "Ta gra nie ma jeszcze opisu, ale możesz już zapisać jej ocenę i uzupełnić dane na pełnej karcie."}
+                  </p>
 
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <Link
-                    href={`/gry/${selectedGame.id}`}
-                    className="bg-brand hover:bg-brand-strong rounded-xl px-4 py-3 text-sm font-semibold text-white transition-colors"
-                  >
-                    Otwórz pełną kartę gry
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedGame(null)}
-                    className="paper-wash rounded-xl px-4 py-3 text-sm font-semibold text-[#6d5037]"
-                  >
-                    Wróć do Półki
-                  </button>
+                  <div className="mt-5">
+                    <GameFacts game={selectedGame} />
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <div className="paper-wash rounded-xl px-3 py-2">
+                      <p className="text-muted text-[0.58rem] font-bold tracking-wider uppercase">
+                        Właściciel
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-[#503828]">
+                        {selectedGame.owner.displayName}
+                      </p>
+                    </div>
+                    <div className="paper-wash rounded-xl px-3 py-2">
+                      <p className="text-muted text-[0.58rem] font-bold tracking-wider uppercase">
+                        Aktualnie u
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-[#503828]">
+                        {selectedGame.currentHolder?.displayName ??
+                          "nieustalone"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-4">
+                    <div className="space-y-4">
+                      <TagList
+                        label="Mechaniki"
+                        values={selectedGame.mechanics}
+                      />
+                      <TagList
+                        label="Kategorie"
+                        values={selectedGame.categories}
+                      />
+                      <div>
+                        <p className="text-muted text-[0.6rem] font-bold tracking-wider uppercase">
+                          Dodatki
+                        </p>
+                        <p className="mt-2 text-sm text-[#6f5640]">
+                          {selectedExpansionPreview &&
+                          selectedExpansionPreview.names.length > 0
+                            ? `${selectedExpansionPreview.names.join(", ")}${
+                                selectedExpansionPreview.remainingCount > 0
+                                  ? ` +${selectedExpansionPreview.remainingCount} więcej`
+                                  : ""
+                              }`
+                            : "Brak posiadanych dodatków."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="hidden">
+                      <p className="text-[0.62rem] font-bold tracking-[0.16em] text-[#e8b870] uppercase">
+                        Ocena grupy
+                      </p>
+                      <p className="mt-3 text-3xl font-bold text-[#f0c47e]">
+                        {formatDecimal(
+                          selectedGame.ratingSummary.averageOverall,
+                        )}
+                      </p>
+                      <p className="text-[0.7rem] text-[#cbb9a7]">
+                        średnia z {selectedGame.ratingSummary.ratingsCount} ocen
+                      </p>
+                      <p className="mt-4 text-xs leading-5 text-[#d7c8b5]">
+                        BGG Rank:{" "}
+                        <strong>
+                          {selectedGame.bggRank
+                            ? `#${selectedGame.bggRank}`
+                            : "brak"}
+                        </strong>
+                        <br />
+                        BGG Weight:{" "}
+                        <strong>{formatDecimal(selectedGame.bggWeight)}</strong>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="sticky bottom-0 -mx-5 mt-5 flex flex-wrap gap-2 border-t border-[#b99d72]/45 bg-[#f8edda]/95 px-5 pt-3 pb-1 backdrop-blur lg:static lg:mx-0 lg:mt-6 lg:border-0 lg:bg-transparent lg:px-0 lg:pt-0 lg:pb-0">
+                    <Link
+                      href={`/gry/${selectedGame.id}`}
+                      className="bg-brand hover:bg-brand-strong rounded-xl px-4 py-3 text-sm font-semibold text-white transition-colors"
+                    >
+                      Otwórz pełną kartę gry
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGame(null)}
+                      className="paper-wash rounded-xl px-4 py-3 text-sm font-semibold text-[#6d5037]"
+                    >
+                      Wróć do Półki
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

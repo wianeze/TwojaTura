@@ -70,7 +70,12 @@ function getQuestBucket(quest: DashboardQuest) {
   if (quest.id.startsWith("missing-vote:")) return 2;
   if (quest.id === "schedule-meeting") return 3;
   if (quest.id.startsWith("rate-game:")) return 4;
-  if (quest.id === "add-first-game" || quest.id === "add-five-games") {
+  if (
+    quest.id === "add-first-game" ||
+    quest.id === "add-five-games" ||
+    quest.id === "add-ten-games" ||
+    quest.id === "add-fifteen-games"
+  ) {
     return 5;
   }
   return 6;

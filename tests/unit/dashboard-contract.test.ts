@@ -206,7 +206,7 @@ test("shelf onboarding shows progress quest for one through four owned games", (
     );
 
     assert.ok(quest);
-    assert.equal(quest.title, "Rozbuduj Półkę do 5 gier");
+    assert.equal(quest.title, "Dodaj 5 gier do wspólnej Półki");
     assert.equal(
       quest.description,
       `${ownGamesCount}/5 gier na wspólnej Półce.`,
@@ -215,15 +215,68 @@ test("shelf onboarding shows progress quest for one through four owned games", (
   }
 });
 
-test("shelf onboarding disappears after the fifth owned active game", () => {
-  const quests = buildDashboardQuests(buildSource({ ownGamesCount: 5 }));
+test("shelf onboarding advances to the ten-game quest for five through nine games", () => {
+  for (const ownGamesCount of [5, 6, 7, 8, 9]) {
+    const quest = buildDashboardQuests(buildSource({ ownGamesCount })).find(
+      (item) => item.id === "add-ten-games",
+    );
+
+    assert.ok(quest);
+    assert.equal(quest.title, "Dodaj 10 gier do wspólnej Półki");
+    assert.equal(
+      quest.description,
+      `${ownGamesCount}/10 gier na wspólnej Półce.`,
+    );
+    assert.equal(quest.reward.immediatePoints, 20);
+  }
+});
+
+test("shelf onboarding advances to the fifteen-game quest for ten through fourteen games", () => {
+  for (const ownGamesCount of [10, 11, 12, 13, 14]) {
+    const quest = buildDashboardQuests(buildSource({ ownGamesCount })).find(
+      (item) => item.id === "add-fifteen-games",
+    );
+
+    assert.ok(quest);
+    assert.equal(quest.title, "Dodaj 15 gier do wspólnej Półki");
+    assert.equal(
+      quest.description,
+      `${ownGamesCount}/15 gier na wspólnej Półce.`,
+    );
+    assert.equal(quest.reward.immediatePoints, 15);
+  }
+});
+
+test("shelf onboarding disappears at fifteen owned active games", () => {
+  const quests = buildDashboardQuests(buildSource({ ownGamesCount: 15 }));
 
   assert.equal(
     quests.some(
-      (item) => item.id === "add-first-game" || item.id === "add-five-games",
+      (item) =>
+        item.id === "add-first-game" ||
+        item.id === "add-five-games" ||
+        item.id === "add-ten-games" ||
+        item.id === "add-fifteen-games",
     ),
     false,
   );
+});
+
+test("shelf onboarding emits at most one active quest", () => {
+  const shelfQuestIds = new Set([
+    "add-first-game",
+    "add-five-games",
+    "add-ten-games",
+    "add-fifteen-games",
+  ]);
+
+  for (const ownGamesCount of [0, 1, 5, 10, 15, 40]) {
+    const shelfQuests = buildDashboardQuests(
+      buildSource({ ownGamesCount }),
+    ).filter((quest) => shelfQuestIds.has(quest.id));
+
+    assert.ok(shelfQuests.length <= 1);
+  }
 });
 
 test("shelf rewards remain a pure preview without mutating the source", () => {
@@ -394,7 +447,7 @@ test("missing vote is created for a future meeting outside the current month", (
 test("dashboard totals include every visible future meeting quest", () => {
   const quests = buildDashboardQuests(
     buildSource({
-      ownGamesCount: 5,
+      ownGamesCount: 15,
       futureMeetings: [
         {
           id: "july-rsvp",

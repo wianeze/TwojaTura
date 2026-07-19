@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { GameSubmitButton } from "./game-submit-button";
 import { INITIAL_RATING_FORM_STATE } from "./form-state";
 import type { OwnGameRating, RatingFormState } from "./types";
@@ -30,19 +30,21 @@ function RatingSelect({
   error?: string;
 }) {
   const inputClass =
-    "paper-wash focus:border-gold focus:ring-gold/20 mt-1.5 h-11 w-full rounded-xl border border-[#9a7657]/35 px-3.5 text-sm text-[#503828] outline-none transition focus:ring-4";
+    "paper-wash focus:border-gold focus:ring-gold/20 mt-1 h-10 w-full rounded-xl border border-[#9a7657]/35 bg-[#fff9ee] px-3 text-sm font-bold text-[#503828] outline-none transition focus:ring-4";
 
   return (
-    <label className="block text-sm font-semibold text-[#503828]">
+    <label className="block text-xs font-semibold text-[#503828]">
       {label}
       <select
         className={inputClass}
         name={name}
         defaultValue={defaultValue?.toString() ?? ""}
       >
-        <option value="">Wybierz</option>
+        <option value="" className="text-[#6f5640]">
+          Wybierz
+        </option>
         {Array.from({ length: 10 }, (_, index) => index + 1).map((value) => (
-          <option key={value} value={value}>
+          <option key={value} value={value} className="text-[#503828]">
             {value}
           </option>
         ))}
@@ -54,12 +56,15 @@ function RatingSelect({
 
 export function RatingForm({ ownRating, action }: RatingFormProps) {
   const [state, formAction] = useActionState(action, INITIAL_RATING_FORM_STATE);
+  const [wantsToPlayAgain, setWantsToPlayAgain] = useState(
+    ownRating ? String(ownRating.wantsToPlayAgain) : "true",
+  );
   const textareaClass =
-    "paper-wash focus:border-gold focus:ring-gold/20 mt-1.5 min-h-28 w-full rounded-xl border border-[#9a7657]/35 px-3.5 py-3 text-sm text-[#503828] outline-none transition focus:ring-4";
+    "paper-wash focus:border-gold focus:ring-gold/20 mt-1 min-h-20 w-full rounded-xl border border-[#9a7657]/35 px-3 py-2.5 text-sm text-[#503828] outline-none transition focus:ring-4 sm:min-h-24";
 
   return (
-    <form action={formAction} className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-3">
+    <form action={formAction} className="space-y-3">
+      <div className="grid gap-2.5 min-[380px]:grid-cols-2 md:grid-cols-3">
         <RatingSelect
           name="overall"
           label="Ocena ogólna"
@@ -81,27 +86,40 @@ export function RatingForm({ ownRating, action }: RatingFormProps) {
       </div>
 
       <fieldset>
-        <legend className="text-sm font-semibold text-[#503828]">
+        <legend className="text-xs font-semibold text-[#503828]">
           Chęć zagrania ponownie
         </legend>
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="mt-1.5 grid grid-cols-2 gap-2">
           {[
-            { value: "true", label: "TAK" },
-            { value: "false", label: "NIE" },
+            {
+              value: "true",
+              label: "TAK",
+              selectedClass:
+                "border-[#3f704d] bg-[#3f704d] text-[#fff9ed] ring-[#3f704d]/25",
+            },
+            {
+              value: "false",
+              label: "NIE",
+              selectedClass:
+                "border-[#963f35] bg-[#963f35] text-[#fff9ed] ring-[#963f35]/25",
+            },
           ].map((option) => (
             <label key={option.value} className="cursor-pointer">
               <input
                 type="radio"
                 name="wantsToPlayAgain"
                 value={option.value}
-                defaultChecked={
-                  ownRating
-                    ? String(ownRating.wantsToPlayAgain) === option.value
-                    : option.value === "true"
-                }
-                className="peer sr-only"
+                checked={wantsToPlayAgain === option.value}
+                onChange={() => setWantsToPlayAgain(option.value)}
+                className="sr-only"
               />
-              <span className="paper-wash peer-checked:bg-brand peer-checked:text-cream peer-checked:ring-brand/20 inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-bold tracking-[0.12em] text-[#6d5037] transition-colors peer-checked:ring-2">
+              <span
+                className={`inline-flex w-full items-center justify-center rounded-xl border px-3 py-2 text-xs font-bold tracking-[0.12em] transition-colors ${
+                  wantsToPlayAgain === option.value
+                    ? `${option.selectedClass} ring-2`
+                    : "paper-wash border-[#9a7657]/28 bg-[#fff9ee] text-[#6d5037]"
+                }`}
+              >
                 {option.label}
               </span>
             </label>
@@ -110,7 +128,7 @@ export function RatingForm({ ownRating, action }: RatingFormProps) {
         <RatingFieldError error={state.fieldErrors?.wantsToPlayAgain} />
       </fieldset>
 
-      <label className="block text-sm font-semibold text-[#503828]">
+      <label className="block text-xs font-semibold text-[#503828]">
         Komentarz
         <textarea
           className={textareaClass}

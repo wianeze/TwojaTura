@@ -133,20 +133,27 @@ test("point thresholds helper still maps raw numbers to rarity bands", () => {
 });
 
 test("shelf onboarding quests keep common styling and the common exclamation", () => {
-  const variant = getQuestVisualVariant(
-    buildQuest({
-      id: "add-first-game",
+  for (const id of [
+    "add-first-game",
+    "add-five-games",
+    "add-ten-games",
+    "add-fifteen-games",
+  ]) {
+    const quest = buildQuest({
+      id,
       href: "/gry/nowa",
       reward: {
         immediatePoints: 40,
-        immediateLabel: "pierwsza gra",
+        immediateLabel: "teraz",
       },
-    }),
-  );
+    });
+    const variant = getQuestVisualVariant(quest);
 
-  assert.equal(variant.rarity, "common");
-  assert.equal(variant.isMeetingQuest, false);
-  assert.equal(variant.exclamationAsset, "/brand/Exclamation-common.png");
+    assert.equal(getQuestVisualCategory(quest), "shelf");
+    assert.equal(variant.rarity, "common");
+    assert.equal(variant.isMeetingQuest, false);
+    assert.equal(variant.exclamationAsset, "/brand/Exclamation-common.png");
+  }
 });
 
 test("meeting question quest keeps meeting emphasis", () => {

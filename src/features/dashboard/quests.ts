@@ -132,7 +132,7 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
       id: "add-five-games",
       type: "action",
       tone: "success",
-      title: "Rozbuduj Półkę do 5 gier",
+      title: "Dodaj 5 gier do wspólnej Półki",
       description: `${source.ownGamesCount}/5 gier na wspólnej Półce.`,
       href: "/gry/nowa",
       ctaLabel: "Dodaj grę",
@@ -141,6 +141,42 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
         immediatePoints: 30,
         immediateLabel: "teraz",
         totalPreviewPoints: 30,
+        rewardTone: "immediate",
+      },
+      priority: QUEST_PRIORITY.addGame,
+    });
+  } else if (source.ownGamesCount < 10) {
+    quests.push({
+      id: "add-ten-games",
+      type: "action",
+      tone: "success",
+      title: "Dodaj 10 gier do wspólnej Półki",
+      description: `${source.ownGamesCount}/10 gier na wspólnej Półce.`,
+      href: "/gry/nowa",
+      ctaLabel: "Dodaj grę",
+      optionalPoints: 20,
+      reward: {
+        immediatePoints: 20,
+        immediateLabel: "teraz",
+        totalPreviewPoints: 20,
+        rewardTone: "immediate",
+      },
+      priority: QUEST_PRIORITY.addGame,
+    });
+  } else if (source.ownGamesCount < 15) {
+    quests.push({
+      id: "add-fifteen-games",
+      type: "action",
+      tone: "success",
+      title: "Dodaj 15 gier do wspólnej Półki",
+      description: `${source.ownGamesCount}/15 gier na wspólnej Półce.`,
+      href: "/gry/nowa",
+      ctaLabel: "Dodaj grę",
+      optionalPoints: 15,
+      reward: {
+        immediatePoints: 15,
+        immediateLabel: "teraz",
+        totalPreviewPoints: 15,
         rewardTone: "immediate",
       },
       priority: QUEST_PRIORITY.addGame,
