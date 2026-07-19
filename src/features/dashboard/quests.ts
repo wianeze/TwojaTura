@@ -111,18 +111,36 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
 
   if (source.ownGamesCount === 0) {
     quests.push({
-      id: "add-game",
+      id: "add-first-game",
       type: "action",
       tone: "success",
-      title: "Dodaj grę do Półki",
+      title: "Dodaj pierwszą grę do Półki",
       description: "Niech grupa wie, co możesz przynieść na stół.",
       href: "/gry/nowa",
-      ctaLabel: "Dodaj grę do Półki",
+      ctaLabel: "Dodaj grę",
       optionalPoints: 40,
       reward: {
         immediatePoints: 40,
-        immediateLabel: "pierwsza gra",
+        immediateLabel: "teraz",
         totalPreviewPoints: 40,
+        rewardTone: "immediate",
+      },
+      priority: QUEST_PRIORITY.addGame,
+    });
+  } else if (source.ownGamesCount < 5) {
+    quests.push({
+      id: "add-five-games",
+      type: "action",
+      tone: "success",
+      title: "Rozbuduj Półkę do 5 gier",
+      description: `${source.ownGamesCount}/5 gier na wspólnej Półce.`,
+      href: "/gry/nowa",
+      ctaLabel: "Dodaj grę",
+      optionalPoints: 30,
+      reward: {
+        immediatePoints: 30,
+        immediateLabel: "teraz",
+        totalPreviewPoints: 30,
         rewardTone: "immediate",
       },
       priority: QUEST_PRIORITY.addGame,

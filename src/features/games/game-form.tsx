@@ -1,7 +1,16 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState, useTransition } from "react";
 import type { CurrentMember } from "@/features/auth/types";
+import { fetchBggGameDetails } from "./actions";
+import {
+  BGG_AUTOFILL_FIELD_NAMES,
+  cleanBggExpansionName,
+  createBggExpansionDrafts,
+  mergeBggAutofillValues,
+  type BggAutofillValues,
+  type BggExpansionSuggestion,
+} from "./bgg";
 import { GameSubmitButton } from "./game-submit-button";
 import { INITIAL_GAME_FORM_STATE } from "./form-state";
 import { GAME_STATUS_LABELS } from "./formatting";
@@ -35,22 +44,73 @@ function createClientKey() {
   return `exp-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function mapInitialExpansions(expansions: GameExpansionFormValue[]) {
+function mapInitialExpansions(
+  expansions: GameExpansionFormValue[],
+  baseGameTitle: string,
+) {
   return expansions.map((expansion, index) => ({
     ...expansion,
+    name: cleanBggExpansionName(expansion.name, baseGameTitle),
     clientKey: expansion.id ?? `seed-${index}`,
   }));
+}
+
+function readFormValue(form: HTMLFormElement, name: string) {
+  const field = form.elements.namedItem(name);
+  return field instanceof HTMLInputElement ||
+    field instanceof HTMLTextAreaElement
+    ? field.value
+    : "";
+}
+
+function readBggAutofillValues(form: HTMLFormElement): BggAutofillValues {
+  return {
+    title: readFormValue(form, "title"),
+    gameType: readFormValue(form, "gameType"),
+    coverUrl: readFormValue(form, "coverUrl"),
+    bggRank: readFormValue(form, "bggRank"),
+    minPlayers: readFormValue(form, "minPlayers"),
+    maxPlayers: readFormValue(form, "maxPlayers"),
+    playTimeMinutes: readFormValue(form, "playTimeMinutes"),
+    releaseYear: readFormValue(form, "releaseYear"),
+    mechanics: readFormValue(form, "mechanics"),
+    categories: readFormValue(form, "categories"),
+    bggWeight: readFormValue(form, "bggWeight"),
+    minAge: readFormValue(form, "minAge"),
+    designer: readFormValue(form, "designer"),
+    publisher: readFormValue(form, "publisher"),
+    description: readFormValue(form, "description"),
+  };
+}
+
+function applyBggAutofillValues(
+  form: HTMLFormElement,
+  values: BggAutofillValues,
+) {
+  for (const name of BGG_AUTOFILL_FIELD_NAMES) {
+    const field = form.elements.namedItem(name);
+    if (
+      field instanceof HTMLInputElement ||
+      field instanceof HTMLTextAreaElement
+    ) {
+      field.value = values[name];
+    }
+  }
 }
 
 function GameExpansionsEditor({
   initialValue,
   error,
+  bggSuggestions,
+  gameTitle,
 }: {
   initialValue: GameExpansionFormValue[];
   error?: string;
+  bggSuggestions: BggExpansionSuggestion[];
+  gameTitle: string;
 }) {
   const [items, setItems] = useState<LocalExpansion[]>(() =>
-    mapInitialExpansions(initialValue),
+    mapInitialExpansions(initialValue, gameTitle),
   );
 
   const updateItem = (
@@ -68,6 +128,21 @@ function GameExpansionsEditor({
     setItems((current) => [
       ...current,
       { clientKey: createClientKey(), name: "", isOwned: false },
+    ]);
+  };
+
+  const bggDrafts = createBggExpansionDrafts(
+    items.map((item) => item.name),
+    bggSuggestions,
+  );
+
+  const addBggSuggestions = () => {
+    setItems((current) => [
+      ...current,
+      ...createBggExpansionDrafts(
+        current.map((item) => item.name),
+        bggSuggestions,
+      ).map((item) => ({ ...item, clientKey: createClientKey() })),
     ]);
   };
 
@@ -106,7 +181,39 @@ function GameExpansionsEditor({
 
       <input type="hidden" name="expansions" value={serializedValue} />
 
-      <div className="mt-4 space-y-3">
+      {bggSuggestions.length > 0 ? (
+        <div className="mt-3 rounded-[1.15rem] border border-[#b98a56]/30 bg-[#f8edda]/72 p-3">
+          <p className="text-sm font-semibold text-[#684529]">
+            BGG znalazło dodatki. Dodaj je jako listę sugestii i zaznacz
+            posiadane.
+          </p>
+          {bggDrafts.length > 0 ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={addBggSuggestions}
+                className="rounded-full bg-[#9b493b] px-3 py-1.5 text-xs font-bold text-[#fff5e7] transition hover:bg-[#84382f] focus-visible:ring-4 focus-visible:ring-[#9b493b]/25 focus-visible:outline-none"
+              >
+                Dodaj dodatki z BGG ({bggDrafts.length})
+              </button>
+              <details className="text-xs font-medium text-[#775436]">
+                <summary className="cursor-pointer">Pokaż sugestie</summary>
+                <ul className="mt-2 max-h-28 space-y-1 overflow-y-auto pr-2">
+                  {bggDrafts.map((item) => (
+                    <li key={item.name}>{item.name}</li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+          ) : (
+            <p className="mt-1 text-xs font-medium text-[#775436]">
+              Wszystkie znalezione dodatki są już na liście formularza.
+            </p>
+          )}
+        </div>
+      ) : null}
+
+      <div className="mt-4 max-h-[28rem] space-y-2 overflow-y-auto pr-1">
         {items.length > 0 ? (
           items.map((item) => (
             <div
@@ -150,7 +257,7 @@ function GameExpansionsEditor({
           ))
         ) : (
           <div className="paper-wash rounded-[1.3rem] px-4 py-4 text-sm font-normal text-[#6d5440]">
-            Ta gra nie ma jeszcze zapisanych dodatków.
+            Nie dodano jeszcze dodatków do tego egzemplarza.
           </div>
         )}
       </div>
@@ -170,12 +277,56 @@ export function GameForm({
   canTransferOwner,
 }: GameFormProps) {
   const [state, formAction] = useActionState(action, INITIAL_GAME_FORM_STATE);
+  const formRef = useRef<HTMLFormElement>(null);
+  const bggUrlRef = useRef<HTMLInputElement>(null);
+  const [overwriteBggFields, setOverwriteBggFields] = useState(false);
+  const [bggFeedback, setBggFeedback] = useState<{
+    status: "success" | "error";
+    message: string;
+  } | null>(null);
+  const [bggExpansionSuggestions, setBggExpansionSuggestions] = useState<
+    BggExpansionSuggestion[]
+  >([]);
+  const [isBggPending, startBggTransition] = useTransition();
   const inputClass =
     "paper-wash focus:border-gold focus:ring-gold/20 mt-1.5 h-11 w-full rounded-xl border border-[#9a7657]/35 px-3.5 text-sm text-[#503828] outline-none transition focus:ring-4";
   const textareaClass = `${inputClass} h-auto min-h-28 py-3`;
 
+  const handleBggAutofill = () => {
+    const form = formRef.current;
+    const bggUrl = bggUrlRef.current?.value.trim() ?? "";
+    if (!form || !bggUrl) {
+      setBggFeedback({
+        status: "error",
+        message: "Najpierw wklej link do gry w BoardGameGeek.",
+      });
+      return;
+    }
+
+    setBggFeedback(null);
+    startBggTransition(async () => {
+      const result = await fetchBggGameDetails(bggUrl);
+      if (result.status === "error") {
+        setBggFeedback(result);
+        return;
+      }
+
+      const merged = mergeBggAutofillValues(
+        readBggAutofillValues(form),
+        result.data,
+        overwriteBggFields,
+      );
+      applyBggAutofillValues(form, merged);
+      setBggExpansionSuggestions(result.data.expansionSuggestions);
+      setBggFeedback({
+        status: "success",
+        message: "Dane z BGG uzupełnione. Sprawdź i zapisz grę.",
+      });
+    });
+  };
+
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
       <div className="grid gap-4 xl:grid-cols-2">
         <label className="block text-sm font-semibold text-[#503828]">
           Nazwa gry
@@ -202,16 +353,47 @@ export function GameForm({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <label className="block text-sm font-semibold text-[#503828]">
-          Link BGG
-          <input
-            className={inputClass}
-            name="bggUrl"
-            defaultValue={initialValues.bggUrl}
-            placeholder="https://boardgamegeek.com/…"
-          />
+        <div className="text-sm font-semibold text-[#503828]">
+          <label htmlFor="bggUrl">Link BGG</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={bggUrlRef}
+              id="bggUrl"
+              className={`${inputClass} min-w-0 flex-1`}
+              name="bggUrl"
+              defaultValue={initialValues.bggUrl}
+              placeholder="https://boardgamegeek.com/…"
+            />
+            <button
+              type="button"
+              disabled={isBggPending}
+              onClick={handleBggAutofill}
+              className="mt-1.5 h-11 shrink-0 rounded-xl bg-[#9b493b] px-3 text-xs font-bold text-[#fff5e7] shadow-[0_8px_18px_rgba(111,44,34,0.24)] transition hover:bg-[#84382f] focus-visible:ring-4 focus-visible:ring-[#9b493b]/30 focus-visible:outline-none disabled:cursor-wait disabled:opacity-60"
+            >
+              {isBggPending ? "Pobieranie…" : "Uzupełnij z BGG"}
+            </button>
+          </div>
+          <label className="mt-2 flex w-fit items-center gap-2 text-xs font-medium text-[#6b5038]">
+            <input
+              type="checkbox"
+              checked={overwriteBggFields}
+              onChange={(event) => setOverwriteBggFields(event.target.checked)}
+              className="accent-[#b86c39]"
+            />
+            Nadpisz istniejące pola
+          </label>
           <FieldError error={state.fieldErrors?.bggUrl} />
-        </label>
+          {bggFeedback ? (
+            <p
+              role={bggFeedback.status === "error" ? "alert" : "status"}
+              className={`mt-2 text-xs font-semibold ${
+                bggFeedback.status === "error" ? "text-[#8f3528]" : "text-moss"
+              }`}
+            >
+              {bggFeedback.message}
+            </p>
+          ) : null}
+        </div>
 
         <label className="block text-sm font-semibold text-[#503828]">
           BGG Rank
@@ -370,6 +552,8 @@ export function GameForm({
         <GameExpansionsEditor
           initialValue={initialValues.expansions}
           error={state.fieldErrors?.expansions}
+          bggSuggestions={bggExpansionSuggestions}
+          gameTitle={initialValues.title}
         />
 
         <label className="block text-sm font-semibold text-[#503828]">

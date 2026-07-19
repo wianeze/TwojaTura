@@ -132,10 +132,10 @@ test("point thresholds helper still maps raw numbers to rarity bands", () => {
   assert.equal(variant.exclamationAsset, "/brand/Exclamation-legendary.png");
 });
 
-test("game adding quest keeps common visual rarity despite 40 points", () => {
+test("shelf onboarding quests keep common styling and the common exclamation", () => {
   const variant = getQuestVisualVariant(
     buildQuest({
-      id: "add-game",
+      id: "add-first-game",
       href: "/gry/nowa",
       reward: {
         immediatePoints: 40,
@@ -146,6 +146,7 @@ test("game adding quest keeps common visual rarity despite 40 points", () => {
 
   assert.equal(variant.rarity, "common");
   assert.equal(variant.isMeetingQuest, false);
+  assert.equal(variant.exclamationAsset, "/brand/Exclamation-common.png");
 });
 
 test("meeting question quest keeps meeting emphasis", () => {

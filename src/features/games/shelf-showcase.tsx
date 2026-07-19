@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { GameCover } from "@/components/ui/game-cover";
+import { getBggExpansionPreview } from "./bgg";
 import { getOwnedExpansionNames } from "./expansions";
 import { formatDecimal, formatPlayerRange, formatPlayTime } from "./formatting";
 import type { GameShelfItem } from "./types";
@@ -77,6 +78,10 @@ function ShelfSegment({ games, label, onSelect }: ShelfSegmentProps) {
       <div className="shelf-segment-grid relative items-end">
         {games.map((game, index) => {
           const ownedExpansions = getOwnedExpansionNames(game.expansions);
+          const expansionPreview = getBggExpansionPreview(
+            ownedExpansions,
+            game.title,
+          );
 
           return (
             <div
@@ -148,9 +153,12 @@ function ShelfSegment({ games, label, onSelect }: ShelfSegmentProps) {
                           </dd>
                         </div>
                       </dl>
-                      {ownedExpansions.length > 0 && (
+                      {expansionPreview.names.length > 0 && (
                         <p className="mt-2 text-[0.65rem] font-semibold text-[#76532f]">
-                          Dodatki: {ownedExpansions.join(", ")}
+                          Dodatki: {expansionPreview.names.join(", ")}
+                          {expansionPreview.remainingCount > 0
+                            ? ` +${expansionPreview.remainingCount} więcej`
+                            : ""}
                         </p>
                       )}
                     </div>
@@ -239,6 +247,9 @@ export function ShelfShowcase({ games }: ShelfShowcaseProps) {
   const selectedOwnedExpansions = selectedGame
     ? getOwnedExpansionNames(selectedGame.expansions)
     : [];
+  const selectedExpansionPreview = selectedGame
+    ? getBggExpansionPreview(selectedOwnedExpansions, selectedGame.title)
+    : null;
 
   return (
     <>
@@ -333,8 +344,13 @@ export function ShelfShowcase({ games }: ShelfShowcaseProps) {
                         Dodatki
                       </p>
                       <p className="mt-2 text-sm text-[#6f5640]">
-                        {selectedOwnedExpansions.length > 0
-                          ? selectedOwnedExpansions.join(", ")
+                        {selectedExpansionPreview &&
+                        selectedExpansionPreview.names.length > 0
+                          ? `${selectedExpansionPreview.names.join(", ")}${
+                              selectedExpansionPreview.remainingCount > 0
+                                ? ` +${selectedExpansionPreview.remainingCount} więcej`
+                                : ""
+                            }`
                           : "Brak posiadanych dodatków."}
                       </p>
                     </div>

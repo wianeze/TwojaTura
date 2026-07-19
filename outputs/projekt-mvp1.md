@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: Etapy 1–7 są zamknięte. Auth, aktywne członkostwo, profil, wspólna Półka, oceny, dodatki, Kalendarium, Kronika i Stół działają na prawdziwym Supabase; Etap 8 nie został jeszcze rozpoczęty.
+Status: Etapy 1–7 są zamknięte. Auth, aktywne członkostwo, profil, wspólna Półka, oceny, dodatki, Kalendarium, Kronika i Stół działają na prawdziwym Supabase; Etap 8 jest w toku.
 
 ## 1. Decyzje projektowe
 
@@ -520,7 +520,7 @@ Planowane źródła akcji:
 - `meeting_game_votes`: brak własnego głosu dla aktywnego spotkania daje pytanie „W co chcesz zagrać?”;
 - `ratings` razem z uczestnictwem w `plays`: brak oceny rozegranej gry daje pytanie „Oceń ostatnio rozegraną grę”;
 - zakończone `meetings` bez wpisu w `plays`: brak zapisu partii po spotkaniu daje akcję „Uzupełnij wynik spotkania”;
-- onboarding Półki: brak pierwszej własnej gry daje akcję „Dodaj grę do Półki”;
+- onboarding Półki: przy 0 własnych aktywnych egzemplarzy pojawia się akcja „Dodaj pierwszą grę do Półki” (+40 preview), a przy 1–4 — „Rozbuduj Półkę do 5 gier” (+30 preview i progres); po osiągnięciu 5 gier quest onboardingowy znika;
 - brak bliskiego spotkania: Stół może pokazać akcję „Zaproponuj spotkanie”.
 
 Nie powstaje tabela `quests`, trigger tworzący questy ani automatyczne naliczanie punktów. Quest nie ma checkboxa i nie jest ręcznie oznaczany jako ukończony, odrzucony lub ukryty. Znika automatycznie, gdy warunek źródłowy przestaje być spełniony — przykładowo po zapisaniu dostępności, dodaniu oceny albo zapisaniu brakującej partii. `optionalPoints` pozostaje kompatybilnym polem prezentacyjnym UI i oznacza immediate reward, a pełny preview punktów jest budowany przez `reward`. Ewentualne ręczne lub sezonowe questy będą później osobnym mechanizmem.
@@ -532,7 +532,7 @@ Nie powstaje tabela `quests`, trigger tworzący questy ani automatyczne naliczan
 - **Ostatnio przy Stole:** kompaktowy strumień zdarzeń złożony z istniejących danych gier, ocen i partii. W MVP 1 nie tworzymy osobnej tabeli activity feed.
 - **Odznaki w Legendarium:** obecnie są wyłącznie statycznym preview ze stanem zdobyta/niezdobyta oraz opcjonalną grafiką. Tabele i logika trwałych odznak pozostają poza backendowym zakresem MVP 1.
 
-## 7. Import danych z Google Sheets przez CSV
+## 7. Opcjonalny import danych z Google Sheets przez CSV
 
 ### Przebieg
 
@@ -660,11 +660,17 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 - **Legendy przy Stole** korzystają z `get_leaderboard()`, a **Ostatnio przy Stole** pochodzi z Kroniki. Read layer działa przez session Supabase client i istniejące RLS; Etap 7 nie wprowadza zmian SQL, RLS ani migracji.
 - Weryfikacja zamykająca: `pnpm test` PASS, `pnpm check` PASS, `pnpm build` PASS; `db:verify` nie było wymagane, ponieważ SQL nie uległ zmianie; manualny odbiór Stołu PASS.
 
-### Etap 8 — import CSV
+### Etap 8 — Grywalizowany onboarding Półki
 
-- Parser, mapowanie użytkowników, walidacja, dry run i raport.
-- Przykładowy CSV oraz instrukcja jednorazowego uruchomienia.
-- Weryfikacja na kopii eksportu i sprawdzenie duplikatów.
+- Etap 8 jest w toku. Gracze dodają gry samodzielnie, a Półka rośnie przez onboardingowe questy na Stole.
+- Przy 0 własnych aktywnych egzemplarzy widoczny jest quest „Dodaj pierwszą grę do Półki” z preview `+40 teraz`; przy 1–4 — „Rozbuduj Półkę do 5 gier” z preview `+30 teraz` i postępem `n/5`; od 5 egzemplarzy quest onboardingowy znika.
+- Punkty są wyłącznie preview UI: Etap 8 nie tworzy ani nie zapisuje automatycznie `point_events`. Dodawanie kolejnych setek gier nie daje punktów ani nie premiuje samej wielkości kolekcji.
+- `owner_id` pozostaje technicznym opiekunem fizycznego egzemplarza, nie pełnym modelem współwłasności domowników lub par.
+- Duży import kolekcji zostaje odłożony jako późniejsze, opcjonalne narzędzie operatorskie: może dawać badge/prestiż, ale nie punkty za każdą grę. Nie budujemy panelu importu w MVP 1.
+- Przyszłe uzupełnianie brakujących danych Półki (okładka, BGG, typ, liczba graczy, czas gry) może otrzymać małe, limitowane tygodniowo preview punktów; pełna logika nie jest częścią bieżącego Etapu 8.
+- Formularze dodawania i edycji gry wspierają ręcznie uruchamiany autofill z linku BGG. Żądanie do `api.geekdo.com` wykonuje wyłącznie serwer dla aktywnego użytkownika, a `BGG_TOKEN` pozostaje w zmiennych środowiskowych po stronie serwera.
+- Autofill uzupełnia domyślnie tylko puste pola i nigdy nie zapisuje gry automatycznie. Użytkownik sprawdza dane i sam zatwierdza formularz; opcjonalnie może świadomie włączyć nadpisanie istniejących pól.
+- Powiązania dodatków zwrócone przez BGG są wyłącznie sugestiami. Nie tworzą automatycznie `game_expansions` i nie oznaczają żadnego dodatku jako posiadanego.
 
 ### Etap 9 — dopracowanie i odbiór
 
@@ -677,7 +683,7 @@ Po każdym większym etapie implementacji należy pokazać zwięzłe podsumowani
 
 ## 9. Granice MVP 1
 
-Poza zakresem pozostają: działająca grywalizacja, automatyczne naliczanie punktów, trwałe odznaki i rankingi użytkowników, automatyczna integracja z BGG, płatności, publiczny dostęp, interfejs panelu administracyjnego, rozbudowany panel importu, powiadomienia push/email oraz wielogrupowość. Legendarium w Etapie 1 jest wyłącznie statyczną makietą tych przyszłych funkcji.
+Poza zakresem pozostają: działająca grywalizacja, automatyczne naliczanie punktów, trwałe odznaki i rankingi użytkowników, automatyczna synchronizacja z BGG (Etap 8 zawiera wyłącznie ręcznie uruchamiany autofill formularza), płatności, publiczny dostęp, interfejs panelu administracyjnego, rozbudowany panel importu, powiadomienia push/email oraz wielogrupowość. Legendarium w Etapie 1 jest wyłącznie statyczną makietą tych przyszłych funkcji.
 
 W Etapie 2 powstają wyłącznie fundamenty przyszłych funkcji: role i RLS administratora, `app_content`, ledger `point_events` oraz `audit_log`. Nie oznacza to dodania `/admin` ani automatycznej grywalizacji do MVP 1; Legendarium nadal korzysta wyłącznie z danych demonstracyjnych.
 

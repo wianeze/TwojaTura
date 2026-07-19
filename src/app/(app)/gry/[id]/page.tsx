@@ -143,7 +143,7 @@ export default async function GameDetailsPage({
             <section className="space-y-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-accent text-[0.56rem] font-bold tracking-[0.16em] uppercase">
-                  Dodatki
+                  Dodatki ({game.expansions.length})
                 </p>
                 {game.bggUrl ? (
                   <a
@@ -159,6 +159,7 @@ export default async function GameDetailsPage({
 
               <GameExpansionsChecklist
                 expansions={game.expansions}
+                gameTitle={game.title}
                 canManage={canEdit}
                 onToggle={toggleGameExpansionOwnedAction.bind(null, game.id)}
               />

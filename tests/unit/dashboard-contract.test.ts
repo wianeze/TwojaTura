@@ -174,7 +174,7 @@ test("rating quest gets +30 for the opinion", () => {
   assert.equal(quest.reward.immediateLabel, "za opinię");
 });
 
-test("add game quest is onboarding-only and appears only for the first owned game", () => {
+test("shelf onboarding shows the first-game quest only for a member with no games", () => {
   const firstGameQuests = buildDashboardQuests(
     buildSource({
       ownGamesCount: 0,
@@ -186,13 +186,54 @@ test("add game quest is onboarding-only and appears only for the first owned gam
     }),
   );
 
-  const firstGameQuest = firstGameQuests.find((item) => item.id === "add-game");
+  const firstGameQuest = firstGameQuests.find(
+    (item) => item.id === "add-first-game",
+  );
   assert.ok(firstGameQuest);
+  assert.equal(firstGameQuest.title, "Dodaj pierwszą grę do Półki");
   assert.equal(firstGameQuest.reward.immediatePoints, 40);
-  assert.equal(firstGameQuest.reward.immediateLabel, "pierwsza gra");
+  assert.equal(firstGameQuest.reward.immediateLabel, "teraz");
   assert.equal(
-    laterQuests.some((item) => item.id === "add-game"),
+    laterQuests.some((item) => item.id === "add-first-game"),
     false,
+  );
+});
+
+test("shelf onboarding shows progress quest for one through four owned games", () => {
+  for (const ownGamesCount of [1, 2, 3, 4]) {
+    const quest = buildDashboardQuests(buildSource({ ownGamesCount })).find(
+      (item) => item.id === "add-five-games",
+    );
+
+    assert.ok(quest);
+    assert.equal(quest.title, "Rozbuduj Półkę do 5 gier");
+    assert.equal(
+      quest.description,
+      `${ownGamesCount}/5 gier na wspólnej Półce.`,
+    );
+    assert.equal(quest.reward.immediatePoints, 30);
+  }
+});
+
+test("shelf onboarding disappears after the fifth owned active game", () => {
+  const quests = buildDashboardQuests(buildSource({ ownGamesCount: 5 }));
+
+  assert.equal(
+    quests.some(
+      (item) => item.id === "add-first-game" || item.id === "add-five-games",
+    ),
+    false,
+  );
+});
+
+test("shelf rewards remain a pure preview without mutating the source", () => {
+  const source = buildSource({ ownGamesCount: 0 });
+  const quests = buildDashboardQuests(source);
+
+  assert.equal(source.ownGamesCount, 0);
+  assert.equal(
+    quests.find((item) => item.id === "add-first-game")?.optionalPoints,
+    40,
   );
 });
 
@@ -247,7 +288,7 @@ test("quest priorities follow the new Stage 7 order", () => {
       "missing-vote:meeting-vote",
       "schedule-meeting",
       "rate-game:play-1:game-1",
-      "add-game",
+      "add-first-game",
     ],
   );
 });
@@ -353,6 +394,7 @@ test("missing vote is created for a future meeting outside the current month", (
 test("dashboard totals include every visible future meeting quest", () => {
   const quests = buildDashboardQuests(
     buildSource({
+      ownGamesCount: 5,
       futureMeetings: [
         {
           id: "july-rsvp",

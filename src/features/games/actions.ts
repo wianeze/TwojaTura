@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/types/database.generated";
 import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
 import type {
+  BggAutofillActionState,
   GameFormState,
   RatingFormState,
   ToggleGameExpansionState,
@@ -15,6 +16,7 @@ import {
   validateGameFormData,
   validateRatingFormData,
 } from "./validation";
+import { fetchBggGameDetailsFromApi } from "./bgg-server";
 
 type DatabaseErrorLike = {
   code?: string | null;
@@ -72,6 +74,28 @@ async function requireActiveMember() {
     supabase,
     member: memberState.member,
   };
+}
+
+export async function fetchBggGameDetails(
+  url: string,
+): Promise<BggAutofillActionState> {
+  const access = await requireActiveMember();
+  if (!access.ok) {
+    return { status: "error", message: access.message };
+  }
+
+  try {
+    const data = await fetchBggGameDetailsFromApi(url);
+    return { status: "success", data };
+  } catch (error) {
+    return {
+      status: "error",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Nie udało się pobrać danych z BGG.",
+    };
+  }
 }
 
 async function getActiveMemberIds(

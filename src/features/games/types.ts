@@ -152,6 +152,10 @@ export type GameFormState = {
   fieldErrors?: Partial<Record<GameFormFieldName, string>>;
 };
 
+export type BggAutofillActionState =
+  | { status: "success"; data: import("./bgg").BggGameDetails }
+  | { status: "error"; message: string };
+
 export type ToggleGameExpansionState = {
   status: "idle" | "error" | "success";
   message?: string;

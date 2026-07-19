@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { cleanBggExpansionName } from "./bgg";
 import type { GameExpansion, ToggleGameExpansionState } from "./types";
 
 type GameExpansionsChecklistProps = {
   expansions: GameExpansion[];
+  gameTitle: string;
   canManage: boolean;
   onToggle: (
     expansionId: string,
@@ -14,10 +16,12 @@ type GameExpansionsChecklistProps = {
 
 function ExpansionRow({
   expansion,
+  gameTitle,
   canManage,
   onToggle,
 }: {
   expansion: GameExpansion;
+  gameTitle: string;
   canManage: boolean;
   onToggle: (
     expansionId: string,
@@ -59,7 +63,7 @@ function ExpansionRow({
           />
           <span className="min-w-0">
             <span className="block text-[0.92rem] leading-5 font-semibold text-[#4f382a]">
-              {expansion.name}
+              {cleanBggExpansionName(expansion.name, gameTitle)}
             </span>
             <span className="text-muted mt-0.5 block text-[0.68rem]">
               {optimisticOwned ? "Posiadany" : "Nieposiadany"}
@@ -83,27 +87,40 @@ function ExpansionRow({
 
 export function GameExpansionsChecklist({
   expansions,
+  gameTitle,
   canManage,
   onToggle,
 }: GameExpansionsChecklistProps) {
+  const [showAll, setShowAll] = useState(false);
+
   if (expansions.length === 0) {
     return (
       <div className="paper-wash rounded-xl px-4 py-3 text-sm text-[#6f5640]">
-        Ten egzemplarz nie ma jeszcze zapisanych dodatków.
+        Nie dodano jeszcze dodatków do tego egzemplarza.
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      {expansions.map((expansion) => (
+    <div className="space-y-1.5">
+      {expansions.slice(0, showAll ? undefined : 6).map((expansion) => (
         <ExpansionRow
           key={`${expansion.id}:${expansion.isOwned ? "owned" : "missing"}`}
           expansion={expansion}
+          gameTitle={gameTitle}
           canManage={canManage}
           onToggle={onToggle}
         />
       ))}
+      {expansions.length > 6 ? (
+        <button
+          type="button"
+          onClick={() => setShowAll((current) => !current)}
+          className="text-accent mt-1 text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
+        >
+          {showAll ? "Ukryj dodatki" : "Pokaż wszystkie dodatki"}
+        </button>
+      ) : null}
     </div>
   );
 }
