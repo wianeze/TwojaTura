@@ -75,6 +75,12 @@ export default async function MeetingDetailsPage({
         {meeting.canEdit ? (
           <div className="flex flex-wrap items-center gap-2">
             <Link
+              href="/kalendarium"
+              className="paper-wash rounded-full px-4 py-2 text-xs font-bold text-[#6a4d36]"
+            >
+              ← Wróć
+            </Link>
+            <Link
               href={`/kronika/nowa?meeting=${meeting.id}`}
               className="rounded-full bg-[#7d2f3d] px-4 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
             >
@@ -88,12 +94,20 @@ export default async function MeetingDetailsPage({
             </Link>
           </div>
         ) : (
-          <Link
-            href={`/kronika/nowa?meeting=${meeting.id}`}
-            className="rounded-full bg-[#7d2f3d] px-4 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
-          >
-            Zapisz partię
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/kalendarium"
+              className="paper-wash rounded-full px-4 py-2 text-xs font-bold text-[#6a4d36]"
+            >
+              ← Wróć
+            </Link>
+            <Link
+              href={`/kronika/nowa?meeting=${meeting.id}`}
+              className="rounded-full bg-[#7d2f3d] px-4 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
+            >
+              Zapisz partię
+            </Link>
+          </div>
         )}
       </header>
 
