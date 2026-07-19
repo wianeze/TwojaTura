@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: Etapy 1–8 są zamknięte. Auth, aktywne członkostwo, profil, wspólna Półka, oceny, dodatki, Kalendarium, Kronika, Stół i grywalizowany onboarding Półki działają na prawdziwych danych. Etap 9 nie został jeszcze rozpoczęty.
+Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. Auth, aktywne członkostwo, profil, wspólna Półka, oceny, dodatki, Kalendarium, Kronika, Stół i grywalizowany onboarding Półki działają na prawdziwych danych. MVP 2 rozpoczyna Etap 10A — plan i kontrakt żywego Legendarium oraz prawdziwych punktów; implementacja Etapu 10B nie została jeszcze rozpoczęta.
 
 ## 1. Decyzje projektowe
 
@@ -673,10 +673,9 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 
 ### Etap 9 — dopracowanie i odbiór
 
-- Test telefonu i desktopu, dostępność klawiatury, kontrast, stany ładowania i błędów.
-- Krytyczny test E2E: logowanie → dodanie gry → ocena → spotkanie → RSVP/głos → zapis partii.
-- Pełne lint, test i build.
-- Instrukcja lokalnego uruchomienia, migracji, seeda i wdrożenia.
+- **Zamknięty. MVP 1 odebrane.** Przeprowadzono końcowy audyt routingu, autoryzacji, modułów domenowych, responsywności i source of truth oraz wykonano minimalny bugfix polish po audycie.
+- Zweryfikowano pełny flow produktu: logowanie, Półkę i BGG autofill, ocenę, spotkanie, RSVP i głosowanie, Kronikę, profil oraz role i aktywne członkostwo.
+- Weryfikacja zamykająca: `pnpm test` 167/167 PASS, `pnpm check` PASS, `pnpm build` PASS. Ostatnie zmiany Etapu 9 nie dotyczyły SQL, RLS, RPC ani migracji.
 
 Po każdym większym etapie implementacji należy pokazać zwięzłe podsumowanie decyzji, listę zmienionych plików, istotny diff oraz wyniki weryfikacji.
 
@@ -684,9 +683,107 @@ Po każdym większym etapie implementacji należy pokazać zwięzłe podsumowani
 
 Poza zakresem pozostają: działająca grywalizacja, automatyczne naliczanie punktów, trwałe odznaki i rankingi użytkowników, automatyczna synchronizacja z BGG (Etap 8 zawiera wyłącznie ręcznie uruchamiany autofill formularza), płatności, publiczny dostęp, interfejs panelu administracyjnego, rozbudowany panel importu, powiadomienia push/email oraz wielogrupowość. Legendarium w Etapie 1 jest wyłącznie statyczną makietą tych przyszłych funkcji.
 
-W Etapie 2 powstają wyłącznie fundamenty przyszłych funkcji: role i RLS administratora, `app_content`, ledger `point_events` oraz `audit_log`. Nie oznacza to dodania `/admin` ani automatycznej grywalizacji do MVP 1; Legendarium nadal korzysta wyłącznie z danych demonstracyjnych.
+W Etapie 2 powstały wyłącznie fundamenty przyszłych funkcji: role i RLS administratora, `app_content`, ledger `point_events` oraz `audit_log`. Nie oznaczało to dodania `/admin` ani automatycznej grywalizacji do MVP 1; do końca MVP 1 Legendarium korzysta wyłącznie z danych demonstracyjnych.
 
-## 10. Kryterium gotowości projektu do kodowania
+## 10. MVP 2 — Etap 10: Żywe Legendarium i punkty
+
+### Cel i granice
+
+Etap 10 uruchamia pierwszą prawdziwą wersję grywalizacji: bezpieczne dopisywanie zdarzeń do append-only `point_events`, saldo z `user_point_balances`, ranking z `get_leaderboard()` oraz żywe Legendarium oparte na realnych danych. Questy na Stole nadal pozostają derived actions, ale wybrane wykonane akcje zaczną tworzyć rzeczywiste zdarzenia punktowe.
+
+Etap 10 nie obejmuje powiadomień, wielu grup, płatności, publicznego dostępu ani pełnego panelu administracyjnego. Trwałe odznaki nie należą do pierwszego wdrożenia: w 10D pozostają statycznym preview; ewentualne odznaki wyliczane lub zapisywane wymagają osobnego, później zaakceptowanego podetapu.
+
+### Podział wdrożenia
+
+#### 10A — plan i kontrakt punktów
+
+- Ustalenie zamkniętego katalogu nagradzanych akcji, wartości punktów, zakresu idempotencji i powiązania z encją źródłową.
+- Ustalenie zasady cutover: brak automatycznego backfillu historycznych akcji. Istniejące `seed_baseline` pozostaje saldem startowym lokalnych danych, a automatyczne zdarzenia powstają dopiero dla akcji wykonanych po uruchomieniu mechanizmu.
+- Punkty nie są cofane po edycji, archiwizacji lub usunięciu rekordu źródłowego. Błędne saldo naprawia wyłącznie nowe `admin_adjustment`.
+
+#### 10B — bezpieczne naliczanie `point_events`
+
+- Nowa migracja dodaje bazodanową idempotencję dla automatycznych eventów oraz wąski, wewnętrzny mechanizm `award_points_once`.
+- Wartość punktów wynika z zamkniętego katalogu `action_type`; klient nie przesyła dowolnego `points`, odbiorcy ani typu powiązania.
+- Automatyczne zdarzenie jest dodawane atomowo z akcją źródłową albo przez trigger reagujący na zatwierdzony rekord źródłowy. Konflikt idempotencji kończy się bez błędu i bez drugiej nagrody.
+- Funkcja pomocnicza pozostaje w schemacie `private`, ma pusty `search_path`, minimalne uprawnienia i brak `EXECUTE` dla `anon` oraz `authenticated`. Publiczne lub wywoływane przez klienta funkcje nie mogą przyjmować dowolnej liczby punktów.
+- Istniejąca polityka ręcznych wpisów administratora i append-only ledger pozostają zachowane.
+
+#### 10C — podpięcie istniejących akcji ze Stołu
+
+- Do mechanizmu z 10B zostają kolejno podłączone proste, jednoznaczne akcje: utworzenie spotkania, pierwsza odpowiedź RSVP, pierwszy głos w spotkaniu, pierwsza ocena danej gry, zapis partii oraz przekroczenie progów onboardingowych Półki.
+- UI Stołu odróżnia preview od punktów już zdobytych; zniknięcie questa nie jest samo w sobie sygnałem do naliczenia. Źródłem naliczenia pozostaje zatwierdzona mutacja domenowa w bazie.
+- Follow-upy zależne od kilku tabel nie są uruchamiane w pierwszym podłączeniu.
+
+#### 10D — żywe Legendarium
+
+- Ranking korzysta z istniejącego `get_leaderboard()` i pokazuje aktywnych członków, miejsce oraz aktualne saldo.
+- Karta zalogowanego gracza pokazuje własne saldo, pozycję oraz ostatnie własne zdarzenia z `point_events` dostępne przez istniejące RLS.
+- Sekcja „Jak zdobywać punkty” korzysta z tego samego katalogu prezentacyjnego co Stół i nie obiecuje jeszcze niewdrożonych follow-upów.
+- Ostatnie punkty pokazują datę, wartość, czytelną nazwę akcji i opcjonalne powiązanie, bez ujawniania ledgerów innych użytkowników.
+- Odznaki pozostają statycznym preview. Częściowo wyliczane odznaki można rozważyć jako osobny 10D2 dopiero po ustabilizowaniu punktów; trwałe odznaki wymagają osobnego modelu danych.
+
+#### 10E — testy, balans i odbiór
+
+- pgTAP obejmuje idempotencję, równoległe próby naliczenia, append-only, RLS, brak bezpośredniego naliczania przez membera, korekty admina i poprawność `SUM(points)`.
+- Testy aplikacyjne obejmują mapowanie `action_type`, teksty Legendarium, stany puste i zgodność preview Stołu z katalogiem nagród.
+- Manualny smoke test wykonuje każdą aktywną akcję dwukrotnie i potwierdza pojedynczy wpis, zmianę salda i rankingu oraz brak cofnięcia punktów po edycji źródła.
+- Po odbiorze wykonywane są `pnpm db:verify`, `pnpm test`, `pnpm check` i `pnpm build`, a wartości punktów podlegają pierwszemu przeglądowi balansu.
+
+### Katalog `action_type` pierwszej wersji
+
+| `action_type`          | Punkty | Zakres nagrody i encja idempotencji                                                                 |
+| ---------------------- | -----: | ---------------------------------------------------------------------------------------------------- |
+| `shelf_first_game`     |    +40 | raz na użytkownika; `profile / user_id`, gdy liczba aktywnych własnych gier pierwszy raz osiąga 1    |
+| `shelf_5_games`        |    +30 | raz na użytkownika; `profile / user_id`, przy pierwszym osiągnięciu 5 aktywnych własnych gier        |
+| `shelf_10_games`       |    +20 | raz na użytkownika; `profile / user_id`, przy pierwszym osiągnięciu 10 aktywnych własnych gier       |
+| `shelf_15_games`       |    +15 | raz na użytkownika; `profile / user_id`, przy pierwszym osiągnięciu 15 aktywnych własnych gier       |
+| `meeting_rsvp`         |    +10 | raz na użytkownika i spotkanie; `meeting / meeting_id`, niezależnie od późniejszej zmiany odpowiedzi |
+| `meeting_vote`         |    +10 | raz na użytkownika i spotkanie; `meeting / meeting_id`, niezależnie od usunięcia lub zmiany głosu    |
+| `meeting_created`      |    +25 | raz dla twórcy spotkania; `meeting / meeting_id`                                                     |
+| `rating_created`       |    +30 | raz na użytkownika i grę; `game / game_id`, aby usunięcie i ponowne dodanie oceny nie dawało punktów |
+| `play_logged`          |    +40 | raz dla autora wpisu Kroniki; `play / play_id`                                                       |
+| `play_participation`   |    +30 | follow-up, później: raz na użytkownika i spotkanie; `meeting / meeting_id`                            |
+| `voted_game_played`    |    +10 | follow-up, później: raz na użytkownika i spotkanie; `meeting / meeting_id`                            |
+
+`admin_adjustment` i istniejący lokalny `seed_baseline` pozostają technicznymi typami ledgeru poza katalogiem nagród użytkownika. `admin_adjustment` może występować wielokrotnie, również jako wartość ujemna, i nadal podlega audytowi.
+
+### Idempotencja i model naliczania
+
+Automatyczne nagrody używają klucza `(user_id, action_type, related_entity_type, related_entity_id)`. Wszystkie automatyczne eventy mają kompletne powiązanie z encją. Planowana migracja dodaje częściowy unikalny indeks dla tych czterech pól, z wyłączeniem `admin_adjustment`; dzięki temu także równoległe żądania kończą się najwyżej jednym wpisem. `INSERT ... ON CONFLICT DO NOTHING` powinien zwracać informację, czy nagroda została faktycznie przyznana.
+
+Zakres encji jest celowo różny:
+
+- milestone Półki: per użytkownik i próg, rozróżniany przez `action_type`, z encją `profile`;
+- RSVP, głos i utworzenie spotkania: per użytkownik i `meeting`;
+- ocena: per użytkownik i `game`, nie per rekord oceny;
+- zapis partii: per autor i `play`;
+- udział oraz trafiony głos: per użytkownik i `meeting`, aby kilka partii podczas jednego spotkania nie mnożyło follow-upu.
+
+Punkty są przyznawane na podstawie stanu zapisanego w bazie, nie na podstawie deklaracji klienta ani samego zniknięcia questa. `created_by` wskazuje aktora zatwierdzonej mutacji. Automatyczne funkcje SECURITY DEFINER muszą samodzielnie odczytać `auth.uid()`, zweryfikować aktywne członkostwo i rekord źródłowy, ustawić stały `action_type` oraz punkty, a następnie wykonać tylko idempotentny insert. Nie wolno udostępnić przeglądarce ogólnego RPC w rodzaju `award_points(user_id, points)`.
+
+### Zakres pierwszego naliczania i follow-upy
+
+Pierwsze podłączenie po przygotowaniu 10B powinno objąć `meeting_created`, `meeting_rsvp`, `meeting_vote`, `rating_created`, `play_logged` oraz cztery milestone Półki. Są deterministyczne, mają jednoznaczną encję źródłową i nie wymagają sezonów ani cofania punktów. Milestone Półki są ograniczone łącznie do czterech nagród; masowy import nie generuje punktów za każdy egzemplarz.
+
+`play_participation` i `voted_game_played` należy pozostawić na późniejszy podetap. Oba wymagają spójnego powiązania `plays.meeting_id`, uczestników, głosów i gry faktycznie zapisanej w Kronice. Warunek `play_participation` powinien nagradzać najwyżej raz za spotkanie, a `voted_game_played` tylko wtedy, gdy co najmniej jedna gra wybrana wcześniej przez użytkownika została rzeczywiście zapisana w partii tego spotkania. Ich wdrożenie wymaga osobnych testów remisów, wielu partii i późniejszej edycji uczestników.
+
+### Ryzyka i zabezpieczenia
+
+- **Podwójne naliczenie i race condition:** częściowy unikalny indeks oraz idempotentny insert w tej samej transakcji co mutacja źródłowa.
+- **Edycja, archiwizacja lub usunięcie źródła:** brak automatycznego clawbacku; ledger zachowuje historię, a błąd naprawia audytowane `admin_adjustment`.
+- **Duży import gier:** wyłącznie cztery nagrody progowe, nigdy punkty per gra. Brak automatycznego historycznego backfillu przy uruchomieniu Etapu 10.
+- **Spam ocenami:** `rating_created` jest unikalne per użytkownik i gra; update, usunięcie i ponowne utworzenie nie naliczają kolejnej nagrody.
+- **Zmiana RSVP lub głosu:** nagroda jest raz per użytkownik i spotkanie, niezależnie od kolejnych zmian lub ponownego głosowania.
+- **Korekty administratora:** osobny `admin_adjustment`, dopuszczający kolejne dodatnie lub ujemne wpisy i obowiązkowy `audit_log`.
+- **RLS i SECURITY DEFINER:** member nie dostaje bezpośredniego `INSERT` automatycznych punktów; funkcje mają pusty `search_path`, stały katalog nagród, minimalne granty i weryfikują dane źródłowe zamiast ufać parametrom klienta.
+- **Niespójność katalogu SQL i UI:** jedna jawna mapa prezentacyjna w TypeScript oraz test kontraktowy porównujący typy i wartości z kontraktem bazodanowym.
+
+### Rekomendowany poziom modelu dla 10B
+
+10B wymaga nowej migracji SQL, ale nie nowej tabeli salda ani przebudowy ledgeru. Wystarczający model to obecne `point_events` plus częściowy unikalny indeks idempotencji, prywatny helper stałych nagród i wąskie triggery lub funkcje związane z konkretnymi mutacjami. `user_point_balances` i `get_leaderboard()` pozostają źródłami odczytu bez zmiany kontraktu. Nie należy dodawać tabeli `quests`, pola `points_balance` w profilu ani uniwersalnego RPC przyjmującego dowolne punkty.
+
+## 11. Kryterium gotowości projektu do kodowania
 
 Przed rozpoczęciem implementacji warto zaakceptować trzy decyzje produktowe:
 
@@ -696,7 +793,7 @@ Przed rozpoczęciem implementacji warto zaakceptować trzy decyzje produktowe:
 
 Pozostałe elementy można wdrażać zgodnie z powyższym planem bez dodatkowego rozszerzania zakresu.
 
-## 11. Doprecyzowanie implementacji Auth — Etap 3
+## 12. Doprecyzowanie implementacji Auth — Etap 3
 
 - Auth korzysta z `@supabase/ssr`, dwóch typowanych klientów (`client.ts` i `server.ts`) oraz sesji przechowywanej w cookies. Kod serwerowy nie ufa `getSession()`; tożsamość jest weryfikowana przez `getClaims()`.
 - `src/proxy.ts` odświeża sesję i przenosi cookies do requestu oraz response. Proxy wykonuje szybki gate tras, a layout aplikacji ponownie egzekwuje dostęp po stronie serwera; RLS pozostaje warstwą ostateczną.
