@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(72);
+select plan(89);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -1195,6 +1195,310 @@ select results_eq(
   $$,
   '72. admin update replaces foreign participant set exactly'
 );
+
+reset role;
+
+select results_eq(
+  $$
+    select action_type, private.point_reward_for(action_type)
+    from unnest(array[
+      'shelf_first_game',
+      'shelf_5_games',
+      'shelf_10_games',
+      'shelf_15_games',
+      'meeting_rsvp',
+      'meeting_vote',
+      'meeting_created',
+      'rating_created',
+      'play_logged'
+    ]) as rewards(action_type)
+    order by action_type
+  $$,
+  $$
+    values
+      ('meeting_created', 25),
+      ('meeting_rsvp', 10),
+      ('meeting_vote', 10),
+      ('play_logged', 40),
+      ('rating_created', 30),
+      ('shelf_10_games', 20),
+      ('shelf_15_games', 15),
+      ('shelf_5_games', 30),
+      ('shelf_first_game', 40)
+  $$,
+  '73. point reward catalog returns fixed values for every allowed action'
+);
+
+select throws_ok(
+  $$select private.point_reward_for('unknown_reward')$$,
+  '22023',
+  null,
+  '74. point reward catalog rejects an unknown action type'
+);
+
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'private.award_points_once(uuid,text,text,uuid,text,uuid)',
+    'execute'
+  ),
+  '75. authenticated cannot execute the generic point award helper'
+);
+
+select results_eq(
+  $$
+    select awarded, points, point_event_id is not null
+    from private.award_points_once(
+      '10000000-0000-0000-0000-000000000002',
+      'shelf_first_game',
+      'profile',
+      '10000000-0000-0000-0000-000000000002',
+      'Pierwsza gra testowa',
+      null
+    )
+  $$,
+  $$values (true, 40, true)$$,
+  '76. award_points_once returns an awarded event with catalog points'
+);
+
+select results_eq(
+  $$
+    select points, action_type, related_entity_type, created_by
+    from public.point_events
+    where user_id = '10000000-0000-0000-0000-000000000002'
+      and action_type = 'shelf_first_game'
+  $$,
+  $$
+    values (
+      40,
+      'shelf_first_game',
+      'profile',
+      '10000000-0000-0000-0000-000000000002'::uuid
+    )
+  $$,
+  '77. awarded event stores fixed points relation and recipient as fallback actor'
+);
+
+select results_eq(
+  $$
+    select awarded, points, point_event_id is null
+    from private.award_points_once(
+      '10000000-0000-0000-0000-000000000002',
+      'shelf_first_game',
+      'profile',
+      '10000000-0000-0000-0000-000000000002',
+      'Powtórzona pierwsza gra',
+      null
+    )
+  $$,
+  $$values (false, 40, true)$$,
+  '78. repeated award reports a harmless idempotent no-op'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.point_events
+    where user_id = '10000000-0000-0000-0000-000000000002'
+      and action_type = 'shelf_first_game'
+      and related_entity_type = 'profile'
+      and related_entity_id = '10000000-0000-0000-0000-000000000002'
+  $$,
+  $$values (1::bigint)$$,
+  '79. repeated award creates exactly one point event'
+);
+
+select results_eq(
+  $$
+    select awarded
+    from private.award_points_once(
+      '10000000-0000-0000-0000-000000000002',
+      'shelf_5_games',
+      'profile',
+      '10000000-0000-0000-0000-000000000002',
+      null,
+      null
+    )
+  $$,
+  $$values (true)$$,
+  '80. different action types are allowed for the same related entity'
+);
+
+select results_eq(
+  $$
+    select awarded
+    from private.award_points_once(
+      '10000000-0000-0000-0000-000000000002',
+      'meeting_rsvp',
+      'meeting',
+      '81000000-0000-0000-0000-000000000001',
+      null,
+      null
+    )
+  $$,
+  $$values (true)$$,
+  '81. an action type can be awarded for the first related entity'
+);
+
+select results_eq(
+  $$
+    select awarded
+    from private.award_points_once(
+      '10000000-0000-0000-0000-000000000002',
+      'meeting_rsvp',
+      'meeting',
+      '81000000-0000-0000-0000-000000000002',
+      null,
+      null
+    )
+  $$,
+  $$values (true)$$,
+  '82. the same action type is allowed for a different related entity'
+);
+
+select throws_ok(
+  $$
+    insert into public.point_events (
+      user_id,
+      points,
+      action_type,
+      related_entity_type,
+      related_entity_id,
+      created_by
+    ) values (
+      '10000000-0000-0000-0000-000000000002',
+      40,
+      'shelf_first_game',
+      'profile',
+      '10000000-0000-0000-0000-000000000002',
+      '10000000-0000-0000-0000-000000000001'
+    )
+  $$,
+  '23505',
+  null,
+  '83. unique index rejects an exact automatic point event duplicate'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select lives_ok(
+  $$
+    insert into public.point_events (
+      user_id,
+      points,
+      action_type,
+      description,
+      related_entity_type,
+      related_entity_id,
+      created_by
+    ) values
+      (
+        '10000000-0000-0000-0000-000000000002',
+        1,
+        'admin_adjustment',
+        'Pierwsza korekta tej samej encji',
+        'game',
+        '82000000-0000-0000-0000-000000000001',
+        '10000000-0000-0000-0000-000000000001'
+      ),
+      (
+        '10000000-0000-0000-0000-000000000002',
+        1,
+        'admin_adjustment',
+        'Druga korekta tej samej encji',
+        'game',
+        '82000000-0000-0000-0000-000000000001',
+        '10000000-0000-0000-0000-000000000001'
+      ),
+      (
+        '10000000-0000-0000-0000-000000000002',
+        1,
+        'manual_test',
+        'Pierwszy manualny wpis bez encji',
+        null,
+        null,
+        '10000000-0000-0000-0000-000000000001'
+      ),
+      (
+        '10000000-0000-0000-0000-000000000002',
+        1,
+        'manual_test',
+        'Drugi manualny wpis bez encji',
+        null,
+        null,
+        '10000000-0000-0000-0000-000000000001'
+      )
+  $$,
+  '84. admin adjustments and manual events without relation remain repeatable'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.point_events
+    where user_id = '10000000-0000-0000-0000-000000000002'
+      and action_type in ('admin_adjustment', 'manual_test')
+  $$,
+  $$values (4::bigint)$$,
+  '85. partial unique index leaves four repeatable admin and manual events'
+);
+reset role;
+
+select throws_ok(
+  $$
+    select *
+    from private.award_points_once(
+      '10000000-0000-0000-0000-000000000006',
+      'meeting_rsvp',
+      'meeting',
+      '81000000-0000-0000-0000-000000000003',
+      null,
+      null
+    )
+  $$,
+  '42501',
+  null,
+  '86. award_points_once rejects an inactive recipient'
+);
+
+select throws_ok(
+  $$
+    update public.point_events
+    set points = 999
+    where user_id = '10000000-0000-0000-0000-000000000002'
+      and action_type = 'shelf_first_game'
+  $$,
+  '42501',
+  null,
+  '87. automatic point events remain append-only'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$select total_points from public.user_point_balances$$,
+  $$values (1174::bigint)$$,
+  '88. user point balance includes idempotent awards and repeatable corrections'
+);
+
+select results_eq(
+  $$
+    select total_points
+    from public.get_leaderboard()
+    where user_id = '10000000-0000-0000-0000-000000000002'
+  $$,
+  $$values (1174::bigint)$$,
+  '89. leaderboard includes the same updated ledger balance'
+);
+reset role;
 
 select * from finish();
 rollback;
