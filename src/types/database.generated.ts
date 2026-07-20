@@ -655,6 +655,13 @@ export type Database = {
       }
     }
     Functions: {
+      award_shelf_onboarding_points: {
+        Args: never
+        Returns: {
+          awarded_count: number
+          awarded_points: number
+        }[]
+      }
       create_game_with_expansions: {
         Args: {
           p_archived_at?: string

@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. Auth, aktywne członkostwo, profil, wspólna Półka, oceny, dodatki, Kalendarium, Kronika, Stół i grywalizowany onboarding Półki działają na prawdziwych danych. MVP 2 rozpoczyna Etap 10A — plan i kontrakt żywego Legendarium oraz prawdziwych punktów; implementacja Etapu 10B nie została jeszcze rozpoczęta.
+Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2 jest w toku: Etap 10B — fundament bezpiecznego, idempotentnego naliczania `point_events` — jest zamknięty, a Etap 10C-1 wdraża prawdziwe punkty wyłącznie za milestone’y Półki. RSVP, głosy, oceny i Kronika nadal nie naliczają punktów, a Legendarium nie zostało jeszcze przebudowane.
 
 ## 1. Decyzje projektowe
 
@@ -703,6 +703,7 @@ Etap 10 nie obejmuje powiadomień, wielu grup, płatności, publicznego dostępu
 
 #### 10B — bezpieczne naliczanie `point_events`
 
+- **Zamknięty.** Fundament 10B obejmuje częściowy indeks idempotencji `point_events_once_per_related_idx`, zamknięty katalog `private.point_reward_for(text)` oraz prywatną funkcję `private.award_points_once(...)` bez bezpośredniego `EXECUTE` dla użytkownika aplikacji.
 - Nowa migracja dodaje bazodanową idempotencję dla automatycznych eventów oraz wąski, wewnętrzny mechanizm `award_points_once`.
 - Wartość punktów wynika z zamkniętego katalogu `action_type`; klient nie przesyła dowolnego `points`, odbiorcy ani typu powiązania.
 - Automatyczne zdarzenie jest dodawane atomowo z akcją źródłową albo przez trigger reagujący na zatwierdzony rekord źródłowy. Konflikt idempotencji kończy się bez błędu i bez drugiej nagrody.
@@ -711,6 +712,9 @@ Etap 10 nie obejmuje powiadomień, wielu grup, płatności, publicznego dostępu
 
 #### 10C — podpięcie istniejących akcji ze Stołu
 
+- **10C-1 — milestone’y Półki.** Po udanym utworzeniu gry Server Action wywołuje wąskie RPC `award_shelf_onboarding_points()`. RPC samodzielnie korzysta z `auth.uid()`, liczy aktywne, niearchiwizowane gry użytkownika i idempotentnie przyznaje wyłącznie osiągnięte progi `shelf_first_game`, `shelf_5_games`, `shelf_10_games` i `shelf_15_games`.
+- 10C-1 nie wykonuje historycznego backfillu. Nagroda jest sprawdzana dopiero przy kontrolowanym wywołaniu po dodaniu nowej gry; archiwalne gry nie liczą się do progów.
+- RSVP, głosy na gry, oceny oraz wpisy Kroniki nadal nie tworzą automatycznych `point_events`. Legendarium pozostaje poza zakresem 10C-1.
 - Do mechanizmu z 10B zostają kolejno podłączone proste, jednoznaczne akcje: utworzenie spotkania, pierwsza odpowiedź RSVP, pierwszy głos w spotkaniu, pierwsza ocena danej gry, zapis partii oraz przekroczenie progów onboardingowych Półki.
 - UI Stołu odróżnia preview od punktów już zdobytych; zniknięcie questa nie jest samo w sobie sygnałem do naliczenia. Źródłem naliczenia pozostaje zatwierdzona mutacja domenowa w bazie.
 - Follow-upy zależne od kilku tabel nie są uruchamiane w pierwszym podłączeniu.

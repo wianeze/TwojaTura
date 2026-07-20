@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(89);
+select plan(100);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -1497,6 +1497,218 @@ select results_eq(
   $$,
   $$values (1174::bigint)$$,
   '89. leaderboard includes the same updated ledger balance'
+);
+reset role;
+
+select results_eq(
+  $$
+    select pronargs
+    from pg_proc
+    where oid = 'public.award_shelf_onboarding_points()'::regprocedure
+  $$,
+  $$values (0::smallint)$$,
+  '90. shelf onboarding RPC accepts neither user id nor points'
+);
+
+set local role anon;
+select throws_ok(
+  $$select * from public.award_shelf_onboarding_points()$$,
+  '42501',
+  null,
+  '91. anonymous user cannot execute shelf onboarding award RPC'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000006","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select * from public.award_shelf_onboarding_points()$$,
+  '42501',
+  null,
+  '92. inactive member cannot award shelf onboarding points'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000004","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+insert into public.games (
+  id,
+  title,
+  owner_id,
+  current_holder_id,
+  min_players,
+  max_players,
+  status,
+  archived_at
+) values (
+  '74000000-0000-0000-0000-000000000099',
+  'Zarchiwizowana gra onboardingowa',
+  '10000000-0000-0000-0000-000000000004',
+  '10000000-0000-0000-0000-000000000004',
+  1,
+  4,
+  'available',
+  now()
+);
+
+select results_eq(
+  $$select * from public.award_shelf_onboarding_points()$$,
+  $$values (0, 0)$$,
+  '93. zero active games earns no points and archived games do not count'
+);
+
+insert into public.games (
+  id,
+  title,
+  owner_id,
+  current_holder_id,
+  min_players,
+  max_players,
+  status
+) values (
+  '74000000-0000-0000-0000-000000000001',
+  'Gra onboardingowa 1',
+  '10000000-0000-0000-0000-000000000004',
+  '10000000-0000-0000-0000-000000000004',
+  1,
+  4,
+  'available'
+);
+
+select results_eq(
+  $$select * from public.award_shelf_onboarding_points()$$,
+  $$values (1, 40)$$,
+  '94. first active game awards shelf_first_game once'
+);
+
+select results_eq(
+  $$
+    select action_type, points, related_entity_type, related_entity_id
+    from public.point_events
+    where user_id = '10000000-0000-0000-0000-000000000004'
+      and action_type = 'shelf_first_game'
+  $$,
+  $$
+    values (
+      'shelf_first_game',
+      40,
+      'profile',
+      '10000000-0000-0000-0000-000000000004'::uuid
+    )
+  $$,
+  '95. first shelf milestone stores the fixed event contract'
+);
+
+insert into public.games (
+  id,
+  title,
+  owner_id,
+  current_holder_id,
+  min_players,
+  max_players,
+  status
+)
+select
+  ('74000000-0000-0000-0000-' || lpad(game_number::text, 12, '0'))::uuid,
+  'Gra onboardingowa ' || game_number,
+  '10000000-0000-0000-0000-000000000004'::uuid,
+  '10000000-0000-0000-0000-000000000004'::uuid,
+  1,
+  4,
+  'available'::public.game_status
+from generate_series(2, 5) as game_number;
+
+select results_eq(
+  $$select * from public.award_shelf_onboarding_points()$$,
+  $$values (1, 30)$$,
+  '96. five active games award shelf_5_games once'
+);
+
+insert into public.games (
+  id,
+  title,
+  owner_id,
+  current_holder_id,
+  min_players,
+  max_players,
+  status
+)
+select
+  ('74000000-0000-0000-0000-' || lpad(game_number::text, 12, '0'))::uuid,
+  'Gra onboardingowa ' || game_number,
+  '10000000-0000-0000-0000-000000000004'::uuid,
+  '10000000-0000-0000-0000-000000000004'::uuid,
+  1,
+  4,
+  'available'::public.game_status
+from generate_series(6, 10) as game_number;
+
+select results_eq(
+  $$select * from public.award_shelf_onboarding_points()$$,
+  $$values (1, 20)$$,
+  '97. ten active games award shelf_10_games once'
+);
+
+insert into public.games (
+  id,
+  title,
+  owner_id,
+  current_holder_id,
+  min_players,
+  max_players,
+  status
+)
+select
+  ('74000000-0000-0000-0000-' || lpad(game_number::text, 12, '0'))::uuid,
+  'Gra onboardingowa ' || game_number,
+  '10000000-0000-0000-0000-000000000004'::uuid,
+  '10000000-0000-0000-0000-000000000004'::uuid,
+  1,
+  4,
+  'available'::public.game_status
+from generate_series(11, 15) as game_number;
+
+select results_eq(
+  $$select * from public.award_shelf_onboarding_points()$$,
+  $$values (1, 15)$$,
+  '98. fifteen active games award shelf_15_games once'
+);
+
+select results_eq(
+  $$
+    select
+      award.awarded_count,
+      award.awarded_points,
+      (
+        select count(*)::integer
+        from public.point_events
+        where user_id = '10000000-0000-0000-0000-000000000004'
+          and action_type in (
+            'shelf_first_game',
+            'shelf_5_games',
+            'shelf_10_games',
+            'shelf_15_games'
+          )
+      )
+    from public.award_shelf_onboarding_points() as award
+  $$,
+  $$values (0, 0, 4)$$,
+  '99. repeated shelf award call is an idempotent no-op'
+);
+
+select results_eq(
+  $$select total_points from public.user_point_balances$$,
+  $$values (915::bigint)$$,
+  '100. user point balance includes all four shelf milestones exactly once'
 );
 reset role;
 

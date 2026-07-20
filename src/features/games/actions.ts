@@ -17,6 +17,7 @@ import {
   validateRatingFormData,
 } from "./validation";
 import { fetchBggGameDetailsFromApi } from "./bgg-server";
+import { awardShelfOnboardingPointsAfterGameCreate } from "./shelf-points";
 
 type DatabaseErrorLike = {
   code?: string | null;
@@ -223,6 +224,18 @@ export async function createGameAction(
 
   if (error) {
     return { status: "error", message: mapGameDatabaseError(error) };
+  }
+
+  const pointAward = await awardShelfOnboardingPointsAfterGameCreate(() =>
+    access.supabase.rpc("award_shelf_onboarding_points"),
+  );
+
+  if (!pointAward.ok) {
+    return {
+      status: "error",
+      message:
+        "Gra została zapisana, ale nie udało się naliczyć punktów Półki. Odśwież Półkę przed ponowną próbą.",
+    };
   }
 
   revalidatePath("/gry");
