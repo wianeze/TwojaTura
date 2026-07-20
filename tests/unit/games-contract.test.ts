@@ -18,6 +18,7 @@ import {
   validateGameFormData,
   validateRatingFormData,
 } from "../../src/features/games/validation.ts";
+import { awardShelfOnboardingPointsAfterGameCreate } from "../../src/features/games/shelf-points.ts";
 
 const actor = {
   id: "10000000-0000-0000-0000-000000000002",
@@ -29,6 +30,37 @@ const activeMemberIds = [
   "10000000-0000-0000-0000-000000000002",
   "10000000-0000-0000-0000-000000000003",
 ];
+
+test("game create follow-up requests shelf onboarding milestone points", async () => {
+  let requestCount = 0;
+  const result = await awardShelfOnboardingPointsAfterGameCreate(async () => {
+    requestCount += 1;
+    return {
+      data: [{ awarded_count: 1, awarded_points: 40 }],
+      error: null,
+    };
+  });
+
+  assert.equal(requestCount, 1);
+  assert.deepEqual(result, {
+    ok: true,
+    awardedCount: 1,
+    awardedPoints: 40,
+  });
+});
+
+test("an idempotent shelf award no-op does not fail game creation follow-up", async () => {
+  const result = await awardShelfOnboardingPointsAfterGameCreate(async () => ({
+    data: [{ awarded_count: 0, awarded_points: 0 }],
+    error: null,
+  }));
+
+  assert.deepEqual(result, {
+    ok: true,
+    awardedCount: 0,
+    awardedPoints: 0,
+  });
+});
 
 function buildGameFormData(
   overrides: Record<string, string> = {},
