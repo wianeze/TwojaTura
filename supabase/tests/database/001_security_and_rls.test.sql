@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(100);
+select plan(113);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -1709,6 +1709,232 @@ select results_eq(
   $$select total_points from public.user_point_balances$$,
   $$values (915::bigint)$$,
   '100. user point balance includes all four shelf milestones exactly once'
+);
+reset role;
+
+select ok(
+  (
+    select count(*) = 2
+      and bool_and(pronargs = 1)
+      and bool_and(oidvectortypes(proargtypes) = 'uuid')
+    from pg_proc
+    where oid in (
+      'public.award_meeting_rsvp_points(uuid)'::regprocedure,
+      'public.award_meeting_vote_points(uuid)'::regprocedure
+    )
+  ),
+  '101. meeting point RPCs accept only a meeting id'
+);
+
+set local role anon;
+select throws_ok(
+  $$select * from public.award_meeting_rsvp_points('40000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '102. anonymous user cannot execute meeting RSVP award RPC'
+);
+
+select throws_ok(
+  $$select * from public.award_meeting_vote_points('40000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '103. anonymous user cannot execute meeting vote award RPC'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000006","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select * from public.award_meeting_rsvp_points('40000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '104. inactive member cannot award meeting RSVP points'
+);
+
+select throws_ok(
+  $$select * from public.award_meeting_vote_points('40000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '105. inactive member cannot award meeting vote points'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000004","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+insert into public.meetings (
+  id,
+  created_by,
+  title,
+  status,
+  starts_at,
+  ends_at
+) values
+  (
+    '75000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000004',
+    'Spotkanie punktowe pierwsze',
+    'planned',
+    '2026-09-01 16:00:00+00',
+    '2026-09-01 20:00:00+00'
+  ),
+  (
+    '75000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000004',
+    'Spotkanie punktowe drugie',
+    'planned',
+    '2026-09-08 16:00:00+00',
+    '2026-09-08 20:00:00+00'
+  );
+
+insert into public.meeting_availability (meeting_id, user_id, is_available)
+values (
+  '75000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000004',
+  true
+);
+
+select results_eq(
+  $$
+    select awarded, points, point_event_id is not null
+    from public.award_meeting_rsvp_points(
+      '75000000-0000-0000-0000-000000000001'
+    )
+  $$,
+  $$values (true, 10, true)$$,
+  '106. first saved RSVP awards meeting_rsvp points once'
+);
+
+update public.meeting_availability
+set is_available = false
+where meeting_id = '75000000-0000-0000-0000-000000000001'
+  and user_id = '10000000-0000-0000-0000-000000000004';
+
+select results_eq(
+  $$
+    select
+      award.awarded,
+      award.points,
+      (
+        select count(*)::integer
+        from public.point_events
+        where user_id = '10000000-0000-0000-0000-000000000004'
+          and action_type = 'meeting_rsvp'
+          and related_entity_id = '75000000-0000-0000-0000-000000000001'
+      )
+    from public.award_meeting_rsvp_points(
+      '75000000-0000-0000-0000-000000000001'
+    ) as award
+  $$,
+  $$values (false, 10, 1)$$,
+  '107. changing RSVP does not duplicate meeting_rsvp points'
+);
+
+insert into public.meeting_availability (meeting_id, user_id, is_available)
+values (
+  '75000000-0000-0000-0000-000000000002',
+  '10000000-0000-0000-0000-000000000004',
+  false
+);
+
+select results_eq(
+  $$
+    select awarded, points
+    from public.award_meeting_rsvp_points(
+      '75000000-0000-0000-0000-000000000002'
+    )
+  $$,
+  $$values (true, 10)$$,
+  '108. first unavailable RSVP also qualifies for meeting_rsvp points'
+);
+
+insert into public.meeting_game_votes (meeting_id, game_id, user_id)
+values (
+  '75000000-0000-0000-0000-000000000001',
+  '30000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000004'
+);
+
+select results_eq(
+  $$
+    select awarded, points, point_event_id is not null
+    from public.award_meeting_vote_points(
+      '75000000-0000-0000-0000-000000000001'
+    )
+  $$,
+  $$values (true, 10, true)$$,
+  '109. first saved game vote awards meeting_vote points once'
+);
+
+insert into public.meeting_game_votes (meeting_id, game_id, user_id)
+values (
+  '75000000-0000-0000-0000-000000000001',
+  '30000000-0000-0000-0000-000000000002',
+  '10000000-0000-0000-0000-000000000004'
+);
+
+select results_eq(
+  $$
+    select
+      award.awarded,
+      award.points,
+      (
+        select count(*)::integer
+        from public.point_events
+        where user_id = '10000000-0000-0000-0000-000000000004'
+          and action_type = 'meeting_vote'
+          and related_entity_id = '75000000-0000-0000-0000-000000000001'
+      )
+    from public.award_meeting_vote_points(
+      '75000000-0000-0000-0000-000000000001'
+    ) as award
+  $$,
+  $$values (false, 10, 1)$$,
+  '110. several votes in one meeting do not duplicate meeting_vote points'
+);
+
+insert into public.meeting_game_votes (meeting_id, game_id, user_id)
+values (
+  '75000000-0000-0000-0000-000000000002',
+  '30000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000004'
+);
+
+select results_eq(
+  $$
+    select awarded, points
+    from public.award_meeting_vote_points(
+      '75000000-0000-0000-0000-000000000002'
+    )
+  $$,
+  $$values (true, 10)$$,
+  '111. the same user can earn meeting_vote for another meeting'
+);
+
+select results_eq(
+  $$select total_points from public.user_point_balances$$,
+  $$values (955::bigint)$$,
+  '112. user point balance includes RSVP and vote rewards exactly once'
+);
+
+select throws_ok(
+  $$
+    update public.point_events
+    set points = 999
+    where user_id = '10000000-0000-0000-0000-000000000004'
+      and action_type = 'meeting_rsvp'
+  $$,
+  '42501',
+  null,
+  '113. meeting point events remain append-only'
 );
 reset role;
 

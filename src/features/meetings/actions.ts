@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
 import { buildMeetingConfirmationStatusPatch } from "./meeting-status";
+import {
+  awardMeetingRsvpPointsAfterSave,
+  awardMeetingVotePointsAfterSave,
+} from "./meeting-points";
 import { DEFAULT_MEETING_STATUS } from "./types";
 import type {
   MeetingAvailabilityFormState,
@@ -169,6 +173,21 @@ export async function saveMeetingAvailabilityAction(
     };
   }
 
+  const pointAward = await awardMeetingRsvpPointsAfterSave(() =>
+    access.supabase.rpc("award_meeting_rsvp_points", {
+      p_meeting_id: meetingId,
+    }),
+  );
+
+  if (!pointAward.ok) {
+    return {
+      status: "error",
+      message:
+        "Odpowiedź RSVP została zapisana, ale nie udało się naliczyć punktów.",
+      savedResponse: isAvailable,
+    };
+  }
+
   revalidatePath("/kalendarium");
   revalidatePath(`/kalendarium/${meetingId}`);
   return { status: "success", savedResponse: isAvailable };
@@ -223,6 +242,19 @@ export async function toggleMeetingVoteAction(
 
     if (error && error.code !== "23505") {
       return { status: "error", message: "Nie udało się dodać głosu." };
+    }
+
+    const pointAward = await awardMeetingVotePointsAfterSave(() =>
+      access.supabase.rpc("award_meeting_vote_points", {
+        p_meeting_id: meetingId,
+      }),
+    );
+
+    if (!pointAward.ok) {
+      return {
+        status: "error",
+        message: "Głos został zapisany, ale nie udało się naliczyć punktów.",
+      };
     }
   } else {
     const { error } = await access.supabase

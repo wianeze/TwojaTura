@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2 jest w toku: Etap 10B — fundament bezpiecznego, idempotentnego naliczania `point_events` — jest zamknięty, a Etap 10C-1 wdraża prawdziwe punkty wyłącznie za milestone’y Półki. RSVP, głosy, oceny i Kronika nadal nie naliczają punktów, a Legendarium nie zostało jeszcze przebudowane.
+Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2 jest w toku: Etapy 10B i 10C-1 są zamknięte, a Etap 10C-2 wdraża prawdziwe punkty za pierwszą odpowiedź RSVP i pierwszy głos na grę w każdym spotkaniu. Oceny i Kronika nadal nie naliczają punktów, a Legendarium nie zostało jeszcze przebudowane.
 
 ## 1. Decyzje projektowe
 
@@ -712,9 +712,11 @@ Etap 10 nie obejmuje powiadomień, wielu grup, płatności, publicznego dostępu
 
 #### 10C — podpięcie istniejących akcji ze Stołu
 
-- **10C-1 — milestone’y Półki.** Po udanym utworzeniu gry Server Action wywołuje wąskie RPC `award_shelf_onboarding_points()`. RPC samodzielnie korzysta z `auth.uid()`, liczy aktywne, niearchiwizowane gry użytkownika i idempotentnie przyznaje wyłącznie osiągnięte progi `shelf_first_game`, `shelf_5_games`, `shelf_10_games` i `shelf_15_games`.
+- **10C-1 — milestone’y Półki — zamknięty.** Po udanym utworzeniu gry Server Action wywołuje wąskie RPC `award_shelf_onboarding_points()`. RPC samodzielnie korzysta z `auth.uid()`, liczy aktywne, niearchiwizowane gry użytkownika i idempotentnie przyznaje wyłącznie osiągnięte progi `shelf_first_game`, `shelf_5_games`, `shelf_10_games` i `shelf_15_games`.
 - 10C-1 nie wykonuje historycznego backfillu. Nagroda jest sprawdzana dopiero przy kontrolowanym wywołaniu po dodaniu nowej gry; archiwalne gry nie liczą się do progów.
-- RSVP, głosy na gry, oceny oraz wpisy Kroniki nadal nie tworzą automatycznych `point_events`. Legendarium pozostaje poza zakresem 10C-1.
+- **10C-2 — RSVP i głosowanie.** Po udanym zapisie odpowiedzi Server Action wywołuje `award_meeting_rsvp_points(meeting_id)`, a po dodaniu głosu — `award_meeting_vote_points(meeting_id)`. Oba wąskie RPC korzystają wyłącznie z `auth.uid()`, wymagają zapisanego rekordu źródłowego i przyznają nagrodę najwyżej raz na użytkownika i spotkanie.
+- Odpowiedzi TAK i NIE są nagradzane jednakowo jako reakcja na spotkanie. Zmiana RSVP ani kolejne głosy na inne gry w tym samym spotkaniu nie tworzą drugiej nagrody.
+- Oceny oraz wpisy Kroniki nadal nie tworzą automatycznych `point_events`. Legendarium i follow-up `voted_game_played` pozostają poza zakresem 10C-2.
 - Do mechanizmu z 10B zostają kolejno podłączone proste, jednoznaczne akcje: utworzenie spotkania, pierwsza odpowiedź RSVP, pierwszy głos w spotkaniu, pierwsza ocena danej gry, zapis partii oraz przekroczenie progów onboardingowych Półki.
 - UI Stołu odróżnia preview od punktów już zdobytych; zniknięcie questa nie jest samo w sobie sygnałem do naliczenia. Źródłem naliczenia pozostaje zatwierdzona mutacja domenowa w bazie.
 - Follow-upy zależne od kilku tabel nie są uruchamiane w pierwszym podłączeniu.

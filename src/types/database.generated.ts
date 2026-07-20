@@ -655,6 +655,22 @@ export type Database = {
       }
     }
     Functions: {
+      award_meeting_rsvp_points: {
+        Args: { p_meeting_id: string }
+        Returns: {
+          awarded: boolean
+          point_event_id: string
+          points: number
+        }[]
+      }
+      award_meeting_vote_points: {
+        Args: { p_meeting_id: string }
+        Returns: {
+          awarded: boolean
+          point_event_id: string
+          points: number
+        }[]
+      }
       award_shelf_onboarding_points: {
         Args: never
         Returns: {
