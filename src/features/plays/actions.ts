@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
 import type { PlayFormState } from "./types";
 import { toPlayFormErrorState, validatePlayFormData } from "./validation";
+import { awardPlayPointsAfterSave } from "./play-points";
 
 type DatabaseErrorLike = {
   code?: string | null;
@@ -190,6 +191,20 @@ export async function createPlayAction(
     return {
       status: "error",
       message: mapPlayDatabaseError(error ?? {}),
+    };
+  }
+
+  const pointAward = await awardPlayPointsAfterSave(true, () =>
+    access.supabase.rpc("award_play_logged_points", {
+      p_play_id: data,
+    }),
+  );
+
+  if (!pointAward.ok) {
+    return {
+      status: "error",
+      message:
+        "Partia została zapisana, ale nie udało się naliczyć punktów. Odśwież Kronikę przed ponowną próbą.",
     };
   }
 

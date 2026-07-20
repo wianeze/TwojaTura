@@ -19,6 +19,7 @@ import {
   validateRatingFormData,
 } from "../../src/features/games/validation.ts";
 import { awardShelfOnboardingPointsAfterGameCreate } from "../../src/features/games/shelf-points.ts";
+import { awardRatingPointsAfterSave } from "../../src/features/games/rating-points.ts";
 
 const actor = {
   id: "10000000-0000-0000-0000-000000000002",
@@ -60,6 +61,54 @@ test("an idempotent shelf award no-op does not fail game creation follow-up", as
     awardedCount: 0,
     awardedPoints: 0,
   });
+});
+
+test("new rating requests rating_created points", async () => {
+  let requestCount = 0;
+  const result = await awardRatingPointsAfterSave(true, async () => {
+    requestCount += 1;
+    return {
+      data: [{ awarded: true, points: 30, point_event_id: "event-rating" }],
+      error: null,
+    };
+  });
+
+  assert.equal(requestCount, 1);
+  assert.deepEqual(result, {
+    ok: true,
+    skipped: false,
+    awarded: true,
+    points: 30,
+    pointEventId: "event-rating",
+  });
+});
+
+test("editing an existing rating skips rating_created award", async () => {
+  let requestCount = 0;
+  const result = await awardRatingPointsAfterSave(false, async () => {
+    requestCount += 1;
+    return { data: null, error: null };
+  });
+
+  assert.equal(requestCount, 0);
+  assert.deepEqual(result, {
+    ok: true,
+    skipped: true,
+    awarded: false,
+    points: 0,
+    pointEventId: null,
+  });
+});
+
+test("idempotent rating award no-op does not fail rating save", async () => {
+  const result = await awardRatingPointsAfterSave(true, async () => ({
+    data: [{ awarded: false, points: 30, point_event_id: null }],
+    error: null,
+  }));
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.awarded, false);
 });
 
 function buildGameFormData(

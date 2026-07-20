@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(113);
+select plan(127);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -1935,6 +1935,218 @@ select throws_ok(
   '42501',
   null,
   '113. meeting point events remain append-only'
+);
+reset role;
+
+select ok(
+  (
+    select count(*) = 2
+      and bool_and(pronargs = 1)
+      and bool_and(oidvectortypes(proargtypes) = 'uuid')
+    from pg_proc
+    where oid in (
+      'public.award_rating_created_points(uuid)'::regprocedure,
+      'public.award_play_logged_points(uuid)'::regprocedure
+    )
+  ),
+  '114. rating and play point RPCs accept only one related entity id'
+);
+
+set local role anon;
+select throws_ok(
+  $$select * from public.award_rating_created_points('30000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '115. anonymous user cannot execute rating award RPC'
+);
+
+select throws_ok(
+  $$select * from public.award_play_logged_points('50000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '116. anonymous user cannot execute play award RPC'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000006","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select * from public.award_rating_created_points('30000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '117. inactive member cannot award rating points'
+);
+
+select throws_ok(
+  $$select * from public.award_play_logged_points('50000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '118. inactive member cannot award play points'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000004","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select throws_ok(
+  $$select * from public.award_rating_created_points('74000000-0000-0000-0000-000000000003')$$,
+  '22023',
+  null,
+  '119. rating points require the current user own rating for the game'
+);
+
+insert into public.ratings (
+  game_id,
+  user_id,
+  overall,
+  replayability,
+  theme,
+  wants_to_play_again
+) values (
+  '74000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000004',
+  8,
+  7,
+  9,
+  true
+);
+
+select results_eq(
+  $$
+    select awarded, points, point_event_id is not null
+    from public.award_rating_created_points(
+      '74000000-0000-0000-0000-000000000001'
+    )
+  $$,
+  $$values (true, 30, true)$$,
+  '120. first own rating awards rating_created points once'
+);
+
+select results_eq(
+  $$
+    select
+      award.awarded,
+      award.points,
+      (
+        select count(*)::integer
+        from public.point_events
+        where user_id = '10000000-0000-0000-0000-000000000004'
+          and action_type = 'rating_created'
+          and related_entity_id = '74000000-0000-0000-0000-000000000001'
+      )
+    from public.award_rating_created_points(
+      '74000000-0000-0000-0000-000000000001'
+    ) as award
+  $$,
+  $$values (false, 30, 1)$$,
+  '121. repeated rating award call does not duplicate points'
+);
+
+insert into public.ratings (
+  game_id,
+  user_id,
+  overall,
+  replayability,
+  theme,
+  wants_to_play_again
+) values (
+  '74000000-0000-0000-0000-000000000002',
+  '10000000-0000-0000-0000-000000000004',
+  7,
+  7,
+  8,
+  false
+);
+
+select results_eq(
+  $$
+    select awarded, points
+    from public.award_rating_created_points(
+      '74000000-0000-0000-0000-000000000002'
+    )
+  $$,
+  $$values (true, 30)$$,
+  '122. the same user can earn rating_created for another game'
+);
+
+insert into public.plays (
+  id,
+  game_id,
+  created_by,
+  played_at,
+  duration_minutes,
+  comment
+) values (
+  '77000000-0000-0000-0000-000000000001',
+  '74000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000004',
+  '2026-09-15 18:00:00+00',
+  90,
+  'Partia testowa nagrody Kroniki'
+);
+
+select results_eq(
+  $$
+    select awarded, points, point_event_id is not null
+    from public.award_play_logged_points(
+      '77000000-0000-0000-0000-000000000001'
+    )
+  $$,
+  $$values (true, 40, true)$$,
+  '123. active play author earns play_logged points once'
+);
+
+select results_eq(
+  $$
+    select
+      award.awarded,
+      award.points,
+      (
+        select count(*)::integer
+        from public.point_events
+        where user_id = '10000000-0000-0000-0000-000000000004'
+          and action_type = 'play_logged'
+          and related_entity_id = '77000000-0000-0000-0000-000000000001'
+      )
+    from public.award_play_logged_points(
+      '77000000-0000-0000-0000-000000000001'
+    ) as award
+  $$,
+  $$values (false, 40, 1)$$,
+  '124. repeated play award call does not duplicate points'
+);
+
+select throws_ok(
+  $$select * from public.award_play_logged_points('50000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '125. member cannot earn play_logged for another author play'
+);
+
+select results_eq(
+  $$select total_points from public.user_point_balances$$,
+  $$values (1055::bigint)$$,
+  '126. user point balance includes rating and play rewards exactly once'
+);
+
+select throws_ok(
+  $$
+    update public.point_events
+    set points = 999
+    where user_id = '10000000-0000-0000-0000-000000000004'
+      and action_type in ('rating_created', 'play_logged')
+  $$,
+  '42501',
+  null,
+  '127. rating and play point events remain append-only'
 );
 reset role;
 

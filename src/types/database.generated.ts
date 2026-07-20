@@ -671,6 +671,22 @@ export type Database = {
           points: number
         }[]
       }
+      award_play_logged_points: {
+        Args: { p_play_id: string }
+        Returns: {
+          awarded: boolean
+          point_event_id: string
+          points: number
+        }[]
+      }
+      award_rating_created_points: {
+        Args: { p_game_id: string }
+        Returns: {
+          awarded: boolean
+          point_event_id: string
+          points: number
+        }[]
+      }
       award_shelf_onboarding_points: {
         Args: never
         Returns: {

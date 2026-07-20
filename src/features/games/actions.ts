@@ -18,6 +18,7 @@ import {
 } from "./validation";
 import { fetchBggGameDetailsFromApi } from "./bgg-server";
 import { awardShelfOnboardingPointsAfterGameCreate } from "./shelf-points";
+import { awardRatingPointsAfterSave } from "./rating-points";
 
 type DatabaseErrorLike = {
   code?: string | null;
@@ -413,6 +414,20 @@ export async function saveRatingAction(
 
   if (error) {
     return { status: "error", message: mapRatingDatabaseError(error) };
+  }
+
+  const pointAward = await awardRatingPointsAfterSave(!existingRating, () =>
+    access.supabase.rpc("award_rating_created_points", {
+      p_game_id: gameId,
+    }),
+  );
+
+  if (!pointAward.ok) {
+    return {
+      status: "error",
+      message:
+        "Ocena została zapisana, ale nie udało się naliczyć punktów. Odśwież kartę gry przed ponowną próbą.",
+    };
   }
 
   revalidatePath("/gry");

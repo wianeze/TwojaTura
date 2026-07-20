@@ -19,6 +19,55 @@ import {
   buildPlaySubmittedValues,
   validatePlayFormData,
 } from "../../src/features/plays/validation.ts";
+import { awardPlayPointsAfterSave } from "../../src/features/plays/play-points.ts";
+
+test("new Chronicle entry requests play_logged points", async () => {
+  let requestCount = 0;
+  const result = await awardPlayPointsAfterSave(true, async () => {
+    requestCount += 1;
+    return {
+      data: [{ awarded: true, points: 40, point_event_id: "event-play" }],
+      error: null,
+    };
+  });
+
+  assert.equal(requestCount, 1);
+  assert.deepEqual(result, {
+    ok: true,
+    skipped: false,
+    awarded: true,
+    points: 40,
+    pointEventId: "event-play",
+  });
+});
+
+test("editing a Chronicle entry skips play_logged award", async () => {
+  let requestCount = 0;
+  const result = await awardPlayPointsAfterSave(false, async () => {
+    requestCount += 1;
+    return { data: null, error: null };
+  });
+
+  assert.equal(requestCount, 0);
+  assert.deepEqual(result, {
+    ok: true,
+    skipped: true,
+    awarded: false,
+    points: 0,
+    pointEventId: null,
+  });
+});
+
+test("idempotent play award no-op does not fail Chronicle create", async () => {
+  const result = await awardPlayPointsAfterSave(true, async () => ({
+    data: [{ awarded: false, points: 40, point_event_id: null }],
+    error: null,
+  }));
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.awarded, false);
+});
 
 function buildParticipantsInput(
   participants?: Array<{
