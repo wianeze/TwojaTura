@@ -17,6 +17,10 @@ import {
   getMeetingConfirmationTargetStatus,
 } from "../../src/features/meetings/meeting-status.ts";
 import {
+  awardMeetingRsvpPointsAfterSave,
+  awardMeetingVotePointsAfterSave,
+} from "../../src/features/meetings/meeting-points.ts";
+import {
   DEFAULT_MEETING_STATUS,
   formatDateKeyForDisplay,
   getMeetingFormValues,
@@ -32,6 +36,58 @@ import {
   validateMeetingFormData,
 } from "../../src/features/meetings/validation.ts";
 import { getPolishPublicHolidays } from "../../src/lib/dates/polish-holidays.ts";
+
+test("RSVP save follow-up requests meeting RSVP points", async () => {
+  let requestCount = 0;
+  const result = await awardMeetingRsvpPointsAfterSave(async () => {
+    requestCount += 1;
+    return {
+      data: [{ awarded: true, points: 10, point_event_id: "point-event-1" }],
+      error: null,
+    };
+  });
+
+  assert.equal(requestCount, 1);
+  assert.deepEqual(result, {
+    ok: true,
+    awarded: true,
+    points: 10,
+    pointEventId: "point-event-1",
+  });
+});
+
+test("meeting vote follow-up requests vote points", async () => {
+  let requestCount = 0;
+  const result = await awardMeetingVotePointsAfterSave(async () => {
+    requestCount += 1;
+    return {
+      data: [{ awarded: true, points: 10, point_event_id: "point-event-2" }],
+      error: null,
+    };
+  });
+
+  assert.equal(requestCount, 1);
+  assert.deepEqual(result, {
+    ok: true,
+    awarded: true,
+    points: 10,
+    pointEventId: "point-event-2",
+  });
+});
+
+test("an idempotent meeting point no-op does not fail the domain mutation", async () => {
+  const rsvpResult = await awardMeetingRsvpPointsAfterSave(async () => ({
+    data: [{ awarded: false, points: 10, point_event_id: null }],
+    error: null,
+  }));
+  const voteResult = await awardMeetingVotePointsAfterSave(async () => ({
+    data: [{ awarded: false, points: 10, point_event_id: null }],
+    error: null,
+  }));
+
+  assert.equal(rsvpResult.ok, true);
+  assert.equal(voteResult.ok, true);
+});
 
 function buildFormData(
   overrides?: Partial<{
