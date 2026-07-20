@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(135);
+select plan(179);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -2244,6 +2244,511 @@ select throws_ok(
   '42501',
   null,
   '135. meeting created point events remain append-only'
+);
+reset role;
+
+select has_table(
+  'public',
+  'achievement_definitions',
+  '136. achievement definitions table exists'
+);
+
+select has_table(
+  'public',
+  'user_achievements',
+  '137. user achievements table exists'
+);
+
+select has_table(
+  'public',
+  'class_definitions',
+  '138. class definitions table exists'
+);
+
+select has_table(
+  'public',
+  'class_requirements',
+  '139. class requirements table exists'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from pg_class
+    where oid in (
+      'public.achievement_definitions'::regclass,
+      'public.user_achievements'::regclass,
+      'public.class_definitions'::regclass,
+      'public.class_requirements'::regclass
+    )
+      and relrowsecurity = true
+  $$,
+  $$values (4::bigint)$$,
+  '140. RLS is enabled on all achievement and class tables'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from pg_constraint
+    where conrelid in (
+      'public.achievement_definitions'::regclass,
+      'public.user_achievements'::regclass,
+      'public.class_definitions'::regclass,
+      'public.class_requirements'::regclass
+    )
+      and contype = 'p'
+  $$,
+  $$values (4::bigint)$$,
+  '141. all achievement and class tables have primary keys'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from pg_constraint
+    where conrelid in (
+      'public.user_achievements'::regclass,
+      'public.class_requirements'::regclass
+    )
+      and contype = 'f'
+  $$,
+  $$values (5::bigint)$$,
+  '142. user achievements and class requirements have all foreign keys'
+);
+
+insert into public.user_achievements (user_id, achievement_key)
+values ('10000000-0000-0000-0000-000000000002', 'natural_one');
+
+select throws_ok(
+  $$
+    insert into public.user_achievements (user_id, achievement_key)
+    values ('10000000-0000-0000-0000-000000000002', 'natural_one')
+  $$,
+  '23505',
+  null,
+  '143. user achievements reject duplicate user and achievement key'
+);
+
+select throws_ok(
+  $$
+    insert into public.class_requirements (class_key, achievement_key)
+    values ('paladyn_zasad', 'rule_paladin')
+  $$,
+  '23505',
+  null,
+  '144. class requirements reject duplicate class and achievement key'
+);
+
+select results_eq(
+  $$select count(*)::bigint from public.achievement_definitions where is_active = true$$,
+  $$values (51::bigint)$$,
+  '145. seed contains 51 active achievement definitions'
+);
+
+select results_eq(
+  $$select count(*)::bigint from public.class_definitions where is_active = true$$,
+  $$values (14::bigint)$$,
+  '146. seed contains 14 active class definitions'
+);
+
+select results_eq(
+  $$select count(*)::bigint from public.class_requirements$$,
+  $$values (70::bigint)$$,
+  '147. seed contains all 70 class requirements'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.class_requirements as requirement
+    left join public.class_definitions as class
+      on class.class_key = requirement.class_key
+    left join public.achievement_definitions as achievement
+      on achievement.achievement_key = requirement.achievement_key
+    where class.class_key is null or achievement.achievement_key is null
+  $$,
+  $$values (0::bigint)$$,
+  '148. every class requirement references seeded definitions'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.achievement_definitions
+    where rarity not in ('common', 'rare', 'epic', 'legendary', 'secret')
+      or automation_status not in ('automatic', 'manual', 'planned', 'secret')
+  $$,
+  $$values (0::bigint)$$,
+  '149. achievement rarity and automation status use the allowed catalogs'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.achievement_definitions
+    where (rarity = 'secret') is distinct from is_secret
+  $$,
+  $$values (0::bigint)$$,
+  '150. secret rarity definitions are marked secret'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.achievement_definitions
+    where (automation_status = 'manual') is distinct from is_manual
+  $$,
+  $$values (0::bigint)$$,
+  '151. manual definitions are marked manual'
+);
+
+set local role anon;
+select throws_ok(
+  $$select * from public.achievement_definitions$$,
+  '42501',
+  null,
+  '152. anonymous user cannot read achievement definitions'
+);
+select throws_ok(
+  $$select * from public.user_achievements$$,
+  '42501',
+  null,
+  '153. anonymous user cannot read user achievements'
+);
+select throws_ok(
+  $$select * from public.class_definitions$$,
+  '42501',
+  null,
+  '154. anonymous user cannot read class definitions'
+);
+select throws_ok(
+  $$select * from public.class_requirements$$,
+  '42501',
+  null,
+  '155. anonymous user cannot read class requirements'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000006","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$
+    select
+      (select count(*) from public.achievement_definitions),
+      (select count(*) from public.user_achievements),
+      (select count(*) from public.class_definitions),
+      (select count(*) from public.class_requirements)
+  $$,
+  $$values (0::bigint, 0::bigint, 0::bigint, 0::bigint)$$,
+  '156. inactive member cannot read achievement or class data'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$select count(*)::bigint from public.achievement_definitions$$,
+  $$values (45::bigint)$$,
+  '157. active member reads active non-secret achievement definitions'
+);
+select results_eq(
+  $$select count(*)::bigint from public.class_definitions$$,
+  $$values (14::bigint)$$,
+  '158. active member reads active class definitions'
+);
+select throws_ok(
+  $$
+    insert into public.achievement_definitions (
+      achievement_key, name, description, condition_text, rarity,
+      automation_status, sort_order
+    ) values (
+      'member_created', 'Niedozwolona', 'Niedozwolona', 'Niedozwolona',
+      'common', 'planned', 999
+    )
+  $$,
+  '42501',
+  null,
+  '159. active member cannot insert achievement definitions'
+);
+select results_eq(
+  $$
+    with changed as (
+      update public.achievement_definitions
+      set points = 999
+      where achievement_key = 'critical_roll'
+      returning 1
+    )
+    select count(*)::bigint from changed
+  $$,
+  $$values (0::bigint)$$,
+  '160. active member cannot update achievement definitions'
+);
+select results_eq(
+  $$
+    with removed as (
+      delete from public.class_requirements
+      where class_key = 'paladyn_zasad'
+        and achievement_key = 'rule_paladin'
+      returning 1
+    )
+    select count(*)::bigint from removed
+  $$,
+  $$values (0::bigint)$$,
+  '161. active member cannot delete class requirements'
+);
+select throws_ok(
+  $$
+    insert into public.user_achievements (user_id, achievement_key)
+    values ('10000000-0000-0000-0000-000000000002', 'critical_roll')
+  $$,
+  '42501',
+  null,
+  '162. active member cannot award an achievement to themselves'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$select count(*)::bigint from public.achievement_definitions$$,
+  $$values (51::bigint)$$,
+  '163. admin reads all achievement definitions including secrets'
+);
+select results_eq(
+  $$select count(*)::bigint from public.user_achievements$$,
+  $$values (1::bigint)$$,
+  '164. admin reads awarded achievements'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.achievement_definitions
+    where achievement_key = 'dice_speak'
+  $$,
+  $$values (0::bigint)$$,
+  '165. active member cannot see an unearned secret definition'
+);
+reset role;
+
+select results_eq(
+  $$
+    select awarded, achievement_key, awarded_at is not null
+    from private.award_achievement_once(
+      '10000000-0000-0000-0000-000000000002',
+      'dice_speak',
+      'test',
+      '81000000-0000-0000-0000-000000000001'
+    )
+  $$,
+  $$values (true, 'dice_speak', true)$$,
+  '166. helper can award a secret achievement to an active user'
+);
+
+set local role authenticated;
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.achievement_definitions
+    where achievement_key = 'dice_speak'
+  $$,
+  $$values (1::bigint)$$,
+  '167. active member sees their own earned secret definition'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',
+  true
+);
+do $$
+begin
+  perform * from private.award_achievement_once(
+    '10000000-0000-0000-0000-000000000004',
+    'friendly_fire',
+    'test',
+    '81000000-0000-0000-0000-000000000002'
+  );
+end;
+$$;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.user_achievements
+    where user_id = '10000000-0000-0000-0000-000000000004'
+      and achievement_key = 'friendly_fire'
+  $$,
+  $$values (0::bigint)$$,
+  '168. another member secret achievement is not exposed'
+);
+reset role;
+
+create temporary table pgtap_achievement_points_before as
+select
+  count(*)::bigint as event_count,
+  coalesce(sum(points), 0)::bigint as total_points
+from public.point_events
+where user_id = '10000000-0000-0000-0000-000000000002';
+
+select results_eq(
+  $$
+    select awarded, achievement_key, awarded_at is not null
+    from private.award_achievement_once(
+      '10000000-0000-0000-0000-000000000002',
+      'critical_roll',
+      'test',
+      '81000000-0000-0000-0000-000000000003'
+    )
+  $$,
+  $$values (true, 'critical_roll', true)$$,
+  '169. helper awards an active definition to an active user'
+);
+
+select results_eq(
+  $$
+    select awarded, achievement_key, awarded_at is null
+    from private.award_achievement_once(
+      '10000000-0000-0000-0000-000000000002',
+      'critical_roll',
+      'repeat',
+      '81000000-0000-0000-0000-000000000004'
+    )
+  $$,
+  $$values (false, 'critical_roll', true)$$,
+  '170. helper does not duplicate an earned achievement'
+);
+
+update public.achievement_definitions
+set is_active = false
+where achievement_key = 'hot_streak';
+
+select throws_ok(
+  $$
+    select * from private.award_achievement_once(
+      '10000000-0000-0000-0000-000000000002',
+      'hot_streak'
+    )
+  $$,
+  '22023',
+  null,
+  '171. helper rejects an inactive achievement definition'
+);
+
+update public.achievement_definitions
+set is_active = true
+where achievement_key = 'hot_streak';
+
+select throws_ok(
+  $$
+    select * from private.award_achievement_once(
+      '10000000-0000-0000-0000-000000000002',
+      'missing_achievement'
+    )
+  $$,
+  '22023',
+  null,
+  '172. helper rejects an unknown achievement definition'
+);
+
+select throws_ok(
+  $$
+    select * from private.award_achievement_once(
+      '10000000-0000-0000-0000-000000000006',
+      'critical_roll'
+    )
+  $$,
+  '42501',
+  null,
+  '173. helper rejects an inactive achievement recipient'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.point_events
+    where user_id = '10000000-0000-0000-0000-000000000002'
+  $$,
+  $$select event_count from pgtap_achievement_points_before$$,
+  '174. awarding achievements does not create point events'
+);
+
+select results_eq(
+  $$
+    select coalesce(sum(points), 0)::bigint
+    from public.point_events
+    where user_id = '10000000-0000-0000-0000-000000000002'
+  $$,
+  $$select total_points from pgtap_achievement_points_before$$,
+  '175. awarding achievements does not change the user point balance'
+);
+
+select is(
+  has_function_privilege(
+    'anon',
+    'private.award_achievement_once(uuid,text,text,uuid,text,uuid)',
+    'EXECUTE'
+  ),
+  false,
+  '176. anonymous role cannot execute the achievement award helper'
+);
+
+select is(
+  has_function_privilege(
+    'authenticated',
+    'private.award_achievement_once(uuid,text,text,uuid,text,uuid)',
+    'EXECUTE'
+  ),
+  false,
+  '177. authenticated role cannot execute the achievement award helper directly'
+);
+
+set local role authenticated;
+select throws_ok(
+  $$
+    update public.user_achievements
+    set note = 'Niedozwolona zmiana'
+    where user_id = '10000000-0000-0000-0000-000000000002'
+  $$,
+  '42501',
+  null,
+  '178. active member cannot update earned achievements'
+);
+select throws_ok(
+  $$
+    delete from public.user_achievements
+    where user_id = '10000000-0000-0000-0000-000000000002'
+  $$,
+  '42501',
+  null,
+  '179. active member cannot delete earned achievements'
 );
 reset role;
 

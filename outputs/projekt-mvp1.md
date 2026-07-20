@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2: Etapy 10A–10E są zamknięte; Etap 11A (plan pełnego systemu odznak i klas postaci) jest w toku. PWA, instalacja na telefonie i powiadomienia push są planowane po Etapie 11.
+Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2: Etapy 10A–10E i 11A są zamknięte; Etap 11B wdraża fundament SQL/RLS/seed pełnego systemu odznak i klas postaci. Następny etap to 11C — UI na realnych definicjach, bez automatyzacji. PWA, instalacja na telefonie i powiadomienia push są planowane po Etapie 11.
 
 ## 1. Decyzje projektowe
 
@@ -796,7 +796,7 @@ Pierwsze podłączenie po przygotowaniu 10B powinno objąć `meeting_created`, `
 
 ### 11A — plan i kontrakt
 
-**W toku, bez implementacji.** Etap 11 rozszerza żywe Legendarium o trwałe odznaki i klasy postaci. Wszystkie grafiki i definicje odznak oraz klas trafiają do systemu od razu, natomiast automatyczne przyznawanie jest świadomie wdrażane etapami. Etap 11 nie obejmuje PWA, instalacji na telefonie, powiadomień push, multi-grup, płatności, publicznego dostępu ani pełnego panelu administracyjnego.
+**Zamknięty.** Etap 11 rozszerza żywe Legendarium o trwałe odznaki i klasy postaci. Wszystkie grafiki i definicje odznak oraz klas trafiają do systemu od razu, natomiast automatyczne przyznawanie jest świadomie wdrażane etapami. Etap 11 nie obejmuje PWA, instalacji na telefonie, powiadomień push, multi-grup, płatności, publicznego dostępu ani pełnego panelu administracyjnego.
 
 Odznaka ma przede wszystkim znaczenie prestiżowe. W 11B–11E jej wartość `points` jest wartością katalogową do prezentacji, **nie tworzy dodatkowego `point_event`**. Pozwala to uniknąć niejawnego podwójnego wynagradzania tych samych aktywności. Ewentualne podłączenie punktów do odznak wymaga późniejszej, osobno zaakceptowanej decyzji produktowej i zamkniętego katalogu `action_type`.
 
@@ -878,7 +878,7 @@ W 11B seed obejmuje 14 klas i wszystkie ich wymagania odznak. Grafika jest mapow
 ### Podział prac i zakres 11B
 
 1. **11A — plan odznak i klas:** bieżący kontrakt, bez kodu.
-2. **11B — fundament danych:** migracje `achievement_definitions`, `user_achievements`, `class_definitions`, `class_requirements`; RLS, prywatny helper, seed wszystkich 51 odznak i 14 klas, kontrola ścieżek grafik, pgTAP. **Bez automatycznego przyznawania.**
+2. **11B — fundament danych — wdrożony:** migracja `20260705001900_achievements_and_classes_foundation.sql` dodaje `achievement_definitions`, `user_achievements`, `class_definitions`, `class_requirements`, RLS, prywatny idempotentny helper, seed wszystkich 51 odznak, 14 klas i 70 wymagań oraz pgTAP. Wszystkie ścieżki grafik odpowiadają istniejącym assetom. **Bez automatycznego przyznawania, bez backfillu i bez tworzenia `point_events`; punkty odznak pozostają wartością prestiżową.**
 3. **11C — UI katalogu:** Legendarium, profil i klasy na prawdziwych definicjach, nadal bez automatyzacji.
 4. **11D — proste automatyczne odznaki:** wyłącznie grupa `early automatic` wraz z idempotencją i testami.
 5. **11E — progres klas:** read layer, karty klas i wyróżnione odblokowane klasy.

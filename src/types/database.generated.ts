@@ -9,6 +9,57 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      achievement_definitions: {
+        Row: {
+          achievement_key: string
+          automation_status: string
+          condition_text: string
+          created_at: string
+          description: string
+          icon_path: string | null
+          is_active: boolean
+          is_manual: boolean
+          is_secret: boolean
+          name: string
+          points: number
+          rarity: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          achievement_key: string
+          automation_status: string
+          condition_text: string
+          created_at?: string
+          description: string
+          icon_path?: string | null
+          is_active?: boolean
+          is_manual?: boolean
+          is_secret?: boolean
+          name: string
+          points?: number
+          rarity: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          achievement_key?: string
+          automation_status?: string
+          condition_text?: string
+          created_at?: string
+          description?: string
+          icon_path?: string | null
+          is_active?: boolean
+          is_manual?: boolean
+          is_secret?: boolean
+          name?: string
+          points?: number
+          rarity?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_content: {
         Row: {
           content_key: string
@@ -108,6 +159,72 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_definitions: {
+        Row: {
+          class_key: string
+          created_at: string
+          description: string
+          icon_path: string | null
+          is_active: boolean
+          name: string
+          playstyle: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          class_key: string
+          created_at?: string
+          description: string
+          icon_path?: string | null
+          is_active?: boolean
+          name: string
+          playstyle: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          class_key?: string
+          created_at?: string
+          description?: string
+          icon_path?: string | null
+          is_active?: boolean
+          name?: string
+          playstyle?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      class_requirements: {
+        Row: {
+          achievement_key: string
+          class_key: string
+        }
+        Insert: {
+          achievement_key: string
+          class_key: string
+        }
+        Update: {
+          achievement_key?: string
+          class_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_requirements_achievement_key_fkey"
+            columns: ["achievement_key"]
+            isOneToOne: false
+            referencedRelation: "achievement_definitions"
+            referencedColumns: ["achievement_key"]
+          },
+          {
+            foreignKeyName: "class_requirements_class_key_fkey"
+            columns: ["class_key"]
+            isOneToOne: false
+            referencedRelation: "class_definitions"
+            referencedColumns: ["class_key"]
           },
         ]
       }
@@ -587,6 +704,58 @@ export type Database = {
           },
           {
             foreignKeyName: "ratings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_achievements: {
+        Row: {
+          achievement_key: string
+          awarded_at: string
+          awarded_by: string | null
+          note: string | null
+          source_entity_id: string | null
+          source_event_type: string | null
+          user_id: string
+        }
+        Insert: {
+          achievement_key: string
+          awarded_at?: string
+          awarded_by?: string | null
+          note?: string | null
+          source_entity_id?: string | null
+          source_event_type?: string | null
+          user_id: string
+        }
+        Update: {
+          achievement_key?: string
+          awarded_at?: string
+          awarded_by?: string | null
+          note?: string | null
+          source_entity_id?: string | null
+          source_event_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_key_fkey"
+            columns: ["achievement_key"]
+            isOneToOne: false
+            referencedRelation: "achievement_definitions"
+            referencedColumns: ["achievement_key"]
+          },
+          {
+            foreignKeyName: "user_achievements_awarded_by_fkey"
+            columns: ["awarded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
