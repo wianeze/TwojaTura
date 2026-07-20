@@ -6,6 +6,7 @@ export type BadgePreview = {
   description: string;
   imageUrl?: string;
   earned?: boolean;
+  preview?: boolean;
   fallbackSymbol?: string;
 };
 
@@ -15,6 +16,7 @@ type BadgePreviewCardProps = {
 
 export function BadgePreviewCard({ badge }: BadgePreviewCardProps) {
   const earned = badge.earned ?? false;
+  const preview = badge.preview ?? false;
 
   return (
     <article
@@ -23,7 +25,7 @@ export function BadgePreviewCard({ badge }: BadgePreviewCardProps) {
           ? "paper-wash shadow-[0_12px_26px_rgba(68,40,24,0.14)]"
           : "bg-[#e5d8c3]/72 opacity-65 shadow-inner grayscale-[0.75]"
       }`}
-      aria-label={`${badge.name}: ${earned ? "zdobyta" : "niezdobyta"}`}
+      aria-label={`${badge.name}: ${preview ? "wkrótce" : earned ? "zdobyta" : "niezdobyta"}`}
     >
       <div
         className={`relative mx-auto grid size-19 place-items-center rounded-full border-2 shadow-[0_12px_22px_rgba(65,37,22,0.22)] ${
@@ -47,9 +49,14 @@ export function BadgePreviewCard({ badge }: BadgePreviewCardProps) {
         )}
       </div>
 
-      {!earned && (
+      {!earned && !preview && (
         <span className="absolute top-3 right-3 rounded-full bg-[#51463d]/82 px-2 py-1 text-[0.52rem] font-bold tracking-wider text-[#f2e7d8] uppercase">
           Niezdobyta
+        </span>
+      )}
+      {preview && (
+        <span className="absolute top-3 right-3 rounded-full bg-[#6f513c]/78 px-2 py-1 text-[0.52rem] font-bold tracking-wider text-[#fff0d2] uppercase">
+          Wkrótce
         </span>
       )}
       <h3 className="font-display mt-3 text-sm font-semibold">{badge.name}</h3>
