@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2 jest w toku: Etapy 10B oraz 10C-1–10C-3 są zamknięte, a Etap 10C-4 wdraża prawdziwe punkty za utworzenie spotkania. Następnym krokiem jest 10D — żywe Legendarium.
+Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2 jest w toku: Etapy 10B oraz 10C-1–10C-4 są zamknięte, a Etap 10D wdrożył żywe Legendarium oparte o realne punkty.
 
 ## 1. Decyzje projektowe
 
@@ -717,20 +717,20 @@ Etap 10 nie obejmuje powiadomień, wielu grup, płatności, publicznego dostępu
 - **10C-2 — RSVP i głosowanie — zamknięty.** Po udanym zapisie odpowiedzi Server Action wywołuje `award_meeting_rsvp_points(meeting_id)`, a po dodaniu głosu — `award_meeting_vote_points(meeting_id)`. Oba wąskie RPC korzystają wyłącznie z `auth.uid()`, wymagają zapisanego rekordu źródłowego i przyznają nagrodę najwyżej raz na użytkownika i spotkanie.
 - Odpowiedzi TAK i NIE są nagradzane jednakowo jako reakcja na spotkanie. Zmiana RSVP ani kolejne głosy na inne gry w tym samym spotkaniu nie tworzą drugiej nagrody.
 - **10C-3 — oceny i Kronika — zamknięty.** Po utworzeniu pierwszej własnej oceny gry Server Action wywołuje `award_rating_created_points(game_id)`, a po atomowym utworzeniu wpisu Kroniki — `award_play_logged_points(play_id)`. Edycja istniejącej oceny ani wpisu Kroniki nie uruchamia naliczania, a idempotencja blokuje ponowną nagrodę dla tej samej encji.
-- **10C-4 — utworzenie spotkania — w toku.** Po utworzeniu spotkania Server Action wywołuje `award_meeting_created_points(meeting_id)`. Wąskie RPC korzysta wyłącznie z `auth.uid()`, wymaga aktywnego autora istniejącego spotkania i przyznaje `meeting_created` najwyżej raz dla danego spotkania. Edycja spotkania nie uruchamia naliczania.
+- **10C-4 — utworzenie spotkania — zamknięty.** Po utworzeniu spotkania Server Action wywołuje `award_meeting_created_points(meeting_id)`. Wąskie RPC korzysta wyłącznie z `auth.uid()`, wymaga aktywnego autora istniejącego spotkania i przyznaje `meeting_created` najwyżej raz dla danego spotkania. Edycja spotkania nie uruchamia naliczania.
 - Po 10C-4 proste źródła punktów obejmują milestone’y Półki, RSVP, pierwszy głos w spotkaniu, utworzenie spotkania, pierwszą ocenę gry oraz zapis partii.
-- `play_participation`, `voted_game_played`, punkty za zwycięstwo lub miejsce, odznaki i sezony pozostają poza zakresem. Następnym krokiem jest 10D — żywe Legendarium.
+- `play_participation`, `voted_game_played`, punkty za zwycięstwo lub miejsce, odznaki i sezony pozostają poza zakresem.
 - Do mechanizmu z 10B zostają kolejno podłączone proste, jednoznaczne akcje: utworzenie spotkania, pierwsza odpowiedź RSVP, pierwszy głos w spotkaniu, pierwsza ocena danej gry, zapis partii oraz przekroczenie progów onboardingowych Półki.
 - UI Stołu odróżnia preview od punktów już zdobytych; zniknięcie questa nie jest samo w sobie sygnałem do naliczenia. Źródłem naliczenia pozostaje zatwierdzona mutacja domenowa w bazie.
 - Follow-upy zależne od kilku tabel nie są uruchamiane w pierwszym podłączeniu.
 
 #### 10D — żywe Legendarium
 
-- Ranking korzysta z istniejącego `get_leaderboard()` i pokazuje aktywnych członków, miejsce oraz aktualne saldo.
-- Karta zalogowanego gracza pokazuje własne saldo, pozycję oraz ostatnie własne zdarzenia z `point_events` dostępne przez istniejące RLS.
-- Sekcja „Jak zdobywać punkty” korzysta z tego samego katalogu prezentacyjnego co Stół i nie obiecuje jeszcze niewdrożonych follow-upów.
-- Ostatnie punkty pokazują datę, wartość, czytelną nazwę akcji i opcjonalne powiązanie, bez ujawniania ledgerów innych użytkowników.
-- Odznaki pozostają statycznym preview. Częściowo wyliczane odznaki można rozważyć jako osobny 10D2 dopiero po ustabilizowaniu punktów; trwałe odznaki wymagają osobnego modelu danych.
+- **Wdrożony bez zmian SQL/RLS/migracji.** Ranking korzysta z istniejącego `get_leaderboard()` i pokazuje aktywnych członków, miejsce oraz aktualne saldo.
+- Karta zalogowanego gracza pokazuje własne saldo, pozycję oraz ostatnie własne zdarzenia z `point_events` dostępne przez istniejące RLS; nie odczytuje surowego ledgera innych osób.
+- Sekcja „Jak zdobywać punkty” pokazuje wyłącznie aktualnie działające nagrody i zaznacza idempotencję nagród dla zdarzenia lub progu.
+- Ostatnie punkty pokazują datę, wartość, czytelną nazwę `action_type` i opcjonalny opis, bez technicznych nazw w UI.
+- Odznaki pozostają statycznym preview. Trwałe odznaki, sezony, streaki, `play_participation` i `voted_game_played` wymagają osobnego podetapu.
 
 #### 10E — testy, balans i odbiór
 
