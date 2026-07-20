@@ -44,3 +44,22 @@ export async function awardMeetingVotePointsAfterSave(
 ) {
   return requestMeetingPointAward(requestAward);
 }
+
+export async function awardMeetingCreatedPointsAfterSave(
+  wasCreated: boolean,
+  requestAward: () => PromiseLike<MeetingPointAwardResponse>,
+) {
+  if (!wasCreated) {
+    return {
+      ok: true as const,
+      skipped: true as const,
+      awarded: false,
+      points: 0,
+      pointEventId: null,
+    };
+  }
+
+  const result = await requestMeetingPointAward(requestAward);
+
+  return result.ok ? { ...result, skipped: false as const } : result;
+}

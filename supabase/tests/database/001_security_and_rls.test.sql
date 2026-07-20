@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(127);
+select plan(135);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -2147,6 +2147,103 @@ select throws_ok(
   '42501',
   null,
   '127. rating and play point events remain append-only'
+);
+reset role;
+
+select results_eq(
+  $$
+    select pronargs, oidvectortypes(proargtypes)
+    from pg_proc
+    where oid = 'public.award_meeting_created_points(uuid)'::regprocedure
+  $$,
+  $$values (1::smallint, 'uuid')$$,
+  '128. meeting created award RPC accepts only a meeting id'
+);
+
+set local role anon;
+select throws_ok(
+  $$select * from public.award_meeting_created_points('40000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '129. anonymous user cannot execute meeting created award RPC'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000006","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select * from public.award_meeting_created_points('40000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '130. inactive member cannot award meeting created points'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000004","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select results_eq(
+  $$
+    select awarded, points, point_event_id is not null
+    from public.award_meeting_created_points(
+      '75000000-0000-0000-0000-000000000001'
+    )
+  $$,
+  $$values (true, 25, true)$$,
+  '131. active meeting author earns meeting_created points once'
+);
+
+select results_eq(
+  $$
+    select
+      award.awarded,
+      award.points,
+      (
+        select count(*)::integer
+        from public.point_events
+        where user_id = '10000000-0000-0000-0000-000000000004'
+          and action_type = 'meeting_created'
+          and related_entity_id = '75000000-0000-0000-0000-000000000001'
+      )
+    from public.award_meeting_created_points(
+      '75000000-0000-0000-0000-000000000001'
+    ) as award
+  $$,
+  $$values (false, 25, 1)$$,
+  '132. repeated meeting created award call does not duplicate points'
+);
+
+select throws_ok(
+  $$select * from public.award_meeting_created_points('40000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '133. member cannot earn meeting_created for another author meeting'
+);
+
+select results_eq(
+  $$select total_points from public.user_point_balances$$,
+  $$values (1080::bigint)$$,
+  '134. user point balance includes meeting created reward exactly once'
+);
+
+select throws_ok(
+  $$
+    update public.point_events
+    set points = 999
+    where user_id = '10000000-0000-0000-0000-000000000004'
+      and action_type = 'meeting_created'
+  $$,
+  '42501',
+  null,
+  '135. meeting created point events remain append-only'
 );
 reset role;
 

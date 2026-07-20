@@ -17,6 +17,7 @@ import {
   getMeetingConfirmationTargetStatus,
 } from "../../src/features/meetings/meeting-status.ts";
 import {
+  awardMeetingCreatedPointsAfterSave,
   awardMeetingRsvpPointsAfterSave,
   awardMeetingVotePointsAfterSave,
 } from "../../src/features/meetings/meeting-points.ts";
@@ -87,6 +88,54 @@ test("an idempotent meeting point no-op does not fail the domain mutation", asyn
 
   assert.equal(rsvpResult.ok, true);
   assert.equal(voteResult.ok, true);
+});
+
+test("new meeting requests meeting_created points", async () => {
+  let requestCount = 0;
+  const result = await awardMeetingCreatedPointsAfterSave(true, async () => {
+    requestCount += 1;
+    return {
+      data: [{ awarded: true, points: 25, point_event_id: "point-event-3" }],
+      error: null,
+    };
+  });
+
+  assert.equal(requestCount, 1);
+  assert.deepEqual(result, {
+    ok: true,
+    skipped: false,
+    awarded: true,
+    points: 25,
+    pointEventId: "point-event-3",
+  });
+});
+
+test("editing a meeting skips meeting_created award", async () => {
+  let requestCount = 0;
+  const result = await awardMeetingCreatedPointsAfterSave(false, async () => {
+    requestCount += 1;
+    return { data: null, error: null };
+  });
+
+  assert.equal(requestCount, 0);
+  assert.deepEqual(result, {
+    ok: true,
+    skipped: true,
+    awarded: false,
+    points: 0,
+    pointEventId: null,
+  });
+});
+
+test("idempotent meeting_created no-op does not fail meeting create", async () => {
+  const result = await awardMeetingCreatedPointsAfterSave(true, async () => ({
+    data: [{ awarded: false, points: 25, point_event_id: null }],
+    error: null,
+  }));
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.awarded, false);
 });
 
 function buildFormData(

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
 import { buildMeetingConfirmationStatusPatch } from "./meeting-status";
 import {
+  awardMeetingCreatedPointsAfterSave,
   awardMeetingRsvpPointsAfterSave,
   awardMeetingVotePointsAfterSave,
 } from "./meeting-points";
@@ -82,6 +83,20 @@ export async function createMeetingAction(
     return {
       status: "error",
       message: mapMeetingDatabaseError(error ?? {}),
+    };
+  }
+
+  const pointAward = await awardMeetingCreatedPointsAfterSave(true, () =>
+    access.supabase.rpc("award_meeting_created_points", {
+      p_meeting_id: data.id,
+    }),
+  );
+
+  if (!pointAward.ok) {
+    return {
+      status: "error",
+      message:
+        "Spotkanie zostało zapisane, ale nie udało się naliczyć punktów. Odśwież Kalendarium przed ponowną próbą.",
     };
   }
 
