@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2 jest w toku: Etapy 10B oraz 10C-1–10C-4 są zamknięte, a Etap 10D wdrożył żywe Legendarium oparte o realne punkty.
+Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2: Etapy 10A–10E są zamknięte; Etap 11A (plan pełnego systemu odznak i klas postaci) jest w toku. PWA, instalacja na telefonie i powiadomienia push są planowane po Etapie 11.
 
 ## 1. Decyzje projektowe
 
@@ -724,7 +724,7 @@ Etap 10 nie obejmuje powiadomień, wielu grup, płatności, publicznego dostępu
 - UI Stołu odróżnia preview od punktów już zdobytych; zniknięcie questa nie jest samo w sobie sygnałem do naliczenia. Źródłem naliczenia pozostaje zatwierdzona mutacja domenowa w bazie.
 - Follow-upy zależne od kilku tabel nie są uruchamiane w pierwszym podłączeniu.
 
-#### 10D — żywe Legendarium
+#### 10D — żywe Legendarium — zamknięty
 
 - **Wdrożony bez zmian SQL/RLS/migracji.** Ranking korzysta z istniejącego `get_leaderboard()` i pokazuje aktywnych członków, miejsce oraz aktualne saldo.
 - Karta zalogowanego gracza pokazuje własne saldo, pozycję oraz ostatnie własne zdarzenia z `point_events` dostępne przez istniejące RLS; nie odczytuje surowego ledgera innych osób.
@@ -732,7 +732,7 @@ Etap 10 nie obejmuje powiadomień, wielu grup, płatności, publicznego dostępu
 - Ostatnie punkty pokazują datę, wartość, czytelną nazwę `action_type` i opcjonalny opis, bez technicznych nazw w UI.
 - Odznaki pozostają statycznym preview. Trwałe odznaki, sezony, streaki, `play_participation` i `voted_game_played` wymagają osobnego podetapu.
 
-#### 10E — testy, balans i odbiór
+#### 10E — testy, balans i odbiór — zamknięty
 
 - pgTAP obejmuje idempotencję, równoległe próby naliczenia, append-only, RLS, brak bezpośredniego naliczania przez membera, korekty admina i poprawność `SUM(points)`.
 - Testy aplikacyjne obejmują mapowanie `action_type`, teksty Legendarium, stany puste i zgodność preview Stołu z katalogiem nagród.
@@ -792,7 +792,109 @@ Pierwsze podłączenie po przygotowaniu 10B powinno objąć `meeting_created`, `
 
 10B wymaga nowej migracji SQL, ale nie nowej tabeli salda ani przebudowy ledgeru. Wystarczający model to obecne `point_events` plus częściowy unikalny indeks idempotencji, prywatny helper stałych nagród i wąskie triggery lub funkcje związane z konkretnymi mutacjami. `user_point_balances` i `get_leaderboard()` pozostają źródłami odczytu bez zmiany kontraktu. Nie należy dodawać tabeli `quests`, pola `points_balance` w profilu ani uniwersalnego RPC przyjmującego dowolne punkty.
 
-## 11. Kryterium gotowości projektu do kodowania
+## 11. MVP 2 — Etap 11: pełny system odznak i klas postaci
+
+### 11A — plan i kontrakt
+
+**W toku, bez implementacji.** Etap 11 rozszerza żywe Legendarium o trwałe odznaki i klasy postaci. Wszystkie grafiki i definicje odznak oraz klas trafiają do systemu od razu, natomiast automatyczne przyznawanie jest świadomie wdrażane etapami. Etap 11 nie obejmuje PWA, instalacji na telefonie, powiadomień push, multi-grup, płatności, publicznego dostępu ani pełnego panelu administracyjnego.
+
+Odznaka ma przede wszystkim znaczenie prestiżowe. W 11B–11E jej wartość `points` jest wartością katalogową do prezentacji, **nie tworzy dodatkowego `point_event`**. Pozwala to uniknąć niejawnego podwójnego wynagradzania tych samych aktywności. Ewentualne podłączenie punktów do odznak wymaga późniejszej, osobno zaakceptowanej decyzji produktowej i zamkniętego katalogu `action_type`.
+
+### Rekomendowany model danych
+
+#### `achievement_definitions`
+
+Centralny, seedowany katalog wszystkich odznak:
+
+| Kolumna | Kontrakt |
+| --- | --- |
+| `achievement_key` | `text` PK, stabilny klucz techniczny |
+| `name`, `description`, `condition_text` | tekst prezentacyjny i warunek zdobycia |
+| `rarity` | `common`, `rare`, `epic`, `legendary`, `secret` |
+| `points` | wartość prestiżowa katalogu, bez automatycznego ledgeru |
+| `icon_path` | publiczna ścieżka `/badges/<plik>.png` |
+| `is_secret`, `is_manual`, `is_active` | kontrola ujawniania, sposobu przyznania i dostępności |
+| `automation_status` | `automatic`, `manual`, `planned`, `secret` |
+| `sort_order`, `created_at`, `updated_at` | stabilne sortowanie i audyt techniczny |
+
+#### `user_achievements`
+
+Trwałe, append-only przypisanie odznaki do gracza: `user_id`, `achievement_key`, `awarded_at`, `awarded_by nullable`, `source_event_type nullable`, `source_entity_id nullable`, `note nullable`, z kluczem głównym `(user_id, achievement_key)`. Odznaki są idempotentne: nie odbiera się ich automatycznie po edycji, usunięciu ani cofnięciu akcji źródłowej. Historyczny backfill nie należy do pierwszego kroku.
+
+Prywatny helper `private.award_achievement_once(p_user_id uuid, p_achievement_key text, p_source_event_type text default null, p_source_entity_id uuid default null, p_note text default null, p_awarded_by uuid default auth.uid())` będzie `SECURITY DEFINER`, z pustym `search_path`, sprawdzeniem aktywnego członkostwa i aktywnej definicji. Zwraca `awarded boolean` oraz `achievement_key`; konflikt `(user_id, achievement_key)` nie jest błędem. Nie będzie publicznego RPC przyjmującego dowolną odznakę od klienta.
+
+#### Klasy postaci
+
+`class_definitions` przechowuje `class_key`, `name`, `description`, `playstyle`, `icon_path`, `is_active`, `sort_order`. `class_requirements` wiąże `class_key` z `achievement_key`. Progres może być obliczany w read layer (bez osobnej tabeli `user_class_progress`). Gracz może odblokować wiele klas; wybór wyróżnionej klasy w profilu pozostaje późniejszą decyzją.
+
+### RLS i bezpieczeństwo
+
+- Aktywny członek czyta wyłącznie aktywne definicje; sekretne definicje w UI są ukryte albo przedstawione jako nieujawnione trofea.
+- Aktywni członkowie mogą czytać zdobyte odznaki aktywnych członków na potrzeby profili i leaderboardu, ale nie cudze dane źródłowe ani notatki administracyjne poza koniecznym zakresem prezentacji.
+- Zwykły użytkownik nie ma `INSERT`, `UPDATE` ani `DELETE` do `user_achievements` i nie może sam sobie nadać odznaki.
+- Definicje zmienia admin albo zaufany seed/migracja. Ręczne odznaki przyznaje w przyszłości wyłącznie wąska funkcja administratorska; automatyczne — wyłącznie kontrolowane funkcje domenowe. Brak ogólnego `award_any_achievement`.
+
+### Katalog odznak i status automatyzacji
+
+W 11B seed obejmuje komplet 51 definicji odpowiadających plikom z `public/badges`. Klucze muszą być zmapowane 1:1 do sprawdzonej ścieżki grafiki.
+
+| Status | Klucze |
+| --- | --- |
+| **early automatic** | `critical_roll`, `initiative_master`, `camp_host`, `party_summoned`, `party_bard`, `coast_chronicler`, `short_rest`, `full_party`, `lone_wolf`, `side_quest`, `guidance`, `loot_goblin`, `bag_of_holding`, `fanboy`, `one_more_turn` |
+| **planned** | `natural_one`, `candlekeep_sage`, `bone_breaker`, `persuasion_master`, `table_rogue`, `dark_urge`, `tadpole_enjoyer`, `save_scummer`, `multiclass`, `tavern_brawler`, `quest_accepted`, `vicious_mockery`, `hot_take`, `long_rest`, `legendary_artifact`, `eternal_shelf_curse`, `resurrection`, `oathbreaker`, `glass_cannon`, `skill_issue`, `git_gud`, `redemption_arc`, `chosen_of_the_table`, `final_boss`, `boss_defeated`, `plot_armor`, `main_character`, `time_traveler` |
+| **manual** | `last_turn_hero`, `rule_paladin` |
+| **secret** | `dice_speak`, `friendly_fire`, `no_save_found`, `the_absolute`, `critical_success_question_mark`, `hot_streak` |
+
+Podział jest celowo konserwatywny: „early automatic” wykorzystuje proste liczniki lub pojedyncze, deterministyczne relacje. Warunki o seriach, ostatnich miejscach, grach konfliktowych/kooperacyjnych, różnicach ocen, długich przerwach i powiązaniu głosu z późniejszą partią pozostają `planned`, dopóki nie dostaną własnych testowalnych reguł historii.
+
+### Katalog klas i wymagania
+
+W 11B seed obejmuje 14 klas i wszystkie ich wymagania odznak. Grafika jest mapowana do `public/Classes` (z rzeczywistą wielkością liter nazwy pliku).
+
+| Klasa | `class_key` | Wymagane odznaki |
+| --- | --- | --- |
+| Paladyn Zasad | `paladyn_zasad` | `rule_paladin`, `guidance`, `camp_host`, `party_summoned`, `chosen_of_the_table` |
+| Bard Stołu | `bard_stolu` | `party_bard`, `vicious_mockery`, `hot_take`, `fanboy`, `one_more_turn` |
+| Łotrzyk Kart | `lotrzyk_kart` | `table_rogue`, `vicious_mockery`, `hot_take`, `oathbreaker`, `critical_success_question_mark` |
+| Czarodziej Analizy | `czarodziej_analizy` | `candlekeep_sage`, `final_boss`, `boss_defeated`, `multiclass`, `time_traveler` |
+| Barbarzyńca Kości | `barbarzynca_kosci` | `bone_breaker`, `tavern_brawler`, `dark_urge`, `plot_armor`, `glass_cannon` |
+| Druid Półki | `druid_polki` | `loot_goblin`, `bag_of_holding`, `eternal_shelf_curse`, `legendary_artifact`, `resurrection` |
+| Nekromanta Figurek | `nekromanta_figurek` | `resurrection`, `long_rest`, `legendary_artifact`, `eternal_shelf_curse`, `time_traveler` |
+| Warlock Meeplów | `warlock_meeplow` | `tadpole_enjoyer`, `oathbreaker`, `dark_urge`, `no_save_found`, `the_absolute` |
+| Multiclass Planszy | `multiclass_planszy` | `multiclass`, `quest_accepted`, `side_quest`, `time_traveler`, `main_character` |
+| Wojownik Stołu | `wojownik_stolu` | `critical_roll`, `plot_armor`, `main_character`, `final_boss`, `boss_defeated` |
+| Kleryk Drużyny | `kleryk_druzyny` | `full_party`, `party_summoned`, `camp_host`, `guidance`, `short_rest` |
+| Łowca Łupów | `lowca_lupow` | `loot_goblin`, `bag_of_holding`, `quest_accepted`, `one_more_turn`, `chosen_of_the_table` |
+| Mnich Cierpliwości | `mnich_cierpliwosci` | `skill_issue`, `git_gud`, `redemption_arc`, `no_save_found`, `long_rest` |
+| Czarownik Chaosu | `czarownik_chaosu` | `dice_speak`, `friendly_fire`, `hot_streak`, `the_absolute`, `critical_success_question_mark` |
+
+### UI po kolejnych podetapach
+
+- **Legendarium:** prawdziwa galeria odznak z filtrem rzadkości, stanami zdobyta / niezdobyta / sekretna i trzema wyróżnionymi trofeami w leaderboardzie.
+- **Profil:** ostatnio zdobyte odznaki, kolekcja gracza oraz postęp do klas.
+- **Klasy postaci:** osobne karty z grafiką, opisem stylu gry i postępem `3/5`; klasy odblokowane są wyraźne, zablokowane przygaszone.
+- **Admin/manual:** brak panelu w pierwszym kroku. Definicje manualne istnieją w katalogu; wąskie ręczne nadawanie jest zaplanowane dopiero w 11F.
+
+### Podział prac i zakres 11B
+
+1. **11A — plan odznak i klas:** bieżący kontrakt, bez kodu.
+2. **11B — fundament danych:** migracje `achievement_definitions`, `user_achievements`, `class_definitions`, `class_requirements`; RLS, prywatny helper, seed wszystkich 51 odznak i 14 klas, kontrola ścieżek grafik, pgTAP. **Bez automatycznego przyznawania.**
+3. **11C — UI katalogu:** Legendarium, profil i klasy na prawdziwych definicjach, nadal bez automatyzacji.
+4. **11D — proste automatyczne odznaki:** wyłącznie grupa `early automatic` wraz z idempotencją i testami.
+5. **11E — progres klas:** read layer, karty klas i wyróżnione odblokowane klasy.
+6. **11F — manualne, sekretne i trudne odznaki:** wąska funkcja administracyjna, odkrywanie sekretów i reguły wymagające analizy historii.
+7. **11G — operatorski backfill:** opcjonalny, jawnie uruchamiany i audytowany.
+8. **11H — balans, dostępność i odbiór.**
+
+### Ryzyka wymagające decyzji przed implementacją
+
+- Odznaki nie powinny obecnie tworzyć `point_events`; w przeciwnym razie trzeba osobno ustalić balans i uniknąć podwójnego liczenia działań.
+- Część warunków wymaga niedostępnej dziś semantyki (wynik kooperacyjny, konfliktowość, komplet aktywnych członków w historycznym momencie, serie i historyczne średnie ocen). Pozostają planowane lub manualne.
+- Sekretne definicje muszą ukrywać nazwę, opis i warunek do chwili zdobycia — nie tylko ikonę.
+- Brak lub niezgodność pliku grafiki, różnice wielkości liter oraz polskie znaki w nazwie pliku muszą blokować seed/test kontraktowy albo używać jawnego fallbacku.
+- Edycja/usunięcie rekordu źródłowego nie odbiera odznaki automatycznie; korekty manualne wymagają audytu. Progres klas powinien być liczony wydajnie zbiorczo, a nie zapytaniem N+1.
+
+## 12. Kryterium gotowości projektu do kodowania
 
 Przed rozpoczęciem implementacji warto zaakceptować trzy decyzje produktowe:
 
@@ -802,7 +904,7 @@ Przed rozpoczęciem implementacji warto zaakceptować trzy decyzje produktowe:
 
 Pozostałe elementy można wdrażać zgodnie z powyższym planem bez dodatkowego rozszerzania zakresu.
 
-## 12. Doprecyzowanie implementacji Auth — Etap 3
+## 13. Doprecyzowanie implementacji Auth — Etap 3
 
 - Auth korzysta z `@supabase/ssr`, dwóch typowanych klientów (`client.ts` i `server.ts`) oraz sesji przechowywanej w cookies. Kod serwerowy nie ufa `getSession()`; tożsamość jest weryfikowana przez `getClaims()`.
 - `src/proxy.ts` odświeża sesję i przenosi cookies do requestu oraz response. Proxy wykonuje szybki gate tras, a layout aplikacji ponownie egzekwuje dostęp po stronie serwera; RLS pozostaje warstwą ostateczną.
