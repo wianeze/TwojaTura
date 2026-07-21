@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2: Etapy 10A–10E oraz 11A–11C są zamknięte. Etap 11B dostarczył fundament SQL/RLS/seed, a Etap 11C podpiął Legendarium i Profil do realnych definicji odznak i klas bez automatycznego przyznawania i bez backfillu. Następny etap to 11D — proste automatyczne odznaki. PWA, instalacja na telefonie i powiadomienia push są planowane po Etapie 11.
+Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2: Etapy 10A–10E, 11A–11C oraz 11D-1 są zamknięte. Etap 11D-1 uruchomił pierwszą, prostą automatyzację odznak wraz z jednorazowym naliczaniem ich katalogowych punktów. Następny krok to 11D-2 lub 11E; bez backfillu historycznego. PWA, instalacja na telefonie i powiadomienia push są planowane po Etapie 11.
 
 ## 1. Decyzje projektowe
 
@@ -798,7 +798,7 @@ Pierwsze podłączenie po przygotowaniu 10B powinno objąć `meeting_created`, `
 
 **Zamknięty.** Etap 11 rozszerza żywe Legendarium o trwałe odznaki i klasy postaci. Wszystkie grafiki i definicje odznak oraz klas trafiają do systemu od razu, natomiast automatyczne przyznawanie jest świadomie wdrażane etapami. Etap 11 nie obejmuje PWA, instalacji na telefonie, powiadomień push, multi-grup, płatności, publicznego dostępu ani pełnego panelu administracyjnego.
 
-Odznaka ma przede wszystkim znaczenie prestiżowe. W 11B–11E jej wartość `points` jest wartością katalogową do prezentacji, **nie tworzy dodatkowego `point_event`**. Pozwala to uniknąć niejawnego podwójnego wynagradzania tych samych aktywności. Ewentualne podłączenie punktów do odznak wymaga późniejszej, osobno zaakceptowanej decyzji produktowej i zamkniętego katalogu `action_type`.
+Od Etapu 11D-1 wartość `achievement_definitions.points` jest realną, jednorazową nagrodą za pierwsze zdobycie odznaki. Pierwsze przyznanie tworzy `point_event` typu `achievement_unlocked:<achievement_key>`; ponowne sprawdzenie tego samego warunku nie zmienia salda. Jest to bonus milestone niezależny od punktów za samą aktywność. Klasy postaci nie przyznają punktów.
 
 ### Rekomendowany model danych
 
@@ -811,7 +811,7 @@ Centralny, seedowany katalog wszystkich odznak:
 | `achievement_key` | `text` PK, stabilny klucz techniczny |
 | `name`, `description`, `condition_text` | tekst prezentacyjny i warunek zdobycia |
 | `rarity` | `common`, `rare`, `epic`, `legendary`, `secret` |
-| `points` | wartość prestiżowa katalogu, bez automatycznego ledgeru |
+| `points` | jednorazowa nagroda dopisywana do ledgeru przy pierwszym zdobyciu odznaki |
 | `icon_path` | publiczna ścieżka `/badges/<plik>.png` |
 | `is_secret`, `is_manual`, `is_active` | kontrola ujawniania, sposobu przyznania i dostępności |
 | `automation_status` | `automatic`, `manual`, `planned`, `secret` |
@@ -821,7 +821,7 @@ Centralny, seedowany katalog wszystkich odznak:
 
 Trwałe, append-only przypisanie odznaki do gracza: `user_id`, `achievement_key`, `awarded_at`, `awarded_by nullable`, `source_event_type nullable`, `source_entity_id nullable`, `note nullable`, z kluczem głównym `(user_id, achievement_key)`. Odznaki są idempotentne: nie odbiera się ich automatycznie po edycji, usunięciu ani cofnięciu akcji źródłowej. Historyczny backfill nie należy do pierwszego kroku.
 
-Prywatny helper `private.award_achievement_once(p_user_id uuid, p_achievement_key text, p_source_event_type text default null, p_source_entity_id uuid default null, p_note text default null, p_awarded_by uuid default auth.uid())` będzie `SECURITY DEFINER`, z pustym `search_path`, sprawdzeniem aktywnego członkostwa i aktywnej definicji. Zwraca `awarded boolean` oraz `achievement_key`; konflikt `(user_id, achievement_key)` nie jest błędem. Nie będzie publicznego RPC przyjmującego dowolną odznakę od klienta.
+Prywatny helper `private.award_achievement_once(p_user_id uuid, p_achievement_key text, p_source_event_type text default null, p_source_entity_id uuid default null, p_note text default null, p_awarded_by uuid default auth.uid())` jest `SECURITY DEFINER`, ma pusty `search_path`, sprawdza aktywne członkostwo i aktywną definicję. Zwraca wynik przyznania, datę, `points_awarded` i `point_event_id`. Konflikt `(user_id, achievement_key)` nie jest błędem, a punkty trafiają do ledgeru tylko przy pierwszym insercie. Helper nie ma bezpośredniego `EXECUTE` dla `anon` ani `authenticated`.
 
 #### Klasy postaci
 
@@ -840,9 +840,10 @@ W 11B seed obejmuje komplet 51 definicji odpowiadających plikom z `public/badge
 
 | Status | Klucze |
 | --- | --- |
-| **early automatic** | `critical_roll`, `initiative_master`, `camp_host`, `party_summoned`, `party_bard`, `coast_chronicler`, `short_rest`, `full_party`, `lone_wolf`, `side_quest`, `guidance`, `loot_goblin`, `bag_of_holding`, `fanboy`, `one_more_turn` |
+| **11D-1 automatic** | `critical_roll`, `initiative_master`, `party_bard`, `coast_chronicler`, `short_rest`, `full_party`, `lone_wolf`, `side_quest`, `guidance`, `loot_goblin`, `bag_of_holding`, `fanboy`, `one_more_turn` |
+| **automatic later** | `camp_host`, `party_summoned` |
 | **planned** | `natural_one`, `candlekeep_sage`, `bone_breaker`, `persuasion_master`, `table_rogue`, `dark_urge`, `tadpole_enjoyer`, `save_scummer`, `multiclass`, `tavern_brawler`, `quest_accepted`, `vicious_mockery`, `hot_take`, `long_rest`, `legendary_artifact`, `eternal_shelf_curse`, `resurrection`, `oathbreaker`, `glass_cannon`, `skill_issue`, `git_gud`, `redemption_arc`, `chosen_of_the_table`, `final_boss`, `boss_defeated`, `plot_armor`, `main_character`, `time_traveler` |
-| **manual** | `last_turn_hero`, `rule_paladin` |
+| **manual** | `last_turn_hero`, `rule_quard` |
 | **secret** | `dice_speak`, `friendly_fire`, `no_save_found`, `the_absolute`, `critical_success_question_mark`, `hot_streak` |
 
 Podział jest celowo konserwatywny: „early automatic” wykorzystuje proste liczniki lub pojedyncze, deterministyczne relacje. Warunki o seriach, ostatnich miejscach, grach konfliktowych/kooperacyjnych, różnicach ocen, długich przerwach i powiązaniu głosu z późniejszą partią pozostają `planned`, dopóki nie dostaną własnych testowalnych reguł historii.
@@ -853,7 +854,7 @@ W 11B seed obejmuje 14 klas i wszystkie ich wymagania odznak. Grafika jest mapow
 
 | Klasa | `class_key` | Wymagane odznaki |
 | --- | --- | --- |
-| Paladyn Zasad | `paladyn_zasad` | `rule_paladin`, `guidance`, `camp_host`, `party_summoned`, `chosen_of_the_table` |
+| Paladyn Zasad | `paladyn_zasad` | `rule_quard`, `guidance`, `camp_host`, `party_summoned`, `chosen_of_the_table` |
 | Bard Stołu | `bard_stolu` | `party_bard`, `vicious_mockery`, `hot_take`, `fanboy`, `one_more_turn` |
 | Łotrzyk Kart | `lotrzyk_kart` | `table_rogue`, `vicious_mockery`, `hot_take`, `oathbreaker`, `critical_success_question_mark` |
 | Czarodziej Analizy | `czarodziej_analizy` | `candlekeep_sage`, `final_boss`, `boss_defeated`, `multiclass`, `time_traveler` |
@@ -878,17 +879,17 @@ W 11B seed obejmuje 14 klas i wszystkie ich wymagania odznak. Grafika jest mapow
 ### Podział prac Etapu 11
 
 1. **11A — plan odznak i klas:** bieżący kontrakt, bez kodu.
-2. **11B — fundament danych — wdrożony:** migracja `20260705001900_achievements_and_classes_foundation.sql` dodaje `achievement_definitions`, `user_achievements`, `class_definitions`, `class_requirements`, RLS, prywatny idempotentny helper, seed wszystkich 51 odznak, 14 klas i 70 wymagań oraz pgTAP. Wszystkie ścieżki grafik odpowiadają istniejącym assetom. **Bez automatycznego przyznawania, bez backfillu i bez tworzenia `point_events`; punkty odznak pozostają wartością prestiżową.**
-3. **11C — UI katalogu — wdrożony:** Legendarium pokazuje realny katalog odznak z filtrami, stanami zdobyta / niezdobyta / sekretna, realne trofea w leaderboardzie oraz 14 klas z progresem wymagań. Profil pokazuje zdobyte odznaki, trzy ostatnie trofea i progres klas. Etap nadal nie przyznaje odznak automatycznie i nie wykonuje backfillu.
-4. **11D — proste automatyczne odznaki:** wyłącznie grupa `early automatic` wraz z idempotencją i testami.
-5. **11E — dalszy rozwój klas:** ewentualny wybór wyróżnionej klasy i dalszy polish; podstawowy read layer, progres i karty klas są już wdrożone w 11C.
+2. **11B — fundament danych — zamknięty:** migracja `20260705001900_achievements_and_classes_foundation.sql` dodała `achievement_definitions`, `user_achievements`, `class_definitions`, `class_requirements`, RLS, prywatny idempotentny helper, seed wszystkich 51 odznak, 14 klas i 70 wymagań oraz pgTAP. Nie wykonywała automatycznego przyznawania ani backfillu.
+3. **11C — UI katalogu — zamknięty:** Legendarium pokazuje realny katalog odznak z filtrami, stanami zdobyta / niezdobyta / sekretna, realne trofea w leaderboardzie oraz 14 klas z progresem wymagań. Profil pokazuje zdobyte odznaki, trzy ostatnie trofea i progres klas.
+4. **11D-1 — proste automatyczne odznaki — wdrożony:** wąskie RPC sprawdza 13 deterministycznych warunków po utworzeniu gry, utworzeniu spotkania, zapisie odpowiedzi, zapisie oceny i utworzeniu wpisu Kroniki. Każda odznaka oraz jej punkty są przyznawane najwyżej raz. Brak automatyzacji odznak manualnych, sekretnych i wymagających złożonej historii; brak backfillu.
+5. **11D-2 / 11E — następny krok:** kolejne jawnie wybrane automatyzacje albo dalszy rozwój klas i wybór wyróżnionej klasy. Klasy pozostają wyliczanym progresem i nie przyznają punktów.
 6. **11F — manualne, sekretne i trudne odznaki:** wąska funkcja administracyjna, odkrywanie sekretów i reguły wymagające analizy historii.
 7. **11G — operatorski backfill:** opcjonalny, jawnie uruchamiany i audytowany.
 8. **11H — balans, dostępność i odbiór.**
 
 ### Ryzyka wymagające decyzji przed implementacją
 
-- Odznaki nie powinny obecnie tworzyć `point_events`; w przeciwnym razie trzeba osobno ustalić balans i uniknąć podwójnego liczenia działań.
+- Odznaki tworzą `point_events` tylko przy pierwszym przyznaniu; idempotencja `user_achievements` i indeks ledgeru muszą nadal chronić przed podwójnym naliczeniem bonusu.
 - Część warunków wymaga niedostępnej dziś semantyki (wynik kooperacyjny, konfliktowość, komplet aktywnych członków w historycznym momencie, serie i historyczne średnie ocen). Pozostają planowane lub manualne.
 - Sekretne definicje muszą ukrywać nazwę, opis i warunek do chwili zdobycia — nie tylko ikonę.
 - Brak lub niezgodność pliku grafiki, różnice wielkości liter oraz polskie znaki w nazwie pliku muszą blokować seed/test kontraktowy albo używać jawnego fallbacku.

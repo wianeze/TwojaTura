@@ -54,13 +54,13 @@ export function ProfileAchievementsPanel({
                 key={achievement.key}
                 className="rounded-xl border border-[#d4b88f]/55 bg-[#fff8e9]/75 p-2 text-center"
               >
-                <div className="relative mx-auto size-12">
+                <div className="relative mx-auto -my-1 size-16">
                   {achievement.iconPath ? (
                     <Image
                       src={achievement.iconPath}
                       alt=""
                       fill
-                      sizes="48px"
+                      sizes="64px"
                       className="object-contain"
                     />
                   ) : null}
@@ -102,13 +102,13 @@ export function ProfileAchievementsPanel({
               key={characterClass.key}
               className="flex items-center gap-2 rounded-xl bg-[#6d402d]/92 px-2.5 py-2 text-[#fff0d8]"
             >
-              <div className="relative size-11 shrink-0">
+              <div className="relative -my-1.5 size-[3.7rem] shrink-0">
                 {characterClass.iconPath ? (
                   <Image
                     src={characterClass.iconPath}
                     alt=""
                     fill
-                    sizes="44px"
+                    sizes="59px"
                     className={`object-contain ${characterClass.unlocked ? "" : "grayscale-[0.65]"}`}
                   />
                 ) : null}

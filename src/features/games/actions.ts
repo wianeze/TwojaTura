@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/types/database.generated";
 import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
+import {
+  awardSimpleAchievementsAfterGameCreate,
+  awardSimpleAchievementsAfterRatingSave,
+} from "@/features/legendarium/achievement-awards";
 import type {
   BggAutofillActionState,
   GameFormState,
@@ -239,6 +243,18 @@ export async function createGameAction(
     };
   }
 
+  const achievementAward = await awardSimpleAchievementsAfterGameCreate(() =>
+    access.supabase.rpc("award_current_user_simple_achievements"),
+  );
+
+  if (!achievementAward.ok) {
+    return {
+      status: "error",
+      message:
+        "Gra została zapisana, ale nie udało się sprawdzić nowych odznak. Odśwież Półkę przed ponowną próbą.",
+    };
+  }
+
   revalidatePath("/gry");
   redirect(`/gry/${data}`);
 }
@@ -427,6 +443,18 @@ export async function saveRatingAction(
       status: "error",
       message:
         "Ocena została zapisana, ale nie udało się naliczyć punktów. Odśwież kartę gry przed ponowną próbą.",
+    };
+  }
+
+  const achievementAward = await awardSimpleAchievementsAfterRatingSave(() =>
+    access.supabase.rpc("award_current_user_simple_achievements"),
+  );
+
+  if (!achievementAward.ok) {
+    return {
+      status: "error",
+      message:
+        "Ocena została zapisana, ale nie udało się sprawdzić nowych odznak. Odśwież kartę gry przed ponowną próbą.",
     };
   }
 

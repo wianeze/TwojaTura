@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
+import {
+  awardSimpleAchievementsAfterMeetingCreate,
+  awardSimpleAchievementsAfterRsvpSave,
+} from "@/features/legendarium/achievement-awards";
 import { buildMeetingConfirmationStatusPatch } from "./meeting-status";
 import {
   awardMeetingCreatedPointsAfterSave,
@@ -97,6 +101,18 @@ export async function createMeetingAction(
       status: "error",
       message:
         "Spotkanie zostało zapisane, ale nie udało się naliczyć punktów. Odśwież Kalendarium przed ponowną próbą.",
+    };
+  }
+
+  const achievementAward = await awardSimpleAchievementsAfterMeetingCreate(() =>
+    access.supabase.rpc("award_current_user_simple_achievements"),
+  );
+
+  if (!achievementAward.ok) {
+    return {
+      status: "error",
+      message:
+        "Spotkanie zostało zapisane, ale nie udało się sprawdzić nowych odznak. Odśwież Kalendarium przed ponowną próbą.",
     };
   }
 
@@ -199,6 +215,19 @@ export async function saveMeetingAvailabilityAction(
       status: "error",
       message:
         "Odpowiedź RSVP została zapisana, ale nie udało się naliczyć punktów.",
+      savedResponse: isAvailable,
+    };
+  }
+
+  const achievementAward = await awardSimpleAchievementsAfterRsvpSave(() =>
+    access.supabase.rpc("award_current_user_simple_achievements"),
+  );
+
+  if (!achievementAward.ok) {
+    return {
+      status: "error",
+      message:
+        "Odpowiedź została zapisana, ale nie udało się sprawdzić nowych odznak.",
       savedResponse: isAvailable,
     };
   }

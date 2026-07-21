@@ -824,6 +824,14 @@ export type Database = {
       }
     }
     Functions: {
+      award_current_user_simple_achievements: {
+        Args: never
+        Returns: {
+          awarded_count: number
+          awarded_keys: string[]
+          points_awarded: number
+        }[]
+      }
       award_meeting_created_points: {
         Args: { p_meeting_id: string }
         Returns: {

@@ -141,18 +141,18 @@ function AchievementCard({ achievement }: { achievement: AchievementView }) {
 
   return (
     <article
-      className={`relative min-h-44 rounded-[1.15rem] border p-3 transition-[filter,opacity,transform] ${
+      className={`relative min-h-44 rounded-[1.15rem] border p-3 pb-7 transition-[filter,opacity,transform] ${
         rarityStyles[achievement.rarity]
       } ${acquired ? "shadow-[0_10px_22px_rgba(73,42,22,0.18)]" : "opacity-72 grayscale-[0.35]"}`}
     >
       <div className="flex items-start gap-2.5">
-        <div className="relative grid size-14 shrink-0 place-items-center rounded-full bg-black/8">
+        <div className="relative grid size-[4.65rem] shrink-0 place-items-center rounded-full bg-black/8">
           {achievement.iconPath && !secret ? (
             <Image
               src={achievement.iconPath}
               alt=""
               fill
-              sizes="56px"
+              sizes="75px"
               className="object-contain p-0.5"
             />
           ) : (
@@ -160,24 +160,26 @@ function AchievementCard({ achievement }: { achievement: AchievementView }) {
           )}
         </div>
         <div className="min-w-0">
-          <span className="block text-[0.58rem] font-bold tracking-[0.13em] uppercase">
+          <span className="block text-[0.65rem] font-bold tracking-[0.13em] uppercase">
             {achievement.rarity}
           </span>
-          <h3 className="font-display mt-0.5 text-sm leading-4 font-semibold">
+          <h3 className="font-display mt-0.5 text-base leading-5 font-semibold">
             {achievement.name}
           </h3>
           {!secret ? (
-            <span className="mt-1 block text-xs font-bold">
+            <span className="mt-1 block text-[0.8rem] font-bold">
               {achievement.points} pkt prestiżu
             </span>
           ) : null}
         </div>
       </div>
-      <p className="mt-2 text-[0.68rem] leading-4">{achievement.description}</p>
-      <p className="mt-1.5 border-t border-current/15 pt-1.5 text-[0.62rem] leading-4 opacity-85">
+      <p className="mt-2 text-[0.76rem] leading-[1.15rem]">
+        {achievement.description}
+      </p>
+      <p className="mt-1.5 border-t border-current/15 pt-1.5 text-[0.7rem] leading-[1.05rem] opacity-85">
         {achievement.conditionText}
       </p>
-      <span className="mt-2 block text-[0.6rem] font-bold uppercase">
+      <span className="absolute right-3 bottom-2 text-right text-[0.68rem] font-bold uppercase">
         {acquired
           ? `Zdobyta ${formatAwardDate(achievement.awardedAt)}`
           : secret

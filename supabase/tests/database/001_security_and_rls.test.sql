@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(179);
+select plan(207);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -2333,7 +2333,7 @@ select throws_ok(
 select throws_ok(
   $$
     insert into public.class_requirements (class_key, achievement_key)
-    values ('paladyn_zasad', 'rule_paladin')
+    values ('paladyn_zasad', 'rule_quard')
   $$,
   '23505',
   null,
@@ -2497,7 +2497,7 @@ select results_eq(
     with removed as (
       delete from public.class_requirements
       where class_key = 'paladyn_zasad'
-        and achievement_key = 'rule_paladin'
+        and achievement_key = 'rule_quard'
       returning 1
     )
     select count(*)::bigint from removed
@@ -2696,8 +2696,8 @@ select results_eq(
     from public.point_events
     where user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$select event_count from pgtap_achievement_points_before$$,
-  '174. awarding achievements does not create point events'
+  $$select event_count + 1 from pgtap_achievement_points_before$$,
+  '174. first achievement award creates one point event'
 );
 
 select results_eq(
@@ -2706,8 +2706,8 @@ select results_eq(
     from public.point_events
     where user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$select total_points from pgtap_achievement_points_before$$,
-  '175. awarding achievements does not change the user point balance'
+  $$select total_points + 5 from pgtap_achievement_points_before$$,
+  '175. first achievement award adds definition points to the user balance'
 );
 
 select is(
@@ -2751,6 +2751,332 @@ select throws_ok(
   '179. active member cannot delete earned achievements'
 );
 reset role;
+
+select results_eq(
+  $$
+    select action_type, description, points, related_entity_type
+    from public.point_events
+    where user_id = '10000000-0000-0000-0000-000000000002'
+      and action_type = 'achievement_unlocked:critical_roll'
+  $$,
+  $$values ('achievement_unlocked:critical_roll', 'Odznaka: Rzut Krytyczny', 5, 'profile')$$,
+  '180. achievement point event uses the definition reward and readable metadata'
+);
+
+insert into public.achievement_definitions (
+  achievement_key,
+  name,
+  description,
+  condition_text,
+  rarity,
+  points,
+  automation_status,
+  sort_order
+)
+values (
+  'pgtap_zero_points',
+  'Test bez punktów',
+  'Definicja testowa bez punktów.',
+  'Warunek testowy.',
+  'common',
+  0,
+  'planned',
+  1000
+);
+
+select results_eq(
+  $$
+    select awarded, points_awarded, point_event_id is null
+    from private.award_achievement_once(
+      '10000000-0000-0000-0000-000000000002',
+      'pgtap_zero_points',
+      'test'
+    )
+  $$,
+  $$values (true, 0, true)$$,
+  '181. zero-point achievement is awarded without a point event'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.point_events
+    where user_id = '10000000-0000-0000-0000-000000000002'
+      and action_type = 'achievement_unlocked:pgtap_zero_points'
+  $$,
+  $$values (0::bigint)$$,
+  '182. zero-point achievement leaves the point ledger unchanged'
+);
+
+set local role anon;
+select throws_ok(
+  $$select * from public.award_current_user_simple_achievements()$$,
+  '42501',
+  null,
+  '183. anonymous role cannot run simple achievement automation'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000006","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select * from public.award_current_user_simple_achievements()$$,
+  '42501',
+  null,
+  '184. inactive member cannot run simple achievement automation'
+);
+reset role;
+
+create temporary table pgtap_simple_achievement_balance_before as
+select coalesce(sum(points), 0)::bigint as total_points
+from public.point_events
+where user_id = '10000000-0000-0000-0000-000000000005';
+
+grant select
+on table pgtap_simple_achievement_balance_before
+to authenticated;
+
+insert into public.games (
+  id,
+  title,
+  owner_id,
+  current_holder_id,
+  status
+)
+select
+  md5('simple-achievement-game-' || series.value)::uuid,
+  'Simple achievement game ' || series.value,
+  '10000000-0000-0000-0000-000000000005',
+  '10000000-0000-0000-0000-000000000005',
+  'available'
+from generate_series(1, 50) as series(value);
+
+insert into public.meetings (
+  id,
+  created_by,
+  title,
+  status,
+  starts_at,
+  ends_at
+)
+select
+  md5('simple-achievement-meeting-' || series.value)::uuid,
+  '10000000-0000-0000-0000-000000000005',
+  'Simple achievement meeting ' || series.value,
+  'planned',
+  '2026-08-01 16:00:00+00'::timestamptz + series.value * interval '1 day',
+  '2026-08-01 20:00:00+00'::timestamptz + series.value * interval '1 day'
+from generate_series(1, 10) as series(value);
+
+insert into public.meeting_availability (meeting_id, user_id, is_available)
+select
+  md5('simple-achievement-meeting-' || series.value)::uuid,
+  '10000000-0000-0000-0000-000000000005',
+  series.value % 2 = 0
+from generate_series(1, 10) as series(value);
+
+insert into public.ratings (
+  game_id,
+  user_id,
+  overall,
+  replayability,
+  theme,
+  wants_to_play_again,
+  comment
+)
+select
+  md5('simple-achievement-game-' || series.value)::uuid,
+  '10000000-0000-0000-0000-000000000005',
+  case when series.value <= 5 then 10 else 8 end,
+  8,
+  8,
+  true,
+  case when series.value <= 10 then 'Komentarz ' || series.value else null end
+from generate_series(1, 20) as series(value);
+
+insert into public.plays (
+  id,
+  game_id,
+  meeting_id,
+  created_by,
+  played_at,
+  comment
+)
+select
+  md5('simple-achievement-play-' || series.value)::uuid,
+  md5('simple-achievement-game-' || (((series.value - 1) % 20) + 1))::uuid,
+  null,
+  '10000000-0000-0000-0000-000000000005',
+  '2026-07-20 12:00:00+00'::timestamptz + (series.value / 3) * interval '1 day',
+  'Simple achievement play ' || series.value
+from generate_series(1, 25) as series(value);
+
+insert into public.play_participants (
+  play_id,
+  user_id,
+  placement,
+  is_winner
+)
+select
+  md5('simple-achievement-play-' || series.value)::uuid,
+  '10000000-0000-0000-0000-000000000005',
+  1,
+  series.value = 1
+from generate_series(1, 25) as series(value);
+
+insert into public.play_participants (play_id, user_id, placement, is_winner)
+values
+  (md5('simple-achievement-play-2')::uuid, '10000000-0000-0000-0000-000000000001', 2, false),
+  (md5('simple-achievement-play-2')::uuid, '10000000-0000-0000-0000-000000000002', 3, false),
+  (md5('simple-achievement-play-2')::uuid, '10000000-0000-0000-0000-000000000003', 4, false),
+  (md5('simple-achievement-play-2')::uuid, '10000000-0000-0000-0000-000000000004', 5, false);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000005","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select results_eq(
+  $$
+    select awarded_count, points_awarded, cardinality(awarded_keys)
+    from public.award_current_user_simple_achievements()
+  $$,
+  $$values (13, 140, 13)$$,
+  '185. qualifying active member receives all 13 simple achievements and their points'
+);
+
+select ok(private.has_achievement('critical_roll'), '186. first win unlocks critical_roll');
+select ok(private.has_achievement('initiative_master'), '187. five created meetings unlock initiative_master');
+select ok(private.has_achievement('party_bard'), '188. ten rating comments unlock party_bard');
+select ok(private.has_achievement('coast_chronicler'), '189. twenty-five created plays unlock coast_chronicler');
+select ok(private.has_achievement('short_rest'), '190. two participations on one calendar day unlock short_rest');
+select ok(private.has_achievement('full_party'), '191. participation in a five-player play unlocks full_party');
+select ok(private.has_achievement('lone_wolf'), '192. participation in a solo play unlocks lone_wolf');
+select ok(private.has_achievement('side_quest'), '193. spontaneous created play unlocks side_quest');
+select ok(private.has_achievement('guidance'), '194. ten complete meeting responses unlock guidance');
+select ok(private.has_achievement('loot_goblin'), '195. twenty-five active owned games unlock loot_goblin');
+select ok(private.has_achievement('bag_of_holding'), '196. fifty active owned games unlock bag_of_holding');
+select ok(private.has_achievement('fanboy'), '197. five distinct perfect ratings unlock fanboy');
+select ok(private.has_achievement('one_more_turn'), '198. replay intent on twenty distinct games unlocks one_more_turn');
+
+select results_eq(
+  $$
+    select awarded_count, points_awarded, cardinality(awarded_keys)
+    from public.award_current_user_simple_achievements()
+  $$,
+  $$values (0, 0, 0)$$,
+  '199. repeated automation call is idempotent'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.user_achievements
+    where user_id = '10000000-0000-0000-0000-000000000005'
+      and achievement_key not in (
+        'critical_roll', 'initiative_master', 'party_bard', 'coast_chronicler',
+        'short_rest', 'full_party', 'lone_wolf', 'side_quest', 'guidance',
+        'loot_goblin', 'bag_of_holding', 'fanboy', 'one_more_turn'
+      )
+  $$,
+  $$values (0::bigint)$$,
+  '200. simple automation does not award manual secret or out-of-scope achievements'
+);
+
+select results_eq(
+  $$
+    select coalesce(sum(points), 0)::bigint
+    from public.point_events
+    where user_id = '10000000-0000-0000-0000-000000000005'
+  $$,
+  $$select total_points + 140 from pgtap_simple_achievement_balance_before$$,
+  '201. achievement rewards add exactly the definition point total to the balance'
+);
+reset role;
+
+select results_eq(
+  $$
+    select pronargs::integer
+    from pg_proc
+    where oid = 'public.award_current_user_simple_achievements()'::regprocedure
+  $$,
+  $$values (0)$$,
+  '202. public automation RPC accepts neither user id nor points'
+);
+
+insert into public.games (
+  id,
+  title,
+  owner_id,
+  current_holder_id,
+  status,
+  archived_at
+)
+select
+  md5('archived-achievement-game-' || series.value)::uuid,
+  'Archived achievement game ' || series.value,
+  '10000000-0000-0000-0000-000000000004',
+  '10000000-0000-0000-0000-000000000004',
+  'available',
+  '2026-07-01 12:00:00+00'::timestamptz
+from generate_series(1, 25) as series(value);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000004","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select lives_ok(
+  $$select * from public.award_current_user_simple_achievements()$$,
+  '203. active member can run automation with only archived owned games'
+);
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.user_achievements
+    where user_id = '10000000-0000-0000-0000-000000000004'
+      and achievement_key in ('loot_goblin', 'bag_of_holding')
+  $$,
+  $$values (0::bigint)$$,
+  '204. archived games do not count toward collection achievements'
+);
+reset role;
+
+select is(
+  private.point_reward_for('play_logged'),
+  40,
+  '205. achievement rewards do not change the existing activity reward catalog'
+);
+
+select results_eq(
+  $$
+    select
+      (select count(*) from public.user_achievements
+       where user_id = '10000000-0000-0000-0000-000000000005'),
+      (select count(*) from public.point_events
+       where user_id = '10000000-0000-0000-0000-000000000005'
+         and action_type like 'achievement_unlocked:%')
+  $$,
+  $$values (13::bigint, 13::bigint)$$,
+  '206. repeated checks keep one achievement and one point event per key'
+);
+
+select results_eq(
+  $$
+    select achievement_key, name
+    from public.achievement_definitions
+    where achievement_key in ('rule_paladin', 'rule_quard')
+  $$,
+  $$values ('rule_quard', 'Strażnik Zasad')$$,
+  '207. rules badge uses the renamed key and display name'
+);
 
 select * from finish();
 rollback;

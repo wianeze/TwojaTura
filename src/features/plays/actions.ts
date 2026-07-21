@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { Database, Json } from "@/types/database.generated";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
+import { awardSimpleAchievementsAfterPlayCreate } from "@/features/legendarium/achievement-awards";
 import type { PlayFormState } from "./types";
 import { toPlayFormErrorState, validatePlayFormData } from "./validation";
 import { awardPlayPointsAfterSave } from "./play-points";
@@ -205,6 +206,18 @@ export async function createPlayAction(
       status: "error",
       message:
         "Partia została zapisana, ale nie udało się naliczyć punktów. Odśwież Kronikę przed ponowną próbą.",
+    };
+  }
+
+  const achievementAward = await awardSimpleAchievementsAfterPlayCreate(() =>
+    access.supabase.rpc("award_current_user_simple_achievements"),
+  );
+
+  if (!achievementAward.ok) {
+    return {
+      status: "error",
+      message:
+        "Partia została zapisana, ale nie udało się sprawdzić nowych odznak. Odśwież Kronikę przed ponowną próbą.",
     };
   }
 

@@ -23,35 +23,35 @@ export function ClassCatalog({ classes }: { classes: CharacterClassView[] }) {
         {classes.map((characterClass) => (
           <article
             key={characterClass.key}
-            className={`relative overflow-hidden rounded-[1.15rem] border p-3 ${
+            className={`relative overflow-hidden rounded-[1.15rem] border p-3 pb-7 ${
               characterClass.unlocked
                 ? "border-[#e2b361] bg-[#6f3f28]/88 shadow-[0_10px_24px_rgba(12,5,2,0.3)]"
                 : "border-white/16 bg-black/20 opacity-78"
             }`}
           >
             <div className="flex gap-3">
-              <div className="relative size-17 shrink-0">
+              <div className="relative size-[5.65rem] shrink-0">
                 {characterClass.iconPath ? (
                   <Image
                     src={characterClass.iconPath}
                     alt=""
                     fill
-                    sizes="68px"
+                    sizes="91px"
                     className={`object-contain ${characterClass.unlocked ? "" : "grayscale-[0.65]"}`}
                   />
                 ) : null}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-display text-base leading-5 font-semibold">
+                  <h3 className="font-display text-[1.08rem] leading-5 font-semibold">
                     {characterClass.name}
                   </h3>
-                  <span className="shrink-0 rounded-full bg-black/24 px-2 py-1 text-[0.62rem] font-bold text-[#ffe2ad]">
+                  <span className="shrink-0 rounded-full bg-black/24 px-2 py-1 text-[0.7rem] font-bold text-[#ffe2ad]">
                     {characterClass.acquiredRequirements}/
                     {characterClass.totalRequirements}
                   </span>
                 </div>
-                <p className="mt-1 text-[0.68rem] leading-4 text-[#d6c2aa]">
+                <p className="mt-1 text-[0.76rem] leading-[1.15rem] text-[#d6c2aa]">
                   {characterClass.description}
                 </p>
               </div>
@@ -61,7 +61,7 @@ export function ClassCatalog({ classes }: { classes: CharacterClassView[] }) {
               {characterClass.requirements.map((requirement) => (
                 <span
                   key={requirement.key}
-                  className={`rounded-full px-2 py-1 text-[0.58rem] font-semibold ${
+                  className={`rounded-full px-2 py-1 text-[0.66rem] font-semibold ${
                     requirement.state === "acquired"
                       ? "bg-[#51714a] text-[#f0f4d9]"
                       : requirement.state === "hidden"
@@ -73,7 +73,7 @@ export function ClassCatalog({ classes }: { classes: CharacterClassView[] }) {
                 </span>
               ))}
             </div>
-            <span className="mt-2 block text-[0.6rem] font-bold tracking-[0.12em] text-[#e8bd79] uppercase">
+            <span className="absolute right-3 bottom-2 text-right text-[0.68rem] font-bold tracking-[0.12em] text-[#e8bd79] uppercase">
               {characterClass.unlocked ? "Odblokowana" : "Zablokowana"}
             </span>
           </article>

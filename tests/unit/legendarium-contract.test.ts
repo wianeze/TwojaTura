@@ -4,6 +4,14 @@ import {
   formatPointAction,
   pointActionLabels,
 } from "../../src/features/legendarium/formatting.ts";
+import {
+  awardSimpleAchievementsAfterGameCreate,
+  awardSimpleAchievementsAfterMeetingCreate,
+  awardSimpleAchievementsAfterMutation,
+  awardSimpleAchievementsAfterPlayCreate,
+  awardSimpleAchievementsAfterRatingSave,
+  awardSimpleAchievementsAfterRsvpSave,
+} from "../../src/features/legendarium/achievement-awards.ts";
 import { createLegendariumReadPlan } from "../../src/features/legendarium/read-plan.ts";
 import {
   mapAchievementCatalog,
@@ -76,6 +84,79 @@ test("Legendarium highlights the current member and derives their ranking place"
 test("Legendarium supports the empty state for recent point events", () => {
   assert.equal(hasRecentPointEvents([]), false);
   assert.equal(hasRecentPointEvents([{ id: "event-1" }]), true);
+});
+
+test("successful mutation can award simple achievements through the shared RPC contract", async () => {
+  let calls = 0;
+  const result = await awardSimpleAchievementsAfterMutation(async () => {
+    calls += 1;
+    return {
+      data: [
+        {
+          awarded_count: 2,
+          points_awarded: 15,
+          awarded_keys: ["critical_roll", "short_rest"],
+        },
+      ],
+      error: null,
+    };
+  });
+
+  assert.equal(calls, 1);
+  assert.deepEqual(result, {
+    ok: true,
+    awardedCount: 2,
+    pointsAwarded: 15,
+    awardedKeys: ["critical_roll", "short_rest"],
+  });
+});
+
+test("no new or duplicate achievement remains a successful post-mutation result", async () => {
+  const result = await awardSimpleAchievementsAfterMutation(async () => ({
+    data: [{ awarded_count: 0, points_awarded: 0, awarded_keys: [] }],
+    error: null,
+  }));
+
+  assert.deepEqual(result, {
+    ok: true,
+    awardedCount: 0,
+    pointsAwarded: 0,
+    awardedKeys: [],
+  });
+});
+
+test("real simple-achievement RPC errors remain visible to the server action", async () => {
+  const error = { code: "42501", message: "Active membership is required" };
+  const result = await awardSimpleAchievementsAfterMutation(async () => ({
+    data: null,
+    error,
+  }));
+
+  assert.deepEqual(result, { ok: false, error });
+});
+
+test("all five qualifying server-action flows use the simple achievement award contract", async () => {
+  const integrations = [
+    awardSimpleAchievementsAfterGameCreate,
+    awardSimpleAchievementsAfterMeetingCreate,
+    awardSimpleAchievementsAfterRsvpSave,
+    awardSimpleAchievementsAfterRatingSave,
+    awardSimpleAchievementsAfterPlayCreate,
+  ];
+  let calls = 0;
+
+  for (const integration of integrations) {
+    const result = await integration(async () => {
+      calls += 1;
+      return {
+        data: [{ awarded_count: 0, points_awarded: 0, awarded_keys: [] }],
+        error: null,
+      };
+    });
+    assert.equal(result.ok, true);
+  }
+
+  assert.equal(calls, 5);
 });
 
 const achievementDefinitions: AchievementDefinitionSource[] = [
