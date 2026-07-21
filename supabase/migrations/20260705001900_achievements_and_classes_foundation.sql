@@ -137,20 +137,20 @@ insert into public.class_definitions (
   class_key, name, description, playstyle, icon_path, sort_order
 )
 values
-  ('paladyn_zasad', 'Paladyn Zasad', 'Strażnik reguł, porządku i dobrej organizacji.', 'Pilnuje zasad, dba o strukturę spotkania i czasem jednym zdaniem z instrukcji zatrzymuje całą drużynę.', '/Classes/Paladyn.png', 1),
-  ('bard_stolu', 'Bard Stołu', 'Mistrz klimatu, komentarzy i opinii.', 'Nie zawsze wygrywa, ale wszyscy pamiętają, co powiedział.', '/Classes/Bard.png', 2),
-  ('lotrzyk_kart', 'Łotrzyk Kart', 'Specjalista od blefu, podstępu i ryzyka.', 'Czasem wygrywa partię, czasem tylko psuje innym poczucie bezpieczeństwa.', '/Classes/Lotrzyk.png', 3),
-  ('czarodziej_analizy', 'Czarodziej Analizy', 'Znawca ciężkich tytułów, instrukcji i optymalizacji.', 'Widzi zależności tam, gdzie inni widzą tylko planszę.', '/Classes/Czarodziej.png', 4),
-  ('barbarzynca_kosci', 'Barbarzyńca Kości', 'Wojownik konfliktu, agresji i zwycięstwa siłą.', 'Strategia jest mile widziana, ale najważniejsze, żeby ktoś spadł z planszy.', '/Classes/Barbarzynca.png', 5),
-  ('druid_polki', 'Druid Półki', 'Opiekun kolekcji, pudełek i zapomnianych tytułów.', 'Rozbudowuje Półkę, wskrzesza stare gry i pamięta, że każda gra kiedyś zasługuje na stół.', '/Classes/Druid.png', 6),
-  ('nekromanta_figurek', 'Nekromanta Figurek', 'Specjalista od powrotów i reaktywacji.', 'Wyciąga z grobu gry, kampanie i dawno zapomniane obietnice.', '/Classes/Nekromanta.png', 7),
-  ('warlock_meeplow', 'Warlock Meeplów', 'Gracz mrocznych wyborów, klątw i dziwnych układów.', 'Gra mimo cierpienia i wie, że konsekwencje przyjdą później.', '/Classes/Warlock.png', 8),
-  ('multiclass_planszy', 'Multiclass Planszy', 'Wszechstronny gracz wszystkich stylów.', 'Zna kategorie, mechaniki, style i meta-zagrywki, a jego planszówkowe CV nie mieści się na jednej karcie postaci.', '/Classes/Multiclass.png', 9),
-  ('wojownik_stolu', 'Wojownik Stołu', 'Gracz zwycięstw, pojedynków i dużych triumfów.', 'Wchodzi do partii po wynik, nie po uczestnictwo.', '/Classes/Wojownik.png', 10),
-  ('kleryk_druzyny', 'Kleryk Drużyny', 'Opiekun i spoiwo całej ekipy.', 'Odpowiada na zwołania, wspiera spotkania i pilnuje, żeby drużyna faktycznie usiadła do stołu.', '/Classes/Kleryk.png', 11),
-  ('lowca_lupow', 'Łowca Łupów', 'Kolekcjoner okazji, punktów, questów i trofeów.', 'Widzi nagrody tam, gdzie inni widzą tylko kolejną partię.', '/Classes/Łowca.png', 12),
-  ('mnich_cierpliwosci', 'Mnich Cierpliwości', 'Wytrwały gracz, który przegrywa, wraca i uczy się gry.', 'Szuka odkupienia tam, gdzie inni już dawno by odpuścili.', '/Classes/Mnich.png', 13),
-  ('czarownik_chaosu', 'Czarownik Chaosu', 'Gracz dziwnych decyzji, sekretów i losowych wyborów.', 'Tworzy podejrzanie epickie historie, które nie powinny się wydarzyć.', '/Classes/Czarownik.png', 14)
+  ('paladyn_zasad', 'Paladyn Zasad', 'Strażnik instrukcji, obrońca uczciwej rozgrywki i pogromca każdego, kto próbuje nagiąć zasady na swoją korzyść.', 'Pilnuje zasad, dba o strukturę spotkania i czasem jednym zdaniem z instrukcji zatrzymuje całą drużynę.', '/Classes/Paladyn.png', 1),
+  ('bard_stolu', 'Bard Stołu', 'Mistrz opowieści, żartów i inspiracji, który nawet przegraną partię potrafi zamienić w legendę.', 'Nie zawsze wygrywa, ale wszyscy pamiętają, co powiedział.', '/Classes/Bard.png', 2),
+  ('lotrzyk_kart', 'Łotrzyk Kart', 'Mistrz blefu i podstępu, który zawsze ma asa w rękawie, nawet gdy talia nie sprzyja.', 'Czasem wygrywa partię, czasem tylko psuje innym poczucie bezpieczeństwa.', '/Classes/Lotrzyk.png', 3),
+  ('czarodziej_analizy', 'Czarodziej Analizy', 'Widzi kilka tur naprzód, przelicza każdą możliwość i rzuca zaklęcia, których komponentem jest czysta strategia.', 'Widzi zależności tam, gdzie inni widzą tylko planszę.', '/Classes/Czarodziej.png', 4),
+  ('barbarzynca_kosci', 'Barbarzyńca Kości', 'Rzuca bez lęku, ufa chaosowi i każdą krytyczną porażkę zamienia w okrzyk bitewny.', 'Strategia jest mile widziana, ale najważniejsze, żeby ktoś spadł z planszy.', '/Classes/Barbarzynca.png', 5),
+  ('druid_polki', 'Druid Półki', 'Opiekun kolekcji, który zna naturę każdej gry i zawsze wie, jaki tytuł przywołać na stół.', 'Rozbudowuje Półkę, wskrzesza stare gry i pamięta, że każda gra kiedyś zasługuje na stół.', '/Classes/Druid.png', 6),
+  ('nekromanta_figurek', 'Nekromanta Figurek', 'Wskrzesza zapomniane tytuły, przyzywa armie z pudełek i daje drugie życie figurkom.', 'Wyciąga z grobu gry, kampanie i dawno zapomniane obietnice.', '/Classes/Nekromanta.png', 7),
+  ('warlock_meeplow', 'Warlock Meeplów', 'Zawarł pakt z drewnianymi pionkami, a teraz przyzywa je na stół, aby przejmowały pola, miasta i królestwa.', 'Gra mimo cierpienia i wie, że konsekwencje przyjdą później.', '/Classes/Warlock.png', 8),
+  ('multiclass_planszy', 'Multiclass Planszy', 'Łączy talenty wielu klas, odnajdując się równie dobrze w strategii, blefie, kooperacji i kontrolowanym chaosie.', 'Zna kategorie, mechaniki, style i meta-zagrywki, a jego planszówkowe CV nie mieści się na jednej karcie postaci.', '/Classes/Multiclass.png', 9),
+  ('wojownik_stolu', 'Wojownik Stołu', 'Staje do każdej rozgrywki bez wahania, walczy do ostatniego punktu i nigdy nie odkłada miecza przed końcem partii.', 'Wchodzi do partii po wynik, nie po uczestnictwo.', '/Classes/Wojownik.png', 10),
+  ('kleryk_druzyny', 'Kleryk Drużyny', 'Leczy konflikty, wzmacnia sojuszników i poświęca własną turę, by cała drużyna mogła sięgnąć po zwycięstwo.', 'Odpowiada na zwołania, wspiera spotkania i pilnuje, żeby drużyna faktycznie usiadła do stołu.', '/Classes/Kleryk.png', 11),
+  ('lowca_lupow', 'Łowca Łupów', 'Tropi rzadkie skarby, zgarnia najlepsze nagrody i nigdy nie opuszcza stołu bez pełnego ekwipunku.', 'Widzi nagrody tam, gdzie inni widzą tylko kolejną partię.', '/Classes/Łowca.png', 12),
+  ('mnich_cierpliwosci', 'Mnich Cierpliwości', 'Zachowuje spokój przy długiej turze, czeka na idealny moment i jednym ruchem odmienia los całej rozgrywki.', 'Szuka odkupienia tam, gdzie inni już dawno by odpuścili.', '/Classes/Mnich.png', 13),
+  ('czarownik_chaosu', 'Czarownik Chaosu', 'Zaklina przypadek, nagina los sprawiając, że każdy rzut wywraca rozgrywkę do góry nogami.', 'Tworzy podejrzanie epickie historie, które nie powinny się wydarzyć.', '/Classes/Czarownik.png', 14)
 on conflict (class_key) do update set
   name = excluded.name,
   description = excluded.description,

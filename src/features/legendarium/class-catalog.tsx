@@ -52,7 +52,7 @@ export function ClassCatalog({ classes }: { classes: CharacterClassView[] }) {
                   </span>
                 </div>
                 <p className="mt-1 text-[0.68rem] leading-4 text-[#d6c2aa]">
-                  {characterClass.playstyle}
+                  {characterClass.description}
                 </p>
               </div>
             </div>
