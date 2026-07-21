@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { getMemberInitial } from "@/features/auth/current-member";
-import { BadgePreviewCard, type BadgePreview } from "./badge-preview";
+import { AchievementCatalog } from "./achievement-catalog";
+import { ClassCatalog } from "./class-catalog";
 import {
   formatPointAction,
   formatPointEventDate,
@@ -108,30 +109,6 @@ export const futureRewards = [
     limit: "Wkr\u00f3tce.",
   },
 ] as const satisfies readonly LegendariumReward[];
-
-const badgePreviews: BadgePreview[] = [
-  {
-    id: "collector",
-    name: "Kolekcjoner",
-    description: "Za rozwój wspólnej Półki",
-    fallbackSymbol: "◇",
-    preview: true,
-  },
-  {
-    id: "host",
-    name: "Gospodarz",
-    description: "Za organizowanie spotkań",
-    fallbackSymbol: "⌂",
-    preview: true,
-  },
-  {
-    id: "chronicler",
-    name: "Kronikarz",
-    description: "Za historię rozgrywek",
-    fallbackSymbol: "✦",
-    preview: true,
-  },
-];
 
 const trophyAssets: Record<number, string> = {
   1: "/brand/1st-place-nobg.png",
@@ -261,27 +238,8 @@ export function LegendariumShowcase({ data }: LegendariumShowcaseProps) {
         </div>
       </div>
 
-      <section className="parchment-card premium-edge mt-4 rounded-[1.55rem] p-4 sm:p-5">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <p className="text-accent text-[0.62rem] font-bold tracking-[0.18em] uppercase">
-              Wkrótce
-            </p>
-            <h2 className="font-display mt-1 text-2xl font-semibold">
-              Odznaki
-            </h2>
-          </div>
-          <p className="text-muted max-w-sm text-xs leading-5">
-            Przyszłe plakietki i trofea drużyny — bez trwałych rekordów na tym
-            etapie.
-          </p>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {badgePreviews.map((badge) => (
-            <BadgePreviewCard key={badge.id} badge={badge} />
-          ))}
-        </div>
-      </section>
+      <AchievementCatalog achievements={data.achievements} />
+      <ClassCatalog classes={data.classes} />
     </section>
   );
 }
@@ -412,29 +370,43 @@ function RankingEntry({ entry }: { entry: LegendariumLeaderboardEntry }) {
           {entry.totalPoints.toLocaleString("pl-PL")} pkt
         </span>
       </span>
-      <TrophySet sizeClass={badgeSize} />
+      <TrophySet badges={entry.badges} sizeClass={badgeSize} />
     </li>
   );
 }
 
-function TrophySet({ sizeClass }: { sizeClass: string }) {
+function TrophySet({
+  badges,
+  sizeClass,
+}: {
+  badges: LegendariumLeaderboardEntry["badges"];
+  sizeClass: string;
+}) {
+  if (badges.length === 0) return null;
+
   return (
     <span
       className="flex shrink-0 -space-x-2.5"
       aria-label="Najcenniejsze trofea"
       title="Najcenniejsze trofea"
     >
-      {[
-        ["◇", "#b8753f"],
-        ["⌂", "#657859"],
-        ["✦", "#74558e"],
-      ].map(([symbol, color]) => (
+      {badges.map((badge) => (
         <span
-          key={symbol}
-          style={{ backgroundColor: color }}
-          className={`grid place-items-center rounded-full border-2 border-[#fff0ca] font-bold text-[#fff4dc] shadow-[0_4px_9px_rgba(49,25,14,0.34)] ${sizeClass}`}
+          key={badge.key}
+          className={`relative grid place-items-center rounded-full border-2 border-[#fff0ca] bg-[#583326] shadow-[0_4px_9px_rgba(49,25,14,0.34)] ${sizeClass}`}
+          title={badge.name}
         >
-          {symbol}
+          {badge.iconPath ? (
+            <Image
+              src={badge.iconPath}
+              alt=""
+              fill
+              sizes="44px"
+              className="object-contain p-0.5"
+            />
+          ) : (
+            <span className="text-[#fff4dc]">◆</span>
+          )}
         </span>
       ))}
     </span>

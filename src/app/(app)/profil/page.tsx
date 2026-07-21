@@ -5,6 +5,8 @@ import { signOutAction } from "@/features/auth/actions";
 import { getMemberInitial } from "@/features/auth/current-member";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { ProfileForm } from "@/features/auth/profile-form";
+import { getAchievementClassData } from "@/features/legendarium/queries";
+import { ProfileAchievementsPanel } from "@/features/legendarium/profile-achievements-panel";
 import { listRecentMemberPlays } from "@/features/plays/queries";
 import { RecentMemberPlaysPanel } from "@/features/plays/recent-plays-list";
 
@@ -14,7 +16,10 @@ export default async function ProfilePage() {
   const state = await getCurrentMember();
   if (state.status !== "active-member") redirect("/brak-dostepu");
   const { member } = state;
-  const recentPlays = await listRecentMemberPlays(member.id);
+  const [recentPlays, achievementData] = await Promise.all([
+    listRecentMemberPlays(member.id),
+    getAchievementClassData(member.id),
+  ]);
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
@@ -51,6 +56,11 @@ export default async function ProfilePage() {
           </button>
         </form>
       </Panel>
+
+      <ProfileAchievementsPanel
+        achievements={achievementData.achievements}
+        classes={achievementData.classes}
+      />
 
       <RecentMemberPlaysPanel
         title="Ostatnie partie"

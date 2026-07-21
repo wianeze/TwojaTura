@@ -7,5 +7,14 @@ export function createLegendariumReadPlan(memberId: string) {
       userId: memberId,
       limit: 8,
     },
+    achievements: {
+      definitionsTable: "achievement_definitions" as const,
+      awardsTable: "user_achievements" as const,
+      userId: memberId,
+    },
+    classes: {
+      definitionsTable: "class_definitions" as const,
+      requirementsTable: "class_requirements" as const,
+    },
   };
 }

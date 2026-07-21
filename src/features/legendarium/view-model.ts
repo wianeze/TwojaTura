@@ -2,8 +2,9 @@ import type { LegendariumLeaderboardEntry } from "./queries";
 
 type LeaderboardSourceEntry = Omit<
   LegendariumLeaderboardEntry,
-  "isCurrentMember"
->;
+  "isCurrentMember" | "badges"
+> &
+  Partial<Pick<LegendariumLeaderboardEntry, "badges">>;
 
 export function mapLegendariumLeaderboard(
   entries: LeaderboardSourceEntry[],
@@ -11,6 +12,7 @@ export function mapLegendariumLeaderboard(
 ): LegendariumLeaderboardEntry[] {
   return entries.map((entry) => ({
     ...entry,
+    badges: entry.badges ?? [],
     isCurrentMember: entry.userId === currentMemberId,
   }));
 }

@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2: Etapy 10A–10E i 11A są zamknięte; Etap 11B wdraża fundament SQL/RLS/seed pełnego systemu odznak i klas postaci. Następny etap to 11C — UI na realnych definicjach, bez automatyzacji. PWA, instalacja na telefonie i powiadomienia push są planowane po Etapie 11.
+Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2: Etapy 10A–10E oraz 11A–11C są zamknięte. Etap 11B dostarczył fundament SQL/RLS/seed, a Etap 11C podpiął Legendarium i Profil do realnych definicji odznak i klas bez automatycznego przyznawania i bez backfillu. Następny etap to 11D — proste automatyczne odznaki. PWA, instalacja na telefonie i powiadomienia push są planowane po Etapie 11.
 
 ## 1. Decyzje projektowe
 
@@ -875,13 +875,13 @@ W 11B seed obejmuje 14 klas i wszystkie ich wymagania odznak. Grafika jest mapow
 - **Klasy postaci:** osobne karty z grafiką, opisem stylu gry i postępem `3/5`; klasy odblokowane są wyraźne, zablokowane przygaszone.
 - **Admin/manual:** brak panelu w pierwszym kroku. Definicje manualne istnieją w katalogu; wąskie ręczne nadawanie jest zaplanowane dopiero w 11F.
 
-### Podział prac i zakres 11B
+### Podział prac Etapu 11
 
 1. **11A — plan odznak i klas:** bieżący kontrakt, bez kodu.
 2. **11B — fundament danych — wdrożony:** migracja `20260705001900_achievements_and_classes_foundation.sql` dodaje `achievement_definitions`, `user_achievements`, `class_definitions`, `class_requirements`, RLS, prywatny idempotentny helper, seed wszystkich 51 odznak, 14 klas i 70 wymagań oraz pgTAP. Wszystkie ścieżki grafik odpowiadają istniejącym assetom. **Bez automatycznego przyznawania, bez backfillu i bez tworzenia `point_events`; punkty odznak pozostają wartością prestiżową.**
-3. **11C — UI katalogu:** Legendarium, profil i klasy na prawdziwych definicjach, nadal bez automatyzacji.
+3. **11C — UI katalogu — wdrożony:** Legendarium pokazuje realny katalog odznak z filtrami, stanami zdobyta / niezdobyta / sekretna, realne trofea w leaderboardzie oraz 14 klas z progresem wymagań. Profil pokazuje zdobyte odznaki, trzy ostatnie trofea i progres klas. Etap nadal nie przyznaje odznak automatycznie i nie wykonuje backfillu.
 4. **11D — proste automatyczne odznaki:** wyłącznie grupa `early automatic` wraz z idempotencją i testami.
-5. **11E — progres klas:** read layer, karty klas i wyróżnione odblokowane klasy.
+5. **11E — dalszy rozwój klas:** ewentualny wybór wyróżnionej klasy i dalszy polish; podstawowy read layer, progres i karty klas są już wdrożone w 11C.
 6. **11F — manualne, sekretne i trudne odznaki:** wąska funkcja administracyjna, odkrywanie sekretów i reguły wymagające analizy historii.
 7. **11G — operatorski backfill:** opcjonalny, jawnie uruchamiany i audytowany.
 8. **11H — balans, dostępność i odbiór.**
