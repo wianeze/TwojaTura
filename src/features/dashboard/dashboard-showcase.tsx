@@ -164,7 +164,7 @@ export async function DashboardShowcase() {
               Najbliższe spotkanie
             </p>
             <h2 className="font-display mt-1 truncate text-[1.25rem] font-semibold text-[#4c3528]">
-              {upcoming ? upcoming.title : "Nowy wieczorek"}
+              {upcoming ? upcoming.title : "Brak przyszłego spotkania"}
             </h2>
           </div>
 

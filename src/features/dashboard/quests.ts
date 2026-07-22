@@ -14,10 +14,14 @@ const DAY_MS = 86_400_000;
 
 export function buildDashboardQuests(source: DashboardQuestSource) {
   const quests: DashboardQuest[] = [];
-  const futureMeetings = [...source.futureMeetings].sort(
-    (left, right) =>
-      new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
-  );
+  const futureMeetings = source.futureMeetings
+    .filter(
+      (meeting) => new Date(meeting.startsAt).getTime() > source.now.getTime(),
+    )
+    .sort(
+      (left, right) =>
+        new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
+    );
 
   for (const meeting of futureMeetings.filter(
     (item) => item.ownResponse === null,
@@ -44,7 +48,9 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
     });
   }
 
-  for (const meeting of futureMeetings.filter((item) => !item.hasOwnVote)) {
+  for (const meeting of futureMeetings.filter(
+    (item) => item.ownResponse === true && !item.hasOwnVote,
+  )) {
     quests.push({
       id: `missing-vote:${meeting.id}`,
       type: "question",
@@ -67,7 +73,9 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
     });
   }
 
-  for (const play of source.unratedGames) {
+  for (const play of source.unratedGames.filter(
+    (item) => new Date(item.playedAt).getTime() <= source.now.getTime(),
+  )) {
     quests.push({
       id: `rate-game:${play.playId}:${play.gameId}`,
       type: "question",
@@ -88,7 +96,10 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
     });
   }
 
-  for (const meeting of source.finishedMeetingsWithoutPlay) {
+  for (const meeting of source.finishedMeetingsWithoutPlay.filter((item) => {
+    const meetingEnd = item.endsAt ?? item.startsAt;
+    return new Date(meetingEnd).getTime() <= source.now.getTime();
+  })) {
     quests.push({
       id: `missing-play:${meeting.id}`,
       type: "action",
@@ -105,7 +116,7 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
         rewardTone: "immediate",
       },
       priority: QUEST_PRIORITY.missingPlay,
-      createdAt: meeting.endsAt,
+      createdAt: meeting.endsAt ?? meeting.startsAt,
     });
   }
 

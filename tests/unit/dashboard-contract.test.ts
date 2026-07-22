@@ -6,6 +6,7 @@ import {
   buildRecentPlayPreviews,
   formatQuestRewardPreview,
   formatDashboardWinnerSummary,
+  getConfirmedMeetingAlert,
   pickUpcomingMeeting,
   sortDashboardQuests,
   sumQuestFollowUpPoints,
@@ -123,6 +124,51 @@ test("vote quest gets +10 now and +10 if the voted game reaches the table", () =
   assert.equal(quest.optionalPoints, 10);
 });
 
+test("member with RSVP NO does not receive the game-vote quest", () => {
+  const quests = buildDashboardQuests(
+    buildSource({
+      futureMeetings: [
+        {
+          id: "meeting-declined",
+          title: "Wieczór bez Marty",
+          startsAt: "2026-07-20T16:00:00.000Z",
+          endsAt: "2026-07-20T20:00:00.000Z",
+          status: "planned",
+          ownResponse: false,
+          hasOwnVote: false,
+        },
+      ],
+    }),
+  );
+
+  assert.equal(
+    quests.some((quest) => quest.id === "missing-vote:meeting-declined"),
+    false,
+  );
+});
+
+test("RSVP YES receives the game-vote quest before the meeting", () => {
+  const quests = buildDashboardQuests(
+    buildSource({
+      futureMeetings: [
+        {
+          id: "meeting-available",
+          title: "Wieczór z Martą",
+          startsAt: "2026-07-20T16:00:00.000Z",
+          endsAt: "2026-07-20T20:00:00.000Z",
+          status: "confirmed",
+          ownResponse: true,
+          hasOwnVote: false,
+        },
+      ],
+    }),
+  );
+
+  assert.ok(
+    quests.some((quest) => quest.id === "missing-vote:meeting-available"),
+  );
+});
+
 test("meeting proposal quest gets +25 now and +25 after the meeting happens", () => {
   const quests = buildDashboardQuests(buildSource());
   const quest = quests.find((item) => item.id === "schedule-meeting");
@@ -140,6 +186,7 @@ test("chronicle quest gets +40 and the highest priority", () => {
         {
           id: "meeting-1",
           title: "Wieczór bez wpisu",
+          startsAt: "2026-07-12T18:00:00.000Z",
           endsAt: "2026-07-12T21:00:00.000Z",
           status: "confirmed",
         },
@@ -152,6 +199,43 @@ test("chronicle quest gets +40 and the highest priority", () => {
   assert.equal(quest.reward.immediatePoints, 40);
   assert.equal(quest.reward.immediateLabel, "za Kronikę");
   assert.equal(quest.priority, 120);
+});
+
+test("chronicle quest appears only after the meeting end", () => {
+  const beforeMeeting = buildDashboardQuests(
+    buildSource({
+      finishedMeetingsWithoutPlay: [
+        {
+          id: "meeting-later",
+          title: "Jeszcze trwa",
+          startsAt: "2026-07-13T12:00:00.000Z",
+          endsAt: "2026-07-13T12:30:00.000Z",
+          status: "confirmed",
+        },
+      ],
+    }),
+  );
+  const afterMeeting = buildDashboardQuests(
+    buildSource({
+      finishedMeetingsWithoutPlay: [
+        {
+          id: "meeting-finished",
+          title: "Już po spotkaniu",
+          startsAt: "2026-07-13T08:00:00.000Z",
+          endsAt: "2026-07-13T09:00:00.000Z",
+          status: "confirmed",
+        },
+      ],
+    }),
+  );
+
+  assert.equal(
+    beforeMeeting.some((quest) => quest.id === "missing-play:meeting-later"),
+    false,
+  );
+  assert.ok(
+    afterMeeting.some((quest) => quest.id === "missing-play:meeting-finished"),
+  );
 });
 
 test("rating quest gets +30 for the opinion", () => {
@@ -172,6 +256,26 @@ test("rating quest gets +30 for the opinion", () => {
   assert.ok(quest);
   assert.equal(quest.reward.immediatePoints, 30);
   assert.equal(quest.reward.immediateLabel, "za opinię");
+});
+
+test("rating quest does not appear for a future play", () => {
+  const quests = buildDashboardQuests(
+    buildSource({
+      unratedGames: [
+        {
+          playId: "play-future",
+          gameId: "game-future",
+          gameTitle: "Jeszcze nie rozegrana",
+          playedAt: "2026-07-13T12:00:00.000Z",
+        },
+      ],
+    }),
+  );
+
+  assert.equal(
+    quests.some((quest) => quest.id === "rate-game:play-future:game-future"),
+    false,
+  );
 });
 
 test("shelf onboarding shows the first-game quest only for a member with no games", () => {
@@ -317,7 +421,8 @@ test("quest priorities follow the new Stage 7 order", () => {
         {
           id: "meeting-play",
           title: "Brak wpisu",
-          endsAt: "2026-07-19T21:00:00.000Z",
+          startsAt: "2026-07-12T18:00:00.000Z",
+          endsAt: "2026-07-12T21:00:00.000Z",
           status: "confirmed",
         },
       ],
@@ -433,7 +538,7 @@ test("missing vote is created for a future meeting outside the current month", (
           startsAt: "2026-08-28T16:00:00.000Z",
           endsAt: "2026-08-28T20:00:00.000Z",
           status: "confirmed",
-          ownResponse: null,
+          ownResponse: true,
           hasOwnVote: false,
         },
       ],
@@ -441,7 +546,10 @@ test("missing vote is created for a future meeting outside the current month", (
   );
 
   assert.ok(quests.some((quest) => quest.id === "missing-vote:august-vote"));
-  assert.ok(quests.some((quest) => quest.id === "missing-rsvp:august-vote"));
+  assert.equal(
+    quests.some((quest) => quest.id === "missing-rsvp:august-vote"),
+    false,
+  );
 });
 
 test("dashboard totals include every visible future meeting quest", () => {
@@ -527,6 +635,7 @@ test("chronicle and meeting quests stay visible without slicing low-priority ite
         {
           id: "f1",
           title: "Brak wpisu",
+          startsAt: "2026-07-12T18:00:00.000Z",
           endsAt: "2026-07-12T21:00:00.000Z",
           status: "confirmed",
         },
@@ -715,6 +824,28 @@ test("nearest meeting prefers confirmed over earlier planned", () => {
   );
 
   assert.equal(meeting?.id, "confirmed");
+});
+
+test("confirmed meeting exposes a readable organizer confirmation status", () => {
+  const alert = getConfirmedMeetingAlert(
+    buildUpcomingMeeting({
+      status: "confirmed",
+      startsAt: "2026-07-20T16:00:00.000Z",
+      leadingGame: {
+        gameId: "game-1",
+        title: "Nemesis",
+        coverUrl: null,
+        votesCount: 3,
+      },
+    }),
+  );
+
+  assert.match(alert ?? "", /Spotkanie potwierdzone/);
+  assert.match(alert ?? "", /Nemesis/);
+  assert.equal(
+    getConfirmedMeetingAlert(buildUpcomingMeeting({ status: "planned" })),
+    null,
+  );
 });
 
 test("recent plays sort by played_at descending", () => {

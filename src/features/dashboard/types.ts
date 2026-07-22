@@ -45,7 +45,8 @@ export type DashboardQuestSourceUnratedGame = {
 export type DashboardQuestSourceFinishedMeeting = {
   id: string;
   title: string;
-  endsAt: string;
+  startsAt: string;
+  endsAt: string | null;
   status: "confirmed" | "completed";
 };
 

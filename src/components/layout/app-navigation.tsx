@@ -10,6 +10,9 @@ import {
 import { signOutAction } from "@/features/auth/actions";
 import { getMemberInitial } from "@/features/auth/current-member";
 import type { CurrentMember } from "@/features/auth/types";
+import { ActiveClassEmblem } from "@/features/legendarium/active-class-emblem";
+import type { ActiveClassView } from "@/features/legendarium/achievement-view-model";
+import { getActiveClassBackdropGradient } from "@/features/legendarium/leaderboard-presentation";
 
 type NavigationItem = { href: string; label: string; icon: NavigationIconName };
 
@@ -25,7 +28,13 @@ function isCurrentPath(pathname: string, href: string) {
   return href === "/" ? pathname === href : pathname.startsWith(href);
 }
 
-export function DesktopNavigation({ member }: { member: CurrentMember }) {
+export function DesktopNavigation({
+  member,
+  activeClass,
+}: {
+  member: CurrentMember;
+  activeClass: ActiveClassView | null;
+}) {
   const pathname = usePathname();
 
   return (
@@ -33,10 +42,7 @@ export function DesktopNavigation({ member }: { member: CurrentMember }) {
       <div className="flex min-h-40 items-center justify-center px-2">
         <LogoMark tone="light" />
       </div>
-      <nav
-        className="mt-5 flex flex-1 flex-col gap-1.5"
-        aria-label="Główna nawigacja"
-      >
+      <nav className="mt-5 flex flex-col gap-1.5" aria-label="Główna nawigacja">
         {navigationItems.map((item) => {
           const active = isCurrentPath(pathname, item.href);
           return (
@@ -52,38 +58,65 @@ export function DesktopNavigation({ member }: { member: CurrentMember }) {
           );
         })}
       </nav>
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-2.5">
-        <Link
-          href="/profil"
-          className="flex items-center gap-3 rounded-xl p-1 transition-colors hover:bg-white/7"
-        >
-          {member.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- external user-provided URL
-            <img
-              src={member.avatarUrl}
-              alt=""
-              className="size-10 rounded-full object-cover"
-            />
-          ) : (
-            <span className="bg-ember/20 grid size-10 place-items-center rounded-full text-sm font-bold text-[#f2ad77]">
-              {getMemberInitial(member.displayName)}
-            </span>
-          )}
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-semibold">
-              {member.displayName}
-            </span>
-            <span className="block text-xs text-[#aa9a8a]">Karta Gracza</span>
-          </span>
-        </Link>
-        <form action={signOutAction}>
-          <button
-            type="submit"
-            className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-[#cdbfae] transition-colors hover:bg-white/7 hover:text-white"
+      <div className="mt-auto">
+        {activeClass ? (
+          <div
+            className="relative isolate mb-5 flex min-h-0 flex-col items-center justify-center overflow-visible rounded-[1.6rem] px-2 py-2 text-center"
+            title={`Aktywna klasa: ${activeClass.name}`}
           >
-            Wyloguj się
-          </button>
-        </form>
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -inset-x-10 -inset-y-8 -z-10 blur-xl"
+              style={{
+                backgroundImage: getActiveClassBackdropGradient(
+                  activeClass.key,
+                ),
+              }}
+            />
+            <ActiveClassEmblem
+              activeClass={activeClass}
+              sizeClass="size-[clamp(10rem,15vw,14.5rem)] max-w-full shrink-0"
+              showAura={false}
+              imageSizes="232px"
+            />
+            <span className="font-class-title mt-1 text-base font-bold tracking-[0.1em] text-[#ef8d36] uppercase">
+              {activeClass.name}
+            </span>
+          </div>
+        ) : null}
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-2.5">
+          <Link
+            href="/profil"
+            className="flex items-center gap-3 rounded-xl p-1 transition-colors hover:bg-white/7"
+          >
+            {member.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- external user-provided URL
+              <img
+                src={member.avatarUrl}
+                alt=""
+                className="size-10 rounded-full object-cover"
+              />
+            ) : (
+              <span className="bg-ember/20 grid size-10 place-items-center rounded-full text-sm font-bold text-[#f2ad77]">
+                {getMemberInitial(member.displayName)}
+              </span>
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold">
+                {member.displayName}
+              </span>
+              <span className="block text-xs text-[#aa9a8a]">Karta Gracza</span>
+            </span>
+          </Link>
+          <form action={signOutAction}>
+            <button
+              type="submit"
+              className="mt-1 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-[#cdbfae] transition-colors hover:bg-white/7 hover:text-white"
+            >
+              Wyloguj się
+            </button>
+          </form>
+        </div>
       </div>
     </aside>
   );

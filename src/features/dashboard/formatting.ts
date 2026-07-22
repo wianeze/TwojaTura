@@ -48,6 +48,21 @@ export function formatDashboardDateTime(iso: string) {
   return `${formatDashboardDate(iso)} • ${formatDashboardTime(iso)}`;
 }
 
+export function getConfirmedMeetingAlert(
+  meeting: Pick<
+    DashboardUpcomingMeeting,
+    "status" | "startsAt" | "leadingGame"
+  >,
+) {
+  if (meeting.status !== "confirmed") return null;
+
+  const leadingGame = meeting.leadingGame
+    ? ` · prowadzi ${meeting.leadingGame.title}`
+    : "";
+
+  return `Spotkanie potwierdzone · ${formatDashboardDateTime(meeting.startsAt)}${leadingGame}`;
+}
+
 export function formatDashboardQuestDateTime(iso: string) {
   return `${formatDashboardDate(iso)} · ${formatDashboardTime(iso)}`;
 }

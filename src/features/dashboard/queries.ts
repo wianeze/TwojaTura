@@ -262,7 +262,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       .order("starts_at", { ascending: true }),
     supabase
       .from("meetings")
-      .select("id, title, status, ends_at")
+      .select("id, title, status, starts_at, ends_at")
       .in("status", ["confirmed", "completed"])
       .lt("ends_at", nowIso)
       .order("ends_at", { ascending: false })
@@ -367,7 +367,8 @@ export async function getDashboardData(): Promise<DashboardData> {
     id: string;
     title: string;
     status: "confirmed" | "completed";
-    ends_at: string;
+    starts_at: string;
+    ends_at: string | null;
   }>;
   const finishedMeetingIds = finishedMeetings.map((meeting) => meeting.id);
 
@@ -434,6 +435,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       .map((meeting) => ({
         id: meeting.id,
         title: meeting.title,
+        startsAt: meeting.starts_at,
         endsAt: meeting.ends_at,
         status: meeting.status,
       })),

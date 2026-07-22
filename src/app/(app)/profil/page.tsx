@@ -25,8 +25,8 @@ export default async function ProfilePage() {
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <Panel className="paper-wash p-6 sm:p-8">
-        <div className="flex items-center gap-4">
-          <span className="relative shrink-0">
+        <div className="flex min-h-20 items-center gap-4">
+          <span className="shrink-0">
             {member.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- external user-provided URL
               <img
@@ -39,13 +39,8 @@ export default async function ProfilePage() {
                 {getMemberInitial(member.displayName)}
               </span>
             )}
-            <ActiveClassEmblem
-              activeClass={achievementData.currentActiveClass}
-              sizeClass="size-11"
-              className="absolute -right-2 -bottom-2"
-            />
           </span>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-accent text-xs font-bold tracking-[0.16em] uppercase">
               Twoje konto
             </p>
@@ -53,6 +48,11 @@ export default async function ProfilePage() {
               Karta Gracza
             </h1>
           </div>
+          <ActiveClassEmblem
+            activeClass={achievementData.currentActiveClass}
+            sizeClass="size-20 shrink-0"
+            className="ml-auto"
+          />
         </div>
         <ProfileForm member={member} />
         <form action={signOutAction} className="mt-4 text-center">

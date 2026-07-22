@@ -80,6 +80,11 @@ body {
   font-family: var(--font-sans);
 }
 
+.font-class-title {
+  font-family:
+    "Papyrus", "Copperplate Gothic Light", "Palatino Linotype", fantasy;
+}
+
 .cabin-ambient {
   position: relative;
   min-height: 100vh;

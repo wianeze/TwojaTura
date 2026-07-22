@@ -15,12 +15,31 @@ export type AchievementProgressMetrics = {
   perfectRatings: number;
   replayRatings: number;
   hasFirstWin: boolean;
-  hasLastPlace: boolean;
+  lastPlaceFinishes: number;
   hasFullParty: boolean;
   hasSoloPlay: boolean;
   hasSideQuest: boolean;
   currentWinStreak: number;
 };
+
+export function isRealLastPlace(
+  placements: Array<number | null>,
+  placement: number | null,
+) {
+  if (
+    placements.length < 2 ||
+    placement === null ||
+    placements.some((value) => value === null)
+  ) {
+    return false;
+  }
+
+  const rankedPlacements = placements as number[];
+  return (
+    new Set(rankedPlacements).size >= 2 &&
+    placement === Math.max(...rankedPlacements)
+  );
+}
 
 function progress(current: number, target: number): AchievementProgress {
   return {
@@ -45,7 +64,7 @@ export function buildAchievementProgressMap(
     fanboy: progress(metrics.perfectRatings, 5),
     one_more_turn: progress(metrics.replayRatings, 20),
     critical_roll: progress(Number(metrics.hasFirstWin), 1),
-    natural_one: progress(Number(metrics.hasLastPlace), 1),
+    natural_one: progress(metrics.lastPlaceFinishes, 3),
     full_party: progress(Number(metrics.hasFullParty), 1),
     lone_wolf: progress(Number(metrics.hasSoloPlay), 1),
     side_quest: progress(Number(metrics.hasSideQuest), 1),

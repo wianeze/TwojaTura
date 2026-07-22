@@ -8,26 +8,49 @@ import { SectionBackground } from "@/components/layout/section-background";
 import { LogoMark } from "@/components/ui/logo-mark";
 import { getMemberInitial } from "@/features/auth/current-member";
 import type { CurrentMember } from "@/features/auth/types";
+import { ActiveClassEmblem } from "@/features/legendarium/active-class-emblem";
+import type { ActiveClassView } from "@/features/legendarium/achievement-view-model";
 
 type AppShellProps = {
   children: ReactNode;
   member: CurrentMember;
   currentPoints: number;
+  activeClass: ActiveClassView | null;
 };
 
-export function AppShell({ children, member, currentPoints }: AppShellProps) {
+export function AppShell({
+  children,
+  member,
+  currentPoints,
+  activeClass,
+}: AppShellProps) {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
-      <DesktopNavigation member={member} />
+      <DesktopNavigation member={member} activeClass={activeClass} />
       <div className="cabin-ambient min-w-0">
         <SectionBackground />
-        <header className="wood-grain relative z-10 flex h-17 items-center justify-between gap-3 border-b border-white/8 px-4 lg:hidden">
+        <header className="wood-grain relative z-10 flex h-17 items-center justify-between gap-2 border-b border-white/8 px-3 sm:px-4 lg:hidden">
           <LogoMark compact tone="light" />
-          <div className="rounded-full border border-white/10 bg-black/18 px-3.5 py-1.5 text-center shadow-[0_10px_18px_rgba(17,8,5,0.18)]">
-            <span className="font-display text-[0.84rem] font-semibold text-[#e2b578]">
+          {activeClass ? (
+            <Link
+              href="/profil"
+              aria-label={`Aktywna klasa: ${activeClass.name}`}
+              className="flex min-w-0 items-center gap-1.5"
+            >
+              <ActiveClassEmblem
+                activeClass={activeClass}
+                sizeClass="size-10 shrink-0 min-[420px]:size-12"
+              />
+              <span className="hidden max-w-14 text-xs leading-4 font-bold tracking-wide text-[#f3a849] uppercase min-[420px]:block">
+                {activeClass.name}
+              </span>
+            </Link>
+          ) : null}
+          <div className="min-w-0 rounded-full border border-white/10 bg-black/18 px-2 py-1.5 text-center shadow-[0_10px_18px_rgba(17,8,5,0.18)] sm:px-3.5">
+            <span className="font-display text-[0.72rem] font-semibold text-[#e2b578] min-[420px]:text-[0.84rem]">
               Twoje Punkty:
             </span>{" "}
-            <span className="font-display text-[1.05rem] font-semibold text-[#fff1dc]">
+            <span className="font-display text-[0.95rem] font-semibold text-[#fff1dc] min-[420px]:text-[1.05rem]">
               {currentPoints.toLocaleString("pl-PL")} pkt
             </span>
           </div>

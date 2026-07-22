@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(248);
+select plan(253);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -3111,6 +3111,67 @@ select throws_ok(
 );
 reset role;
 
+insert into auth.users (
+  instance_id,
+  id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  confirmation_token,
+  recovery_token,
+  email_change,
+  email_change_token_new,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at
+)
+values
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '10000000-0000-0000-0000-000000000008',
+    'authenticated', 'authenticated', 'natural-one-isolated@twojatura.local',
+    extensions.crypt('TwojaTura123!', extensions.gen_salt('bf')),
+    '2026-01-01 10:00:00+00', '', '', '', '',
+    '{"provider":"email","providers":["email"]}',
+    '{"display_name":"Natural One Isolated"}',
+    '2026-01-01 10:00:00+00', '2026-01-01 10:00:00+00'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '10000000-0000-0000-0000-000000000009',
+    'authenticated', 'authenticated', 'tied-last-a@twojatura.local',
+    extensions.crypt('TwojaTura123!', extensions.gen_salt('bf')),
+    '2026-01-01 10:00:00+00', '', '', '', '',
+    '{"provider":"email","providers":["email"]}',
+    '{"display_name":"Tied Last A"}',
+    '2026-01-01 10:00:00+00', '2026-01-01 10:00:00+00'
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '10000000-0000-0000-0000-000000000010',
+    'authenticated', 'authenticated', 'tied-last-b@twojatura.local',
+    extensions.crypt('TwojaTura123!', extensions.gen_salt('bf')),
+    '2026-01-01 10:00:00+00', '', '', '', '',
+    '{"provider":"email","providers":["email"]}',
+    '{"display_name":"Tied Last B"}',
+    '2026-01-01 10:00:00+00', '2026-01-01 10:00:00+00'
+  );
+
+insert into public.profiles (id, display_name, email)
+values
+  ('10000000-0000-0000-0000-000000000008', 'Natural One Isolated', 'natural-one-isolated@twojatura.local'),
+  ('10000000-0000-0000-0000-000000000009', 'Tied Last A', 'tied-last-a@twojatura.local'),
+  ('10000000-0000-0000-0000-000000000010', 'Tied Last B', 'tied-last-b@twojatura.local');
+
+insert into public.app_members (user_id, role, is_active)
+values
+  ('10000000-0000-0000-0000-000000000008', 'member', true),
+  ('10000000-0000-0000-0000-000000000009', 'member', true),
+  ('10000000-0000-0000-0000-000000000010', 'member', true);
+
 insert into public.plays (
   id,
   game_id,
@@ -3135,24 +3196,21 @@ values
   ('7c000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 2, false),
   ('78000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 1, true),
   ('78000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003', 2, false),
-  ('78000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', 3, false),
+  ('78000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000008', 3, false),
   ('7c000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 2, false),
-  ('78000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 1, true),
-  ('78000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000005', 2, false),
   ('7c000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000005', 2, false),
-  ('78000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000005', 1, true),
   ('7c000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 2, false),
   ('78000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 1, true),
   ('78000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000003', null, false),
   ('7c000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000005', 2, false),
   ('78000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000005', 1, true),
-  ('78000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000003', 2, false),
-  ('78000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000001', 2, false);
+  ('78000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000009', 2, false),
+  ('78000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000010', 2, false);
 
 create temporary table pgtap_natural_one_balance_before as
 select coalesce(sum(points), 0)::bigint as total_points
 from public.point_events
-where user_id = '10000000-0000-0000-0000-000000000004';
+where user_id = '10000000-0000-0000-0000-000000000008';
 
 grant select on table pgtap_natural_one_balance_before to authenticated;
 
@@ -3168,18 +3226,62 @@ select results_eq(
     select awarded_count, points_awarded, awarded_user_ids
     from public.award_play_result_achievements('78000000-0000-0000-0000-000000000001')
   $$,
-  $$values (1::integer, 5::integer, array['10000000-0000-0000-0000-000000000004'::uuid])$$,
-  '211. three ranked participants award natural_one to the sole last-place participant'
+  $$values (0::integer, 0::integer, array[]::uuid[])$$,
+  '211. one last-place result does not award natural_one'
 );
 
 select results_eq(
   $$
     select
-      (select count(*)::bigint from public.user_achievements where user_id = '10000000-0000-0000-0000-000000000004' and achievement_key = 'natural_one'),
-      (select count(*)::bigint from public.point_events where user_id = '10000000-0000-0000-0000-000000000004' and action_type = 'achievement_unlocked:natural_one')
+      (select count(*)::bigint from public.user_achievements where user_id = '10000000-0000-0000-0000-000000000008' and achievement_key = 'natural_one'),
+      (select count(*)::bigint from public.point_events where user_id = '10000000-0000-0000-0000-000000000008' and action_type = 'achievement_unlocked:natural_one')
+  $$,
+  $$values (0::bigint, 0::bigint)$$,
+  '212. one last-place result creates neither achievement nor point event'
+);
+
+insert into public.play_participants (play_id, user_id, placement, is_winner)
+values
+  ('78000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 1, true),
+  ('78000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000008', 2, false);
+
+select results_eq(
+  $$
+    select
+      awarded_count,
+      points_awarded
+    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000002')
+  $$,
+  $$values (0::integer, 0::integer)$$,
+  '213. two last-place results do not award natural_one'
+);
+
+insert into public.play_participants (play_id, user_id, placement, is_winner)
+values
+  ('78000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 1, true),
+  ('78000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000008', 2, false);
+
+select results_eq(
+  $$
+    select awarded_count, points_awarded, awarded_user_ids
+    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000003')
+  $$,
+  $$values (1::integer, 5::integer, array['10000000-0000-0000-0000-000000000008'::uuid])$$,
+  '214. three last-place results award natural_one'
+);
+
+-- The RPC above awards another active member. Inspect the recipient's private
+-- point ledger as the test owner; the caller correctly cannot read it through RLS.
+reset role;
+
+select results_eq(
+  $$
+    select
+      (select count(*)::bigint from public.user_achievements where user_id = '10000000-0000-0000-0000-000000000008' and achievement_key = 'natural_one'),
+      (select count(*)::bigint from public.point_events where user_id = '10000000-0000-0000-0000-000000000008' and action_type = 'achievement_unlocked:natural_one')
   $$,
   $$values (1::bigint, 1::bigint)$$,
-  '212. natural_one creates one achievement and one point event'
+  '215. three last-place results create one achievement and one point event'
 );
 
 select results_eq(
@@ -3187,42 +3289,22 @@ select results_eq(
     select
       award.awarded_count,
       award.points_awarded,
-      (select count(*)::bigint from public.point_events where user_id = '10000000-0000-0000-0000-000000000004' and action_type = 'achievement_unlocked:natural_one')
-    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000001') as award
+      (select count(*)::bigint from public.point_events where user_id = '10000000-0000-0000-0000-000000000008' and action_type = 'achievement_unlocked:natural_one')
+    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000003') as award
   $$,
   $$values (0::integer, 0::integer, 1::bigint)$$,
-  '213. repeated play result evaluation does not duplicate natural_one or its point event'
+  '216. repeated result evaluation does not duplicate natural_one or its point event'
 );
 
-select results_eq(
-  $$
-    select awarded_count, points_awarded, awarded_user_ids
-    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000002')
-  $$,
-  $$values (1::integer, 5::integer, array['10000000-0000-0000-0000-000000000005'::uuid])$$,
-  '214. two ranked participants award natural_one to second place'
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000008","role":"authenticated"}',
+  true
 );
+set local role authenticated;
 
 select results_eq(
-  $$
-    select awarded_count, points_awarded
-    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000003')
-  $$,
-  $$values (0::integer, 0::integer)$$,
-  '215. solo play does not award natural_one'
-);
-
-select results_eq(
-  $$
-    select awarded_count, points_awarded
-    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000004')
-  $$,
-  $$values (0::integer, 0::integer)$$,
-  '216. incomplete placements do not award natural_one'
-);
-
-select results_eq(
-  $$select total_points from public.user_point_balances where user_id = '10000000-0000-0000-0000-000000000004'$$,
+  $$select total_points from public.user_point_balances where user_id = '10000000-0000-0000-0000-000000000008'$$,
   $$select total_points + 5 from pgtap_natural_one_balance_before$$,
   '217. natural_one increases the last-place participant balance exactly once'
 );
@@ -3253,8 +3335,8 @@ select results_eq(
     select awarded_count, points_awarded, cardinality(awarded_user_ids)
     from public.award_play_result_achievements('78000000-0000-0000-0000-000000000005')
   $$,
-  $$values (2::integer, 10::integer, 2::integer)$$,
-  '219. administrator awards every participant tied for the last place'
+  $$values (0::integer, 0::integer, 0::integer)$$,
+  '219. one tied last-place result does not award natural_one yet'
 );
 
 select results_eq(
@@ -3262,19 +3344,19 @@ select results_eq(
     select count(*)::bigint
     from public.user_achievements
     where achievement_key = 'natural_one'
-      and user_id in ('10000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003')
+      and user_id in ('10000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-000000000010')
   $$,
-  $$values (2::bigint)$$,
-  '220. every active participant tied for last place receives natural_one'
+  $$values (0::bigint)$$,
+  '220. tied last-place participants stay unawarded before the third result'
 );
 
 select results_eq(
   $$
     select awarded_count, points_awarded
-    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000005')
+    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000004')
   $$,
   $$values (0::integer, 0::integer)$$,
-  '221. tied last-place result is idempotent on repeated evaluation'
+  '221. incomplete placements do not count toward natural_one'
 );
 reset role;
 
@@ -3728,6 +3810,145 @@ select results_eq(
   '248. user can clear their own active class selection'
 );
 reset role;
+
+insert into auth.users (
+  instance_id,
+  id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  confirmation_token,
+  recovery_token,
+  email_change,
+  email_change_token_new,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at
+)
+values (
+  '00000000-0000-0000-0000-000000000000',
+  '10000000-0000-0000-0000-000000000007',
+  'authenticated',
+  'authenticated',
+  'coop-achievement@twojatura.local',
+  extensions.crypt('TwojaTura123!', extensions.gen_salt('bf')),
+  '2026-01-01 10:00:00+00',
+  '', '', '', '',
+  '{"provider":"email","providers":["email"]}',
+  '{"display_name":"Kooperacyjny QA"}',
+  '2026-01-01 10:00:00+00',
+  '2026-01-01 10:00:00+00'
+);
+
+insert into public.profiles (id, display_name, email)
+values (
+  '10000000-0000-0000-0000-000000000007',
+  'Kooperacyjny QA',
+  'coop-achievement@twojatura.local'
+);
+
+insert into public.app_members (user_id, role, is_active)
+values ('10000000-0000-0000-0000-000000000007', 'member', true);
+
+insert into public.plays (
+  id,
+  game_id,
+  created_by,
+  played_at,
+  duration_minutes
+)
+values
+  ('7d000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000007', '2027-01-01 18:00:00+00', 90),
+  ('7d000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000007', '2027-01-02 18:00:00+00', 90),
+  ('7d000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000007', '2027-01-03 18:00:00+00', 90);
+
+insert into public.play_participants (play_id, user_id, placement, is_winner)
+values
+  ('7d000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000007', 1, true),
+  ('7d000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003', 1, true),
+  ('7d000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000005', 1, true),
+  ('7d000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000007', 1, true),
+  ('7d000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000003', 1, true),
+  ('7d000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000005', 1, true),
+  ('7d000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000007', 1, true),
+  ('7d000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000003', 1, true),
+  ('7d000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000005', 1, true);
+
+select results_eq(
+  $$
+    select private.count_real_last_places('10000000-0000-0000-0000-000000000007')
+  $$,
+  $$values (0::integer)$$,
+  '249. cooperative 1/1/1 results do not count toward natural_one progress'
+);
+
+select results_eq(
+  $$
+    select private.is_real_last_place(
+      '78000000-0000-0000-0000-000000000001',
+      '10000000-0000-0000-0000-000000000008'
+    )
+  $$,
+  $$values (true)$$,
+  '250. a 1/2/3 ranking counts the participant in third place as last'
+);
+
+select results_eq(
+  $$
+    select
+      private.is_real_last_place(
+        '78000000-0000-0000-0000-000000000005',
+        '10000000-0000-0000-0000-000000000009'
+      ),
+      private.is_real_last_place(
+        '78000000-0000-0000-0000-000000000005',
+        '10000000-0000-0000-0000-000000000010'
+      )
+  $$,
+  $$values (true, true)$$,
+  '251. a 1/2/2 ranking counts both tied participants in second place as last'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.user_achievements
+    where user_id = '10000000-0000-0000-0000-000000000008'
+      and achievement_key = 'natural_one'
+  $$,
+  $$values (1::bigint)$$,
+  '252. three real last-place results still award natural_one'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000007","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+do $$
+begin
+  perform public.award_play_result_achievements('7d000000-0000-0000-0000-000000000001');
+  perform public.award_play_result_achievements('7d000000-0000-0000-0000-000000000002');
+  perform public.award_play_result_achievements('7d000000-0000-0000-0000-000000000003');
+end;
+$$;
+reset role;
+
+select results_eq(
+  $$
+    select
+      count(*) filter (where achievement_key = 'dark_urge')::bigint,
+      count(*) filter (where achievement_key = 'natural_one')::bigint
+    from public.user_achievements
+    where user_id = '10000000-0000-0000-0000-000000000007'
+  $$,
+  $$values (1::bigint, 0::bigint)$$,
+  '253. three cooperative 1/1/1 wins award dark_urge without natural_one'
+);
 
 select * from finish();
 rollback;

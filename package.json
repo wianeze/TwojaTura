@@ -21,7 +21,16 @@
     "db:test": "pnpm dlx supabase@2.109.0 test db --local",
     "db:types": "pnpm dlx supabase@2.109.0 gen types typescript --local --schema public > src/types/database.generated.ts",
     "db:verify": "pnpm db:reset && pnpm db:test && pnpm db:types",
-    "invite:user": "node --env-file-if-exists=.env.local scripts/invite-user.mjs"
+    "invite:user": "node --env-file-if-exists=.env.local scripts/invite-user.mjs",
+    "qa:achievements": "node --experimental-strip-types scripts/qa-achievements.mts",
+    "qa:achievements:reset": "node --experimental-strip-types scripts/qa-achievements.mts --reset",
+    "qa:achievements:check": "node --experimental-strip-types scripts/qa-achievements.mts --check",
+    "qa:classes": "node --experimental-strip-types scripts/qa-classes.mts",
+    "qa:classes:reset": "node --experimental-strip-types scripts/qa-classes.mts --reset",
+    "qa:classes:check": "node --experimental-strip-types scripts/qa-classes.mts --check",
+    "qa:badges": "node --experimental-strip-types scripts/qa-badges.mts",
+    "qa:badges:reset": "node --experimental-strip-types scripts/qa-badges.mts --reset",
+    "qa:badges:check": "node --experimental-strip-types scripts/qa-badges.mts --check"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

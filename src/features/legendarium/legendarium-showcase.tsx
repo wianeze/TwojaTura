@@ -4,7 +4,11 @@ import { AchievementCatalog } from "./achievement-catalog";
 import { ClassCatalog } from "./class-catalog";
 import { getAchievementAuraStyle } from "./mini-achievement-badge";
 import { RecentLootList } from "./recent-loot-list";
-import { ActiveClassEmblem } from "./active-class-emblem";
+import {
+  getActiveClassBackdropGradient,
+  getLeaderboardRankAsset,
+  getLeaderboardRankLabel,
+} from "./leaderboard-presentation";
 import type { LegendariumData, LegendariumLeaderboardEntry } from "./queries";
 import { hasRecentPointEvents } from "./view-model";
 
@@ -107,14 +111,6 @@ export const futureRewards = [
     limit: "Wkr\u00f3tce.",
   },
 ] as const satisfies readonly LegendariumReward[];
-
-const trophyAssets: Record<number, string> = {
-  1: "/brand/1st-place-nobg.png",
-  2: "/brand/2nd-place-nobg.png",
-  3: "/brand/3rd-place-nobg.png",
-  4: "/brand/4th-place-nobg.png",
-  5: "/brand/5th-place-nobg.png",
-};
 
 type LegendariumShowcaseProps = {
   data: LegendariumData;
@@ -260,61 +256,114 @@ function RewardPreviewNote({
 }
 
 function RankingEntry({ entry }: { entry: LegendariumLeaderboardEntry }) {
-  const trophy = trophyAssets[entry.rank];
+  const rankAsset = getLeaderboardRankAsset(entry.rank);
+  const classBackdropGradient = getActiveClassBackdropGradient(
+    entry.activeClass?.key ?? null,
+  );
   const isFirst = entry.rank === 1;
   const isPodium = entry.rank <= 3;
   const cardSize = isPodium
     ? "min-h-25 px-3 py-3 pl-14 sm:min-h-28 sm:px-4 sm:py-3.5 sm:pl-18"
     : "min-h-19 px-3 py-2.5 pl-14 sm:min-h-21 sm:px-3.5 sm:py-3 sm:pl-18";
-  const trophySize = isFirst
+  const rankIconSize = isFirst
     ? "size-[7.2rem] sm:size-[8.4rem]"
     : isPodium
       ? "size-24 sm:size-[6.6rem]"
-      : "size-[4.2rem] sm:size-[4.8rem]";
-  const trophyPosition = isFirst
+      : entry.rank <= 5
+        ? "size-[4.2rem] sm:size-[4.8rem]"
+        : "size-[2.8rem] sm:size-[3.2rem]";
+  const rankIconPosition = isFirst
     ? "left-[-3.6rem] sm:left-[-4.2rem]"
     : isPodium
       ? "-left-12 sm:left-[-3.3rem]"
-      : "left-[-2.1rem] sm:left-[-2.4rem]";
+      : entry.rank <= 5
+        ? "left-[-2.1rem] sm:left-[-2.4rem]"
+        : "left-[-1.4rem] sm:left-[-1.6rem]";
   const avatarSize = isPodium ? "size-10 sm:size-12" : "size-8 sm:size-9";
   const badgeSize = isFirst
     ? "size-10 text-sm sm:size-12 sm:text-base 2xl:size-24 2xl:text-2xl"
     : isPodium
       ? "size-9 text-xs sm:size-11 sm:text-sm 2xl:size-[5.5rem] 2xl:text-xl"
-      : "size-8 text-xs sm:size-10 sm:text-sm 2xl:size-20 2xl:text-lg";
+      : entry.rank <= 5
+        ? "size-8 text-xs sm:size-10 sm:text-sm 2xl:size-20 2xl:text-lg"
+        : "size-6 text-[0.62rem] sm:size-7 sm:text-xs 2xl:size-[3.4rem] 2xl:text-sm";
+  const podiumTone = isFirst
+    ? "border-[#f6d78b]/90 bg-[linear-gradient(110deg,rgba(132,76,27,0.96),rgba(103,57,23,0.88)_48%,rgba(73,37,20,0.84))]"
+    : entry.rank === 2
+      ? "border-[#e8c983]/80 bg-[linear-gradient(110deg,rgba(103,61,26,0.9),rgba(75,40,22,0.84)_55%,rgba(49,27,20,0.8))]"
+      : "border-[#dcb96d]/75 bg-[linear-gradient(110deg,rgba(88,53,25,0.88),rgba(62,34,22,0.82)_55%,rgba(43,25,20,0.78))]";
 
   return (
     <li
-      className={`relative flex min-w-0 items-center gap-2.5 overflow-visible rounded-[1.25rem] border shadow-[0_9px_18px_rgba(76,44,23,0.14)] sm:gap-3.5 ${
-        entry.isCurrentMember
-          ? "border-[#e8b875] bg-[#75442e]/92"
-          : isPodium
-            ? "border-[#e3c493]/70 bg-[#321810]/78"
+      className={`relative isolate flex min-w-0 items-center gap-2.5 overflow-visible rounded-[1.25rem] border shadow-[0_9px_18px_rgba(76,44,23,0.14)] sm:gap-3.5 ${
+        isPodium
+          ? `${podiumTone} ${entry.isCurrentMember ? "ring-1 ring-[#f4d48a]/65" : ""}`
+          : entry.isCurrentMember
+            ? "border-[#e8b875] bg-[#75442e]/92"
             : "border-[#d8bd90]/55 bg-black/20"
       } ${cardSize}`}
     >
-      {trophy ? (
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]"
+      >
+        {entry.activeClass?.iconPath ? (
+          <>
+            <span
+              className="absolute top-1/2 left-[-11rem] h-[190%] w-56 -translate-y-1/2 rounded-full blur-3xl sm:left-[-13rem] sm:w-72"
+              style={{ backgroundImage: classBackdropGradient }}
+            />
+            <span className="absolute top-1/2 left-[-12rem] h-[265%] w-64 -translate-y-1/2 opacity-50 sm:left-[-14rem] sm:w-80">
+              <Image
+                src={entry.activeClass.iconPath}
+                alt=""
+                fill
+                sizes="(min-width: 640px) 320px, 256px"
+                className="object-contain object-right"
+              />
+            </span>
+            <span
+              className="absolute top-1/2 left-[19%] h-[135%] w-36 -translate-y-1/2 rounded-full blur-3xl sm:left-[21%] sm:w-48"
+              style={{ backgroundImage: classBackdropGradient }}
+            />
+            <span className="absolute top-1/2 left-[19%] h-[185%] w-44 -translate-y-1/2 opacity-50 sm:left-[21%] sm:w-56">
+              <Image
+                src={entry.activeClass.iconPath}
+                alt=""
+                fill
+                sizes="(min-width: 1024px) 224px, 176px"
+                className="object-contain object-left"
+              />
+            </span>
+          </>
+        ) : null}
+      </span>
+      {rankAsset ? (
         <Image
-          src={trophy}
-          alt={`Puchar za ${entry.rank}. miejsce`}
+          src={rankAsset}
+          alt={getLeaderboardRankLabel(entry.rank)}
           width={isFirst ? 144 : 112}
           height={isFirst ? 144 : 112}
-          className={`absolute top-1/2 z-10 shrink-0 -translate-y-1/2 object-contain drop-shadow-[0_7px_10px_rgba(66,36,17,0.42)] ${trophyPosition} ${trophySize}`}
+          className={`absolute top-1/2 z-20 shrink-0 -translate-y-1/2 object-contain drop-shadow-[0_7px_10px_rgba(66,36,17,0.42)] ${rankIconPosition} ${rankIconSize}`}
         />
-      ) : null}
-      <span className="relative shrink-0">
+      ) : (
+        <span className="absolute top-1/2 left-[-1.15rem] z-20 grid size-9 -translate-y-1/2 place-items-center rounded-full border border-[#e6c68f]/70 bg-[#2b140d] text-xs font-bold text-[#ffe8bd] shadow-[0_5px_10px_rgba(38,17,8,0.38)] sm:left-[-1.35rem] sm:size-10">
+          {entry.rank}
+        </span>
+      )}
+      <span className="relative z-10 shrink-0">
         <Avatar
           avatarUrl={entry.avatarUrl}
           name={entry.displayName}
           sizeClass={avatarSize}
         />
-        <ActiveClassEmblem
-          activeClass={entry.activeClass}
-          sizeClass={isPodium ? "size-7 sm:size-8" : "size-6 sm:size-7"}
-          className="absolute -right-2 -bottom-2 z-20"
-        />
       </span>
-      <span className="min-w-0 flex-1">
+      <span className="relative z-10 min-w-0 flex-1">
+        {entry.activeClass ? (
+          <span className="mb-0.5 block truncate text-[0.62rem] font-bold tracking-[0.1em] text-[#f0c978] uppercase sm:text-[0.7rem]">
+            {entry.activeClass.name}
+          </span>
+        ) : null}
         <span
           className={`block truncate font-bold text-[#fff1dc] ${
             isPodium ? "text-base sm:text-lg" : "text-sm sm:text-base"
@@ -330,13 +379,10 @@ function RankingEntry({ entry }: { entry: LegendariumLeaderboardEntry }) {
         >
           {entry.totalPoints.toLocaleString("pl-PL")} pkt
         </span>
-        {entry.activeClass ? (
-          <span className="mt-0.5 block truncate text-[0.62rem] font-semibold tracking-[0.04em] text-[#e7bb70] sm:text-[0.7rem]">
-            {entry.activeClass.name}
-          </span>
-        ) : null}
       </span>
-      <TrophySet badges={entry.badges} sizeClass={badgeSize} />
+      <span className="relative z-10">
+        <TrophySet badges={entry.badges} sizeClass={badgeSize} />
+      </span>
     </li>
   );
 }
@@ -352,7 +398,7 @@ function TrophySet({
 
   return (
     <span
-      className="flex shrink-0 -space-x-2 sm:space-x-2 xl:space-x-3"
+      className="flex shrink-0 origin-right scale-200 -space-x-2 sm:scale-100 sm:space-x-2 xl:space-x-3"
       aria-label="Najcenniejsze trofea"
       title="Najcenniejsze trofea"
     >

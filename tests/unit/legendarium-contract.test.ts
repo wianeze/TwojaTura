@@ -24,7 +24,10 @@ import {
   normalizeActiveClassKey,
   persistActiveClassSelection,
 } from "../../src/features/legendarium/active-class-selection.ts";
-import { buildAchievementProgressMap } from "../../src/features/legendarium/achievement-progress.ts";
+import {
+  buildAchievementProgressMap,
+  isRealLastPlace,
+} from "../../src/features/legendarium/achievement-progress.ts";
 import {
   getCurrentLegendariumRank,
   hasRecentPointEvents,
@@ -243,7 +246,7 @@ test("achievement progress maps the supported read-only counters", () => {
     perfectRatings: 5,
     replayRatings: 7,
     hasFirstWin: true,
-    hasLastPlace: false,
+    lastPlaceFinishes: 2,
     hasFullParty: true,
     hasSoloPlay: false,
     hasSideQuest: true,
@@ -268,6 +271,53 @@ test("achievement progress maps the supported read-only counters", () => {
     label: "2/3",
     isComplete: false,
   });
+  assert.deepEqual(progress.natural_one, {
+    current: 2,
+    target: 3,
+    label: "2/3",
+    isComplete: false,
+  });
+});
+
+test("natural_one progress requires three last-place finishes", () => {
+  const metrics = {
+    meetingsCreated: 0,
+    completedMeetingsHosted: 0,
+    ratingComments: 0,
+    playsCreated: 0,
+    meetingResponses: 0,
+    activeOwnedGames: 0,
+    perfectRatings: 0,
+    replayRatings: 0,
+    hasFirstWin: false,
+    hasFullParty: false,
+    hasSoloPlay: false,
+    hasSideQuest: false,
+    currentWinStreak: 0,
+  };
+
+  assert.equal(
+    buildAchievementProgressMap({ ...metrics, lastPlaceFinishes: 1 })
+      .natural_one?.label,
+    "1/3",
+  );
+  assert.equal(
+    buildAchievementProgressMap({ ...metrics, lastPlaceFinishes: 2 })
+      .natural_one?.isComplete,
+    false,
+  );
+  assert.deepEqual(
+    buildAchievementProgressMap({ ...metrics, lastPlaceFinishes: 3 })
+      .natural_one,
+    { current: 3, target: 3, label: "3/3", isComplete: true },
+  );
+});
+
+test("natural_one progress ignores cooperative ties without a real ranking", () => {
+  assert.equal(isRealLastPlace([1, 1, 1], 1), false);
+  assert.equal(isRealLastPlace([1, 2, 3], 3), true);
+  assert.equal(isRealLastPlace([1, 2, 2], 2), true);
+  assert.equal(isRealLastPlace([1, 2, null], 2), false);
 });
 
 test("achievement catalog keeps secrets hidden and manual achievements without synthetic progress", () => {

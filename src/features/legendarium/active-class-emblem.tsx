@@ -1,14 +1,19 @@
 import Image from "next/image";
 import type { ActiveClassView } from "./achievement-view-model";
+import { getActiveClassBackdropGradient } from "./leaderboard-presentation";
 
 export function ActiveClassEmblem({
   activeClass,
   sizeClass = "size-9",
   className = "",
+  showAura = true,
+  imageSizes = "72px",
 }: {
   activeClass: ActiveClassView | null;
   sizeClass?: string;
   className?: string;
+  showAura?: boolean;
+  imageSizes?: string;
 }) {
   if (!activeClass) return null;
 
@@ -17,16 +22,21 @@ export function ActiveClassEmblem({
       className={`relative isolate grid place-items-center ${sizeClass} ${className}`}
       title={activeClass.name}
     >
-      <span
-        aria-hidden="true"
-        className="absolute -inset-[14%] -z-10 rounded-full bg-[radial-gradient(circle,rgba(255,226,145,0.7)_0%,rgba(168,93,46,0.34)_52%,transparent_74%)]"
-      />
+      {showAura ? (
+        <span
+          aria-hidden="true"
+          className="absolute -inset-[14%] -z-10 rounded-full bg-[radial-gradient(circle,rgba(255,226,145,0.7)_0%,rgba(168,93,46,0.34)_52%,transparent_74%)]"
+          style={{
+            backgroundImage: getActiveClassBackdropGradient(activeClass.key),
+          }}
+        />
+      ) : null}
       {activeClass.iconPath ? (
         <Image
           src={activeClass.iconPath}
           alt={`Emblemat klasy ${activeClass.name}`}
           fill
-          sizes="72px"
+          sizes={imageSizes}
           className="object-contain drop-shadow-[0_4px_7px_rgba(25,11,5,0.5)]"
         />
       ) : (

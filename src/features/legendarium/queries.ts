@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import type { CurrentMember } from "@/features/auth/types";
 import { createLegendariumReadPlan } from "./read-plan";
-import { buildAchievementProgressMap } from "./achievement-progress";
+import {
+  buildAchievementProgressMap,
+  isRealLastPlace,
+} from "./achievement-progress";
 import {
   getCurrentLegendariumRank,
   mapLegendariumLeaderboard,
@@ -226,16 +229,11 @@ export async function getAchievementClassData(
     ...participant,
     play: playsById.get(participant.play_id),
   }));
-  const hasLastPlace = ownResults.some((participant) => {
+  const lastPlaceFinishes = ownResults.filter((participant) => {
     const players = participantsByPlay.get(participant.play_id) ?? [];
     const placements = players.map((player) => player.placement);
-    return (
-      players.length >= 2 &&
-      participant.placement !== null &&
-      placements.every((placement) => placement !== null) &&
-      participant.placement === Math.max(...(placements as number[]))
-    );
-  });
+    return isRealLastPlace(placements, participant.placement);
+  }).length;
   const orderedResults = ownResults
     .filter((participant) => participant.play)
     .sort(
@@ -276,7 +274,7 @@ export async function getAchievementClassData(
         .map((rating) => rating.game_id),
     ).size,
     hasFirstWin: ownResults.some((participant) => participant.is_winner),
-    hasLastPlace,
+    lastPlaceFinishes,
     hasFullParty: ownResults.some(
       (participant) =>
         (participantsByPlay.get(participant.play_id)?.length ?? 0) >= 5,
