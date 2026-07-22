@@ -6,6 +6,8 @@ import type { Database, Json } from "@/types/database.generated";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
 import { awardSimpleAchievementsAfterPlayCreate } from "@/features/legendarium/achievement-awards";
+import { awardPlayResultAchievementsAfterSave } from "./play-achievements";
+import { awardCampHostAfterPlaySave } from "./meeting-achievements";
 import type { PlayFormState } from "./types";
 import { toPlayFormErrorState, validatePlayFormData } from "./validation";
 import { awardPlayPointsAfterSave } from "./play-points";
@@ -221,6 +223,37 @@ export async function createPlayAction(
     };
   }
 
+  const campHostAward = await awardCampHostAfterPlaySave(
+    Boolean(validation.data.meetingId),
+    () =>
+      access.supabase.rpc("award_meeting_achievements", {
+        p_play_id: data,
+      }),
+  );
+
+  if (!campHostAward.ok) {
+    return {
+      status: "error",
+      message:
+        "Nie uda\u0142o si\u0119 sprawdzi\u0107 odznaki gospodarza po zapisie partii.",
+    };
+  }
+
+  const resultAchievementAward = await awardPlayResultAchievementsAfterSave(
+    () =>
+      access.supabase.rpc("award_play_result_achievements", {
+        p_play_id: data,
+      }),
+  );
+
+  if (!resultAchievementAward.ok) {
+    return {
+      status: "error",
+      message:
+        "Partia została zapisana, ale nie udało się sprawdzić odznaki za wynik. Odśwież Kronikę przed ponowną próbą.",
+    };
+  }
+
   revalidatePlaySurfaces({
     playId: data,
     gameIds: [validation.data.gameId],
@@ -265,6 +298,37 @@ export async function updatePlayAction(
     return {
       status: "error",
       message: mapPlayDatabaseError(error ?? {}),
+    };
+  }
+
+  const resultAchievementAward = await awardPlayResultAchievementsAfterSave(
+    () =>
+      access.supabase.rpc("award_play_result_achievements", {
+        p_play_id: data,
+      }),
+  );
+
+  if (!resultAchievementAward.ok) {
+    return {
+      status: "error",
+      message:
+        "Partia została zapisana, ale nie udało się sprawdzić odznaki za wynik. Odśwież Kronikę przed ponowną próbą.",
+    };
+  }
+
+  const campHostAward = await awardCampHostAfterPlaySave(
+    Boolean(validation.data.meetingId),
+    () =>
+      access.supabase.rpc("award_meeting_achievements", {
+        p_play_id: data,
+      }),
+  );
+
+  if (!campHostAward.ok) {
+    return {
+      status: "error",
+      message:
+        "Partia została zapisana, ale nie udało się sprawdzić odznaki gospodarza. Odśwież Kronikę przed ponowną próbą.",
     };
   }
 

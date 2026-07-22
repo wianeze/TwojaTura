@@ -20,6 +20,96 @@ import {
   validatePlayFormData,
 } from "../../src/features/plays/validation.ts";
 import { awardPlayPointsAfterSave } from "../../src/features/plays/play-points.ts";
+import { awardPlayResultAchievementsAfterSave } from "../../src/features/plays/play-achievements.ts";
+import { awardCampHostAfterPlaySave } from "../../src/features/plays/meeting-achievements.ts";
+
+test("Chronicle create and result edit request natural_one evaluation", async () => {
+  let requestCount = 0;
+  const requestAward = async () => {
+    requestCount += 1;
+    return {
+      data: [
+        {
+          awarded_count: 1,
+          points_awarded: 5,
+          awarded_user_ids: ["member-last"],
+        },
+      ],
+      error: null,
+    };
+  };
+
+  const [afterCreate, afterResultEdit] = await Promise.all([
+    awardPlayResultAchievementsAfterSave(requestAward),
+    awardPlayResultAchievementsAfterSave(requestAward),
+  ]);
+
+  assert.equal(requestCount, 2);
+  assert.deepEqual(afterCreate, {
+    ok: true,
+    awardedCount: 1,
+    pointsAwarded: 5,
+    awardedUserIds: ["member-last"],
+  });
+  assert.deepEqual(afterResultEdit, afterCreate);
+});
+
+test("no new natural_one award remains a successful Chronicle post-save result", async () => {
+  const result = await awardPlayResultAchievementsAfterSave(async () => ({
+    data: [{ awarded_count: 0, points_awarded: 0, awarded_user_ids: [] }],
+    error: null,
+  }));
+
+  assert.deepEqual(result, {
+    ok: true,
+    awardedCount: 0,
+    pointsAwarded: 0,
+    awardedUserIds: [],
+  });
+});
+
+test("meeting-linked Chronicle save requests camp_host evaluation", async () => {
+  let requestCount = 0;
+  const result = await awardCampHostAfterPlaySave(true, async () => {
+    requestCount += 1;
+    return {
+      data: [
+        {
+          awarded_count: 1,
+          points_awarded: 10,
+          awarded_keys: ["camp_host"],
+        },
+      ],
+      error: null,
+    };
+  });
+
+  assert.equal(requestCount, 1);
+  assert.deepEqual(result, {
+    ok: true,
+    skipped: false,
+    awardedCount: 1,
+    pointsAwarded: 10,
+    awardedKeys: ["camp_host"],
+  });
+});
+
+test("Chronicle save without a meeting skips camp_host evaluation", async () => {
+  let requestCount = 0;
+  const result = await awardCampHostAfterPlaySave(false, async () => {
+    requestCount += 1;
+    return { data: null, error: null };
+  });
+
+  assert.equal(requestCount, 0);
+  assert.deepEqual(result, {
+    ok: true,
+    skipped: true,
+    awardedCount: 0,
+    pointsAwarded: 0,
+    awardedKeys: [],
+  });
+});
 
 test("new Chronicle entry requests play_logged points", async () => {
   let requestCount = 0;

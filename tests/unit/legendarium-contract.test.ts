@@ -15,10 +15,16 @@ import {
 import { createLegendariumReadPlan } from "../../src/features/legendarium/read-plan.ts";
 import {
   mapAchievementCatalog,
+  mapActiveClassesByUser,
   mapCharacterClasses,
   selectTopAchievementBadges,
   type AchievementDefinitionSource,
 } from "../../src/features/legendarium/achievement-view-model.ts";
+import {
+  normalizeActiveClassKey,
+  persistActiveClassSelection,
+} from "../../src/features/legendarium/active-class-selection.ts";
+import { buildAchievementProgressMap } from "../../src/features/legendarium/achievement-progress.ts";
 import {
   getCurrentLegendariumRank,
   hasRecentPointEvents,
@@ -71,6 +77,13 @@ test("Legendarium highlights the current member and derives their ranking place"
         avatarUrl: "",
         totalPoints: 90,
         rank: 2,
+        activeClass: {
+          key: "bard_stolu",
+          name: "Bard Stołu",
+          description: "Opis",
+          playstyle: "Styl",
+          iconPath: "/Classes/Bard.png",
+        },
       },
     ],
     "member-1",
@@ -78,6 +91,7 @@ test("Legendarium highlights the current member and derives their ranking place"
 
   assert.equal(leaderboard[1]?.isCurrentMember, true);
   assert.equal(leaderboard[0]?.isCurrentMember, false);
+  assert.equal(leaderboard[1]?.activeClass?.name, "Bard Stołu");
   assert.equal(getCurrentLegendariumRank(leaderboard), 2);
 });
 
@@ -218,6 +232,82 @@ test("unearned secret achievement becomes a safe placeholder", () => {
   assert.equal(secret?.iconPath, null);
 });
 
+test("achievement progress maps the supported read-only counters", () => {
+  const progress = buildAchievementProgressMap({
+    meetingsCreated: 3,
+    completedMeetingsHosted: 5,
+    ratingComments: 2,
+    playsCreated: 24,
+    meetingResponses: 10,
+    activeOwnedGames: 27,
+    perfectRatings: 5,
+    replayRatings: 7,
+    hasFirstWin: true,
+    hasLastPlace: false,
+    hasFullParty: true,
+    hasSoloPlay: false,
+    hasSideQuest: true,
+    currentWinStreak: 2,
+  });
+
+  assert.deepEqual(progress.initiative_master, {
+    current: 3,
+    target: 5,
+    label: "3/5",
+    isComplete: false,
+  });
+  assert.deepEqual(progress.camp_host, {
+    current: 5,
+    target: 5,
+    label: "5/5",
+    isComplete: true,
+  });
+  assert.deepEqual(progress.dark_urge, {
+    current: 2,
+    target: 3,
+    label: "2/3",
+    isComplete: false,
+  });
+});
+
+test("achievement catalog keeps secrets hidden and manual achievements without synthetic progress", () => {
+  const definitions: AchievementDefinitionSource[] = [
+    {
+      achievementKey: "manual-one",
+      name: "Ręczna",
+      description: "Opis",
+      conditionText: "Warunek",
+      rarity: "common",
+      points: 5,
+      iconPath: null,
+      isSecret: false,
+      isManual: true,
+      sortOrder: 1,
+    },
+    {
+      achievementKey: "secret-one",
+      name: "Sekret",
+      description: "Opis",
+      conditionText: "Warunek",
+      rarity: "secret",
+      points: 5,
+      iconPath: null,
+      isSecret: true,
+      isManual: false,
+      sortOrder: 2,
+    },
+  ];
+  const catalog = mapAchievementCatalog(definitions, [], "member-1", 2, {
+    "manual-one": { current: 0, target: 1, label: "0/1", isComplete: false },
+    "secret-one": { current: 1, target: 1, label: "1/1", isComplete: true },
+  });
+
+  assert.equal(catalog[0]?.progress, null);
+  assert.equal(catalog[0]?.isManual, true);
+  assert.equal(catalog[1]?.name, "Sekretna odznaka");
+  assert.equal(catalog[1]?.progress, null);
+});
+
 test("class progress counts earned requirements and unlocks at completion", () => {
   const classes = [
     {
@@ -263,12 +353,61 @@ test("class progress counts earned requirements and unlocks at completion", () =
     ],
     "member-1",
     2,
+    "warrior",
   )[0];
 
   assert.equal(inProgress?.acquiredRequirements, 1);
   assert.equal(inProgress?.unlocked, false);
+  assert.equal(inProgress?.isActive, false);
   assert.equal(unlocked?.acquiredRequirements, 2);
   assert.equal(unlocked?.unlocked, true);
+  assert.equal(unlocked?.isActive, true);
+});
+
+test("active class mapping joins profile selections in one bulk map", () => {
+  const activeClasses = mapActiveClassesByUser(
+    [
+      {
+        classKey: "warrior",
+        name: "Wojownik",
+        description: "Opis",
+        playstyle: "Waleczny",
+        iconPath: "/Classes/warrior.png",
+        sortOrder: 1,
+      },
+    ],
+    [
+      { userId: "member-1", activeClassKey: "warrior" },
+      { userId: "member-2", activeClassKey: null },
+    ],
+  );
+
+  assert.equal(activeClasses["member-1"]?.name, "Wojownik");
+  assert.equal(activeClasses["member-2"], undefined);
+});
+
+test("active class selection normalizes clear requests and calls the narrow RPC adapter", async () => {
+  const calls: Array<string | null> = [];
+
+  assert.equal(normalizeActiveClassKey(" warrior "), "warrior");
+  assert.equal(normalizeActiveClassKey(""), null);
+
+  await persistActiveClassSelection(async (classKey) => {
+    calls.push(classKey);
+    return { error: null };
+  }, "warrior");
+
+  assert.deepEqual(calls, ["warrior"]);
+});
+
+test("active class selection exposes real RPC failures", async () => {
+  await assert.rejects(
+    persistActiveClassSelection(
+      async () => ({ error: { message: "locked" } }),
+      "locked-class",
+    ),
+    /Nie udało się ustawić aktywnej klasy/,
+  );
 });
 
 test("leaderboard selects at most three real badges by rarity and date", () => {

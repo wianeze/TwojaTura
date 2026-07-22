@@ -142,6 +142,17 @@ body {
   background-blend-mode: screen, multiply, soft-light;
 }
 
+.loot-texture {
+  background-color: #2d1711;
+  background-image:
+    linear-gradient(145deg, rgba(48, 21, 16, 0.2), rgba(12, 5, 4, 0.72)),
+    url("/textures/dark-texture-lupy.png");
+  background-size:
+    auto,
+    720px 720px;
+  background-blend-mode: normal, soft-light;
+}
+
 .paper-wash {
   background-color: #fffaf0;
   background-image:

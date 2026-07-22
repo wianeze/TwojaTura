@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(207);
+select plan(248);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -3077,6 +3077,657 @@ select results_eq(
   $$values ('rule_quard', 'Strażnik Zasad')$$,
   '207. rules badge uses the renamed key and display name'
 );
+
+select results_eq(
+  $$
+    select pronargs::integer, oidvectortypes(proargtypes)
+    from pg_proc
+    where oid = 'public.award_play_result_achievements(uuid)'::regprocedure
+  $$,
+  $$values (1::integer, 'uuid')$$,
+  '208. play result achievement RPC accepts only a play id'
+);
+
+set local role anon;
+select throws_ok(
+  $$select * from public.award_play_result_achievements('78000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '209. anonymous user cannot execute play result achievement RPC'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000006","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select * from public.award_play_result_achievements('78000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '210. inactive member cannot award play result achievements'
+);
+reset role;
+
+insert into public.plays (
+  id,
+  game_id,
+  created_by,
+  played_at,
+  duration_minutes
+)
+values
+  ('7c000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', '2026-10-01 17:59:00+00', 90),
+  ('78000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', '2026-10-01 18:00:00+00', 90),
+  ('7c000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', '2026-10-02 17:59:00+00', 90),
+  ('78000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', '2026-10-02 18:00:00+00', 90),
+  ('7c000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', '2026-10-03 17:59:00+00', 90),
+  ('78000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', '2026-10-03 18:00:00+00', 90),
+  ('7c000000-0000-0000-0000-000000000004', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', '2026-10-04 17:59:00+00', 90),
+  ('78000000-0000-0000-0000-000000000004', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', '2026-10-04 18:00:00+00', 90),
+  ('7c000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', '2026-10-05 17:59:00+00', 90),
+  ('78000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-10-05 18:00:00+00', 90);
+
+insert into public.play_participants (play_id, user_id, placement, is_winner)
+values
+  ('7c000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 2, false),
+  ('78000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 1, true),
+  ('78000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003', 2, false),
+  ('78000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', 3, false),
+  ('7c000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 2, false),
+  ('78000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 1, true),
+  ('78000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000005', 2, false),
+  ('7c000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000005', 2, false),
+  ('78000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000005', 1, true),
+  ('7c000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 2, false),
+  ('78000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', 1, true),
+  ('78000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000003', null, false),
+  ('7c000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000005', 2, false),
+  ('78000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000005', 1, true),
+  ('78000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000003', 2, false),
+  ('78000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000001', 2, false);
+
+create temporary table pgtap_natural_one_balance_before as
+select coalesce(sum(points), 0)::bigint as total_points
+from public.point_events
+where user_id = '10000000-0000-0000-0000-000000000004';
+
+grant select on table pgtap_natural_one_balance_before to authenticated;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000004","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select results_eq(
+  $$
+    select awarded_count, points_awarded, awarded_user_ids
+    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000001')
+  $$,
+  $$values (1::integer, 5::integer, array['10000000-0000-0000-0000-000000000004'::uuid])$$,
+  '211. three ranked participants award natural_one to the sole last-place participant'
+);
+
+select results_eq(
+  $$
+    select
+      (select count(*)::bigint from public.user_achievements where user_id = '10000000-0000-0000-0000-000000000004' and achievement_key = 'natural_one'),
+      (select count(*)::bigint from public.point_events where user_id = '10000000-0000-0000-0000-000000000004' and action_type = 'achievement_unlocked:natural_one')
+  $$,
+  $$values (1::bigint, 1::bigint)$$,
+  '212. natural_one creates one achievement and one point event'
+);
+
+select results_eq(
+  $$
+    select
+      award.awarded_count,
+      award.points_awarded,
+      (select count(*)::bigint from public.point_events where user_id = '10000000-0000-0000-0000-000000000004' and action_type = 'achievement_unlocked:natural_one')
+    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000001') as award
+  $$,
+  $$values (0::integer, 0::integer, 1::bigint)$$,
+  '213. repeated play result evaluation does not duplicate natural_one or its point event'
+);
+
+select results_eq(
+  $$
+    select awarded_count, points_awarded, awarded_user_ids
+    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000002')
+  $$,
+  $$values (1::integer, 5::integer, array['10000000-0000-0000-0000-000000000005'::uuid])$$,
+  '214. two ranked participants award natural_one to second place'
+);
+
+select results_eq(
+  $$
+    select awarded_count, points_awarded
+    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000003')
+  $$,
+  $$values (0::integer, 0::integer)$$,
+  '215. solo play does not award natural_one'
+);
+
+select results_eq(
+  $$
+    select awarded_count, points_awarded
+    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000004')
+  $$,
+  $$values (0::integer, 0::integer)$$,
+  '216. incomplete placements do not award natural_one'
+);
+
+select results_eq(
+  $$select total_points from public.user_point_balances where user_id = '10000000-0000-0000-0000-000000000004'$$,
+  $$select total_points + 5 from pgtap_natural_one_balance_before$$,
+  '217. natural_one increases the last-place participant balance exactly once'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select * from public.award_play_result_achievements('78000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '218. member without play management permission cannot award result achievements'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$
+    select awarded_count, points_awarded, cardinality(awarded_user_ids)
+    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000005')
+  $$,
+  $$values (2::integer, 10::integer, 2::integer)$$,
+  '219. administrator awards every participant tied for the last place'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.user_achievements
+    where achievement_key = 'natural_one'
+      and user_id in ('10000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003')
+  $$,
+  $$values (2::bigint)$$,
+  '220. every active participant tied for last place receives natural_one'
+);
+
+select results_eq(
+  $$
+    select awarded_count, points_awarded
+    from public.award_play_result_achievements('78000000-0000-0000-0000-000000000005')
+  $$,
+  $$values (0::integer, 0::integer)$$,
+  '221. tied last-place result is idempotent on repeated evaluation'
+);
+reset role;
+
+insert into public.plays (
+  id,
+  game_id,
+  created_by,
+  played_at,
+  duration_minutes
+)
+values
+  ('79000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-01 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-02 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-03 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000004', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-04 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-05 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000006', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-06 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000007', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-07 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000008', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-08 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000009', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-09 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000010', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-10 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000011', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-11 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000012', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-12 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000013', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-13 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000014', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-14 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000015', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-15 18:00:00+00', 90),
+  ('79000000-0000-0000-0000-000000000016', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '2026-11-16 18:00:00+00', 90);
+
+insert into public.play_participants (play_id, user_id, placement, is_winner)
+values
+  ('79000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 2, false),
+  ('79000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 1, true),
+  ('79000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 1, true),
+  ('79000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002', 1, true),
+  ('79000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000003', 1, true),
+  ('79000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000003', 2, false),
+  ('79000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000003', 1, true),
+  ('79000000-0000-0000-0000-000000000008', '10000000-0000-0000-0000-000000000003', 1, true),
+  ('79000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-000000000004', 1, true),
+  ('79000000-0000-0000-0000-000000000010', '10000000-0000-0000-0000-000000000004', 1, true),
+  ('79000000-0000-0000-0000-000000000011', '10000000-0000-0000-0000-000000000001', 2, false),
+  ('79000000-0000-0000-0000-000000000012', '10000000-0000-0000-0000-000000000001', 1, true),
+  ('79000000-0000-0000-0000-000000000013', '10000000-0000-0000-0000-000000000005', 1, true),
+  ('79000000-0000-0000-0000-000000000014', '10000000-0000-0000-0000-000000000001', 1, true),
+  ('79000000-0000-0000-0000-000000000015', '10000000-0000-0000-0000-000000000004', 1, true),
+  ('79000000-0000-0000-0000-000000000016', '10000000-0000-0000-0000-000000000001', 1, true);
+
+create temporary table pgtap_dark_urge_balance_before as
+select coalesce(sum(points), 0)::bigint as total_points
+from public.point_events
+where user_id = '10000000-0000-0000-0000-000000000002';
+
+grant select on table pgtap_dark_urge_balance_before to authenticated;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select results_eq(
+  $$
+    select awarded_count, points_awarded, awarded_user_ids
+    from public.award_play_result_achievements('79000000-0000-0000-0000-000000000004')
+  $$,
+  $$values (1::integer, 15::integer, array['10000000-0000-0000-0000-000000000002'::uuid])$$,
+  '222. three consecutive own wins award dark_urge'
+);
+
+select results_eq(
+  $$
+    select awarded_count, points_awarded
+    from public.award_play_result_achievements('79000000-0000-0000-0000-000000000008')
+  $$,
+  $$values (0::integer, 0::integer)$$,
+  '223. a loss between wins prevents dark_urge'
+);
+
+select results_eq(
+  $$
+    select awarded_count, points_awarded
+    from public.award_play_result_achievements('79000000-0000-0000-0000-000000000010')
+  $$,
+  $$values (0::integer, 0::integer)$$,
+  '224. two own wins do not award dark_urge'
+);
+
+select results_eq(
+  $$
+    select awarded_count, points_awarded, awarded_user_ids
+    from public.award_play_result_achievements('79000000-0000-0000-0000-000000000016')
+  $$,
+  $$values (1::integer, 15::integer, array['10000000-0000-0000-0000-000000000001'::uuid])$$,
+  '225. other players plays between own wins do not interrupt dark_urge'
+);
+
+select results_eq(
+  $$
+    select
+      award.awarded_count,
+      award.points_awarded,
+      (select count(*)::bigint from public.point_events where user_id = '10000000-0000-0000-0000-000000000002' and action_type = 'achievement_unlocked:dark_urge')
+    from public.award_play_result_achievements('79000000-0000-0000-0000-000000000004') as award
+  $$,
+  $$values (0::integer, 0::integer, 1::bigint)$$,
+  '226. repeated dark_urge evaluation does not duplicate the achievement or point event'
+);
+
+select results_eq(
+  $$select total_points from public.user_point_balances where user_id = '10000000-0000-0000-0000-000000000002'$$,
+  $$select total_points + 15 from pgtap_dark_urge_balance_before$$,
+  '227. dark_urge increases the qualifying participant balance exactly once'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select * from public.award_play_result_achievements('79000000-0000-0000-0000-000000000004')$$,
+  '42501',
+  null,
+  '228. member without play management permission cannot evaluate dark_urge'
+);
+reset role;
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.user_achievements
+    where achievement_key = 'dark_urge'
+      and user_id in ('10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001')
+  $$,
+  $$values (2::bigint)$$,
+  '229. only qualifying users receive dark_urge without backfill'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"role":"anon"}',
+  true
+);
+set local role anon;
+select throws_ok(
+  $$select * from public.award_meeting_achievements('7a000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '230. anon cannot execute camp_host evaluation'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000006","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select * from public.award_meeting_achievements('7a000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '231. inactive member cannot evaluate camp_host'
+);
+reset role;
+
+insert into public.meetings (
+  id,
+  created_by,
+  title,
+  status,
+  starts_at,
+  ends_at
+)
+select
+  ('7a000000-0000-0000-0000-' || lpad(series.value::text, 12, '0'))::uuid,
+  '10000000-0000-0000-0000-000000000004',
+  'Camp host meeting ' || series.value,
+  'confirmed',
+  '2026-12-01 16:00:00+00'::timestamptz + series.value * interval '1 day',
+  '2026-12-01 20:00:00+00'::timestamptz + series.value * interval '1 day'
+from generate_series(1, 5) as series(value);
+
+insert into public.plays (
+  id,
+  game_id,
+  created_by,
+  played_at,
+  duration_minutes
+)
+values (
+  '7b000000-0000-0000-0000-000000000001',
+  '30000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000002',
+  '2026-12-01 18:00:00+00',
+  90
+);
+
+create temporary table pgtap_camp_host_balance_before as
+select coalesce(sum(points), 0)::bigint as total_points
+from public.point_events
+where user_id = '10000000-0000-0000-0000-000000000004';
+
+grant select on table pgtap_camp_host_balance_before to authenticated;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$
+    select awarded_count, points_awarded, awarded_keys
+    from public.award_meeting_achievements('7b000000-0000-0000-0000-000000000001')
+  $$,
+  $$values (0::integer, 0::integer, array[]::text[])$$,
+  '232. five elapsed meetings without Chronicle plays do not award camp_host'
+);
+reset role;
+
+insert into public.plays (
+  id,
+  game_id,
+  meeting_id,
+  created_by,
+  played_at,
+  duration_minutes
+)
+values
+  ('7b000000-0000-0000-0000-000000000002', '30000000-0000-0000-0000-000000000001', '7a000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', '2026-12-02 18:00:00+00', 90),
+  ('7b000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000001', '7a000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', '2026-12-02 20:00:00+00', 90),
+  ('7b000000-0000-0000-0000-000000000004', '30000000-0000-0000-0000-000000000001', '7a000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', '2026-12-03 18:00:00+00', 90),
+  ('7b000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000001', '7a000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', '2026-12-04 18:00:00+00', 90),
+  ('7b000000-0000-0000-0000-000000000006', '30000000-0000-0000-0000-000000000001', '7a000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002', '2026-12-05 18:00:00+00', 90);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$
+    select awarded_count, points_awarded, awarded_keys
+    from public.award_meeting_achievements('7b000000-0000-0000-0000-000000000006')
+  $$,
+  $$values (0::integer, 0::integer, array[]::text[])$$,
+  '233. four completed meetings do not award camp_host even with multiple plays in one meeting'
+);
+reset role;
+
+insert into public.plays (
+  id,
+  game_id,
+  meeting_id,
+  created_by,
+  played_at,
+  duration_minutes
+)
+values (
+  '7b000000-0000-0000-0000-000000000007',
+  '30000000-0000-0000-0000-000000000001',
+  '7a000000-0000-0000-0000-000000000005',
+  '10000000-0000-0000-0000-000000000003',
+  '2026-12-06 18:00:00+00',
+  90
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$
+    select awarded_count, points_awarded, awarded_keys
+    from public.award_meeting_achievements('7b000000-0000-0000-0000-000000000007')
+  $$,
+  $$values (1::integer, 10::integer, array['camp_host']::text[])$$,
+  '234. five distinct hosted meetings with Chronicle plays award camp_host'
+);
+reset role;
+
+select results_eq(
+  $$
+    select
+      award.awarded_count,
+      award.points_awarded,
+      (select count(*)::bigint from public.user_achievements where user_id = '10000000-0000-0000-0000-000000000004' and achievement_key = 'camp_host'),
+      (select count(*)::bigint from public.point_events where user_id = '10000000-0000-0000-0000-000000000004' and action_type = 'achievement_unlocked:camp_host')
+    from public.award_meeting_achievements('7b000000-0000-0000-0000-000000000007') as award
+  $$,
+  $$values (0::integer, 0::integer, 1::bigint, 1::bigint)$$,
+  '235. repeated camp_host evaluation does not duplicate the achievement or point event'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000004","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select results_eq(
+  $$select total_points from public.user_point_balances where user_id = '10000000-0000-0000-0000-000000000004'$$,
+  $$select total_points + 10 from pgtap_camp_host_balance_before$$,
+  '236. camp_host increases the organizer balance exactly once'
+);
+reset role;
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.user_achievements
+    where achievement_key = 'camp_host'
+      and user_id = '10000000-0000-0000-0000-000000000004'
+  $$,
+  $$values (1::bigint)$$,
+  '237. only the meeting organizer receives camp_host without backfill'
+);
+
+select has_column(
+  'public',
+  'profiles',
+  'active_class_key',
+  '238. profiles stores the selected active class'
+);
+
+select col_is_fk(
+  'public',
+  'profiles',
+  'active_class_key',
+  '239. active class references a class definition'
+);
+
+select has_function(
+  'public',
+  'set_active_class',
+  array['text'],
+  '240. narrow active class RPC exists'
+);
+
+set local role anon;
+select throws_ok(
+  $$select public.set_active_class('wojownik_stolu')$$,
+  '42501',
+  null,
+  '241. anonymous users cannot select an active class'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000006","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select public.set_active_class('wojownik_stolu')$$,
+  '42501',
+  null,
+  '242. inactive members cannot select an active class'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select public.set_active_class('druid_polki')$$,
+  '42501',
+  null,
+  '243. active member cannot select a locked class'
+);
+reset role;
+
+insert into public.user_achievements (user_id, achievement_key, awarded_by)
+select
+  '10000000-0000-0000-0000-000000000002',
+  requirement.achievement_key,
+  '10000000-0000-0000-0000-000000000001'
+from public.class_requirements as requirement
+where requirement.class_key in ('wojownik_stolu', 'bard_stolu')
+on conflict (user_id, achievement_key) do nothing;
+
+set local role authenticated;
+select results_eq(
+  $$select public.set_active_class('wojownik_stolu')$$,
+  $$values ('wojownik_stolu'::text)$$,
+  '244. active member can select an unlocked class'
+);
+
+select results_eq(
+  $$
+    select active_class_key
+    from public.profiles
+    where id = '10000000-0000-0000-0000-000000000002'
+  $$,
+  $$values ('wojownik_stolu'::text)$$,
+  '245. selected class is stored only on the current profile'
+);
+
+do $$
+begin
+  perform public.set_active_class('bard_stolu');
+end;
+$$;
+
+select results_eq(
+  $$
+    select active_class_key
+    from public.profiles
+    where id = '10000000-0000-0000-0000-000000000002'
+  $$,
+  $$values ('bard_stolu'::text)$$,
+  '246. user can switch between unlocked classes'
+);
+
+select throws_ok(
+  $$
+    update public.profiles
+    set active_class_key = 'bard_stolu'
+    where id = '10000000-0000-0000-0000-000000000003'
+  $$,
+  '42501',
+  null,
+  '247. member cannot set an active class on another profile'
+);
+
+do $$
+begin
+  perform public.set_active_class(null);
+end;
+$$;
+
+select results_eq(
+  $$
+    select active_class_key is null
+    from public.profiles
+    where id = '10000000-0000-0000-0000-000000000002'
+  $$,
+  $$values (true)$$,
+  '248. user can clear their own active class selection'
+);
+reset role;
 
 select * from finish();
 rollback;

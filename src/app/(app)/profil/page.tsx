@@ -7,6 +7,7 @@ import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { ProfileForm } from "@/features/auth/profile-form";
 import { getAchievementClassData } from "@/features/legendarium/queries";
 import { ProfileAchievementsPanel } from "@/features/legendarium/profile-achievements-panel";
+import { ActiveClassEmblem } from "@/features/legendarium/active-class-emblem";
 import { listRecentMemberPlays } from "@/features/plays/queries";
 import { RecentMemberPlaysPanel } from "@/features/plays/recent-plays-list";
 
@@ -25,18 +26,25 @@ export default async function ProfilePage() {
     <div className="mx-auto max-w-4xl space-y-4">
       <Panel className="paper-wash p-6 sm:p-8">
         <div className="flex items-center gap-4">
-          {member.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- external user-provided URL
-            <img
-              src={member.avatarUrl}
-              alt=""
-              className="size-20 rounded-full object-cover shadow-lg"
+          <span className="relative shrink-0">
+            {member.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- external user-provided URL
+              <img
+                src={member.avatarUrl}
+                alt=""
+                className="size-20 rounded-full object-cover shadow-lg"
+              />
+            ) : (
+              <span className="bg-brand text-cream grid size-20 place-items-center rounded-full text-2xl font-bold shadow-lg">
+                {getMemberInitial(member.displayName)}
+              </span>
+            )}
+            <ActiveClassEmblem
+              activeClass={achievementData.currentActiveClass}
+              sizeClass="size-11"
+              className="absolute -right-2 -bottom-2"
             />
-          ) : (
-            <span className="bg-brand text-cream grid size-20 place-items-center rounded-full text-2xl font-bold shadow-lg">
-              {getMemberInitial(member.displayName)}
-            </span>
-          )}
+          </span>
           <div>
             <p className="text-accent text-xs font-bold tracking-[0.16em] uppercase">
               Twoje konto
@@ -60,6 +68,7 @@ export default async function ProfilePage() {
       <ProfileAchievementsPanel
         achievements={achievementData.achievements}
         classes={achievementData.classes}
+        activeClass={achievementData.currentActiveClass}
       />
 
       <RecentMemberPlaysPanel

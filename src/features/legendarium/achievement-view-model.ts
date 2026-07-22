@@ -15,6 +15,7 @@ export type AchievementDefinitionSource = {
   points: number;
   iconPath: string | null;
   isSecret: boolean;
+  isManual?: boolean;
   sortOrder: number;
 };
 
@@ -32,8 +33,10 @@ export type AchievementView = {
   rarity: AchievementRarity;
   points: number;
   iconPath: string | null;
+  isManual: boolean;
   state: AchievementState;
   awardedAt: string | null;
+  progress: import("./achievement-progress").AchievementProgress | null;
   sortOrder: number;
 };
 
@@ -62,6 +65,19 @@ export type ClassRequirementView = {
   state: "acquired" | "locked" | "hidden";
 };
 
+export type ActiveClassView = {
+  key: string;
+  name: string;
+  description: string;
+  playstyle: string;
+  iconPath: string | null;
+};
+
+export type ProfileActiveClassSource = {
+  userId: string;
+  activeClassKey: string | null;
+};
+
 export type CharacterClassView = {
   key: string;
   name: string;
@@ -71,6 +87,7 @@ export type CharacterClassView = {
   acquiredRequirements: number;
   totalRequirements: number;
   unlocked: boolean;
+  isActive: boolean;
   requirements: ClassRequirementView[];
   sortOrder: number;
 };
@@ -102,6 +119,10 @@ export function mapAchievementCatalog(
   awards: AchievementAwardSource[],
   currentUserId: string,
   catalogSize = ACHIEVEMENT_CATALOG_SIZE,
+  progressByKey: Record<
+    string,
+    import("./achievement-progress").AchievementProgress
+  > = {},
 ): AchievementView[] {
   const ownAwards = new Map(
     awards
@@ -124,8 +145,13 @@ export function mapAchievementCatalog(
         rarity: normalizeRarity(definition.rarity),
         points: hidden ? 0 : definition.points,
         iconPath: hidden ? null : definition.iconPath,
+        isManual: hidden ? false : Boolean(definition.isManual),
         state: awardedAt ? "acquired" : hidden ? "secret" : "locked",
         awardedAt,
+        progress:
+          hidden || definition.isManual
+            ? null
+            : (progressByKey[definition.achievementKey] ?? null),
         sortOrder: definition.sortOrder,
       };
     })
@@ -142,8 +168,10 @@ export function mapAchievementCatalog(
       rarity: "secret",
       points: 0,
       iconPath: null,
+      isManual: false,
       state: "secret",
       awardedAt: null,
+      progress: null,
       sortOrder: Number.MAX_SAFE_INTEGER - hiddenCount + index,
     }),
   );
@@ -158,6 +186,7 @@ export function mapCharacterClasses(
   awards: AchievementAwardSource[],
   currentUserId: string,
   requirementsPerClass = CLASS_REQUIREMENTS_COUNT,
+  activeClassKey: string | null = null,
 ): CharacterClassView[] {
   const definitionNames = new Map(
     definitions.map((definition) => [
@@ -210,11 +239,42 @@ export function mapCharacterClasses(
         acquiredRequirements,
         totalRequirements: requirementsPerClass,
         unlocked: acquiredRequirements === requirementsPerClass,
+        isActive: characterClass.classKey === activeClassKey,
         requirements: [...visibleRequirements, ...hiddenRequirements],
         sortOrder: characterClass.sortOrder,
       };
     })
     .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export function mapActiveClassesByUser(
+  classes: ClassDefinitionSource[],
+  profiles: ProfileActiveClassSource[],
+): Record<string, ActiveClassView> {
+  const classesByKey = new Map(
+    classes.map((characterClass) => [characterClass.classKey, characterClass]),
+  );
+
+  return Object.fromEntries(
+    profiles.flatMap((profile) => {
+      if (!profile.activeClassKey) return [];
+      const characterClass = classesByKey.get(profile.activeClassKey);
+      if (!characterClass) return [];
+
+      return [
+        [
+          profile.userId,
+          {
+            key: characterClass.classKey,
+            name: characterClass.name,
+            description: characterClass.description,
+            playstyle: characterClass.playstyle,
+            iconPath: characterClass.iconPath,
+          },
+        ] as const,
+      ];
+    }),
+  );
 }
 
 export function selectTopAchievementBadges(

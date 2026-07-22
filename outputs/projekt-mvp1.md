@@ -1,6 +1,6 @@
 # Projekt MVP 1 — prywatna biblioteka planszówek
 
-Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2: Etapy 10A–10E, 11A–11C oraz 11D-1 są zamknięte. Etap 11D-1 uruchomił pierwszą, prostą automatyzację odznak wraz z jednorazowym naliczaniem ich katalogowych punktów. Następny krok to 11D-2 lub 11E; bez backfillu historycznego. PWA, instalacja na telefonie i powiadomienia push są planowane po Etapie 11.
+Status: MVP 1 jest odebrane, a Etapy 1–9 są zamknięte. MVP 2: Etapy 10A–10E, 11A–11E są zamknięte. Etap 11F wdraża wybór jednej odblokowanej klasy jako aktywnej tożsamości gracza; klasy nadal nie przyznają punktów. PWA, instalacja na telefonie i powiadomienia push są planowane po Etapie 11.
 
 ## 1. Decyzje projektowe
 
@@ -825,7 +825,7 @@ Prywatny helper `private.award_achievement_once(p_user_id uuid, p_achievement_ke
 
 #### Klasy postaci
 
-`class_definitions` przechowuje `class_key`, `name`, `description`, `playstyle`, `icon_path`, `is_active`, `sort_order`. `class_requirements` wiąże `class_key` z `achievement_key`. Progres może być obliczany w read layer (bez osobnej tabeli `user_class_progress`). Gracz może odblokować wiele klas; wybór wyróżnionej klasy w profilu pozostaje późniejszą decyzją.
+`class_definitions` przechowuje `class_key`, `name`, `description`, `playstyle`, `icon_path`, `is_active`, `sort_order`. `class_requirements` wiąże `class_key` z `achievement_key`. Progres jest obliczany w read layer (bez osobnej tabeli `user_class_progress`). Gracz może odblokować wiele klas, a `profiles.active_class_key` wskazuje jedną opcjonalną, aktywną klasę. Wąskie RPC `set_active_class(text)` korzysta wyłącznie z `auth.uid()`, sprawdza aktywne członkostwo i komplet wymagań klasy; `null` usuwa wybór. Klasy są archetypem gracza i nie przyznają punktów.
 
 ### RLS i bezpieczeństwo
 
@@ -841,8 +841,11 @@ W 11B seed obejmuje komplet 51 definicji odpowiadających plikom z `public/badge
 | Status | Klucze |
 | --- | --- |
 | **11D-1 automatic** | `critical_roll`, `initiative_master`, `party_bard`, `coast_chronicler`, `short_rest`, `full_party`, `lone_wolf`, `side_quest`, `guidance`, `loot_goblin`, `bag_of_holding`, `fanboy`, `one_more_turn` |
-| **automatic later** | `camp_host`, `party_summoned` |
-| **planned** | `natural_one`, `candlekeep_sage`, `bone_breaker`, `persuasion_master`, `table_rogue`, `dark_urge`, `tadpole_enjoyer`, `save_scummer`, `multiclass`, `tavern_brawler`, `quest_accepted`, `vicious_mockery`, `hot_take`, `long_rest`, `legendary_artifact`, `eternal_shelf_curse`, `resurrection`, `oathbreaker`, `glass_cannon`, `skill_issue`, `git_gud`, `redemption_arc`, `chosen_of_the_table`, `final_boss`, `boss_defeated`, `plot_armor`, `main_character`, `time_traveler` |
+| **11D-2C automatic** | `camp_host` — pięć różnych spotkań utworzonych przez użytkownika, z których każde ma co najmniej jeden powiązany wpis Kroniki |
+| **automatic later** | `party_summoned` |
+| **11D-2A automatic** | `natural_one` — ostatnie kompletne miejsce w partii z co najmniej dwoma uczestnikami; remis na ostatnim miejscu przyznaje odznakę każdemu remisującemu uczestnikowi |
+| **11D-2B automatic** | `dark_urge` — trzy kolejne własne występy zakończone wygraną; przegrana przerywa serię, a występy innych osób jej nie zmieniają |
+| **planned** | `candlekeep_sage`, `bone_breaker`, `persuasion_master`, `table_rogue`, `tadpole_enjoyer`, `save_scummer`, `multiclass`, `tavern_brawler`, `quest_accepted`, `vicious_mockery`, `hot_take`, `long_rest`, `legendary_artifact`, `eternal_shelf_curse`, `resurrection`, `oathbreaker`, `glass_cannon`, `skill_issue`, `git_gud`, `redemption_arc`, `chosen_of_the_table`, `final_boss`, `boss_defeated`, `plot_armor`, `main_character`, `time_traveler` |
 | **manual** | `last_turn_hero`, `rule_quard` |
 | **secret** | `dice_speak`, `friendly_fire`, `no_save_found`, `the_absolute`, `critical_success_question_mark`, `hot_streak` |
 
@@ -872,9 +875,10 @@ W 11B seed obejmuje 14 klas i wszystkie ich wymagania odznak. Grafika jest mapow
 ### UI po kolejnych podetapach
 
 - **Legendarium:** prawdziwa galeria odznak z filtrem rzadkości, stanami zdobyta / niezdobyta / sekretna i trzema wyróżnionymi trofeami w leaderboardzie.
-- **Profil:** ostatnio zdobyte odznaki, kolekcja gracza oraz postęp do klas.
-- **Klasy postaci:** osobne karty z grafiką, opisem stylu gry i postępem `3/5`; klasy odblokowane są wyraźne, zablokowane przygaszone.
-- **Admin/manual:** brak panelu w pierwszym kroku. Definicje manualne istnieją w katalogu; wąskie ręczne nadawanie jest zaplanowane dopiero w 11F.
+- **Profil:** ostatnio zdobyte odznaki, kolekcja gracza, postęp do klas oraz pełna karta wybranej aktywnej klasy z widocznym emblematem.
+- **Klasy postaci:** osobne karty z grafiką, opisem stylu gry i postępem `3/5`; klasy odblokowane są wyraźne, zablokowane przygaszone, a jedną odblokowaną klasę można ustawić jako aktywną.
+- **Ranking grupy:** aktywna klasa jest prezentowana nazwą oraz emblematem przy awatarze, bez zabierania miejsca trzem wyróżnionym odznakom.
+- **Admin/manual:** brak panelu w pierwszym kroku. Definicje manualne istnieją w katalogu; wąskie ręczne nadawanie pozostaje późniejszym etapem.
 
 ### Podział prac Etapu 11
 
@@ -882,10 +886,14 @@ W 11B seed obejmuje 14 klas i wszystkie ich wymagania odznak. Grafika jest mapow
 2. **11B — fundament danych — zamknięty:** migracja `20260705001900_achievements_and_classes_foundation.sql` dodała `achievement_definitions`, `user_achievements`, `class_definitions`, `class_requirements`, RLS, prywatny idempotentny helper, seed wszystkich 51 odznak, 14 klas i 70 wymagań oraz pgTAP. Nie wykonywała automatycznego przyznawania ani backfillu.
 3. **11C — UI katalogu — zamknięty:** Legendarium pokazuje realny katalog odznak z filtrami, stanami zdobyta / niezdobyta / sekretna, realne trofea w leaderboardzie oraz 14 klas z progresem wymagań. Profil pokazuje zdobyte odznaki, trzy ostatnie trofea i progres klas.
 4. **11D-1 — proste automatyczne odznaki — wdrożony:** wąskie RPC sprawdza 13 deterministycznych warunków po utworzeniu gry, utworzeniu spotkania, zapisie odpowiedzi, zapisie oceny i utworzeniu wpisu Kroniki. Każda odznaka oraz jej punkty są przyznawane najwyżej raz. Brak automatyzacji odznak manualnych, sekretnych i wymagających złożonej historii; brak backfillu.
-5. **11D-2 / 11E — następny krok:** kolejne jawnie wybrane automatyzacje albo dalszy rozwój klas i wybór wyróżnionej klasy. Klasy pozostają wyliczanym progresem i nie przyznają punktów.
-6. **11F — manualne, sekretne i trudne odznaki:** wąska funkcja administracyjna, odkrywanie sekretów i reguły wymagające analizy historii.
-7. **11G — operatorski backfill:** opcjonalny, jawnie uruchamiany i audytowany.
-8. **11H — balans, dostępność i odbiór.**
+5. **11D-2A — Naturalna Jedynka — zamknięty:** RPC `award_play_result_achievements(play_id)` jest wywoływany po utworzeniu oraz edycji wyników Kroniki. Tylko autor wpisu lub administrator może uruchomić ocenę; odznaka trafia do aktywnych uczestników z największym `placement`, wyłącznie gdy co najmniej dwie osoby mają komplet miejsc. Remis na ostatnim miejscu jest dozwolony, a helper zachowuje idempotencję odznaki i jej punktów.
+6. **11D-2B — Mroczna Żądza — zamknięty:** ten sam RPC sprawdza uczestników zapisywanej lub edytowanej partii i przyznaje `dark_urge` przy serii co najmniej trzech własnych wygranych występów. Historia jest uporządkowana przez `played_at`, następnie `created_at` i `id`; wygrana to `placement = 1` lub `is_winner = true`, a przegrana przerywa serię. Partie innych uczestników nie wpływają na serię.
+7. **11D-2C — Gospodarz Obozu — zamknięty:** `award_meeting_achievements(p_play_id)` jest wywoływane po utworzeniu lub edycji wpisu Kroniki przypisanego do spotkania. Sprawdza pięć różnych spotkań autora danego spotkania z co najmniej jednym `plays.meeting_id`; kilka wpisów dla jednego spotkania nadal liczy się tylko raz. Odznaka i jej punkty są idempotentne, a migracja nie robi backfillu.
+8. **11E — progres odznak — zamknięty:** read layer zbiorczo wylicza postęp dla pierwszej grupy policzalnych odznak, a karty pokazują wyłącznie kompaktowy licznik `current/target`; sekrety, odznaki manualne i warunki specjalne nie ujawniają sztucznego progresu.
+9. **11F — aktywna klasa gracza — wdrożony:** `profiles.active_class_key` zapisuje opcjonalny wybór spośród faktycznie odblokowanych klas. Kontrolowane RPC nie przyjmuje `user_id`, a aktywna klasa jest widoczna na profilu, w rankingu grupy i jako emblemat przy awatarze. Wybrana klasa nie nalicza punktów.
+10. **11G — manualne, sekretne i trudne odznaki:** wąska funkcja administracyjna, odkrywanie sekretów i reguły wymagające analizy historii.
+11. **11H — operatorski backfill:** opcjonalny, jawnie uruchamiany i audytowany.
+12. **11I — balans, dostępność i odbiór.**
 
 ### Ryzyka wymagające decyzji przed implementacją
 

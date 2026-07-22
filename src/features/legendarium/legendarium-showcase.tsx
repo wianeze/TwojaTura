@@ -2,11 +2,9 @@ import Image from "next/image";
 import { getMemberInitial } from "@/features/auth/current-member";
 import { AchievementCatalog } from "./achievement-catalog";
 import { ClassCatalog } from "./class-catalog";
-import {
-  formatPointAction,
-  formatPointEventDate,
-  formatPoints,
-} from "./formatting";
+import { getAchievementAuraStyle } from "./mini-achievement-badge";
+import { RecentLootList } from "./recent-loot-list";
+import { ActiveClassEmblem } from "./active-class-emblem";
 import type { LegendariumData, LegendariumLeaderboardEntry } from "./queries";
 import { hasRecentPointEvents } from "./view-model";
 
@@ -118,19 +116,6 @@ const trophyAssets: Record<number, string> = {
   5: "/brand/5th-place-nobg.png",
 };
 
-const eventIconAssets: Record<string, string> = {
-  shelf_first_game: "/brand/Exclamation-common.png",
-  shelf_5_games: "/brand/Exclamation-common.png",
-  shelf_10_games: "/brand/Exclamation-common.png",
-  shelf_15_games: "/brand/Exclamation-common.png",
-  meeting_created: "/brand/Exclamation-legendary.png",
-  meeting_rsvp: "/brand/Exclamation-legendary.png",
-  meeting_vote: "/brand/Exclamation-magic.png",
-  rating_created: "/brand/Exclamation-uncommon.png",
-  play_logged: "/brand/Exclamation-epic.png",
-  admin_adjustment: "/brand/Exclamation-magic.png",
-};
-
 type LegendariumShowcaseProps = {
   data: LegendariumData;
 };
@@ -142,8 +127,8 @@ export function LegendariumShowcase({ data }: LegendariumShowcaseProps) {
     <section className="cork-board-bg premium-edge relative isolate overflow-hidden rounded-[2rem] p-3 sm:p-4 lg:p-5">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_15%_0%,rgba(255,232,185,0.14),transparent_35%),linear-gradient(180deg,rgba(32,16,9,0.08),rgba(22,10,7,0.34))]" />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(25rem,0.95fr)]">
-        <section className="leaderboard-rug-panel premium-edge rounded-[1.55rem] p-2.5 sm:p-3">
+      <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(25rem,0.95fr)] 2xl:grid-cols-[minmax(0,1.2fr)_minmax(24rem,0.8fr)]">
+        <section className="leaderboard-rug-panel premium-edge h-full rounded-[1.55rem] p-2.5 sm:p-3">
           <div className="rounded-[1.25rem] p-4 sm:p-5">
             <SectionTitle dark title="Ranking grupy" />
 
@@ -161,7 +146,7 @@ export function LegendariumShowcase({ data }: LegendariumShowcaseProps) {
           </div>
         </section>
 
-        <div className="grid content-start gap-4">
+        <div className="flex flex-col gap-4 xl:h-full">
           <section className="parchment-card premium-edge hidden rounded-[1.55rem] p-4 md:block md:p-5">
             <SectionTitle title="Jak zdobywać łupy" />
             <p className="text-accent mt-3 text-[0.65rem] font-bold tracking-[0.16em] uppercase">
@@ -194,41 +179,10 @@ export function LegendariumShowcase({ data }: LegendariumShowcaseProps) {
             </div>
           </section>
 
-          <section className="wood-grain premium-edge text-cream rounded-[1.55rem] p-4 sm:p-5">
+          <section className="loot-texture premium-edge text-cream flex flex-col rounded-[1.55rem] p-4 sm:p-5 xl:flex-1">
             <SectionTitle dark title="Zdobyte Łupy" />
             {hasRecentPointEvents(data.recentEvents) ? (
-              <div className="mt-3 space-y-2">
-                {data.recentEvents.map((event) => (
-                  <article
-                    key={event.id}
-                    className="relative flex min-h-16 items-center gap-3 rounded-xl bg-black/18 px-3 py-2.5 shadow-inner"
-                  >
-                    <Image
-                      src={
-                        eventIconAssets[event.actionType] ??
-                        "/brand/Exclamation-magic.png"
-                      }
-                      alt=""
-                      width={42}
-                      height={58}
-                      className="h-11 w-auto shrink-0 object-contain drop-shadow-[0_5px_8px_rgba(10,4,2,0.5)]"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-bold">
-                        {formatPointAction(event.actionType)}
-                      </span>
-                      <span className="block truncate text-[0.68rem] text-[#c9b8a5]">
-                        {event.description
-                          ? `${event.description} · ${formatPointEventDate(event.createdAt)}`
-                          : formatPointEventDate(event.createdAt)}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-sm font-bold text-[#efbd68]">
-                      {formatPoints(event.points)}
-                    </span>
-                  </article>
-                ))}
-              </div>
+              <RecentLootList events={data.recentEvents} />
             ) : (
               <div className="mt-3 rounded-xl border border-white/12 bg-black/16 px-4 py-6 text-center text-sm leading-6 text-[#d2c0aa]">
                 Pierwsze łupy pojawią się tutaj po wykonaniu akcji przy stole.
@@ -324,10 +278,10 @@ function RankingEntry({ entry }: { entry: LegendariumLeaderboardEntry }) {
       : "left-[-2.1rem] sm:left-[-2.4rem]";
   const avatarSize = isPodium ? "size-10 sm:size-12" : "size-8 sm:size-9";
   const badgeSize = isFirst
-    ? "size-9 text-sm sm:size-11 sm:text-lg"
+    ? "size-10 text-sm sm:size-12 sm:text-base 2xl:size-24 2xl:text-2xl"
     : isPodium
-      ? "size-8 text-xs sm:size-9 sm:text-sm"
-      : "size-6 text-[0.62rem] sm:size-7 sm:text-xs";
+      ? "size-9 text-xs sm:size-11 sm:text-sm 2xl:size-[5.5rem] 2xl:text-xl"
+      : "size-8 text-xs sm:size-10 sm:text-sm 2xl:size-20 2xl:text-lg";
 
   return (
     <li
@@ -348,11 +302,18 @@ function RankingEntry({ entry }: { entry: LegendariumLeaderboardEntry }) {
           className={`absolute top-1/2 z-10 shrink-0 -translate-y-1/2 object-contain drop-shadow-[0_7px_10px_rgba(66,36,17,0.42)] ${trophyPosition} ${trophySize}`}
         />
       ) : null}
-      <Avatar
-        avatarUrl={entry.avatarUrl}
-        name={entry.displayName}
-        sizeClass={avatarSize}
-      />
+      <span className="relative shrink-0">
+        <Avatar
+          avatarUrl={entry.avatarUrl}
+          name={entry.displayName}
+          sizeClass={avatarSize}
+        />
+        <ActiveClassEmblem
+          activeClass={entry.activeClass}
+          sizeClass={isPodium ? "size-7 sm:size-8" : "size-6 sm:size-7"}
+          className="absolute -right-2 -bottom-2 z-20"
+        />
+      </span>
       <span className="min-w-0 flex-1">
         <span
           className={`block truncate font-bold text-[#fff1dc] ${
@@ -369,6 +330,11 @@ function RankingEntry({ entry }: { entry: LegendariumLeaderboardEntry }) {
         >
           {entry.totalPoints.toLocaleString("pl-PL")} pkt
         </span>
+        {entry.activeClass ? (
+          <span className="mt-0.5 block truncate text-[0.62rem] font-semibold tracking-[0.04em] text-[#e7bb70] sm:text-[0.7rem]">
+            {entry.activeClass.name}
+          </span>
+        ) : null}
       </span>
       <TrophySet badges={entry.badges} sizeClass={badgeSize} />
     </li>
@@ -386,29 +352,43 @@ function TrophySet({
 
   return (
     <span
-      className="flex shrink-0 -space-x-2.5"
+      className="flex shrink-0 -space-x-2 sm:space-x-2 xl:space-x-3"
       aria-label="Najcenniejsze trofea"
       title="Najcenniejsze trofea"
     >
-      {badges.map((badge) => (
-        <span
-          key={badge.key}
-          className={`relative grid place-items-center rounded-full border-2 border-[#fff0ca] bg-[#583326] shadow-[0_4px_9px_rgba(49,25,14,0.34)] ${sizeClass}`}
-          title={badge.name}
-        >
-          {badge.iconPath ? (
-            <Image
-              src={badge.iconPath}
-              alt=""
-              fill
-              sizes="44px"
-              className="object-contain p-0.5"
+      {badges.map((badge) => {
+        const aura = getAchievementAuraStyle(badge.rarity);
+
+        return (
+          <span
+            key={badge.key}
+            className={`relative isolate grid place-items-center ${sizeClass}`}
+            title={badge.name}
+          >
+            {aura.raysClass ? (
+              <span
+                aria-hidden="true"
+                className={`absolute -inset-[14%] -z-10 rounded-full opacity-60 ${aura.raysClass}`}
+              />
+            ) : null}
+            <span
+              aria-hidden="true"
+              className={`absolute -inset-[12%] -z-10 rounded-full ${aura.glowClass}`}
             />
-          ) : (
-            <span className="text-[#fff4dc]">◆</span>
-          )}
-        </span>
-      ))}
+            {badge.iconPath ? (
+              <Image
+                src={badge.iconPath}
+                alt=""
+                fill
+                sizes="(min-width: 1536px) 96px, (min-width: 640px) 48px, 40px"
+                className="object-contain drop-shadow-[0_3px_6px_rgba(37,18,9,0.48)]"
+              />
+            ) : (
+              <span className="text-[#fff4dc]">◆</span>
+            )}
+          </span>
+        );
+      })}
     </span>
   );
 }

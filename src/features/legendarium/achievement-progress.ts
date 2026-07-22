@@ -1,0 +1,54 @@
+export type AchievementProgress = {
+  current: number;
+  target: number;
+  label: string;
+  isComplete: boolean;
+};
+
+export type AchievementProgressMetrics = {
+  meetingsCreated: number;
+  completedMeetingsHosted: number;
+  ratingComments: number;
+  playsCreated: number;
+  meetingResponses: number;
+  activeOwnedGames: number;
+  perfectRatings: number;
+  replayRatings: number;
+  hasFirstWin: boolean;
+  hasLastPlace: boolean;
+  hasFullParty: boolean;
+  hasSoloPlay: boolean;
+  hasSideQuest: boolean;
+  currentWinStreak: number;
+};
+
+function progress(current: number, target: number): AchievementProgress {
+  return {
+    current: Math.min(current, target),
+    target,
+    label: `${Math.min(current, target)}/${target}`,
+    isComplete: current >= target,
+  };
+}
+
+export function buildAchievementProgressMap(
+  metrics: AchievementProgressMetrics,
+): Record<string, AchievementProgress> {
+  return {
+    initiative_master: progress(metrics.meetingsCreated, 5),
+    camp_host: progress(metrics.completedMeetingsHosted, 5),
+    party_bard: progress(metrics.ratingComments, 10),
+    coast_chronicler: progress(metrics.playsCreated, 25),
+    guidance: progress(metrics.meetingResponses, 10),
+    loot_goblin: progress(metrics.activeOwnedGames, 25),
+    bag_of_holding: progress(metrics.activeOwnedGames, 50),
+    fanboy: progress(metrics.perfectRatings, 5),
+    one_more_turn: progress(metrics.replayRatings, 20),
+    critical_roll: progress(Number(metrics.hasFirstWin), 1),
+    natural_one: progress(Number(metrics.hasLastPlace), 1),
+    full_party: progress(Number(metrics.hasFullParty), 1),
+    lone_wolf: progress(Number(metrics.hasSoloPlay), 1),
+    side_quest: progress(Number(metrics.hasSideQuest), 1),
+    dark_urge: progress(metrics.currentWinStreak, 3),
+  };
+}

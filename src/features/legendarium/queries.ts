@@ -1,17 +1,21 @@
 import { createClient } from "@/lib/supabase/server";
 import type { CurrentMember } from "@/features/auth/types";
 import { createLegendariumReadPlan } from "./read-plan";
+import { buildAchievementProgressMap } from "./achievement-progress";
 import {
   getCurrentLegendariumRank,
   mapLegendariumLeaderboard,
 } from "./view-model";
 import {
   mapAchievementCatalog,
+  mapActiveClassesByUser,
   mapCharacterClasses,
   mapLeaderboardBadges,
   type AchievementAwardSource,
   type AchievementDefinitionSource,
   type AchievementView,
+  type ActiveClassView,
+  type ClassDefinitionSource,
   type CharacterClassView,
 } from "./achievement-view-model";
 
@@ -23,6 +27,7 @@ export type LegendariumLeaderboardEntry = {
   rank: number;
   isCurrentMember: boolean;
   badges: ReturnType<typeof mapLeaderboardBadges>[string];
+  activeClass: ActiveClassView | null;
 };
 
 export type LegendariumPointEvent = {
@@ -40,6 +45,7 @@ export type LegendariumData = {
   recentEvents: LegendariumPointEvent[];
   achievements: AchievementView[];
   classes: CharacterClassView[];
+  currentActiveClass: ActiveClassView | null;
 };
 
 export type AchievementClassData = {
@@ -47,6 +53,8 @@ export type AchievementClassData = {
   classes: CharacterClassView[];
   recentAchievements: AchievementView[];
   badgesByUser: ReturnType<typeof mapLeaderboardBadges>;
+  activeClassesByUser: Record<string, ActiveClassView>;
+  currentActiveClass: ActiveClassView | null;
 };
 
 export async function getAchievementClassData(
@@ -54,36 +62,75 @@ export async function getAchievementClassData(
 ): Promise<AchievementClassData> {
   const supabase = await createClient();
   const plan = createLegendariumReadPlan(currentUserId);
-  const [definitionsResult, awardsResult, classesResult, requirementsResult] =
-    await Promise.all([
-      supabase
-        .from(plan.achievements.definitionsTable)
-        .select(
-          "achievement_key, name, description, condition_text, rarity, points, icon_path, is_secret, sort_order",
-        )
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from(plan.achievements.awardsTable)
-        .select("user_id, achievement_key, awarded_at")
-        .order("awarded_at", { ascending: false }),
-      supabase
-        .from(plan.classes.definitionsTable)
-        .select(
-          "class_key, name, description, playstyle, icon_path, sort_order",
-        )
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from(plan.classes.requirementsTable)
-        .select("class_key, achievement_key"),
-    ]);
+  const [
+    definitionsResult,
+    awardsResult,
+    classesResult,
+    requirementsResult,
+    ownedMeetingsResult,
+    ratingsResult,
+    ownedGamesResult,
+    ownPlaysResult,
+    responsesResult,
+    ownParticipantsResult,
+    profilesResult,
+  ] = await Promise.all([
+    supabase
+      .from(plan.achievements.definitionsTable)
+      .select(
+        "achievement_key, name, description, condition_text, rarity, points, icon_path, is_secret, is_manual, sort_order",
+      )
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from(plan.achievements.awardsTable)
+      .select("user_id, achievement_key, awarded_at")
+      .order("awarded_at", { ascending: false }),
+    supabase
+      .from(plan.classes.definitionsTable)
+      .select("class_key, name, description, playstyle, icon_path, sort_order")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from(plan.classes.requirementsTable)
+      .select("class_key, achievement_key"),
+    supabase.from("meetings").select("id").eq("created_by", currentUserId),
+    supabase
+      .from("ratings")
+      .select("game_id, overall, wants_to_play_again, comment")
+      .eq("user_id", currentUserId),
+    supabase
+      .from("games")
+      .select("id")
+      .eq("owner_id", currentUserId)
+      .is("archived_at", null),
+    supabase
+      .from("plays")
+      .select("id, meeting_id")
+      .eq("created_by", currentUserId),
+    supabase
+      .from("meeting_availability")
+      .select("meeting_id")
+      .eq("user_id", currentUserId),
+    supabase
+      .from("play_participants")
+      .select("play_id, placement, is_winner")
+      .eq("user_id", currentUserId),
+    supabase.from("profiles").select("id, active_class_key"),
+  ]);
 
   if (
     definitionsResult.error ||
     awardsResult.error ||
     classesResult.error ||
-    requirementsResult.error
+    requirementsResult.error ||
+    ownedMeetingsResult.error ||
+    ratingsResult.error ||
+    ownedGamesResult.error ||
+    ownPlaysResult.error ||
+    responsesResult.error ||
+    ownParticipantsResult.error ||
+    profilesResult.error
   ) {
     throw new Error("Nie udało się pobrać odznak i klas postaci.");
   }
@@ -99,6 +146,7 @@ export async function getAchievementClassData(
     points: definition.points,
     iconPath: definition.icon_path,
     isSecret: definition.is_secret,
+    isManual: definition.is_manual,
     sortOrder: definition.sort_order,
   }));
   const awards: AchievementAwardSource[] = (awardsResult.data ?? []).map(
@@ -108,23 +156,152 @@ export async function getAchievementClassData(
       awardedAt: award.awarded_at,
     }),
   );
+  const classDefinitions: ClassDefinitionSource[] = (
+    classesResult.data ?? []
+  ).map((characterClass) => ({
+    classKey: characterClass.class_key,
+    name: characterClass.name,
+    description: characterClass.description,
+    playstyle: characterClass.playstyle,
+    iconPath: characterClass.icon_path,
+    sortOrder: characterClass.sort_order,
+  }));
+  const activeClassesByUser = mapActiveClassesByUser(
+    classDefinitions,
+    (profilesResult.data ?? []).map((profile) => ({
+      userId: profile.id,
+      activeClassKey: profile.active_class_key,
+    })),
+  );
+  const currentActiveClass = activeClassesByUser[currentUserId] ?? null;
+  const ownMeetingIds = (ownedMeetingsResult.data ?? []).map(
+    (meeting) => meeting.id,
+  );
+  const ownParticipantPlayIds = (ownParticipantsResult.data ?? []).map(
+    (participant) => participant.play_id,
+  );
+  const [completedPlaysResult, participantPlaysResult, allParticipantsResult] =
+    await Promise.all([
+      ownMeetingIds.length > 0
+        ? supabase
+            .from("plays")
+            .select("meeting_id")
+            .in("meeting_id", ownMeetingIds)
+        : Promise.resolve({ data: [], error: null }),
+      ownParticipantPlayIds.length > 0
+        ? supabase
+            .from("plays")
+            .select("id, played_at, created_at")
+            .in("id", ownParticipantPlayIds)
+        : Promise.resolve({ data: [], error: null }),
+      ownParticipantPlayIds.length > 0
+        ? supabase
+            .from("play_participants")
+            .select("play_id, user_id, placement")
+            .in("play_id", ownParticipantPlayIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
+  if (
+    completedPlaysResult.error ||
+    participantPlaysResult.error ||
+    allParticipantsResult.error
+  ) {
+    throw new Error("Nie udaÅ‚o siÄ™ obliczyÄ‡ progresu odznak.");
+  }
+
+  const participantsByPlay = new Map<
+    string,
+    Array<{ placement: number | null }>
+  >();
+  for (const participant of allParticipantsResult.data ?? []) {
+    const existing = participantsByPlay.get(participant.play_id) ?? [];
+    existing.push({ placement: participant.placement });
+    participantsByPlay.set(participant.play_id, existing);
+  }
+  const playsById = new Map(
+    (participantPlaysResult.data ?? []).map((play) => [play.id, play]),
+  );
+  const ownResults = (ownParticipantsResult.data ?? []).map((participant) => ({
+    ...participant,
+    play: playsById.get(participant.play_id),
+  }));
+  const hasLastPlace = ownResults.some((participant) => {
+    const players = participantsByPlay.get(participant.play_id) ?? [];
+    const placements = players.map((player) => player.placement);
+    return (
+      players.length >= 2 &&
+      participant.placement !== null &&
+      placements.every((placement) => placement !== null) &&
+      participant.placement === Math.max(...(placements as number[]))
+    );
+  });
+  const orderedResults = ownResults
+    .filter((participant) => participant.play)
+    .sort(
+      (a, b) =>
+        a.play!.played_at.localeCompare(b.play!.played_at) ||
+        a.play!.created_at.localeCompare(b.play!.created_at) ||
+        a.play_id.localeCompare(b.play_id),
+    );
+  let currentWinStreak = 0;
+  for (const participant of orderedResults) {
+    if (participant.placement === 1 || participant.is_winner) {
+      currentWinStreak += 1;
+    } else {
+      currentWinStreak = 0;
+    }
+  }
+  const progressByKey = buildAchievementProgressMap({
+    meetingsCreated: ownMeetingIds.length,
+    completedMeetingsHosted: new Set(
+      (completedPlaysResult.data ?? [])
+        .map((play) => play.meeting_id)
+        .filter((meetingId): meetingId is string => Boolean(meetingId)),
+    ).size,
+    ratingComments: (ratingsResult.data ?? []).filter((rating) =>
+      Boolean(rating.comment?.trim()),
+    ).length,
+    playsCreated: (ownPlaysResult.data ?? []).length,
+    meetingResponses: (responsesResult.data ?? []).length,
+    activeOwnedGames: (ownedGamesResult.data ?? []).length,
+    perfectRatings: new Set(
+      (ratingsResult.data ?? [])
+        .filter((rating) => rating.overall === 10)
+        .map((rating) => rating.game_id),
+    ).size,
+    replayRatings: new Set(
+      (ratingsResult.data ?? [])
+        .filter((rating) => rating.wants_to_play_again)
+        .map((rating) => rating.game_id),
+    ).size,
+    hasFirstWin: ownResults.some((participant) => participant.is_winner),
+    hasLastPlace,
+    hasFullParty: ownResults.some(
+      (participant) =>
+        (participantsByPlay.get(participant.play_id)?.length ?? 0) >= 5,
+    ),
+    hasSoloPlay: ownResults.some(
+      (participant) =>
+        (participantsByPlay.get(participant.play_id)?.length ?? 0) === 1,
+    ),
+    hasSideQuest: (ownPlaysResult.data ?? []).some(
+      (play) => play.meeting_id === null,
+    ),
+    currentWinStreak,
+  });
   const achievements = mapAchievementCatalog(
     definitions,
     awards,
     currentUserId,
+    undefined,
+    progressByKey,
   );
 
   return {
     achievements,
     classes: mapCharacterClasses(
-      (classesResult.data ?? []).map((characterClass) => ({
-        classKey: characterClass.class_key,
-        name: characterClass.name,
-        description: characterClass.description,
-        playstyle: characterClass.playstyle,
-        iconPath: characterClass.icon_path,
-        sortOrder: characterClass.sort_order,
-      })),
+      classDefinitions,
       (requirementsResult.data ?? []).map((requirement) => ({
         classKey: requirement.class_key,
         achievementKey: requirement.achievement_key,
@@ -132,11 +309,15 @@ export async function getAchievementClassData(
       definitions,
       awards,
       currentUserId,
+      undefined,
+      currentActiveClass?.key ?? null,
     ),
     recentAchievements: achievements
       .filter((achievement) => achievement.state === "acquired")
       .sort((a, b) => (b.awardedAt ?? "").localeCompare(a.awardedAt ?? "")),
     badgesByUser: mapLeaderboardBadges(definitions, awards),
+    activeClassesByUser,
+    currentActiveClass,
   };
 }
 
@@ -183,6 +364,7 @@ export async function getLegendariumData(
       totalPoints: Number(entry.total_points ?? 0),
       rank: Number(entry.rank ?? 0),
       badges: achievementData.badgesByUser[entry.user_id] ?? [],
+      activeClass: achievementData.activeClassesByUser[entry.user_id] ?? null,
     })),
     member.id,
   );
@@ -200,5 +382,6 @@ export async function getLegendariumData(
     })),
     achievements: achievementData.achievements,
     classes: achievementData.classes,
+    currentActiveClass: achievementData.currentActiveClass,
   };
 }

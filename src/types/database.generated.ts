@@ -632,6 +632,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_class_key: string | null
           avatar_url: string | null
           created_at: string
           display_name: string
@@ -640,6 +641,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          active_class_key?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name: string
@@ -648,6 +650,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          active_class_key?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string
@@ -655,7 +658,15 @@ export type Database = {
           id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_active_class_key_fkey"
+            columns: ["active_class_key"]
+            isOneToOne: false
+            referencedRelation: "class_definitions"
+            referencedColumns: ["class_key"]
+          },
+        ]
       }
       ratings: {
         Row: {
@@ -832,6 +843,14 @@ export type Database = {
           points_awarded: number
         }[]
       }
+      award_meeting_achievements: {
+        Args: { p_play_id: string }
+        Returns: {
+          awarded_count: number
+          awarded_keys: string[]
+          points_awarded: number
+        }[]
+      }
       award_meeting_created_points: {
         Args: { p_meeting_id: string }
         Returns: {
@@ -862,6 +881,14 @@ export type Database = {
           awarded: boolean
           point_event_id: string
           points: number
+        }[]
+      }
+      award_play_result_achievements: {
+        Args: { p_play_id: string }
+        Returns: {
+          awarded_count: number
+          awarded_user_ids: string[]
+          points_awarded: number
         }[]
       }
       award_rating_created_points: {
@@ -941,6 +968,7 @@ export type Database = {
           id: string
         }[]
       }
+      set_active_class: { Args: { p_class_key: string }; Returns: string }
       update_game_with_expansions: {
         Args: {
           p_bgg_rank: number

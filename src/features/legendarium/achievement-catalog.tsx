@@ -138,10 +138,11 @@ function FilterButton({
 function AchievementCard({ achievement }: { achievement: AchievementView }) {
   const acquired = achievement.state === "acquired";
   const secret = achievement.state === "secret";
+  const progress = achievement.progress;
 
   return (
     <article
-      className={`relative min-h-44 rounded-[1.15rem] border p-3 pb-7 transition-[filter,opacity,transform] ${
+      className={`relative min-h-44 rounded-[1.15rem] border p-3 pb-10 transition-[filter,opacity,transform] ${
         rarityStyles[achievement.rarity]
       } ${acquired ? "shadow-[0_10px_22px_rgba(73,42,22,0.18)]" : "opacity-72 grayscale-[0.35]"}`}
     >
@@ -159,7 +160,7 @@ function AchievementCard({ achievement }: { achievement: AchievementView }) {
             <span className="font-display text-2xl font-bold">?</span>
           )}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 pr-10">
           <span className="block text-[0.65rem] font-bold tracking-[0.13em] uppercase">
             {achievement.rarity}
           </span>
@@ -168,7 +169,7 @@ function AchievementCard({ achievement }: { achievement: AchievementView }) {
           </h3>
           {!secret ? (
             <span className="mt-1 block text-[0.8rem] font-bold">
-              {achievement.points} pkt prestiżu
+              {achievement.points} pkt
             </span>
           ) : null}
         </div>
@@ -176,9 +177,18 @@ function AchievementCard({ achievement }: { achievement: AchievementView }) {
       <p className="mt-2 text-[0.76rem] leading-[1.15rem]">
         {achievement.description}
       </p>
-      <p className="mt-1.5 border-t border-current/15 pt-1.5 text-[0.7rem] leading-[1.05rem] opacity-85">
-        {achievement.conditionText}
-      </p>
+      {!secret ? (
+        <>
+          <p className="mt-1.5 border-t border-current/15 pt-1.5 text-[0.7rem] leading-[1.05rem] opacity-85">
+            {achievement.conditionText}
+          </p>
+        </>
+      ) : null}
+      {progress && !secret && !achievement.isManual ? (
+        <span className="absolute top-3 right-3 rounded-full border border-current/20 bg-white/35 px-1.5 py-0.5 text-[0.68rem] font-bold tabular-nums">
+          {progress.current}/{progress.target}
+        </span>
+      ) : null}
       <span className="absolute right-3 bottom-2 text-right text-[0.68rem] font-bold uppercase">
         {acquired
           ? `Zdobyta ${formatAwardDate(achievement.awardedAt)}`

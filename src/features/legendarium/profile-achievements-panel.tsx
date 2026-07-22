@@ -2,15 +2,20 @@ import Image from "next/image";
 import { Panel } from "@/components/ui/panel";
 import type {
   AchievementView,
+  ActiveClassView,
   CharacterClassView,
 } from "./achievement-view-model";
+import { ActiveClassProfileCard } from "./active-class-emblem";
+import { MiniAchievementBadge } from "./mini-achievement-badge";
 
 export function ProfileAchievementsPanel({
   achievements,
   classes,
+  activeClass,
 }: {
   achievements: AchievementView[];
   classes: CharacterClassView[];
+  activeClass: ActiveClassView | null;
 }) {
   const acquired = achievements.filter(
     (achievement) => achievement.state === "acquired",
@@ -43,6 +48,8 @@ export function ProfileAchievementsPanel({
         </span>
       </div>
 
+      <ActiveClassProfileCard activeClass={activeClass} />
+
       {recent.length > 0 ? (
         <div className="mt-3">
           <p className="text-[0.62rem] font-bold tracking-[0.14em] text-[#87644a] uppercase">
@@ -54,17 +61,12 @@ export function ProfileAchievementsPanel({
                 key={achievement.key}
                 className="rounded-xl border border-[#d4b88f]/55 bg-[#fff8e9]/75 p-2 text-center"
               >
-                <div className="relative mx-auto -my-1 size-16">
-                  {achievement.iconPath ? (
-                    <Image
-                      src={achievement.iconPath}
-                      alt=""
-                      fill
-                      sizes="64px"
-                      className="object-contain"
-                    />
-                  ) : null}
-                </div>
+                <MiniAchievementBadge
+                  iconPath={achievement.iconPath}
+                  name={achievement.name}
+                  rarity={achievement.rarity}
+                  sizeClass="mx-auto -my-1 size-16"
+                />
                 <p className="mt-1 line-clamp-2 text-[0.68rem] leading-4 font-bold">
                   {achievement.name}
                 </p>
