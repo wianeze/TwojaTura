@@ -64,7 +64,7 @@ export function ProfileForm({ member }: { member: CurrentMember }) {
           {state.message}
         </p>
       )}
-      <AuthSubmitButton pendingLabel="Zapisujemy…">
+      <AuthSubmitButton pendingLabel="Zapisujemy…" glow>
         Zapisz Kartę Gracza
       </AuthSubmitButton>
     </form>

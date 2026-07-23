@@ -273,7 +273,7 @@ export async function DashboardShowcase() {
             </p>
             <Link
               href="/kalendarium/nowe"
-              className="text-accent inline-flex text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
+              className="cta-glow text-accent inline-flex text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
             >
               Zorganizuj spotkanie →
             </Link>
@@ -305,19 +305,19 @@ export async function DashboardShowcase() {
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                 <Link
                   href="/kalendarium/nowe"
-                  className="min-w-0 rounded-xl border border-[#efbf82]/30 bg-[#9b5538]/92 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#fff0db] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
+                  className="cta-glow min-w-0 rounded-xl border border-[#efbf82]/30 bg-[#9b5538]/92 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#fff0db] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
                 >
                   Zorganizuj spotkanie
                 </Link>
                 <Link
                   href="/gry/nowa"
-                  className="min-w-0 rounded-xl border border-white/14 bg-black/20 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#f2e4d3] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
+                  className="cta-glow min-w-0 rounded-xl border border-white/14 bg-black/20 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#f2e4d3] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
                 >
                   Dodaj grę do Półki
                 </Link>
                 <Link
                   href="/kronika/nowa"
-                  className="min-w-0 rounded-xl border border-white/14 bg-black/20 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#f2e4d3] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
+                  className="cta-glow min-w-0 rounded-xl border border-white/14 bg-black/20 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#f2e4d3] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
                 >
                   Zapisz wynik gry
                 </Link>
@@ -355,15 +355,19 @@ export async function DashboardShowcase() {
                 </p>
                 <Link
                   href={data.summary.emptyCtaHref}
-                  className="text-accent mt-3 inline-flex text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
+                  className="cta-glow text-accent mt-3 inline-flex text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
                 >
                   {data.summary.emptyCtaLabel} →
                 </Link>
               </Panel>
             ) : (
               <div className="grid auto-rows-fr gap-x-2 gap-y-2 md:grid-cols-2">
-                {data.quests.map((quest) => (
-                  <QuestCard key={quest.id} quest={quest} />
+                {data.quests.map((quest, index) => (
+                  <QuestCard
+                    key={quest.id}
+                    quest={quest}
+                    isPrimary={index === 0}
+                  />
                 ))}
               </div>
             )}
@@ -398,7 +402,7 @@ export async function DashboardShowcase() {
                 </p>
                 <Link
                   href="/kronika/nowa"
-                  className="text-accent inline-flex text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
+                  className="cta-glow text-accent inline-flex text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
                 >
                   Zapisz wynik gry →
                 </Link>

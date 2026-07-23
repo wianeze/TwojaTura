@@ -151,7 +151,7 @@ export default async function MeetingDetailsPage({
                 type="submit"
                 className={
                   meeting.status === "planned"
-                    ? "rounded-full bg-[#7d2f3d] px-3.5 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
+                    ? "cta-glow rounded-full bg-[#7d2f3d] px-3.5 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
                     : "paper-wash rounded-full px-3.5 py-2 text-xs font-bold text-[#6a4d36] transition-colors hover:bg-[#f1e4d0]"
                 }
               >

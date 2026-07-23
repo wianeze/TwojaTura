@@ -58,7 +58,7 @@ export function MeetingAvailabilityForm({
           name="response"
           value="available"
           disabled={pending}
-          className={`rounded-full px-3.5 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
+          className={`cta-glow rounded-full px-3.5 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
             currentResponse === true
               ? "bg-moss text-white"
               : "paper-wash text-[#5e4634]"

@@ -307,7 +307,7 @@ export function ShelfFilters({
 
             <button
               type="submit"
-              className="bg-brand hover:bg-brand-strong h-10 rounded-xl px-4 text-sm font-semibold text-white transition-colors"
+              className="cta-glow bg-brand hover:bg-brand-strong h-10 rounded-xl px-4 text-sm font-semibold text-white transition-colors"
             >
               Zastosuj
             </button>
@@ -355,7 +355,7 @@ export function ShelfFilters({
           </button>
           <button
             type="submit"
-            className="bg-brand hover:bg-brand-strong rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+            className="cta-glow bg-brand hover:bg-brand-strong rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors"
           >
             Zastosuj
           </button>
@@ -460,7 +460,7 @@ export function ShelfFilters({
                 <div className="mt-5 flex flex-wrap gap-2">
                   <button
                     type="submit"
-                    className="bg-brand hover:bg-brand-strong rounded-xl px-4 py-3 text-sm font-semibold text-white transition-colors"
+                    className="cta-glow bg-brand hover:bg-brand-strong rounded-xl px-4 py-3 text-sm font-semibold text-white transition-colors"
                   >
                     Zastosuj filtry
                   </button>

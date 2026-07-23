@@ -162,7 +162,7 @@ export function MeetingGameProposals({
                       type="button"
                       disabled={pending}
                       onClick={() => handlePropose(game.gameId)}
-                      className="rounded-full border border-[#7d2f3d]/28 px-3 py-1.5 text-[0.68rem] font-bold text-[#7d2f3d] disabled:opacity-60"
+                      className="cta-glow rounded-full border border-[#7d2f3d]/28 px-3 py-1.5 text-[0.68rem] font-bold text-[#7d2f3d] disabled:opacity-60"
                     >
                       Głosuj
                     </button>
@@ -171,7 +171,7 @@ export function MeetingGameProposals({
                       type="button"
                       disabled={pending}
                       onClick={() => handlePropose(game.gameId)}
-                      className="rounded-full bg-[#7d2f3d] px-3 py-1.5 text-[0.68rem] font-bold text-[#fff3ec] disabled:opacity-60"
+                      className="cta-glow rounded-full bg-[#7d2f3d] px-3 py-1.5 text-[0.68rem] font-bold text-[#fff3ec] disabled:opacity-60"
                     >
                       {pending ? "Dodaję…" : "Proponuj"}
                     </button>

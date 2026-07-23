@@ -447,3 +447,143 @@ a {
   background: var(--brand-soft);
   color: var(--brand-strong);
 }
+
+/*
+ * Addytywny wariant głównego CTA — dopisywany do istniejących klas
+ * przycisku (kolor bazowy bez zmian). Poświata tylko na hover/focus,
+ * bez efektu przy spoczynku.
+ */
+.cta-glow {
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  transition:
+    box-shadow 150ms ease,
+    transform 150ms ease,
+    background-color 150ms ease;
+}
+
+.cta-glow:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 230, 183, 0.45),
+    0 10px 22px rgba(223, 106, 53, 0.3);
+  transform: translateY(-1px);
+}
+
+.cta-glow:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 230, 183, 0.45),
+    0 10px 22px rgba(223, 106, 53, 0.26);
+}
+
+.cta-glow:active {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+  transform: translateY(0);
+}
+
+.cta-glow:disabled {
+  box-shadow: none;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-glow {
+    transition: none;
+  }
+
+  .cta-glow:hover {
+    transform: none;
+  }
+}
+
+/*
+ * Delikatniejszy wariant poświaty dla aktywnych, klikalnych kafli
+ * questów — świadomie słabszy niż .cta-glow (mniejszy blur/spread,
+ * niższe opacity, brak cienia "wciśnięcia" na active).
+ */
+.quest-glow {
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  transition:
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.quest-glow:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 230, 183, 0.28),
+    0 0 10px 1px rgba(223, 106, 53, 0.28),
+    0 0 20px 4px rgba(214, 160, 68, 0.18);
+  transform: translateY(-1px);
+}
+
+.quest-glow:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 230, 183, 0.28),
+    0 0 10px 1px rgba(223, 106, 53, 0.24),
+    0 0 20px 4px rgba(214, 160, 68, 0.16);
+}
+
+.quest-glow:active {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quest-glow {
+    transition: none;
+  }
+
+  .quest-glow:hover {
+    transform: none;
+  }
+}
+
+/*
+ * Opcjonalny, pojedynczy sheen — wyłącznie dla najważniejszego
+ * (pierwszego) aktywnego questu, jeden przebieg, bez pętli.
+ */
+.quest-glow-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 42%,
+    rgba(255, 241, 212, 0.24) 50%,
+    transparent 58%
+  );
+  background-size: 260% 100%;
+  background-position: 160% 0;
+  opacity: 0;
+  animation: quest-sheen-sweep 900ms ease-out 1;
+}
+
+@keyframes quest-sheen-sweep {
+  0% {
+    background-position: 160% 0;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    background-position: -60% 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quest-glow-sheen::after {
+    display: none;
+  }
+}
