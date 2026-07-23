@@ -36,23 +36,21 @@ Brak frameworka testowego typu Jest/Vitest — testy jednostkowe przez natywny `
 
 ## Struktura repozytorium
 
-```
-src/app/                    Next.js App Router
-  (app)/                    trasy chronione (wymagają aktywnego członkostwa)
-  (auth)/                   trasy publiczne: logowanie, ustaw-haslo, brak-dostepu
-  auth/callback/route.ts    Route Handler PKCE/OTP dla Supabase Auth
-src/proxy.ts + src/lib/supabase/proxy.ts   odpowiednik middleware (konwencja Next 16)
-src/features/{auth,dashboard,games,legendarium,meetings,plays,ratings}/
-  queries.ts    odczyt danych (wywoływane z Server Components)
-  actions.ts    zapis danych (Server Actions, "use server")
-src/components/{layout,ui}/   własny system designu (bez shadcn/Radix), motyw „drewniano-kominkowy"
-src/lib/supabase/{client,server,proxy,env}.ts   3 oddzielne fabryki klienta Supabase
-src/types/database.generated.ts   wygenerowane typy (pnpm db:types) — NIE edytować ręcznie
-supabase/migrations/          migracje SQL, chronologicznie ponumerowane
-supabase/tests/database/      testy pgTAP (RLS, punkty, osiągnięcia, klasy)
-scripts/                       skrypty operatorskie (invite-user) i fixture'y QA
-docs/qa-*.md                   dokumentacja fixture'ów QA (achievements/badges/classes)
-```
+- `src/app/` — Next.js App Router
+  - `(app)/` — trasy chronione (wymagają aktywnego członkostwa)
+  - `(auth)/` — trasy publiczne: logowanie, ustaw-haslo, brak-dostepu
+  - `auth/callback/route.ts` — Route Handler PKCE/OTP dla Supabase Auth
+- `src/proxy.ts` + `src/lib/supabase/proxy.ts` — odpowiednik middleware (konwencja Next 16)
+- `src/features/{auth,dashboard,games,legendarium,meetings,plays,ratings}/`
+  - `queries.ts` — odczyt danych (wywoływane z Server Components)
+  - `actions.ts` — zapis danych (Server Actions, `"use server"`)
+- `src/components/{layout,ui}/` — własny system designu (bez shadcn/Radix), motyw „drewniano-kominkowy"
+- `src/lib/supabase/{client,server,proxy,env}.ts` — 3 oddzielne fabryki klienta Supabase
+- `src/types/database.generated.ts` — wygenerowane typy (`pnpm db:types`) — NIE edytować ręcznie
+- `supabase/migrations/` — migracje SQL, chronologicznie ponumerowane
+- `supabase/tests/database/` — testy pgTAP (RLS, punkty, osiągnięcia, klasy)
+- `scripts/` — skrypty operatorskie (invite-user) i fixture'y QA
+- `docs/qa-*.md` — dokumentacja fixture'ów QA (achievements/badges/classes)
 
 **Wzorzec modułu domenowego**: każdy folder w `src/features/` trzyma razem `queries.ts` (odczyt) i `actions.ts` (zapis) dla danego obszaru — trzymaj się tego wzorca przy nowych funkcjach zamiast wprowadzać nowe abstrakcje.
 
@@ -91,7 +89,7 @@ Główna logika naliczania punktów, przyznawania osiągnięć i weryfikacji kla
 ## Migracje i testy bazy danych
 
 - Migracje w `supabase/migrations/`, nazwane `YYYYMMDDHHMMSS_opis.sql`, aplikowane chronologicznie.
-- `pnpm db:verify` = `db:reset` + `db:test` (pgTAP) + `db:types` (regeneracja `database.generated.ts`) — uruchamiaj po każdej zmianie schematu.
+- `pnpm db:verify` = `db:reset` + `db:test` (pgTAP) + `db:types` (regeneracja `database.generated.ts`). Po każdej zmianie schematu, po wcześniejszym poinformowaniu użytkownika i uzyskaniu jego zgody, uruchom `pnpm db:verify`.
 - **Nigdy nie łącz się z produkcyjnym Supabase** i nie wykonuj migracji ani żadnych poleceń destrukcyjnych dla lokalnej bazy (`db:reset`, reset fixture'ów QA, czyszczenie danych) bez wcześniejszego poinformowania użytkownika i jego zgody — nawet lokalnie. Skrypty QA mają dodatkowo twardą blokadę `assertQaEnvironment` przeciw produkcji/zdalnemu Supabase.
 
 ## Polecenia deweloperskie
