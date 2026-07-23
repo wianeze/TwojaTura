@@ -1,3 +1,4 @@
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { LegendariumShowcase } from "@/features/legendarium/legendarium-showcase";
 import {
@@ -18,7 +19,10 @@ export default async function LegendariumPage() {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      <header className="flex items-end justify-between gap-3">
+      <header
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+        className="anim-rise-in-fast flex items-end justify-between gap-3"
+      >
         <div>
           <p className="text-xs font-bold tracking-[0.2em] text-[#e3ae67] uppercase">
             Legendy przy ognisku

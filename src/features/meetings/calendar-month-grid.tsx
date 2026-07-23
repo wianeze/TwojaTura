@@ -128,7 +128,7 @@ export function CalendarMonthGrid({
                       </summary>
                       <div
                         id={dayPanelId}
-                        className="paper-wash premium-edge absolute top-6 right-0 z-40 w-60 rounded-[0.95rem] p-3 text-sm text-[#4e3528] shadow-[0_24px_52px_rgba(18,8,6,0.32)]"
+                        className="paper-wash premium-edge anim-rise-in absolute top-6 right-0 z-40 w-60 rounded-[0.95rem] p-3 text-sm text-[#4e3528] shadow-[0_24px_52px_rgba(18,8,6,0.32)]"
                       >
                         <p className="text-[0.62rem] font-bold tracking-[0.16em] text-[#a36b43] uppercase">
                           {day.dateKey}
@@ -206,7 +206,7 @@ export function CalendarMonthGrid({
                       <summary className="mt-1 cursor-pointer list-none rounded-md border border-dashed border-[#f0c487]/28 px-1.75 py-1 text-[0.62rem] font-semibold text-[#eed8b6] marker:hidden">
                         +{hidden.length} więcej
                       </summary>
-                      <div className="mt-1 space-y-0.75">
+                      <div className="anim-rise-in mt-1 space-y-0.75">
                         {hidden.map((meeting) => {
                           const visualClasses =
                             getMeetingVisualClasses(meeting);

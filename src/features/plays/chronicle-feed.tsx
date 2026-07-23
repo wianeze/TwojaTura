@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GameCover } from "@/components/ui/game-cover";
 import { Panel } from "@/components/ui/panel";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import {
   formatChronicleChipScore,
   formatPlayDuration,
@@ -207,7 +208,7 @@ function MobileParticipantsList({ item }: { item: PlayListItem }) {
 export function ChronicleFeed({ items }: { items: PlayListItem[] }) {
   if (items.length === 0) {
     return (
-      <Panel className="paper-wash p-4 sm:p-5">
+      <Panel className="anim-rise-in-fast paper-wash p-4 sm:p-5">
         <p className="text-sm text-[#5f4738]">
           Kronika jest jeszcze pusta. Zapisz pierwszą partię i zacznij budować
           historię stołu.
@@ -217,10 +218,19 @@ export function ChronicleFeed({ items }: { items: PlayListItem[] }) {
   }
 
   const groups = groupPlaysByMonth(items);
+  const groupsWithOffsets = groups.reduce<
+    Array<{ group: (typeof groups)[number]; startIndex: number }>
+  >((acc, group) => {
+    const previous = acc.at(-1);
+    const startIndex = previous
+      ? previous.startIndex + previous.group.items.length
+      : 0;
+    return [...acc, { group, startIndex }];
+  }, []);
 
   return (
     <div className="space-y-4">
-      {groups.map((group) => (
+      {groupsWithOffsets.map(({ group, startIndex }) => (
         <section key={group.key} className="space-y-2.5">
           <div className="flex items-center gap-3">
             <p className="text-accent text-[0.62rem] font-bold tracking-[0.18em] uppercase">
@@ -230,11 +240,14 @@ export function ChronicleFeed({ items }: { items: PlayListItem[] }) {
           </div>
 
           <div className="space-y-2.5">
-            {group.items.map((item) => (
+            {group.items.map((item, index) => (
               <Link
                 key={item.id}
                 href={`/kronika/${item.id}`}
-                className="block"
+                className="anim-rise-in block"
+                style={{
+                  animationDelay: `${getEntranceStaggerDelayMs(startIndex + index)}ms`,
+                }}
               >
                 <Panel className="paper-wash p-3 transition hover:bg-white/82 sm:p-3.5">
                   <article className="grid grid-cols-[7.25rem_minmax(0,1fr)_6.75rem] gap-x-3 gap-y-2.5 sm:grid-cols-[7.25rem_minmax(0,1fr)] sm:gap-3.5 md:grid-cols-[8rem_minmax(0,1fr)_7rem] md:items-start lg:grid-cols-[8.5rem_minmax(0,1fr)_7.2rem]">

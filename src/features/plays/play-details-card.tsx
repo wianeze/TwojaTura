@@ -71,7 +71,7 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
         ) : null}
       </div>
 
-      <Panel className="paper-wash p-4 sm:p-5">
+      <Panel className="anim-rise-in paper-wash p-4 sm:p-5">
         <div className="grid gap-3.5 lg:grid-cols-[11rem_minmax(0,1fr)_10.25rem] lg:gap-5">
           <div className="space-y-3 lg:w-[11rem] lg:shrink-0">
             <h1 className="font-display line-clamp-3 text-center text-[1.1rem] leading-tight font-semibold text-[#4c3528] sm:text-[1.2rem]">
@@ -142,7 +142,10 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
         </div>
       </Panel>
 
-      <Panel className="paper-wash p-4 sm:p-5">
+      <Panel
+        className="anim-rise-in paper-wash p-4 sm:p-5"
+        style={{ animationDelay: "35ms" }}
+      >
         <p className="text-accent text-[0.56rem] font-bold tracking-[0.18em] uppercase">
           Wyniki
         </p>
@@ -196,7 +199,10 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
       </Panel>
 
       {play.comment ? (
-        <Panel className="paper-wash p-4 sm:p-5">
+        <Panel
+          className="anim-rise-in paper-wash p-4 sm:p-5"
+          style={{ animationDelay: "70ms" }}
+        >
           <p className="text-accent text-[0.56rem] font-bold tracking-[0.18em] uppercase">
             Notatka
           </p>

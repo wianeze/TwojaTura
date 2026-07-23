@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getMemberInitial } from "@/features/auth/current-member";
 import { AchievementCatalog } from "./achievement-catalog";
 import { ClassCatalog } from "./class-catalog";
@@ -130,8 +131,8 @@ export function LegendariumShowcase({ data }: LegendariumShowcaseProps) {
 
             {leaderboard.length > 0 ? (
               <ol className="mt-4 ml-10 space-y-2.5 sm:ml-12">
-                {leaderboard.map((entry) => (
-                  <RankingEntry key={entry.userId} entry={entry} />
+                {leaderboard.map((entry, index) => (
+                  <RankingEntry key={entry.userId} entry={entry} index={index} />
                 ))}
               </ol>
             ) : (
@@ -239,15 +240,28 @@ function RewardPreviewNote({
         index % 3 === 1 ? "rotate-[0.35deg]" : "-rotate-[0.25deg]"
       } ${upcoming ? "opacity-75" : ""}`}
     >
-      <span className="text-accent text-sm font-bold">{reward.points} pkt</span>
-      <p className="mt-0.5 text-xs leading-4 font-bold text-[#70533d]">
-        {reward.title}
-      </p>
-      {!upcoming ? (
-        <span className="absolute top-2 right-2 inline-flex rounded-full bg-[#ead8b9] px-1.5 py-0.5 text-[0.58rem] font-bold text-[#8a613f]">
-          Raz
+      {/*
+        Animacja wejścia żyje na wewnętrznym wrapperze, nie na samym
+        <article> — <article> ma już statyczny stały obrót (rotate-…deg,
+        efekt "karteczki"), a transform z animacji nadpisałby go na stałe
+        (fill-mode: both) po zakończeniu wejścia.
+      */}
+      <div
+        className="anim-rise-in-fast"
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(index)}ms` }}
+      >
+        <span className="text-accent text-sm font-bold">
+          {reward.points} pkt
         </span>
-      ) : null}
+        <p className="mt-0.5 text-xs leading-4 font-bold text-[#70533d]">
+          {reward.title}
+        </p>
+        {!upcoming ? (
+          <span className="absolute top-2 right-2 inline-flex rounded-full bg-[#ead8b9] px-1.5 py-0.5 text-[0.58rem] font-bold text-[#8a613f]">
+            Raz
+          </span>
+        ) : null}
+      </div>
       <p className="absolute inset-1 grid place-items-center rounded-lg bg-[#fff8ea]/97 px-2 text-center text-[0.68rem] leading-4 font-semibold text-[#624635] opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus:opacity-100">
         {reward.condition}
       </p>
@@ -255,7 +269,13 @@ function RewardPreviewNote({
   );
 }
 
-function RankingEntry({ entry }: { entry: LegendariumLeaderboardEntry }) {
+function RankingEntry({
+  entry,
+  index,
+}: {
+  entry: LegendariumLeaderboardEntry;
+  index: number;
+}) {
   const rankAsset = getLeaderboardRankAsset(entry.rank);
   const classBackdropGradient = getActiveClassBackdropGradient(
     entry.activeClass?.key ?? null,
@@ -292,16 +312,26 @@ function RankingEntry({ entry }: { entry: LegendariumLeaderboardEntry }) {
     : entry.rank === 2
       ? "border-[#e8c983]/80 bg-[linear-gradient(110deg,rgba(103,61,26,0.9),rgba(75,40,22,0.84)_55%,rgba(49,27,20,0.8))]"
       : "border-[#dcb96d]/75 bg-[linear-gradient(110deg,rgba(88,53,25,0.88),rgba(62,34,22,0.82)_55%,rgba(43,25,20,0.78))]";
+  // Statyczna, stała poświata podium — bez animacji/sheenu/pulsowania,
+  // karty rankingu nie są klikalne, więc brak liftu.
+  const rankGlow = isFirst
+    ? "rank-glow-gold"
+    : entry.rank === 2
+      ? "rank-glow-silver"
+      : entry.rank === 3
+        ? "rank-glow-bronze"
+        : "";
 
   return (
     <li
-      className={`relative isolate flex min-w-0 items-center gap-2.5 overflow-visible rounded-[1.25rem] border shadow-[0_9px_18px_rgba(76,44,23,0.14)] sm:gap-3.5 ${
+      style={{ animationDelay: `${getEntranceStaggerDelayMs(index)}ms` }}
+      className={`anim-rise-in-fast relative isolate flex min-w-0 items-center gap-2.5 overflow-visible rounded-[1.25rem] border shadow-[0_9px_18px_rgba(76,44,23,0.14)] sm:gap-3.5 ${
         isPodium
           ? `${podiumTone} ${entry.isCurrentMember ? "ring-1 ring-[#f4d48a]/65" : ""}`
           : entry.isCurrentMember
             ? "border-[#e8b875] bg-[#75442e]/92"
             : "border-[#d8bd90]/55 bg-black/20"
-      } ${cardSize}`}
+      } ${cardSize} ${rankGlow}`}
     >
       <span
         aria-hidden="true"

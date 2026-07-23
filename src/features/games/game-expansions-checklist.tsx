@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { cleanBggExpansionName } from "./bgg";
 import type { GameExpansion, ToggleGameExpansionState } from "./types";
 
@@ -19,6 +20,7 @@ function ExpansionRow({
   gameTitle,
   canManage,
   onToggle,
+  index,
 }: {
   expansion: GameExpansion;
   gameTitle: string;
@@ -27,13 +29,17 @@ function ExpansionRow({
     expansionId: string,
     isOwned: boolean,
   ) => Promise<ToggleGameExpansionState>;
+  index: number;
 }) {
   const [optimisticOwned, setOptimisticOwned] = useState(expansion.isOwned);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   return (
-    <div>
+    <div
+      style={{ animationDelay: `${getEntranceStaggerDelayMs(index)}ms` }}
+      className="anim-rise-in-fast"
+    >
       <label
         className={`paper-wash flex items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 text-sm ${
           canManage ? "cursor-pointer" : "cursor-default opacity-90"
@@ -103,13 +109,14 @@ export function GameExpansionsChecklist({
 
   return (
     <div className="grid grid-cols-3 gap-1.5 lg:grid-cols-1">
-      {expansions.slice(0, showAll ? undefined : 6).map((expansion) => (
+      {expansions.slice(0, showAll ? undefined : 6).map((expansion, index) => (
         <ExpansionRow
           key={`${expansion.id}:${expansion.isOwned ? "owned" : "missing"}`}
           expansion={expansion}
           gameTitle={gameTitle}
           canManage={canManage}
           onToggle={onToggle}
+          index={index}
         />
       ))}
       {expansions.length > 6 ? (

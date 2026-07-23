@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import type {
   AchievementRarity,
   AchievementState,
@@ -103,8 +104,12 @@ export function AchievementCatalog({
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
-        {visible.map((achievement) => (
-          <AchievementCard key={achievement.key} achievement={achievement} />
+        {visible.map((achievement, index) => (
+          <AchievementCard
+            key={achievement.key}
+            achievement={achievement}
+            index={index}
+          />
         ))}
       </div>
     </section>
@@ -135,16 +140,29 @@ function FilterButton({
   );
 }
 
-function AchievementCard({ achievement }: { achievement: AchievementView }) {
+function AchievementCard({
+  achievement,
+  index,
+}: {
+  achievement: AchievementView;
+  index: number;
+}) {
   const acquired = achievement.state === "acquired";
   const secret = achievement.state === "secret";
   const progress = achievement.progress;
+  const hasRaritySheen =
+    acquired &&
+    (achievement.rarity === "epic" || achievement.rarity === "legendary");
 
   return (
     <article
-      className={`relative min-h-44 rounded-[1.15rem] border p-3 pb-10 transition-[filter,opacity,transform] ${
+      tabIndex={hasRaritySheen ? 0 : undefined}
+      style={{ animationDelay: `${getEntranceStaggerDelayMs(index)}ms` }}
+      className={`anim-rise-in-fast relative min-h-44 rounded-[1.15rem] border p-3 pb-10 transition-[filter,opacity,transform] ${
         rarityStyles[achievement.rarity]
-      } ${acquired ? "shadow-[0_10px_22px_rgba(73,42,22,0.18)]" : "opacity-72 grayscale-[0.35]"}`}
+      } ${acquired ? "shadow-[0_10px_22px_rgba(73,42,22,0.18)]" : "opacity-72 grayscale-[0.35]"} ${
+        hasRaritySheen ? "rarity-sheen" : ""
+      }`}
     >
       <div className="flex items-start gap-2.5">
         <div className="relative grid size-[4.65rem] shrink-0 place-items-center rounded-full bg-black/8">

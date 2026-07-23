@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArchiveGameButton } from "@/features/games/archive-game-button";
 import { GameCover } from "@/components/ui/game-cover";
 import { Panel } from "@/components/ui/panel";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import {
   archiveGameAction,
@@ -171,7 +172,10 @@ export default async function GameDetailsPage({
       </div>
 
       {game.archivedAt ? (
-        <Panel className="paper-wash border border-[#8f3528]/20 p-4 sm:p-5">
+        <Panel
+          style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+          className="anim-rise-in-fast paper-wash border border-[#8f3528]/20 p-4 sm:p-5"
+        >
           <p className="text-sm font-semibold text-[#8f3528]">
             Ten egzemplarz jest już archiwalny. Zniknął z głównej Półki, ale
             jego oceny i historia pozostały zachowane.
@@ -179,7 +183,10 @@ export default async function GameDetailsPage({
         </Panel>
       ) : null}
 
-      <Panel className="paper-wash overflow-hidden p-3 sm:p-3.5">
+      <Panel
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
+        className="anim-rise-in-fast paper-wash overflow-hidden p-3 sm:p-3.5"
+      >
         <div className="grid gap-3 md:grid-cols-[8.5rem_minmax(0,1fr)] xl:grid-cols-[10.5rem_minmax(0,1fr)_14rem]">
           <div className="space-y-2 md:row-span-2">
             <div className="grid grid-cols-2 items-stretch gap-2.5 md:block">
@@ -296,7 +303,10 @@ export default async function GameDetailsPage({
       </Panel>
 
       <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
-        <Panel className="paper-wash p-3.5 sm:p-4">
+        <Panel
+          style={{ animationDelay: `${getEntranceStaggerDelayMs(2)}ms` }}
+          className="anim-rise-in-fast paper-wash p-3.5 sm:p-4"
+        >
           <p className="text-accent text-[0.56rem] font-bold tracking-[0.18em] uppercase">
             {ratingMode === "edit" ? "Twoja ocena" : "Oceń tę grę"}
           </p>
@@ -312,7 +322,10 @@ export default async function GameDetailsPage({
           </div>
         </Panel>
 
-        <Panel className="paper-wash p-3.5 sm:p-4">
+        <Panel
+          style={{ animationDelay: `${getEntranceStaggerDelayMs(3)}ms` }}
+          className="anim-rise-in-fast paper-wash p-3.5 sm:p-4"
+        >
           <p className="text-accent text-[0.56rem] font-bold tracking-[0.18em] uppercase">
             Komentarze grupy
           </p>
@@ -322,10 +335,13 @@ export default async function GameDetailsPage({
 
           {game.ratingComments.length > 0 ? (
             <div className="mt-3 space-y-2.5">
-              {game.ratingComments.map((comment) => (
+              {game.ratingComments.map((comment, index) => (
                 <article
                   key={comment.id}
-                  className="material-panel rounded-[1.15rem] p-3.5"
+                  style={{
+                    animationDelay: `${getEntranceStaggerDelayMs(index)}ms`,
+                  }}
+                  className="anim-rise-in-fast material-panel rounded-[1.15rem] p-3.5"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2.5">
                     <p className="font-semibold text-[#503828]">
@@ -354,7 +370,10 @@ export default async function GameDetailsPage({
         </Panel>
       </div>
 
-      <Panel className="paper-wash p-3.5 sm:p-4">
+      <Panel
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(4)}ms` }}
+        className="anim-rise-in-fast paper-wash p-3.5 sm:p-4"
+      >
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div>
             <p className="text-accent text-[0.56rem] font-bold tracking-[0.18em] uppercase">

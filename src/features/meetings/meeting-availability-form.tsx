@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { INITIAL_MEETING_AVAILABILITY_STATE } from "./form-state";
 import type {
   MeetingAttendanceRow,
@@ -86,14 +87,17 @@ export function MeetingAvailabilityForm({
       ) : null}
 
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-        {rows.map((row) => {
+        {rows.map((row, index) => {
           const response =
             row.member.id === currentUserId ? currentResponse : row.response;
 
           return (
             <div
               key={row.member.id}
-              className={`flex items-center justify-between gap-3 rounded-[1.05rem] px-3.5 py-3 ${tileStyles(
+              style={{
+                animationDelay: `${getEntranceStaggerDelayMs(index)}ms`,
+              }}
+              className={`anim-rise-in-fast flex items-center justify-between gap-3 rounded-[1.05rem] px-3.5 py-3 ${tileStyles(
                 response,
               )} ${
                 row.member.id === currentUserId

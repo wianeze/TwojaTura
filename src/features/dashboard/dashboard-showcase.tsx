@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Panel } from "@/components/ui/panel";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { formatMeetingDateRange } from "@/features/meetings/formatting";
 import { formatPlayShortDate } from "@/features/plays/formatting";
 import { QuestCard } from "./action-card";
@@ -96,7 +97,9 @@ export async function DashboardShowcase() {
     : null;
 
   const leaderboardSection = (
-    <Panel className="leaderboard-rug-panel p-4 text-[#fff6ea] shadow-[inset_0_0_0_1px_rgba(255,230,184,0.08),0_18px_42px_rgba(22,9,5,0.24)] sm:p-4.5">
+    <Panel
+      style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
+      className="anim-rise-in-fast leaderboard-rug-panel p-4 text-[#fff6ea] shadow-[inset_0_0_0_1px_rgba(255,230,184,0.08),0_18px_42px_rgba(22,9,5,0.24)] sm:p-4.5">
       <div className="space-y-3">
         <div className="flex items-end justify-between gap-3">
           <div>
@@ -155,7 +158,8 @@ export async function DashboardShowcase() {
 
   const upcomingMeetingSection = (
     <Panel
-      className={`${upcomingVisual?.panel ?? "paper-wash shadow-[0_18px_36px_rgba(32,16,8,0.16)]"} overflow-hidden p-3.5 sm:p-4`}
+      style={{ animationDelay: `${getEntranceStaggerDelayMs(3)}ms` }}
+      className={`anim-rise-in-fast ${upcomingVisual?.panel ?? "paper-wash shadow-[0_18px_36px_rgba(32,16,8,0.16)]"} overflow-hidden p-3.5 sm:p-4`}
     >
       <div className="flex h-full flex-col gap-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
@@ -286,7 +290,10 @@ export async function DashboardShowcase() {
   return (
     <div className="space-y-2 sm:space-y-3">
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(17.5rem,0.9fr)]">
-        <Panel className="table-wood-panel fire-glow overflow-hidden p-3.5 text-[#fff1dc] shadow-[inset_0_0_0_1px_rgba(255,233,184,0.08),0_24px_54px_rgba(24,9,5,0.32)] sm:p-4">
+        <Panel
+          style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+          className="anim-rise-in-fast table-wood-panel fire-glow overflow-hidden p-3.5 text-[#fff1dc] shadow-[inset_0_0_0_1px_rgba(255,233,184,0.08),0_24px_54px_rgba(24,9,5,0.32)] sm:p-4"
+        >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,198,105,0.18),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.08),transparent_18%)]" />
           <div className="relative flex flex-col gap-2.5 lg:flex-row lg:items-stretch lg:gap-5">
             <div className="min-w-0 flex-1 space-y-2.5">
@@ -340,7 +347,11 @@ export async function DashboardShowcase() {
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(17.5rem,0.9fr)] xl:gap-5">
         <div className="space-y-4 xl:-mt-[15.25rem] 2xl:-mt-[15.5rem]">
-          <section aria-labelledby="quests-heading" className="space-y-2.5">
+          <section
+            aria-labelledby="quests-heading"
+            style={{ animationDelay: `${getEntranceStaggerDelayMs(2)}ms` }}
+            className="anim-rise-in-fast space-y-2.5"
+          >
             <h2
               id="quests-heading"
               className="font-display text-[1.9rem] font-semibold text-[#fff1dc] sm:text-[2.05rem]"
@@ -363,11 +374,19 @@ export async function DashboardShowcase() {
             ) : (
               <div className="grid auto-rows-fr gap-x-2 gap-y-2 md:grid-cols-2">
                 {data.quests.map((quest, index) => (
-                  <QuestCard
+                  // Animacja wejścia żyje na tym wrapperze, nie na samym
+                  // <QuestCard> — jego wewnętrzny <Link> ma już własne
+                  // transition-transform na hover, które animacja by
+                  // trwale nadpisała (fill-mode: both).
+                  <div
                     key={quest.id}
-                    quest={quest}
-                    isPrimary={index === 0}
-                  />
+                    className="anim-rise-in-fast"
+                    style={{
+                      animationDelay: `${getEntranceStaggerDelayMs(index)}ms`,
+                    }}
+                  >
+                    <QuestCard quest={quest} isPrimary={index === 0} />
+                  </div>
                 ))}
               </div>
             )}
@@ -377,7 +396,10 @@ export async function DashboardShowcase() {
         <div className="space-y-4">
           {upcomingMeetingSection}
 
-          <Panel className="paper-wash p-3.5 sm:p-4">
+          <Panel
+            style={{ animationDelay: `${getEntranceStaggerDelayMs(4)}ms` }}
+            className="anim-rise-in-fast paper-wash p-3.5 sm:p-4"
+          >
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">

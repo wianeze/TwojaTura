@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { GameCover } from "@/components/ui/game-cover";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { toggleMeetingVoteAction } from "./actions";
 import { MeetingVoteToggle } from "./meeting-vote-toggle";
 import type { MeetingGameCandidateOption, MeetingGameVoteItem } from "./types";
@@ -62,10 +63,13 @@ export function MeetingGameProposals({
 
       {games.length > 0 ? (
         <div className="space-y-2">
-          {games.map((game) => (
+          {games.map((game, index) => (
             <div
               key={game.gameId}
-              className="paper-wash flex items-center gap-3 rounded-[1.15rem] px-3.5 py-3"
+              style={{
+                animationDelay: `${getEntranceStaggerDelayMs(index)}ms`,
+              }}
+              className="anim-rise-in-fast paper-wash flex items-center gap-3 rounded-[1.15rem] px-3.5 py-3"
             >
               <GameCover
                 title={game.title}

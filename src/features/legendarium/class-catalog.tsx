@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import type { CharacterClassView } from "./achievement-view-model";
 import { ActiveClassControls } from "./active-class-controls";
 
@@ -21,16 +22,18 @@ export function ClassCatalog({ classes }: { classes: CharacterClassView[] }) {
       </div>
 
       <div className="mt-4 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-        {classes.map((characterClass) => (
+        {classes.map((characterClass, index) => (
           <article
             key={characterClass.key}
-            className={`relative overflow-hidden rounded-[1.15rem] border p-3 ${
+            tabIndex={characterClass.unlocked ? 0 : undefined}
+            style={{ animationDelay: `${getEntranceStaggerDelayMs(index)}ms` }}
+            className={`anim-rise-in-fast relative overflow-hidden rounded-[1.15rem] border p-3 ${
               characterClass.isActive
                 ? "border-[#f1c671] bg-[#7a452b]/94 shadow-[0_0_0_1px_rgba(241,198,113,0.38),0_12px_28px_rgba(12,5,2,0.34)]"
                 : characterClass.unlocked
                   ? "border-[#e2b361] bg-[#6f3f28]/88 shadow-[0_10px_24px_rgba(12,5,2,0.3)]"
                   : "border-white/16 bg-black/20 opacity-78"
-            }`}
+            } ${characterClass.unlocked ? "rarity-sheen" : ""}`}
           >
             <div className="flex gap-3">
               <div className="relative size-[5.65rem] shrink-0">

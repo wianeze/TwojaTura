@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Panel } from "@/components/ui/panel";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { signOutAction } from "@/features/auth/actions";
 import { getMemberInitial } from "@/features/auth/current-member";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
@@ -24,7 +25,10 @@ export default async function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
-      <Panel className="paper-wash p-6 sm:p-8">
+      <Panel
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+        className="anim-rise-in-fast paper-wash p-6 sm:p-8"
+      >
         <div className="flex min-h-20 items-center gap-4">
           <span className="shrink-0">
             {member.avatarUrl ? (
@@ -75,6 +79,7 @@ export default async function ProfilePage() {
         title="Ostatnie partie"
         items={recentPlays}
         emptyMessage="Nie masz jeszcze zapisanych partii w Kronice."
+        entranceIndex={2}
       />
     </div>
   );

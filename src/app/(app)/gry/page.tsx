@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Panel } from "@/components/ui/panel";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { hasActiveFilters, parseGameFilters } from "@/features/games/filters";
 import { ShelfFilters } from "@/features/games/shelf-filters";
 import { ShelfShowcase } from "@/features/games/shelf-showcase";
@@ -39,7 +40,10 @@ export default async function GamesPage({
 
   return (
     <div className="space-y-7">
-      <header className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:gap-6">
+      <header
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+        className="anim-rise-in-fast grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:gap-6"
+      >
         <div className="min-w-0">
           <p className="text-xs font-bold tracking-[0.2em] text-[#e3ae67] uppercase">
             Wspólna kolekcja
@@ -71,7 +75,7 @@ export default async function GamesPage({
       {shelf.items.length > 0 ? (
         <ShelfShowcase games={shelf.items} />
       ) : filtered ? (
-        <Panel className="paper-wash space-y-4 p-6 sm:p-8">
+        <Panel className="anim-rise-in-fast paper-wash space-y-4 p-6 sm:p-8">
           <p className="text-accent text-[0.65rem] font-bold tracking-[0.18em] uppercase">
             Brak wyników
           </p>
@@ -91,7 +95,10 @@ export default async function GamesPage({
       ) : (
         <div className="space-y-5">
           <EmptyState variant="shelf" />
-          <Panel className="paper-wash flex flex-wrap items-center justify-between gap-4 p-5 sm:p-6">
+          <Panel
+            style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
+            className="anim-rise-in-fast paper-wash flex flex-wrap items-center justify-between gap-4 p-5 sm:p-6"
+          >
             <div>
               <p className="text-accent text-[0.65rem] font-bold tracking-[0.18em] uppercase">
                 Pierwsza gra w kolekcji
