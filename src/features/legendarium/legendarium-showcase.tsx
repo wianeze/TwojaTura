@@ -313,7 +313,9 @@ function RankingEntry({ entry }: { entry: LegendariumLeaderboardEntry }) {
               className="absolute top-1/2 left-[-11rem] h-[190%] w-56 -translate-y-1/2 rounded-full blur-3xl sm:left-[-13rem] sm:w-72"
               style={{ backgroundImage: classBackdropGradient }}
             />
-            <span className="absolute top-1/2 left-[-12rem] h-[265%] w-64 -translate-y-1/2 opacity-50 sm:left-[-14rem] sm:w-80">
+            <span
+              className="absolute top-1/2 left-[-12rem] h-[265%] w-64 -translate-y-1/2 opacity-50 sm:left-[-14rem] sm:w-80"
+            >
               <Image
                 src={entry.activeClass.iconPath}
                 alt=""
@@ -326,7 +328,9 @@ function RankingEntry({ entry }: { entry: LegendariumLeaderboardEntry }) {
               className="absolute top-1/2 left-[19%] h-[135%] w-36 -translate-y-1/2 rounded-full blur-3xl sm:left-[21%] sm:w-48"
               style={{ backgroundImage: classBackdropGradient }}
             />
-            <span className="absolute top-1/2 left-[19%] h-[185%] w-44 -translate-y-1/2 opacity-50 sm:left-[21%] sm:w-56">
+            <span
+              className="absolute top-1/2 left-[19%] h-[185%] w-44 -translate-y-1/2 opacity-50 sm:left-[21%] sm:w-56"
+            >
               <Image
                 src={entry.activeClass.iconPath}
                 alt=""
