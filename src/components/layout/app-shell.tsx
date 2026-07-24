@@ -41,16 +41,16 @@ export function AppShell({
                 activeClass={activeClass}
                 sizeClass="size-10 shrink-0 min-[420px]:size-12"
               />
-              <span className="hidden max-w-14 text-xs leading-4 font-bold tracking-wide text-[#f3a849] uppercase min-[420px]:block">
+              <span className="max-w-14 text-xs leading-4 font-bold tracking-wide text-[#f3a849] uppercase">
                 {activeClass.name}
               </span>
             </Link>
           ) : null}
-          <div className="min-w-0 rounded-full border border-white/10 bg-black/18 px-2 py-1.5 text-center shadow-[0_10px_18px_rgba(17,8,5,0.18)] sm:px-3.5">
-            <span className="font-display text-[0.72rem] font-semibold text-[#e2b578] min-[420px]:text-[0.84rem]">
+          <div className="min-w-0 rounded-full border border-white/10 bg-black/18 px-2 py-1.5 text-center whitespace-nowrap shadow-[0_10px_18px_rgba(17,8,5,0.18)] sm:px-3.5">
+            <span className="font-display text-[0.6rem] font-semibold text-[#e2b578] min-[420px]:text-[0.84rem]">
               Twoje Punkty:
             </span>{" "}
-            <span className="font-display text-[0.95rem] font-semibold text-[#fff1dc] min-[420px]:text-[1.05rem]">
+            <span className="font-display text-[0.8rem] font-semibold text-[#fff1dc] min-[420px]:text-[1.05rem]">
               {currentPoints.toLocaleString("pl-PL")} pkt
             </span>
           </div>

@@ -16,9 +16,11 @@ import type { DashboardLeaderboardEntry } from "./types";
 function MeetingStatusBadge({
   label,
   state,
+  compact = false,
 }: {
   label: string;
   state: "confirmed" | "decision-required" | "awaiting-group" | "completed";
+  compact?: boolean;
 }) {
   const classes =
     state === "confirmed"
@@ -29,7 +31,7 @@ function MeetingStatusBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.65rem] font-bold ${classes}`}
+      className={`inline-flex items-center whitespace-nowrap rounded-full font-bold ${compact ? "gap-0.5 px-1 py-0.5 text-[0.46rem]" : "gap-1.5 px-2.5 py-1 text-[0.65rem]"} ${classes}`}
     >
       {state === "decision-required" ? (
         <Image
@@ -37,7 +39,7 @@ function MeetingStatusBadge({
           alt=""
           width={16}
           height={16}
-          className="size-4 object-contain"
+          className={compact ? "size-3 object-contain" : "size-4 object-contain"}
         />
       ) : null}
       {label}
@@ -165,6 +167,36 @@ function CompactLeaderboardEntry({
       <span className="shrink-0 text-xs text-[#f0cf9f]">
         {entry.rank}. miejsce
       </span>
+    </li>
+  );
+}
+
+function MobileLeaderboardRow({ entry }: { entry: DashboardLeaderboardEntry }) {
+  const rankAsset = getLeaderboardRankAsset(entry.rank);
+
+  return (
+    <li className="relative flex items-center gap-1.5 rounded-[0.65rem] border border-white/8 bg-[rgba(33,18,14,0.36)] py-1 pr-1.5 pl-8">
+      {rankAsset ? (
+        <Image
+          src={rankAsset}
+          alt={getLeaderboardRankLabel(entry.rank)}
+          width={32}
+          height={32}
+          className="absolute top-1/2 left-0 size-8 shrink-0 -translate-y-1/2 object-contain"
+        />
+      ) : (
+        <span className="absolute top-1/2 left-0 grid size-8 shrink-0 -translate-y-1/2 place-items-center rounded-full bg-black/24 text-[0.6rem] font-bold text-[#ffe2ad]">
+          {entry.rank}
+        </span>
+      )}
+      <div className="min-w-0 flex-1 text-center">
+        <p className="truncate text-[0.68rem] leading-tight font-semibold text-[#fff2dc]">
+          {entry.displayName}
+        </p>
+        <p className="text-[0.58rem] leading-tight font-bold text-[#f2d8b8]">
+          {entry.totalPoints.toLocaleString("pl-PL")} pkt
+        </p>
+      </div>
     </li>
   );
 }
@@ -357,7 +389,195 @@ export async function DashboardShowcase() {
 
   return (
     <div className="space-y-2 sm:space-y-3">
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(17.5rem,0.9fr)]">
+      <div className="space-y-2 sm:hidden">
+        <Panel
+          style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+          className="anim-rise-in-fast table-wood-panel fire-glow overflow-hidden p-3 text-[#fff1dc] shadow-[inset_0_0_0_1px_rgba(255,233,184,0.08),0_14px_30px_rgba(24,9,5,0.28)]"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,198,105,0.18),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.08),transparent_18%)]" />
+          <div className="relative space-y-2">
+            <div>
+              <h1 className="font-display truncate text-[1.05rem] leading-tight font-semibold text-[#fff1dc]">
+                {data.summary.title}
+              </h1>
+              <p className="mt-0.5 truncate text-[0.66rem] font-semibold text-[#e6c79f]">
+                {data.summary.subtitle}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-1.5">
+              <Link
+                href="/kalendarium/nowe"
+                className="cta-glow min-w-0 rounded-lg border border-[#efbf82]/30 bg-[#9b5538]/92 px-1 py-1.5 text-center text-[0.56rem] leading-tight font-bold text-[#fff0db]"
+              >
+                Zorganizuj spotkanie
+              </Link>
+              <Link
+                href="/gry/nowa"
+                className="cta-glow min-w-0 rounded-lg border border-white/14 bg-black/20 px-1 py-1.5 text-center text-[0.56rem] leading-tight font-bold text-[#f2e4d3]"
+              >
+                Dodaj grę do Półki
+              </Link>
+              <Link
+                href="/kronika/nowa"
+                className="cta-glow min-w-0 rounded-lg border border-white/14 bg-black/20 px-1 py-1.5 text-center text-[0.56rem] leading-tight font-bold text-[#f2e4d3]"
+              >
+                Zapisz wynik gry
+              </Link>
+            </div>
+          </div>
+        </Panel>
+
+        <div className="grid grid-cols-2 items-start gap-2">
+          <Panel
+            style={{ animationDelay: `${getEntranceStaggerDelayMs(3)}ms` }}
+            className={`anim-rise-in-fast ${upcomingVisual?.panel ?? "paper-wash shadow-[0_12px_26px_rgba(32,16,8,0.14)]"} min-w-0 overflow-hidden p-2.5`}
+          >
+            <p className="text-accent text-center text-[0.58rem] font-bold tracking-[0.12em] uppercase">
+              Najbliższe spotkanie
+            </p>
+
+            {upcoming && upcomingRange ? (
+              <div className="mt-0.5">
+                <h3 className="font-display truncate text-center text-[1rem] leading-tight font-bold text-[#4c3528]">
+                  {upcoming.title}
+                </h3>
+
+                <div className="mt-1 flex flex-nowrap items-center justify-center gap-0.5">
+                  <span
+                    className={`inline-flex items-center rounded-full px-1 py-0.5 text-[0.46rem] font-bold whitespace-nowrap ${upcomingVisual?.attendees ?? "bg-[#f4ead3] text-[#705338]"}`}
+                  >
+                    {upcoming.confirmedAttendeesCount} osób potwierdziło
+                  </span>
+                  <MeetingStatusBadge
+                    label={
+                      upcoming.visualLabel === "Do ustalenia"
+                        ? "Niepotwierdzone"
+                        : upcoming.visualLabel
+                    }
+                    state={upcoming.visualState}
+                    compact
+                  />
+                </div>
+
+                <div className="mt-1.5 space-y-1">
+                  <div
+                    className={`min-w-0 rounded-[0.55rem] border px-1.5 py-1 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${upcomingVisual?.tile ?? "border-[#e6cfb1] bg-[linear-gradient(145deg,rgba(255,252,247,0.92),rgba(245,234,216,0.82))]"}`}
+                  >
+                    <p
+                      className={`text-[0.48rem] font-bold tracking-[0.1em] uppercase ${upcomingVisual?.tileLabel ?? "text-[#b4764a]"}`}
+                    >
+                      Termin
+                    </p>
+                    <p
+                      className={`truncate text-[0.66rem] font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
+                    >
+                      {`${upcomingRange.startDate} · ${upcomingRange.startTime}`}
+                    </p>
+                  </div>
+                  <div
+                    className={`min-w-0 rounded-[0.55rem] border px-1.5 py-1 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${upcomingVisual?.tile ?? "border-[#e6cfb1] bg-[linear-gradient(145deg,rgba(255,252,247,0.92),rgba(245,234,216,0.82))]"}`}
+                  >
+                    <p
+                      className={`text-[0.48rem] font-bold tracking-[0.1em] uppercase ${upcomingVisual?.tileLabel ?? "text-[#b4764a]"}`}
+                    >
+                      Miejsce
+                    </p>
+                    <p
+                      className={`truncate text-[0.66rem] font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
+                    >
+                      {upcoming.location ?? "Do ustalenia"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-1.5 flex items-stretch gap-1.5">
+                  <div
+                    className={`flex min-w-0 flex-1 flex-col justify-center rounded-[0.55rem] border px-1.5 py-1 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${upcomingVisual?.tile ?? "border-[#e6cfb1] bg-[linear-gradient(145deg,rgba(255,252,247,0.92),rgba(245,234,216,0.82))]"}`}
+                  >
+                    <p
+                      className={`text-[0.48rem] font-bold tracking-[0.1em] uppercase ${upcomingVisual?.tileLabel ?? "text-[#b4764a]"}`}
+                    >
+                      Prowadzi
+                    </p>
+                    <p
+                      className={`truncate text-[0.66rem] font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
+                    >
+                      {upcoming.leadingGame
+                        ? upcoming.leadingGame.title
+                        : "Jeszcze bez lidera"}
+                    </p>
+                  </div>
+
+                  <div
+                    className={`flex shrink-0 items-center justify-center rounded-[0.7rem] border p-1 ${upcomingVisual?.coverFrame ?? "border-[#d6b188] bg-[linear-gradient(145deg,rgba(255,251,244,0.96),rgba(237,223,201,0.9))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55),0_8px_18px_rgba(58,31,12,0.16)]"}`}
+                  >
+                    {upcoming.leadingGame?.coverUrl ? (
+                      <Image
+                        src={upcoming.leadingGame.coverUrl}
+                        alt={upcoming.leadingGame.title}
+                        width={72}
+                        height={72}
+                        unoptimized
+                        className={`h-[4.5rem] w-[4.5rem] rounded-[0.5rem] border object-cover shadow-[0_4px_10px_rgba(61,34,16,0.18)] ${upcomingVisual?.coverBorder ?? "border-[#dcc3a1] bg-[#f6ecdd]"}`}
+                      />
+                    ) : (
+                      <div
+                        className={`flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[0.5rem] border border-dashed px-1 text-center text-[0.5rem] font-semibold ${upcomingVisual?.coverFallback ?? "border-[#d2ba99] bg-[#f5ead9] text-[#8a6749]"}`}
+                      >
+                        Brak okładki
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Link
+                  href={upcoming.href}
+                  className={`mt-1.5 flex w-full items-center justify-center rounded-[0.6rem] border px-2 py-1.5 text-[0.62rem] font-bold ${upcomingVisual?.action ?? "border-[#d8b3b9] bg-[#fff7f8] text-[#b14833]"}`}
+                >
+                  Przejdź {"→"}
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-1 space-y-1.5">
+                <p className="text-[0.68rem] text-[#5f4738]">
+                  Nie ma jeszcze kolejnego wieczoru.
+                </p>
+                <Link
+                  href="/kalendarium/nowe"
+                  className="cta-glow text-accent inline-flex text-[0.64rem] font-bold underline decoration-[#b37a46]/40 underline-offset-4"
+                >
+                  Zorganizuj spotkanie →
+                </Link>
+              </div>
+            )}
+          </Panel>
+
+          <Panel
+            style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
+            className="anim-rise-in-fast leaderboard-rug-panel flex h-full min-w-0 flex-col p-2.5 text-[#fff6ea] shadow-[inset_0_0_0_1px_rgba(255,230,184,0.08),0_12px_26px_rgba(22,9,5,0.22)]"
+          >
+            <h2 className="font-display truncate text-center text-[0.78rem] font-semibold text-[#fff3e0]">
+              Legendy przy Stole
+            </h2>
+
+            <ol className="mt-1.5 flex-1 space-y-1">
+              {data.leaderboard.entries.map((entry) => (
+                <MobileLeaderboardRow key={entry.userId} entry={entry} />
+              ))}
+            </ol>
+
+            <Link
+              href="/legendarium"
+              className="mt-1.5 flex w-full items-center justify-center rounded-[0.6rem] border border-white/15 bg-black/20 px-2 py-1.5 text-[0.62rem] font-bold text-[#ffe0b8]"
+            >
+              Otwórz {"→"}
+            </Link>
+          </Panel>
+        </div>
+      </div>
+
+      <div className="hidden items-start gap-4 sm:grid xl:grid-cols-[minmax(0,1.45fr)_minmax(17.5rem,0.9fr)]">
         <Panel
           style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
           className="anim-rise-in-fast table-wood-panel fire-glow overflow-hidden p-3.5 text-[#fff1dc] shadow-[inset_0_0_0_1px_rgba(255,233,184,0.08),0_24px_54px_rgba(24,9,5,0.32)] sm:p-4"
@@ -462,7 +682,7 @@ export async function DashboardShowcase() {
         </div>
 
         <div className="space-y-4">
-          {upcomingMeetingSection}
+          <div className="hidden sm:block">{upcomingMeetingSection}</div>
 
           <Panel
             style={{ animationDelay: `${getEntranceStaggerDelayMs(4)}ms` }}
