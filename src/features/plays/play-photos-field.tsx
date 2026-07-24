@@ -7,6 +7,7 @@ import {
 } from "./photo-actions";
 import { uploadPlayPhotos, type PhotoUploadItem } from "./photo-upload";
 import { MAX_PLAY_PHOTOS, MAX_PLAY_PHOTOS_TOTAL_BYTES } from "./photo-limits";
+import { randomId } from "./random-id";
 import type { PlayPhoto } from "./types";
 
 function formatMegabytes(bytes: number) {
@@ -69,7 +70,7 @@ export function PlayPhotosField({
       setUploads((current) => [
         ...current,
         {
-          id: crypto.randomUUID(),
+          id: randomId(),
           fileName: "",
           status: "error",
           progressLabel: "",

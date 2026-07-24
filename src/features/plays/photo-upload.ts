@@ -10,6 +10,7 @@ import {
   MAX_PLAY_PHOTOS,
   MAX_PLAY_PHOTOS_TOTAL_BYTES,
 } from "./photo-limits";
+import { randomId } from "./random-id";
 import type { PlayPhoto } from "./types";
 
 export {
@@ -99,7 +100,7 @@ export async function uploadPlayPhotos(params: {
   let remainingBytes = MAX_PLAY_PHOTOS_TOTAL_BYTES - params.currentTotalBytes;
 
   const queue: PhotoUploadItem[] = files.map((file) => ({
-    id: crypto.randomUUID(),
+    id: randomId(),
     fileName: file.name,
     status: "pending",
     progressLabel: "Oczekuje…",

@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { compressImageFile, PhotoCompressionError } from "./photo-compression";
 import { MAX_PLAY_PHOTOS, MAX_PLAY_PHOTOS_TOTAL_BYTES } from "./photo-limits";
+import { randomId } from "./random-id";
 import type { PhotoDraft } from "./photo-upload";
 
 function formatMegabytes(bytes: number) {
@@ -38,7 +39,7 @@ export function PlayPhotoDraftsField({
     const files = Array.from(fileList).slice(0, Math.max(remainingSlots, 0));
 
     const pendingDrafts: PhotoDraft[] = files.map((file) => ({
-      id: crypto.randomUUID(),
+      id: randomId(),
       fileName: file.name,
       status: "compressing",
     }));
@@ -201,9 +202,15 @@ export function PlayPhotoDraftsField({
                 </>
               ) : (
                 <div className="flex min-h-[6rem] flex-col items-center justify-center gap-1.5 p-2 text-center">
+                  {draft.status === "compressing" ? (
+                    <span
+                      aria-hidden="true"
+                      className="size-5 animate-spin rounded-full border-2 border-[#c9b48c] border-t-[#6b5140]"
+                    />
+                  ) : null}
                   <span className="text-[0.68rem] leading-4 font-semibold text-[#6b5140]">
                     {draft.status === "compressing"
-                      ? "Kompresowanie…"
+                      ? "Przetwarzanie zdjęcia…"
                       : draft.error}
                   </span>
                   {draft.status === "error" ? (
