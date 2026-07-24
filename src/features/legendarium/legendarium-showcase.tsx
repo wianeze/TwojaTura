@@ -121,12 +121,30 @@ export function LegendariumShowcase({ data }: LegendariumShowcaseProps) {
   const leaderboard = [...data.leaderboard].sort((a, b) => a.rank - b.rank);
 
   return (
-    <section className="cork-board-bg premium-edge relative isolate overflow-hidden rounded-[2rem] p-3 sm:p-4 lg:p-5">
+    // p-3→p-2 on mobile only: shared outer frame for every section
+    // (ranking, Zdobyte Łupy, achievement/class catalogs below) — trimming
+    // it here keeps their margins identical to each other (all read from
+    // this same padding) while reclaiming a few more px of row width for
+    // the ranking's fixed-size podium content. sm:p-4/lg:p-5 unchanged.
+    <section className="cork-board-bg premium-edge relative isolate overflow-hidden rounded-[2rem] p-2 sm:p-4 lg:p-5">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_15%_0%,rgba(255,232,185,0.14),transparent_35%),linear-gradient(180deg,rgba(32,16,9,0.08),rgba(22,10,7,0.34))]" />
 
       <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(25rem,0.95fr)] 2xl:grid-cols-[minmax(0,1.2fr)_minmax(24rem,0.8fr)]">
-        <section className="leaderboard-rug-panel premium-edge h-full rounded-[1.55rem] p-2.5 sm:p-3">
-          <div className="rounded-[1.25rem] p-4 sm:p-5">
+        {/*
+         * p-2.5/p-4 shrunk to p-1/p-2 on mobile only: the podium rows'
+         * fixed-size avatar+badges (images/icons, not shrinkable) need
+         * ~196px+ of row width, but the full padding stack down to the
+         * <li> (cork-board-bg + this panel + this div + ol's ml-10 +
+         * li's own pl-14) only left 176px at 360px viewport — a ~20px+
+         * deficit that no min-w-0 can fix since there's nothing left to
+         * shrink. This panel and the div below are NOT shared with
+         * "Zdobyte Łupy" (separate section), so trimming them here can't
+         * affect that section's own margins. pl-14/ml-10 (icon clearance)
+         * and every avatar/badge/icon size are untouched — sm:p-3/sm:p-5
+         * keep desktop pixel-identical.
+         */}
+        <section className="leaderboard-rug-panel premium-edge h-full rounded-[1.55rem] p-1 sm:p-3">
+          <div className="rounded-[1.25rem] p-2 sm:p-5">
             <SectionTitle dark title="Ranking grupy" />
 
             {leaderboard.length > 0 ? (
@@ -153,7 +171,19 @@ export function LegendariumShowcase({ data }: LegendariumShowcaseProps) {
           </div>
         </section>
 
-        <div className="flex flex-col gap-4 xl:h-full">
+        {/*
+         * min-w-0 on both this div (a grid item — grid items default to
+         * min-width:auto, i.e. "never shrink below content's min-content
+         * size") and loot-texture below (a flex item of this column-flex
+         * div — same default, applies to the cross axis = width for
+         * flex-col) is the actual fix: without either one, this column
+         * refused to shrink below its content's intrinsic width, forcing
+         * the single-column mobile grid (and everything under
+         * cork-board-bg) wider than the viewport. xl:/2xl:'s
+         * minmax(0, ...) grid-template only constrains the *grid track* —
+         * it doesn't reach this deep into the nested flex item.
+         */}
+        <div className="flex min-w-0 flex-col gap-4 xl:h-full">
           <section className="parchment-card premium-edge hidden rounded-[1.55rem] p-4 md:block md:p-5">
             <SectionTitle title="Jak zdobywać łupy" />
             <p className="text-accent mt-3 text-[0.65rem] font-bold tracking-[0.16em] uppercase">
@@ -186,7 +216,7 @@ export function LegendariumShowcase({ data }: LegendariumShowcaseProps) {
             </div>
           </section>
 
-          <section className="loot-texture premium-edge text-cream flex flex-col rounded-[1.55rem] p-4 sm:p-5 xl:flex-1">
+          <section className="loot-texture premium-edge text-cream flex min-w-0 flex-col rounded-[1.55rem] p-4 sm:p-5 xl:flex-1">
             <SectionTitle dark title="Zdobyte Łupy" />
             {hasRecentPointEvents(data.recentEvents) ? (
               <RecentLootList events={data.recentEvents} />
