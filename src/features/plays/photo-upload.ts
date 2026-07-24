@@ -38,9 +38,62 @@ export type PhotoUploadItem = {
 
 const BUCKET = "play-photos";
 
+// A phone on a flaky Wi-Fi/cellular connection can stall the Storage
+// fetch() indefinitely — the browser sets no default timeout, and the
+// Supabase storage-js client doesn't accept an AbortSignal either. Without
+// this, a stalled request leaves uploadCompressedPhoto's promise pending
+// forever, which cascades up through Promise.all in uploadPlayPhotos/
+// uploadStagedPhotos and leaves the submit button stuck disabled on
+// "Wysyłanie zdjęć 0/1…" with no way to recover. 35s is generous for a
+// ~1.5MB compressed photo even on a poor connection, short enough that the
+// user isn't left staring at a frozen button.
+const UPLOAD_TIMEOUT_MS = 35_000;
+
 type UploadResult =
   | { ok: true; photo: PlayPhoto }
-  | { ok: false; message: string };
+  | { ok: false; message: string; timedOut?: boolean };
+
+// Temporary diagnostic logging for the stuck-upload investigation — prefixed
+// so it's easy to grep out later. Never logs tokens/keys, only ids/sizes/timing.
+function logPhotoUploadEvent(
+  event: string,
+  meta: Record<string, string | number | undefined>,
+) {
+  console.info(`[photo-upload] ${event}`, meta);
+}
+
+class UploadTimeoutError extends Error {
+  constructor() {
+    super("upload timed out");
+    this.name = "UploadTimeoutError";
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new UploadTimeoutError());
+    }, ms);
+
+    promise.then(
+      (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
 
 /**
  * Uploads an already-compressed photo to Storage and records its metadata.
@@ -55,29 +108,115 @@ export async function uploadCompressedPhoto(params: {
   const supabase = createClient();
   const extension = params.compressed.mimeType === "image/webp" ? "webp" : "jpg";
   const storagePath = `${params.playId}/${params.photoId}.${extension}`;
+  const logMeta = {
+    playId: params.playId,
+    photoId: params.photoId,
+    bytes: params.compressed.blob.size,
+  };
 
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(storagePath, params.compressed.blob, {
-      contentType: params.compressed.mimeType,
-      upsert: false,
+  logPhotoUploadEvent("upload:start", logMeta);
+  const startedAt = Date.now();
+
+  let uploadError: { message: string } | null;
+  try {
+    const result = await withTimeout(
+      supabase.storage.from(BUCKET).upload(storagePath, params.compressed.blob, {
+        contentType: params.compressed.mimeType,
+        upsert: false,
+      }),
+      UPLOAD_TIMEOUT_MS,
+    );
+    uploadError = result.error;
+  } catch (cause) {
+    if (cause instanceof UploadTimeoutError) {
+      logPhotoUploadEvent("upload:timeout", {
+        ...logMeta,
+        afterMs: Date.now() - startedAt,
+      });
+      return {
+        ok: false,
+        timedOut: true,
+        message: `Wysyłanie zdjęcia trwało zbyt długo (${Math.round(UPLOAD_TIMEOUT_MS / 1000)} s). Sprawdź połączenie i spróbuj ponownie.`,
+      };
+    }
+
+    logPhotoUploadEvent("upload:exception", {
+      ...logMeta,
+      error: cause instanceof Error ? cause.message : String(cause),
     });
-
-  if (uploadError) {
     return {
       ok: false,
       message: "Nie udało się wysłać zdjęcia. Spróbuj ponownie.",
     };
   }
 
-  return createPlayPhotoAction({
-    playId: params.playId,
-    photoId: params.photoId,
-    storagePath,
-    byteSize: params.compressed.blob.size,
-    width: params.compressed.width,
-    height: params.compressed.height,
+  if (uploadError) {
+    // A request that timed out client-side isn't necessarily dead — the
+    // underlying fetch() has no AbortSignal to cancel it (storage-js
+    // doesn't accept one), so on a flaky connection it can still land on
+    // the server after we've already given up and shown a timeout error.
+    // A retry then collides with itself on this exact path/upsert:false.
+    // Treat that specific conflict as "the file's already there" and
+    // continue to the metadata step instead of failing the retry.
+    const isDuplicateConflict = /already exists/i.test(uploadError.message);
+
+    if (!isDuplicateConflict) {
+      logPhotoUploadEvent("upload:storage-error", {
+        ...logMeta,
+        error: uploadError.message,
+      });
+      return {
+        ok: false,
+        message: "Nie udało się wysłać zdjęcia. Spróbuj ponownie.",
+      };
+    }
+
+    logPhotoUploadEvent("upload:storage-already-exists", logMeta);
+  }
+
+  logPhotoUploadEvent("upload:storage-success", {
+    ...logMeta,
+    durationMs: Date.now() - startedAt,
   });
+
+  logPhotoUploadEvent("upload:metadata-start", logMeta);
+  try {
+    const metadataResult = await withTimeout(
+      createPlayPhotoAction({
+        playId: params.playId,
+        photoId: params.photoId,
+        storagePath,
+        byteSize: params.compressed.blob.size,
+        width: params.compressed.width,
+        height: params.compressed.height,
+      }),
+      UPLOAD_TIMEOUT_MS,
+    );
+
+    if (!metadataResult.ok) {
+      logPhotoUploadEvent("upload:metadata-error", {
+        ...logMeta,
+        error: metadataResult.message,
+      });
+    } else {
+      logPhotoUploadEvent("upload:metadata-success", logMeta);
+    }
+
+    return metadataResult;
+  } catch (cause) {
+    if (cause instanceof UploadTimeoutError) {
+      logPhotoUploadEvent("upload:metadata-timeout", {
+        ...logMeta,
+        afterMs: Date.now() - startedAt,
+      });
+      return {
+        ok: false,
+        timedOut: true,
+        message: `Zapisywanie zdjęcia trwało zbyt długo (${Math.round(UPLOAD_TIMEOUT_MS / 1000)} s). Sprawdź połączenie i spróbuj ponownie.`,
+      };
+    }
+    throw cause;
+  }
 }
 
 /**
@@ -98,6 +237,8 @@ export async function uploadPlayPhotos(params: {
 
   let remainingSlots = MAX_PLAY_PHOTOS - params.currentCount;
   let remainingBytes = MAX_PLAY_PHOTOS_TOTAL_BYTES - params.currentTotalBytes;
+  const total = files.length;
+  let doneCount = 0;
 
   const queue: PhotoUploadItem[] = files.map((file) => ({
     id: randomId(),
@@ -119,8 +260,9 @@ export async function uploadPlayPhotos(params: {
     onItemUpdate({
       ...item,
       status: "compressing",
-      progressLabel: "Kompresowanie…",
+      progressLabel: "Przetwarzanie zdjęcia…",
     });
+    logPhotoUploadEvent("compress:start", { playId, fileName: file.name });
 
     let compressed;
     try {
@@ -146,7 +288,7 @@ export async function uploadPlayPhotos(params: {
     onItemUpdate({
       ...item,
       status: "uploading",
-      progressLabel: "Wysyłanie…",
+      progressLabel: `Wysyłanie ${doneCount + 1}/${total}…`,
     });
 
     const result = await uploadCompressedPhoto({
@@ -162,10 +304,11 @@ export async function uploadPlayPhotos(params: {
 
     remainingSlots -= 1;
     remainingBytes -= compressed.blob.size;
+    doneCount += 1;
     onItemUpdate({
       ...item,
       status: "done",
-      progressLabel: "Gotowe",
+      progressLabel: "Zdjęcie zapisane",
       photo: result.photo,
     });
   }

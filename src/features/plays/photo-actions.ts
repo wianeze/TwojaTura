@@ -47,6 +47,36 @@ function revalidatePlayPhotoSurfaces(playId: string) {
   revalidatePath(`/kronika/${playId}/edytuj`);
 }
 
+type PhotoRow = {
+  id: string;
+  storage_path: string;
+  position: number;
+  width: number;
+  height: number;
+  byte_size: number;
+};
+
+async function toPhotoResult(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  row: PhotoRow,
+): Promise<{ ok: true; photo: PlayPhoto }> {
+  const { data: signed } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(row.storage_path, 3600);
+
+  return {
+    ok: true,
+    photo: {
+      id: row.id,
+      url: signed?.signedUrl ?? "",
+      position: row.position,
+      width: row.width,
+      height: row.height,
+      byteSize: row.byte_size,
+    },
+  };
+}
+
 export async function createPlayPhotoAction(input: {
   playId: string;
   photoId: string;
@@ -79,27 +109,33 @@ export async function createPlayPhotoAction(input: {
     .single();
 
   if (error || !data) {
+    // A duplicate-key conflict (23505) on this exact id means an earlier
+    // attempt's insert already landed server-side after the client gave up
+    // waiting on it (no cancellation on client-side timeout — see
+    // photo-upload.ts). That row's storage file is legitimately in use, so
+    // this must NOT fall into the generic error path below, which deletes
+    // the just-uploaded file: on a retry that file IS the existing row's
+    // file, and deleting it would orphan a photo that already saved fine.
+    if (error?.code === "23505") {
+      const { data: existing } = await access.supabase
+        .from("play_photos")
+        .select("id, storage_path, position, width, height, byte_size")
+        .eq("id", input.photoId)
+        .eq("play_id", input.playId)
+        .maybeSingle();
+
+      if (existing) {
+        revalidatePlayPhotoSurfaces(input.playId);
+        return toPhotoResult(access.supabase, existing);
+      }
+    }
+
     await access.supabase.storage.from(BUCKET).remove([input.storagePath]);
     return { ok: false, message: mapPhotoDatabaseError(error) };
   }
 
-  const { data: signed } = await access.supabase.storage
-    .from(BUCKET)
-    .createSignedUrl(data.storage_path, 3600);
-
   revalidatePlayPhotoSurfaces(input.playId);
-
-  return {
-    ok: true,
-    photo: {
-      id: data.id,
-      url: signed?.signedUrl ?? "",
-      position: data.position,
-      width: data.width,
-      height: data.height,
-      byteSize: data.byte_size,
-    },
-  };
+  return toPhotoResult(access.supabase, data);
 }
 
 export async function deletePlayPhotoAction(

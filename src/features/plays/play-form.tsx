@@ -12,6 +12,7 @@ import { PlayPhotosField } from "./play-photos-field";
 import { PlaySubmitButton } from "./play-submit-button";
 import { reorderPlayPhotosAction } from "./photo-actions";
 import {
+  allDraftsUploaded,
   applyDraftUploadResult,
   selectDraftsToUpload,
   uploadStagedPhotos,
@@ -155,6 +156,10 @@ export function PlayForm(props: PlayFormProps) {
   const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
   const [createdPlayId, setCreatedPlayId] = useState<string | null>(null);
   const [photoDrafts, setPhotoDrafts] = useState<PhotoDraft[]>([]);
+  const hasPhotoUploadError = photoDrafts.some(
+    (draft) => draft.status === "error",
+  );
+  const photosFullyUploaded = allDraftsUploaded(photoDrafts);
 
   const formState = isCreateMode ? createFormState : editState;
   const values = formState.submittedValues ?? initialValues;
@@ -191,33 +196,11 @@ export function PlayForm(props: PlayFormProps) {
     [meetings],
   );
 
-  async function handleCreateSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (props.mode !== "create") return;
-    if (isCreateSubmitting) return;
-
-    setIsCreateSubmitting(true);
-
-    let playId = createdPlayId;
-
-    if (!playId) {
-      setSubmitPhase("saving-play");
-      setCreateFormState(INITIAL_PLAY_FORM_STATE);
-
-      const formData = new FormData(event.currentTarget);
-      const result = await props.action(formData);
-
-      if (!result.ok) {
-        setCreateFormState(result.formState);
-        setIsCreateSubmitting(false);
-        setSubmitPhase("idle");
-        return;
-      }
-
-      playId = result.playId;
-      setCreatedPlayId(playId);
-    }
-
+  // Shared by the initial submit and the standalone retry button — always
+  // called with a playId that already exists, so it only ever (re)uploads
+  // drafts that haven't succeeded yet (selectDraftsToUpload skips "done"
+  // ones) and never creates a second play.
+  async function uploadStagedDraftsAndFinish(playId: string) {
     const draftsToUpload = selectDraftsToUpload(photoDrafts);
     let allSucceeded = true;
 
@@ -272,6 +255,42 @@ export function PlayForm(props: PlayFormProps) {
     }
 
     router.push(`/kronika/${playId}`);
+  }
+
+  async function handleCreateSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (props.mode !== "create") return;
+    if (isCreateSubmitting) return;
+
+    setIsCreateSubmitting(true);
+
+    let playId = createdPlayId;
+
+    if (!playId) {
+      setSubmitPhase("saving-play");
+      setCreateFormState(INITIAL_PLAY_FORM_STATE);
+
+      const formData = new FormData(event.currentTarget);
+      const result = await props.action(formData);
+
+      if (!result.ok) {
+        setCreateFormState(result.formState);
+        setIsCreateSubmitting(false);
+        setSubmitPhase("idle");
+        return;
+      }
+
+      playId = result.playId;
+      setCreatedPlayId(playId);
+    }
+
+    await uploadStagedDraftsAndFinish(playId);
+  }
+
+  async function handleRetryUpload() {
+    if (!createdPlayId || isCreateSubmitting) return;
+    setIsCreateSubmitting(true);
+    await uploadStagedDraftsAndFinish(createdPlayId);
   }
 
   const nonPhotoFieldsDisabled =
@@ -439,14 +458,35 @@ export function PlayForm(props: PlayFormProps) {
       {isCreateMode ? (
         <section>
           {createdPlayId ? (
-            <p className="mb-2.5 rounded-xl bg-moss-soft px-3 py-2 text-xs font-semibold text-moss">
-              Partia została zapisana. Dokończ wysyłanie zdjęć poniżej.
-            </p>
+            hasPhotoUploadError && !isCreateSubmitting ? (
+              <div className="mb-2.5 space-y-2 rounded-xl bg-[#fff2ef] px-3 py-2 text-xs font-semibold text-[#7b3428]">
+                <p>
+                  Partia została zapisana, ale nie wszystkie zdjęcia się
+                  wysłały.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleRetryUpload}
+                  className="rounded-full bg-[#7b3428] px-3 py-1.5 text-[0.7rem] font-bold text-white"
+                >
+                  Spróbuj ponownie
+                </button>
+              </div>
+            ) : photosFullyUploaded ? (
+              <p className="mb-2.5 rounded-xl bg-moss-soft px-3 py-2 text-xs font-semibold text-moss">
+                Partia została zapisana. Zdjęcia zostały wysłane.
+              </p>
+            ) : (
+              <p className="mb-2.5 rounded-xl bg-[#f7e7b8] px-3 py-2 text-xs font-semibold text-[#6d5319]">
+                Partia została zapisana. Trwa wysyłanie zdjęć.
+              </p>
+            )
           ) : null}
           <PlayPhotoDraftsField
             drafts={photoDrafts}
             onDraftsChange={setPhotoDrafts}
             disabled={isCreateSubmitting}
+            uploadProgress={uploadProgress}
           />
         </section>
       ) : props.mode === "edit" ? (

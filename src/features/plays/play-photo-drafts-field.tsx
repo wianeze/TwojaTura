@@ -20,10 +20,12 @@ export function PlayPhotoDraftsField({
   drafts,
   onDraftsChange,
   disabled = false,
+  uploadProgress,
 }: {
   drafts: PhotoDraft[];
   onDraftsChange: (updater: (current: PhotoDraft[]) => PhotoDraft[]) => void;
   disabled?: boolean;
+  uploadProgress?: { done: number; total: number };
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -161,12 +163,19 @@ export function PlayPhotoDraftsField({
                   />
                   {draft.status === "uploading" ? (
                     <div className="absolute inset-1.5 grid place-items-center rounded-[0.8rem] bg-black/45 text-[0.68rem] font-bold text-white">
-                      Wysyłanie…
+                      {uploadProgress
+                        ? `Wysyłanie ${Math.min(uploadProgress.done + 1, uploadProgress.total)}/${uploadProgress.total}…`
+                        : "Wysyłanie…"}
                     </div>
                   ) : null}
                   {draft.status === "error" ? (
                     <div className="absolute inset-1.5 grid place-items-center rounded-[0.8rem] bg-[#3a1210]/85 p-1 text-center text-[0.62rem] leading-4 font-bold text-white">
                       {draft.error}
+                    </div>
+                  ) : null}
+                  {draft.status === "done" ? (
+                    <div className="absolute right-1.5 bottom-1.5 rounded-full bg-moss px-2 py-0.5 text-[0.6rem] font-bold text-white shadow-[0_2px_6px_rgba(0,0,0,0.25)]">
+                      Zdjęcie zapisane
                     </div>
                   ) : null}
                   <div className="mt-1.5 flex items-center justify-between gap-1">
