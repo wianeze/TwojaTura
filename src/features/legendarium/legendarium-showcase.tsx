@@ -143,7 +143,7 @@ export function LegendariumShowcase({ data }: LegendariumShowcaseProps) {
          * and every avatar/badge/icon size are untouched — sm:p-3/sm:p-5
          * keep desktop pixel-identical.
          */}
-        <section className="leaderboard-rug-panel premium-edge h-full rounded-[1.55rem] p-1 sm:p-3">
+        <section className="leaderboard-rug-panel premium-edge h-full min-w-0 rounded-[1.55rem] p-1 sm:p-3">
           <div className="rounded-[1.25rem] p-2 sm:p-5">
             <SectionTitle dark title="Ranking grupy" />
 
@@ -322,9 +322,18 @@ function RankingEntry({
   );
   const isFirst = entry.rank === 1;
   const isPodium = entry.rank <= 3;
+  // pr-[17px] mobile-only: was pr-[35px] (12px from px-3 + 23px, matched
+  // 1:1 to the li's own mr-[-23px] to keep the card's right edge 23px
+  // closer to the section without moving any content). mr-[-23px] and the
+  // row's own border-box width are unchanged here — only this padding
+  // shrinks by 18px, so the flex row's content box gains that same 18px.
+  // Badges (shrink-0, flush to this padding) render 18px further right,
+  // and that whole 18px goes to the text block (flex-1) right next to
+  // them — exactly the "shift badges right, give the freed room to the
+  // name" request. sm:pr-4/sm:pr-3.5 (tablet/desktop) untouched.
   const cardSize = isPodium
-    ? "min-h-25 px-3 py-3 pl-14 sm:min-h-28 sm:px-4 sm:py-3.5 sm:pl-18"
-    : "min-h-19 px-3 py-2.5 pl-14 sm:min-h-21 sm:px-3.5 sm:py-3 sm:pl-18";
+    ? "min-h-25 px-3 py-3 pl-14 pr-[17px] sm:min-h-28 sm:px-4 sm:py-3.5 sm:pl-18 sm:pr-4"
+    : "min-h-19 px-3 py-2.5 pl-14 pr-[17px] sm:min-h-21 sm:px-3.5 sm:py-3 sm:pl-18 sm:pr-3.5";
   const rankIconSize = isFirst
     ? "size-[7.2rem] sm:size-[8.4rem]"
     : isPodium
@@ -346,13 +355,34 @@ function RankingEntry({
   // paint-only and never affects gap/layout math. sm:translate-x-0 keeps
   // desktop pixel-identical.
   const userBlockShift = "translate-x-[-20px] sm:translate-x-0";
+  // Mobile-only fluid size (<640px): clamp(360px-value, linear ramp, sm:'s
+  // own px value). The ramp is tuned so it *reaches* the sm: value exactly
+  // at 430px — by 430 the clamp's own upper bound already caps it at the
+  // same number sm: uses at >=640px, so there is no jump at the sm
+  // breakpoint (they're numerically identical, just expressed via two
+  // different mechanisms). Replaces the old fixed size-N + scale-200
+  // transform hack, which rendered every mobile width identically (no
+  // 360->430 growth) and — because a transform doesn't reserve layout
+  // space — visually overflowed into the text block/neighbors. sm:/2xl:
+  // classes are untouched, so tablet/desktop is pixel-identical to before.
   const badgeSize = isFirst
-    ? "size-10 text-sm sm:size-12 sm:text-base 2xl:size-24 2xl:text-2xl"
+    ? "size-[clamp(42px,calc(11.14px_+_8.5714vw),48px)] text-sm sm:size-12 sm:text-base 2xl:size-24 2xl:text-2xl"
     : isPodium
-      ? "size-9 text-xs sm:size-11 sm:text-sm 2xl:size-[5.5rem] 2xl:text-xl"
+      ? "size-[clamp(38px,calc(7.14px_+_8.5714vw),44px)] text-xs sm:size-11 sm:text-sm 2xl:size-[5.5rem] 2xl:text-xl"
       : entry.rank <= 5
-        ? "size-8 text-xs sm:size-10 sm:text-sm 2xl:size-20 2xl:text-lg"
-        : "size-6 text-[0.62rem] sm:size-7 sm:text-xs 2xl:size-[3.4rem] 2xl:text-sm";
+        ? "size-[clamp(34px,calc(3.14px_+_8.5714vw),40px)] text-xs sm:size-10 sm:text-sm 2xl:size-20 2xl:text-lg"
+        : "size-[clamp(26px,calc(15.71px_+_2.8571vw),28px)] text-[0.62rem] sm:size-7 sm:text-xs 2xl:size-[3.4rem] 2xl:text-sm";
+  // Podium (miejsca 1-3) keeps the same -8px overlap as mobile at every
+  // desktop breakpoint too, instead of spreading out to sm:space-x-2/
+  // xl:space-x-3 — badges 1-3 sit closer together. The rightmost badge's
+  // screen position is untouched either way: the row's text span has
+  // flex-1 and absorbs all leftover space, so this span (shrink-0) is
+  // always flush against the row's right padding regardless of the gap
+  // between badges inside it — only the earlier badges shift right
+  // (closer to the fixed last one) as the gap shrinks.
+  const badgeGap = isPodium
+    ? "-space-x-2"
+    : "-space-x-2 sm:space-x-2 xl:space-x-3";
   const podiumTone = isFirst
     ? "border-[#f6d78b]/90 bg-[linear-gradient(110deg,rgba(132,76,27,0.96),rgba(103,57,23,0.88)_48%,rgba(73,37,20,0.84))]"
     : entry.rank === 2
@@ -371,7 +401,7 @@ function RankingEntry({
   return (
     <li
       style={{ animationDelay: `${getEntranceStaggerDelayMs(index)}ms` }}
-      className={`anim-rise-in-fast relative isolate flex min-w-0 items-center gap-2.5 overflow-visible rounded-[1.25rem] border shadow-[0_9px_18px_rgba(76,44,23,0.14)] sm:gap-3.5 ${
+      className={`anim-rise-in-fast relative isolate flex min-w-0 items-center gap-2.5 overflow-visible rounded-[1.25rem] border shadow-[0_9px_18px_rgba(76,44,23,0.14)] mr-[-23px] sm:mr-0 sm:gap-3.5 ${
         isPodium
           ? `${podiumTone} ${entry.isCurrentMember ? "ring-1 ring-[#f4d48a]/65" : ""}`
           : entry.isCurrentMember
@@ -456,8 +486,23 @@ function RankingEntry({
           {entry.totalPoints.toLocaleString("pl-PL")} pkt
         </span>
       </span>
-      <span className="relative z-10">
-        <TrophySet badges={entry.badges} sizeClass={badgeSize} />
+      <span className="relative z-10 shrink-0">
+        {isPodium ? (
+          <>
+            <PodiumMobileTrophyCluster
+              badges={entry.badges}
+              sizeClass={badgeSize}
+            />
+            <TrophySet
+              badges={entry.badges}
+              sizeClass={badgeSize}
+              gapClass={badgeGap}
+              className="hidden sm:flex"
+            />
+          </>
+        ) : (
+          <TrophySet badges={entry.badges} sizeClass={badgeSize} gapClass={badgeGap} />
+        )}
       </span>
     </li>
   );
@@ -547,7 +592,108 @@ function getRankingTrophyRayColorClass(rarity: AchievementRarity): string {
     : "bg-[linear-gradient(to_top,transparent_0%,transparent_32%,rgba(224,182,255,0.45)_58%,rgba(224,182,255,0.45)_82%,transparent_100%)]";
 }
 
+// Single badge's rays/halo/sheen/image — shared, pixel-identical, by
+// TrophySet (the plain horizontal row: non-podium at every width, podium
+// from sm: up) and PodiumMobileTrophyCluster (podium's <sm: triangle/pair
+// layout) below, so neither call site duplicates this markup.
+function TrophyBadge({
+  badge,
+  sizeClass,
+}: {
+  badge: LegendariumLeaderboardEntry["badges"][number];
+  sizeClass: string;
+}) {
+  const rays = getRankingTrophyRays(badge.rarity);
+  const rayColorClass = getRankingTrophyRayColorClass(badge.rarity);
+
+  return (
+    <span
+      className={`relative isolate grid place-items-center ${sizeClass}`}
+      title={badge.name}
+    >
+      {rays.map((ray, rayIndex) => (
+        // Two elements on purpose: rotating translateX(-50%) together
+        // with rotate() in one transform only pivots exactly on
+        // center at 0deg — for any other angle the translate rotates
+        // along with it and the pivot drifts off-center. Splitting
+        // rotation (outer, dead-center by default) from centering
+        // (inner, translate only) keeps both operations independent.
+        <span
+          key={rayIndex}
+          aria-hidden="true"
+          className="absolute inset-0 -z-20 pointer-events-none"
+          style={{ transform: `rotate(${ray.angleDeg}deg)` }}
+        >
+          <span
+            className={`trophy-ray absolute bottom-1/2 left-1/2 -translate-x-1/2 rounded-full ${rayColorClass}`}
+            style={{
+              height: `${ray.lengthPercent}%`,
+              width: `${ray.widthPercent}%`,
+            }}
+          />
+        </span>
+      ))}
+      <span
+        aria-hidden="true"
+        className={`absolute -inset-[17%] -z-10 rounded-full ${getRankingTrophyHaloClass(badge.rarity)}`}
+      />
+      <span
+        aria-hidden="true"
+        className="trophy-sheen absolute inset-0 rounded-full"
+      />
+      {badge.iconPath ? (
+        <Image
+          src={badge.iconPath}
+          alt=""
+          fill
+          sizes="(min-width: 1536px) 96px, (min-width: 640px) 48px, 40px"
+          className="relative z-10 object-contain drop-shadow-[0_3px_6px_rgba(37,18,9,0.48)]"
+        />
+      ) : (
+        <span className="relative z-10 text-[#fff4dc]">◆</span>
+      )}
+    </span>
+  );
+}
+
 function TrophySet({
+  badges,
+  sizeClass,
+  gapClass,
+  className = "flex",
+}: {
+  badges: LegendariumLeaderboardEntry["badges"];
+  sizeClass: string;
+  gapClass: string;
+  className?: string;
+}) {
+  if (badges.length === 0) return null;
+
+  return (
+    <span
+      className={`${className} shrink-0 ${gapClass}`}
+      aria-label="Najcenniejsze trofea"
+      title="Najcenniejsze trofea"
+    >
+      {badges.map((badge) => (
+        <TrophyBadge key={badge.key} badge={badge} sizeClass={sizeClass} />
+      ))}
+    </span>
+  );
+}
+
+// Podium (miejsca 1-3) only, <sm only — TrophySet itself (used for sm:+
+// podium and every non-podium row, all widths) is untouched. 1-2 badges
+// keep the plain overlapping row; 3 badges become a top-1/bottom-2
+// triangle instead of a 3-wide row, which is narrower (the widest row is
+// only 2 badges across) — that reclaims horizontal width for the
+// avatar/name/points block, matching the request to shrink the badge
+// group to only what it needs. -mb-3 on the top badge overlaps it into
+// the bottom pair vertically (same -8px/-12px-scale overlap language as
+// the horizontal -space-x-2 elsewhere) instead of literally stacking two
+// full badge heights, which comfortably fits the row's existing height
+// (verified with Playwright, not estimated) instead of growing it.
+function PodiumMobileTrophyCluster({
   badges,
   sizeClass,
 }: {
@@ -556,66 +702,34 @@ function TrophySet({
 }) {
   if (badges.length === 0) return null;
 
+  if (badges.length < 3) {
+    return (
+      <span
+        className="flex shrink-0 -space-x-2 sm:hidden"
+        aria-label="Najcenniejsze trofea"
+        title="Najcenniejsze trofea"
+      >
+        {badges.map((badge) => (
+          <TrophyBadge key={badge.key} badge={badge} sizeClass={sizeClass} />
+        ))}
+      </span>
+    );
+  }
+
+  const [top, left, right] = badges;
   return (
     <span
-      className="flex shrink-0 origin-right scale-200 -space-x-2 sm:scale-100 sm:space-x-2 xl:space-x-3"
+      className="flex shrink-0 flex-col items-center sm:hidden"
       aria-label="Najcenniejsze trofea"
       title="Najcenniejsze trofea"
     >
-      {badges.map((badge) => {
-        const rays = getRankingTrophyRays(badge.rarity);
-        const rayColorClass = getRankingTrophyRayColorClass(badge.rarity);
-
-        return (
-          <span
-            key={badge.key}
-            className={`relative isolate grid place-items-center ${sizeClass}`}
-            title={badge.name}
-          >
-            {rays.map((ray, rayIndex) => (
-              // Two elements on purpose: rotating translateX(-50%) together
-              // with rotate() in one transform only pivots exactly on
-              // center at 0deg — for any other angle the translate rotates
-              // along with it and the pivot drifts off-center. Splitting
-              // rotation (outer, dead-center by default) from centering
-              // (inner, translate only) keeps both operations independent.
-              <span
-                key={rayIndex}
-                aria-hidden="true"
-                className="absolute inset-0 -z-20 pointer-events-none"
-                style={{ transform: `rotate(${ray.angleDeg}deg)` }}
-              >
-                <span
-                  className={`trophy-ray absolute bottom-1/2 left-1/2 -translate-x-1/2 rounded-full ${rayColorClass}`}
-                  style={{
-                    height: `${ray.lengthPercent}%`,
-                    width: `${ray.widthPercent}%`,
-                  }}
-                />
-              </span>
-            ))}
-            <span
-              aria-hidden="true"
-              className={`absolute -inset-[17%] -z-10 rounded-full ${getRankingTrophyHaloClass(badge.rarity)}`}
-            />
-            <span
-              aria-hidden="true"
-              className="trophy-sheen absolute inset-0 rounded-full"
-            />
-            {badge.iconPath ? (
-              <Image
-                src={badge.iconPath}
-                alt=""
-                fill
-                sizes="(min-width: 1536px) 96px, (min-width: 640px) 48px, 40px"
-                className="relative z-10 object-contain drop-shadow-[0_3px_6px_rgba(37,18,9,0.48)]"
-              />
-            ) : (
-              <span className="relative z-10 text-[#fff4dc]">◆</span>
-            )}
-          </span>
-        );
-      })}
+      <span className="relative z-10 -mb-3">
+        <TrophyBadge badge={top} sizeClass={sizeClass} />
+      </span>
+      <span className="flex -space-x-2">
+        <TrophyBadge badge={left} sizeClass={sizeClass} />
+        <TrophyBadge badge={right} sizeClass={sizeClass} />
+      </span>
     </span>
   );
 }

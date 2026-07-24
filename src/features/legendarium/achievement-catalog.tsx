@@ -204,7 +204,8 @@ function AchievementCard({
           className="pointer-events-none absolute top-[3.075rem] left-[3.075rem] -z-10 size-[40rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[repeating-conic-gradient(from_0deg,rgba(255,235,180,0.32)_0deg_6deg,transparent_6deg_20deg)] opacity-70"
         />
       ) : null}
-      <div className="flex items-start gap-2.5">
+      {/* Desktop/tablet (sm:+) — pristine header row, unchanged from before. */}
+      <div className="hidden items-start gap-2.5 sm:flex">
         <div
           className={`relative grid size-[4.65rem] shrink-0 place-items-center rounded-full ${iconGlowClass}`}
         >
@@ -234,7 +235,56 @@ function AchievementCard({
           ) : null}
         </div>
       </div>
-      <p className="mt-2 text-[0.76rem] leading-[1.15rem]">
+      {/*
+       * Mobile-only (<sm) — top row is icon-only (left) + the fixed
+       * rarity/progress/points column (right, shrink-0), pushed to
+       * opposite ends with justify-between. The name used to live under
+       * the icon in a ~51px-wide column, which forced it down to 11px
+       * and still broke long words mid-syllable ("Zwołanie" split as
+       * "Zwoła"/"nie"); it's moved below instead, as its own line right
+       * above the (already full-card-width) description, where it gets
+       * the whole card's content width instead of sharing a column with
+       * the icon. size-[3.25rem] on the icon (vs the sm:+ block's
+       * size-[4.65rem]) is unchanged from before — kept only because a
+       * 128px 2-col mobile card has ~104px of content width and the
+       * rarity/progress/points column still needs its own ~48px of
+       * that regardless of where the name lives now.
+       */}
+      <div className="flex items-start justify-between gap-2 sm:hidden">
+        <div
+          className={`relative grid size-[3.25rem] shrink-0 place-items-center rounded-full ${iconGlowClass}`}
+        >
+          {achievement.iconPath && !secret ? (
+            <Image
+              src={achievement.iconPath}
+              alt=""
+              fill
+              sizes="52px"
+              className="object-contain p-0.5"
+            />
+          ) : (
+            <span className="font-display text-2xl font-bold">?</span>
+          )}
+        </div>
+        <div className="flex w-12 shrink-0 flex-col items-center gap-0.5 text-center">
+          <span className="w-full truncate text-[8px] font-bold tracking-normal uppercase">
+            {achievement.rarity}
+          </span>
+          {progress && !secret && !achievement.isManual ? (
+            <span className="rounded-full border border-current/20 bg-white/35 px-1 py-0.5 text-[9px] font-bold tabular-nums">
+              {progress.current}/{progress.target}
+            </span>
+          ) : null}
+          {!secret ? (
+            <span className="text-[10px] font-bold">{achievement.points} pkt</span>
+          ) : null}
+        </div>
+      </div>
+      {/* Mobile-only name, full card width — see comment above. */}
+      <h3 className="font-display mt-2 line-clamp-2 break-words text-[13px] leading-[1.2] font-semibold sm:hidden">
+        {achievement.name}
+      </h3>
+      <p className="mt-1 text-[0.76rem] leading-[1.15rem] sm:mt-2">
         {achievement.description}
       </p>
       {!secret ? (
@@ -245,7 +295,7 @@ function AchievementCard({
         </>
       ) : null}
       {progress && !secret && !achievement.isManual ? (
-        <span className="absolute top-3 right-3 rounded-full border border-current/20 bg-white/35 px-1.5 py-0.5 text-[0.68rem] font-bold tabular-nums">
+        <span className="absolute top-3 right-3 hidden rounded-full border border-current/20 bg-white/35 px-1.5 py-0.5 text-[0.68rem] font-bold tabular-nums sm:block">
           {progress.current}/{progress.target}
         </span>
       ) : null}

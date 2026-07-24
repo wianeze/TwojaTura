@@ -1,0 +1,21 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e4]:
+      - img "Twoja Tura!" [ref=e6]
+      - paragraph [ref=e7]:
+        - text: Zbierz ekipę. Wybierz grę.
+        - generic [ref=e8]: Twoja tura.
+    - generic [ref=e11]:
+      - paragraph [ref=e12]: Tylko dla zaproszonych
+      - heading "Wejście do Chaty" [level=1] [ref=e13]
+      - paragraph [ref=e14]: Dostęp do klubu jest możliwy wyłącznie z zaproszenia.
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - text: Email
+          - textbox "Email" [ref=e17]
+        - generic [ref=e18]:
+          - text: Hasło
+          - textbox "Hasło" [ref=e19]
+        - button "Zaloguj się" [ref=e20]
+      - button "Nie pamiętasz hasła?" [ref=e21]
+  - button "Open Next.js Dev Tools" [ref=e27] [cursor=pointer]

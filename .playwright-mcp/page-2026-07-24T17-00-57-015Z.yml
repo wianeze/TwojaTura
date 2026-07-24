@@ -1,0 +1,898 @@
+- generic [active] [ref=f4e1]:
+  - generic [ref=f4e3]:
+    - banner [ref=f4e4]:
+      - link "Twoja Tura! — strona główna" [ref=f4e5] [cursor=pointer]:
+        - /url: /
+        - img "Emblemat Twoja Tura!" [ref=f4e6]:
+          - generic [ref=f4e16]: "12"
+      - 'link "Aktywna klasa: Bard Stołu" [ref=f4e21] [cursor=pointer]':
+        - /url: /profil
+        - generic "Bard Stołu" [ref=f4e22]:
+          - img "Emblemat klasy Bard Stołu" [ref=f4e24]
+      - generic [ref=f4e25]:
+        - text: "Twoje Punkty:"
+        - generic [ref=f4e26]: 975 pkt
+      - link "Przejdź do profilu" [ref=f4e27] [cursor=pointer]:
+        - /url: /profil
+        - text: Q
+    - main [ref=f4e28]:
+      - generic [ref=f4e29]:
+        - generic [ref=f4e30]:
+          - generic [ref=f4e31]:
+            - paragraph [ref=f4e32]: Legendy przy ognisku
+            - heading "Legendarium" [level=1] [ref=f4e33]
+          - button "Jak zdobywać łupy" [ref=f4e35]
+        - generic [ref=f4e36]:
+          - generic [ref=f4e38]:
+            - generic [ref=f4e40]:
+              - heading "Ranking grupy" [level=2] [ref=f4e42]
+              - list [ref=f4e43]:
+                - listitem [ref=f4e44]:
+                  - img "1. miejsce" [ref=f4e45]
+                  - generic [ref=f4e46]: P
+                  - generic [ref=f4e48]:
+                    - generic [ref=f4e49]: Przemek
+                    - generic [ref=f4e50]: 1290 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e52]:
+                    - generic "Rzut Krytyczny" [ref=f4e53]
+                    - generic "Side Quest" [ref=f4e56]
+                - listitem [ref=f4e59]:
+                  - img "2. miejsce" [ref=f4e60]
+                  - generic [ref=f4e61]: M
+                  - generic [ref=f4e63]:
+                    - generic [ref=f4e64]: Marta
+                    - generic [ref=f4e65]: 1080 pkt
+                - listitem [ref=f4e66]:
+                  - img "3. miejsce" [ref=f4e67]
+                  - generic [ref=f4e68]: Q
+                  - generic [ref=f4e70]:
+                    - generic [ref=f4e71]: Bard Stołu
+                    - generic [ref=f4e72]: QA Wszystkie Klasy (Ty)
+                    - generic [ref=f4e73]: 975 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e75]:
+                    - generic "Chosen of the Table" [ref=f4e76]
+                    - generic "Główna postać" [ref=f4e79]
+                    - generic "Gracz obowiązkowy" [ref=f4e82]
+                - listitem [ref=f4e85]:
+                  - img "4. miejsce" [ref=f4e86]
+                  - generic [ref=f4e87]: M
+                  - generic [ref=f4e89]:
+                    - generic [ref=f4e90]: Michał
+                    - generic [ref=f4e91]: 940 pkt
+                - listitem [ref=f4e92]:
+                  - img "5. miejsce" [ref=f4e93]
+                  - generic [ref=f4e94]: A
+                  - generic [ref=f4e96]:
+                    - generic [ref=f4e97]: Ania
+                    - generic [ref=f4e98]: 810 pkt
+                - listitem [ref=f4e99]:
+                  - img "6. miejsce" [ref=f4e100]
+                  - generic [ref=f4e101]: K
+                  - generic [ref=f4e103]:
+                    - generic [ref=f4e104]: Kuba
+                    - generic [ref=f4e105]: 690 pkt
+                - listitem [ref=f4e106]:
+                  - img "7. miejsce" [ref=f4e107]
+                  - generic [ref=f4e108]: Q
+                  - generic [ref=f4e110]:
+                    - generic [ref=f4e111]: Wojownik Stołu
+                    - generic [ref=f4e112]: QA Wojownik Stołu
+                    - generic [ref=f4e113]: 205 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e115]:
+                    - generic "Boss Pokonany" [ref=f4e116]
+                    - generic "Ostatni Boss" [ref=f4e119]
+                    - generic "Główna postać" [ref=f4e122]
+                - listitem [ref=f4e125]:
+                  - img "8. miejsce" [ref=f4e126]
+                  - generic [ref=f4e127]: Q
+                  - generic [ref=f4e129]:
+                    - generic [ref=f4e130]: Czarodziej Analizy
+                    - generic [ref=f4e131]: QA Czarodziej Analizy
+                    - generic [ref=f4e132]: 180 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e134]:
+                    - generic "Podróżnik czasu" [ref=f4e135]
+                    - generic "Boss Pokonany" [ref=f4e138]
+                    - generic "Ostatni Boss" [ref=f4e141]
+                - listitem [ref=f4e144]:
+                  - img "9. miejsce" [ref=f4e145]
+                  - generic [ref=f4e146]: Q
+                  - generic [ref=f4e148]:
+                    - generic [ref=f4e149]: Czarownik Chaosu
+                    - generic [ref=f4e150]: QA Czarownik Chaosu
+                    - generic [ref=f4e151]: 140 pkt
+                - listitem [ref=f4e152]:
+                  - img "10. miejsce" [ref=f4e153]
+                  - generic [ref=f4e154]: Q
+                  - generic [ref=f4e156]:
+                    - generic [ref=f4e157]: Nekromanta Figurek
+                    - generic [ref=f4e158]: QA Nekromanta Figurek
+                    - generic [ref=f4e159]: 140 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e161]:
+                    - generic "Podróżnik czasu" [ref=f4e162]
+                    - generic "Wskrzeszenie" [ref=f4e165]
+                    - generic "Klątwa Wiecznej Półki" [ref=f4e168]
+                - listitem [ref=f4e171]:
+                  - img "11. miejsce" [ref=f4e172]
+                  - generic [ref=f4e173]: Q
+                  - generic [ref=f4e175]:
+                    - generic [ref=f4e176]: Łowca Łupów
+                    - generic [ref=f4e177]: QA Łowca Łupów
+                    - generic [ref=f4e178]: 130 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e180]:
+                    - generic "Chosen of the Table" [ref=f4e181]
+                    - generic "Bag of Holding" [ref=f4e184]
+                    - generic "Jeszcze jedna Tura" [ref=f4e187]
+                - listitem [ref=f4e190]:
+                  - img "12. miejsce" [ref=f4e191]
+                  - generic [ref=f4e192]: Q
+                  - generic [ref=f4e194]:
+                    - generic [ref=f4e195]: Multiclass Planszy
+                    - generic [ref=f4e196]: QA Multiclass Planszy
+                    - generic [ref=f4e197]: 130 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e199]:
+                    - generic "Główna postać" [ref=f4e200]
+                    - generic "Podróżnik czasu" [ref=f4e203]
+                    - generic "Quest Accepted" [ref=f4e206]
+                - listitem [ref=f4e209]:
+                  - img "13. miejsce" [ref=f4e210]
+                  - generic [ref=f4e211]: Q
+                  - generic [ref=f4e213]:
+                    - generic [ref=f4e214]: Barbarzyńca Kości
+                    - generic [ref=f4e215]: QA Barbarzyńca Kości
+                    - generic [ref=f4e216]: 125 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e218]:
+                    - generic "Gracz obowiązkowy" [ref=f4e219]
+                    - generic "Glass Cannon" [ref=f4e222]
+                    - generic "Mroczna Żądza" [ref=f4e225]
+                - listitem [ref=f4e228]:
+                  - img "14. miejsce" [ref=f4e229]
+                  - generic [ref=f4e230]: Q
+                  - generic [ref=f4e232]:
+                    - generic [ref=f4e233]: Mnich Cierpliwości
+                    - generic [ref=f4e234]: QA Mnich Cierpliwości
+                    - generic [ref=f4e235]: 125 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e237]:
+                    - generic "Skill Issue" [ref=f4e238]
+                    - generic "Git Gud" [ref=f4e241]
+                    - generic "Odkupienie" [ref=f4e244]
+                - listitem [ref=f4e247]:
+                  - img "15. miejsce" [ref=f4e248]
+                  - generic [ref=f4e249]: Q
+                  - generic [ref=f4e251]:
+                    - generic [ref=f4e252]: Warlock Meeplów
+                    - generic [ref=f4e253]: QA Warlock Meeplów
+                    - generic [ref=f4e254]: 120 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e256]:
+                    - generic "Oathbreaker" [ref=f4e257]
+                    - generic "Tadpole Enjoyer" [ref=f4e260]
+                    - generic "Mroczna Żądza" [ref=f4e263]
+                - listitem [ref=f4e266]:
+                  - img "16. miejsce" [ref=f4e267]
+                  - generic [ref=f4e268]: Q
+                  - generic [ref=f4e270]:
+                    - generic [ref=f4e271]: Druid Półki
+                    - generic [ref=f4e272]: QA Druid Półki
+                    - generic [ref=f4e273]: 115 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e275]:
+                    - generic "Wskrzeszenie" [ref=f4e276]
+                    - generic "Bag of Holding" [ref=f4e279]
+                    - generic "Klątwa Wiecznej Półki" [ref=f4e282]
+                - listitem [ref=f4e285]:
+                  - img "17. miejsce" [ref=f4e286]
+                  - generic [ref=f4e287]: Q
+                  - generic [ref=f4e289]:
+                    - generic [ref=f4e290]: Paladyn Zasad
+                    - generic [ref=f4e291]: QA Paladyn Zasad
+                    - generic [ref=f4e292]: 100 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e294]:
+                    - generic "Chosen of the Table" [ref=f4e295]
+                    - generic "Strażnik Zasad" [ref=f4e298]
+                    - generic "Przewodnik" [ref=f4e301]
+                - listitem [ref=f4e304]:
+                  - img "18. miejsce" [ref=f4e305]
+                  - generic [ref=f4e306]: Q
+                  - generic [ref=f4e308]:
+                    - generic [ref=f4e309]: Łotrzyk Kart
+                    - generic [ref=f4e310]: QA Łotrzyk Kart
+                    - generic [ref=f4e311]: 75 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e313]:
+                    - generic "Oathbreaker" [ref=f4e314]
+                    - generic "Vicious Mockery" [ref=f4e317]
+                    - generic "Hot Take" [ref=f4e320]
+                - listitem [ref=f4e323]:
+                  - img "19. miejsce" [ref=f4e324]
+                  - generic [ref=f4e325]: Q
+                  - generic [ref=f4e327]:
+                    - generic [ref=f4e328]: Bard Stołu
+                    - generic [ref=f4e329]: QA Bard Stołu
+                    - generic [ref=f4e330]: 60 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e332]:
+                    - generic "Vicious Mockery" [ref=f4e333]
+                    - generic "Jeszcze jedna Tura" [ref=f4e336]
+                    - generic "Fanboy" [ref=f4e339]
+                - listitem [ref=f4e342]:
+                  - img "20. miejsce" [ref=f4e343]
+                  - generic [ref=f4e344]: Q
+                  - generic [ref=f4e346]:
+                    - generic [ref=f4e347]: Kleryk Drużyny
+                    - generic [ref=f4e348]: QA Kleryk Drużyny
+                    - generic [ref=f4e349]: 40 pkt
+                  - generic "Najcenniejsze trofea" [ref=f4e351]:
+                    - generic "Short Rest" [ref=f4e352]
+                    - generic "Pełna Drużyna" [ref=f4e355]
+                    - generic "Zwołanie Drużyny" [ref=f4e358]
+            - generic [ref=f4e362]:
+              - heading "Zdobyte Łupy" [level=2] [ref=f4e364]
+              - generic [ref=f4e365]:
+                - generic [ref=f4e366]:
+                  - article [ref=f4e367]:
+                    - generic [ref=f4e368]:
+                      - generic [ref=f4e369]: Zdarzenie punktowe
+                      - generic [ref=f4e370]: "Odznaka: Gospodarz Obozu · 24.07.2026, 14:55"
+                    - generic [ref=f4e371]: +10 pkt
+                  - article [ref=f4e372]:
+                    - generic [ref=f4e373]:
+                      - generic [ref=f4e374]: Zdarzenie punktowe
+                      - generic [ref=f4e375]: "Odznaka: Zwołanie Drużyny · 24.07.2026, 14:55"
+                    - generic [ref=f4e376]: +10 pkt
+                  - article [ref=f4e377]:
+                    - generic [ref=f4e378]:
+                      - generic [ref=f4e379]: Zdarzenie punktowe
+                      - generic [ref=f4e380]: "Odznaka: Chosen of the Table · 24.07.2026, 14:55"
+                    - generic [ref=f4e381]: +50 pkt
+                  - article [ref=f4e382]:
+                    - generic [ref=f4e383]:
+                      - generic [ref=f4e384]: Zdarzenie punktowe
+                      - generic [ref=f4e385]: "Odznaka: Strażnik Zasad · 24.07.2026, 14:55"
+                    - generic [ref=f4e386]: +20 pkt
+                  - article [ref=f4e387]:
+                    - generic [ref=f4e388]:
+                      - generic [ref=f4e389]: Zdarzenie punktowe
+                      - generic [ref=f4e390]: "Odznaka: Bard Drużyny · 24.07.2026, 14:55"
+                    - generic [ref=f4e391]: +10 pkt
+                - button "Rozwiń" [ref=f4e392]
+          - generic [ref=f4e393]:
+            - generic [ref=f4e394]:
+              - generic [ref=f4e395]:
+                - paragraph [ref=f4e396]: Kolekcja trofeów
+                - heading "Odznaki" [level=2] [ref=f4e397]
+              - generic [ref=f4e398]: 44/51 zdobytych
+            - generic [ref=f4e399]:
+              - button "Wszystkie" [ref=f4e400]
+              - button "Common" [ref=f4e401]
+              - button "Rare" [ref=f4e402]
+              - button "Epic" [ref=f4e403]
+              - button "Legendary" [ref=f4e404]
+              - button "Secret" [ref=f4e405]
+            - generic [ref=f4e406]:
+              - button "Wszystkie stany" [ref=f4e407]
+              - button "Zdobyte" [ref=f4e408]
+              - button "Niezdobyte" [ref=f4e409]
+              - button "Sekretne" [ref=f4e410]
+            - generic [ref=f4e411]:
+              - article [ref=f4e412]:
+                - generic [ref=f4e415]:
+                  - generic: common
+                  - heading "Rzut Krytyczny" [level=3]
+                  - generic: 5 pkt
+                - paragraph [ref=f4e416]: Jedna dwudziestka i nagle cały ten misterny plan przestaje być potrzebny.
+                - paragraph [ref=f4e417]: Wygraj pierwszą grę.
+                - generic [ref=f4e418]: 0/1
+                - generic [ref=f4e419]: Zdobyta 24.07.2026
+              - article [ref=f4e420]:
+                - generic [ref=f4e423]:
+                  - generic: common
+                  - heading "Naturalna Jedynka" [level=3]
+                  - generic: 5 pkt
+                - paragraph [ref=f4e424]: Kiedy rzuciłeś kością i przypomniało Ci się Twoje odbicie w lustrze.
+                - paragraph [ref=f4e425]: Zajmij ostatnie miejsce 3 razy.
+                - generic [ref=f4e426]: 0/3
+                - generic [ref=f4e427]: Niezdobyta
+              - article [ref=f4e428]:
+                - generic [ref=f4e431]:
+                  - generic: common
+                  - heading "Mistrz Inicjatywy" [level=3]
+                  - generic: 10 pkt
+                - paragraph [ref=f4e432]: Szybki w działaniu i zbyt "mądry" żeby najpierw przeczytać instrukcję.
+                - paragraph [ref=f4e433]: Utwórz 5 spotkań.
+                - generic [ref=f4e434]: 0/5
+                - generic [ref=f4e435]: Niezdobyta
+              - article [ref=f4e436]:
+                - generic [ref=f4e439]:
+                  - generic: common
+                  - heading "Gospodarz Obozu" [level=3]
+                  - generic: 10 pkt
+                - paragraph [ref=f4e440]: Ogień do planszówek płonie. Stół rozłożony. Jeszcze alko i jechane.
+                - paragraph [ref=f4e441]: Zorganizuj 5 zakończonych spotkań.
+                - generic [ref=f4e442]: 0/5
+                - generic [ref=f4e443]: Zdobyta 24.07.2026
+              - article [ref=f4e444]:
+                - generic [ref=f4e447]:
+                  - generic: common
+                  - heading "Zwołanie Drużyny" [level=3]
+                  - generic: 10 pkt
+                - paragraph [ref=f4e448]: Przed wyruszeniem w podróż musisz zebrać drużynę.
+                - paragraph [ref=f4e449]: Zorganizuj spotkanie z kompletem aktywnych graczy.
+                - generic [ref=f4e450]: Zdobyta 24.07.2026
+              - article [ref=f4e451]:
+                - generic [ref=f4e454]:
+                  - generic: common
+                  - heading "Bard Drużyny" [level=3]
+                  - generic: 10 pkt
+                - paragraph [ref=f4e455]: Słowo stało się ciałem, opinia zamieszkała wśród plansz.
+                - paragraph [ref=f4e456]: Dodaj 10 komentarzy do ocen.
+                - generic [ref=f4e457]: 0/10
+                - generic [ref=f4e458]: Zdobyta 24.07.2026
+              - article [ref=f4e459]:
+                - generic [ref=f4e462]:
+                  - generic: common
+                  - heading "Kronikarz Wybrzeża" [level=3]
+                  - generic: 10 pkt
+                - paragraph [ref=f4e463]: Co zostało zapisane, zostało pograne.
+                - paragraph [ref=f4e464]: Zapisz 25 partii.
+                - generic [ref=f4e465]: 0/25
+                - generic [ref=f4e466]: Niezdobyta
+              - article [ref=f4e467]:
+                - generic [ref=f4e470]:
+                  - generic: common
+                  - heading "Short Rest" [level=3]
+                  - generic: 5 pkt
+                - paragraph [ref=f4e471]: Pięć minut przerwy. Trzy godziny później…
+                - paragraph [ref=f4e472]: Rozegraj 2 partie jednego dnia.
+                - generic [ref=f4e473]: Zdobyta 24.07.2026
+              - article [ref=f4e474]:
+                - generic [ref=f4e477]:
+                  - generic: common
+                  - heading "Pełna Drużyna" [level=3]
+                  - generic: 5 pkt
+                - paragraph [ref=f4e478]: Kiedy Rochan jest wołany, Rochan odpowie.
+                - paragraph [ref=f4e479]: Rozegraj partię z co najmniej 5 osobami.
+                - generic [ref=f4e480]: 0/1
+                - generic [ref=f4e481]: Zdobyta 24.07.2026
+              - article [ref=f4e482]:
+                - generic [ref=f4e485]:
+                  - generic: common
+                  - heading "Lone Wolf" [level=3]
+                  - generic: 5 pkt
+                - paragraph [ref=f4e486]: Kiedy najlepiej bawisz się w swoim towarzystwie.
+                - paragraph [ref=f4e487]: Zagraj solo.
+                - generic [ref=f4e488]: 0/1
+                - generic [ref=f4e489]: Niezdobyta
+              - article [ref=f4e490]:
+                - generic [ref=f4e493]:
+                  - generic: common
+                  - heading "Side Quest" [level=3]
+                  - generic: 5 pkt
+                - paragraph [ref=f4e494]: Spontan to najlepsza forma planowania.
+                - paragraph [ref=f4e495]: Rozegraj spontaniczną partię bez powiązanego spotkania.
+                - generic [ref=f4e496]: 0/1
+                - generic [ref=f4e497]: Zdobyta 24.07.2026
+              - article [ref=f4e498]:
+                - generic [ref=f4e501]:
+                  - generic: common
+                  - heading "Przewodnik" [level=3]
+                  - generic: 10 pkt
+                - paragraph [ref=f4e502]: Świat się pali, ale przynajmniej zaznaczone, że sobota Ci pasuje.
+                - paragraph [ref=f4e503]: Odpowiedz kompletnie na 10 ankiet dostępności.
+                - generic [ref=f4e504]: 0/10
+                - generic [ref=f4e505]: Zdobyta 24.07.2026
+              - article [ref=f4e506]:
+                - generic [ref=f4e509]:
+                  - generic: rare
+                  - heading "Mędrzec Candlekeep" [level=3]
+                  - generic: 20 pkt
+                - paragraph [ref=f4e510]: Dobrowolne przyswojenie 48 stronicowej instrukcji, żeby nie zagrać to też jest jakaś umiejętność.
+                - paragraph [ref=f4e511]: Rozegraj 10 różnych gier z trudnością BGG co najmniej 3,5.
+                - generic [ref=f4e512]: Zdobyta 24.07.2026
+              - article [ref=f4e513]:
+                - generic [ref=f4e516]:
+                  - generic: rare
+                  - heading "Łamacz Kości" [level=3]
+                  - generic: 15 pkt
+                - paragraph [ref=f4e517]: Najlepszą formą współpracy jest agresja.
+                - paragraph [ref=f4e518]: Wygraj 5 gier konfliktowych.
+                - generic [ref=f4e519]: Zdobyta 24.07.2026
+              - article [ref=f4e520]:
+                - generic [ref=f4e523]:
+                  - generic: rare
+                  - heading "Mistrz Perswazji" [level=3]
+                  - generic: 15 pkt
+                - paragraph [ref=f4e524]: Ludzie śpieszą się liczyć z Twoim zdaniem, tak szybko odchodzi.
+                - paragraph [ref=f4e525]: 10 razy zagłosuj na grę, która potem zostanie rozegrana.
+                - generic [ref=f4e526]: Niezdobyta
+              - article [ref=f4e527]:
+                - generic [ref=f4e530]:
+                  - generic: rare
+                  - heading "Łotrzyk Stołowy" [level=3]
+                  - generic: 15 pkt
+                - paragraph [ref=f4e531]: Oszukujesz innych prawie tak dobrze jak siebie.
+                - paragraph [ref=f4e532]: Wygraj 5 gier z mechaniką blefu lub ukrytych ról.
+                - generic [ref=f4e533]: Zdobyta 24.07.2026
+              - article [ref=f4e534]:
+                - generic [ref=f4e537]:
+                  - generic: rare
+                  - heading "Mroczna Żądza" [level=3]
+                  - generic: 15 pkt
+                - paragraph [ref=f4e538]: Wygrana za wszelką cenę, szkoda że kosztem życia socjalnego.
+                - paragraph [ref=f4e539]: Wygraj 3 partie z rzędu.
+                - generic [ref=f4e540]: 0/3
+                - generic [ref=f4e541]: Zdobyta 24.07.2026
+              - article [ref=f4e542]:
+                - generic [ref=f4e545]:
+                  - generic: rare
+                  - heading "Tadpole Enjoyer" [level=3]
+                  - generic: 10 pkt
+                - paragraph [ref=f4e546]: To, że czegoś nie lubisz nie znaczy, że od razu masz przegrać.
+                - paragraph [ref=f4e547]: Zagraj ponownie w grę ocenioną przez siebie na 5/10 lub mniej.
+                - generic [ref=f4e548]: Zdobyta 24.07.2026
+              - article [ref=f4e549]:
+                - generic [ref=f4e552]:
+                  - generic: rare
+                  - heading "Save Scummer" [level=3]
+                  - generic: 15 pkt
+                - paragraph [ref=f4e553]: Tym razem na pewno się uda. To samo powiedziałeś wczoraj.
+                - paragraph [ref=f4e554]: Zagraj w tę samą grę 3 razy w ciągu 7 dni.
+                - generic [ref=f4e555]: Niezdobyta
+              - article [ref=f4e556]:
+                - generic [ref=f4e559]:
+                  - generic: rare
+                  - heading "Multiclass" [level=3]
+                  - generic: 10 pkt
+                - paragraph [ref=f4e560]: Strateg. Zdrajca. Ekonomista. Hodowca. CV robi się imponujące.
+                - paragraph [ref=f4e561]: Zagraj w 5 różnych kategoriach gier.
+                - generic [ref=f4e562]: Zdobyta 24.07.2026
+              - article [ref=f4e563]:
+                - generic [ref=f4e566]:
+                  - generic: rare
+                  - heading "Loot Goblin" [level=3]
+                  - generic: 15 pkt
+                - paragraph [ref=f4e567]: To nie kolekcjonowanie. To zarządzanie bardzo pokaźnym ekwipunkiem.
+                - paragraph [ref=f4e568]: Posiadaj 25 aktywnych gier.
+                - generic [ref=f4e569]: 0/25
+                - generic [ref=f4e570]: Zdobyta 24.07.2026
+              - article [ref=f4e571]:
+                - generic [ref=f4e574]:
+                  - generic: rare
+                  - heading "Tavern Brawler" [level=3]
+                  - generic: 15 pkt
+                - paragraph [ref=f4e575]: Strategia skończyła się po drugiej kolejce. Godność chwilę później.
+                - paragraph [ref=f4e576]: Rozegraj 10 gier imprezowych.
+                - generic [ref=f4e577]: Zdobyta 24.07.2026
+              - article [ref=f4e578]:
+                - generic [ref=f4e581]:
+                  - generic: rare
+                  - heading "Quest Accepted" [level=3]
+                  - generic: 15 pkt
+                - paragraph [ref=f4e582]: Kiedy samo zbieranie questów jest questem.
+                - paragraph [ref=f4e583]: 10 razy zagłosuj na grę, a następnie weź udział w jej partii.
+                - generic [ref=f4e584]: Zdobyta 24.07.2026
+              - article [ref=f4e585]:
+                - generic [ref=f4e588]:
+                  - generic: rare
+                  - heading "Vicious Mockery" [level=3]
+                  - generic: 10 pkt
+                - paragraph [ref=f4e589]: To nie była recenzja. To był atak dystansowy słowem.
+                - paragraph [ref=f4e590]: Dodaj 3 komentarze do ocen ogólnych nie większych niż 3.
+                - generic [ref=f4e591]: Zdobyta 24.07.2026
+              - article [ref=f4e592]:
+                - generic [ref=f4e595]:
+                  - generic: rare
+                  - heading "Fanboy" [level=3]
+                  - generic: 10 pkt
+                - paragraph [ref=f4e596]: Obiektywizm opuścił tego podróżnika.
+                - paragraph [ref=f4e597]: Oceń 5 różnych gier na 10/10.
+                - generic [ref=f4e598]: 0/5
+                - generic [ref=f4e599]: Zdobyta 24.07.2026
+              - article [ref=f4e600]:
+                - generic [ref=f4e603]:
+                  - generic: rare
+                  - heading "Hot Take" [level=3]
+                  - generic: 10 pkt
+                - paragraph [ref=f4e604]: Prawo do własnej opinii zostało wykorzystane. Niestety.
+                - paragraph [ref=f4e605]: Twoja ocena różni się od średniej grupy o co najmniej 4 punkty.
+                - generic [ref=f4e606]: Zdobyta 24.07.2026
+              - article [ref=f4e607]:
+                - generic [ref=f4e610]:
+                  - generic: rare
+                  - heading "Jeszcze jedna Tura" [level=3]
+                  - generic: 20 pkt
+                - paragraph [ref=f4e611]: Ostatnia tura to stan umysłu, nie faktyczny moment zakończenia gry.
+                - paragraph [ref=f4e612]: Ustaw chęć ponownego zagrania dla 20 różnych gier.
+                - generic [ref=f4e613]: 0/20
+                - generic [ref=f4e614]: Zdobyta 24.07.2026
+              - article [ref=f4e615]:
+                - generic [ref=f4e618]:
+                  - generic: epic
+                  - heading "Bohater Ostatniej Tury" [level=3]
+                  - generic: 25 pkt
+                - paragraph [ref=f4e619]: Kiedy po dramatyzowaniu i obrażeniu się na wszystkich realizujesz turę życia.
+                - paragraph [ref=f4e620]: "Ręcznie: wygraj po wcześniejszym zajmowaniu ostatniego miejsca w partii."
+                - generic [ref=f4e621]: Niezdobyta
+              - article [ref=f4e622]:
+                - generic [ref=f4e625]:
+                  - generic: epic
+                  - heading "Strażnik Zasad" [level=3]
+                  - generic: 20 pkt
+                - paragraph [ref=f4e626]: Teraz wszyscy będą cierpieć zgodnie z regulaminem.
+                - paragraph [ref=f4e627]: Ręcznie nadawana przez administratora.
+                - generic [ref=f4e628]: Zdobyta 24.07.2026
+              - article [ref=f4e629]:
+                - generic [ref=f4e632]:
+                  - generic: epic
+                  - heading "Long Rest" [level=3]
+                  - generic: 20 pkt
+                - paragraph [ref=f4e633]: Rozgrywka zostanie dokończona po pełnym odpoczynku. Czyli nigdy.
+                - paragraph [ref=f4e634]: Wróć do gry po 60 dniach bez partii.
+                - generic [ref=f4e635]: Zdobyta 24.07.2026
+              - article [ref=f4e636]:
+                - generic [ref=f4e639]:
+                  - generic: epic
+                  - heading "Bag of Holding" [level=3]
+                  - generic: 30 pkt
+                - paragraph [ref=f4e640]: Nikt nie wie, gdzie to wszystko trzymasz. Skarbówka powinna się zainteresować.
+                - paragraph [ref=f4e641]: Posiadaj 50 aktywnych gier.
+                - generic [ref=f4e642]: 0/50
+                - generic [ref=f4e643]: Zdobyta 24.07.2026
+              - article [ref=f4e644]:
+                - generic [ref=f4e647]:
+                  - generic: epic
+                  - heading "Legendarny Artefakt" [level=3]
+                  - generic: 20 pkt
+                - paragraph [ref=f4e648]: Stara ale jara.
+                - paragraph [ref=f4e649]: Zagraj w grę wydaną przed 2000 rokiem.
+                - generic [ref=f4e650]: Zdobyta 24.07.2026
+              - article [ref=f4e651]:
+                - generic [ref=f4e654]:
+                  - generic: epic
+                  - heading "Klątwa Wiecznej Półki" [level=3]
+                  - generic: 20 pkt
+                - paragraph [ref=f4e655]: Kupiłeś ją. Podziwiałeś ją. Kurz jest również zachwycony.
+                - paragraph [ref=f4e656]: Posiadaj grę bez zapisanej partii przez rok.
+                - generic [ref=f4e657]: Zdobyta 24.07.2026
+              - article [ref=f4e658]:
+                - generic [ref=f4e661]:
+                  - generic: epic
+                  - heading "Wskrzeszenie" [level=3]
+                  - generic: 30 pkt
+                - paragraph [ref=f4e662]: Śmierć okazała się tylko wyjątkowo długą przerwą między partiami.
+                - paragraph [ref=f4e663]: Zagraj w grę po 365 dniach przerwy.
+                - generic [ref=f4e664]: Zdobyta 24.07.2026
+              - article [ref=f4e665]:
+                - generic [ref=f4e668]:
+                  - generic: epic
+                  - heading "Oathbreaker" [level=3]
+                  - generic: 20 pkt
+                - paragraph [ref=f4e669]: "Złamałeś przysięgę: „Nigdy więcej!”."
+                - paragraph [ref=f4e670]: Zagraj ponownie w grę z wyłączoną chęcią ponownego zagrania.
+                - generic [ref=f4e671]: Zdobyta 24.07.2026
+              - article [ref=f4e672]:
+                - generic [ref=f4e675]:
+                  - generic: epic
+                  - heading "Glass Cannon" [level=3]
+                  - generic: 30 pkt
+                - paragraph [ref=f4e676]: Albo z tarczą. Albo na tarczy. Nic pomiędzy.
+                - paragraph [ref=f4e677]: Przez 5 kolejnych partii zajmuj wyłącznie pierwsze lub ostatnie miejsce.
+                - generic [ref=f4e678]: Zdobyta 24.07.2026
+              - article [ref=f4e679]:
+                - generic [ref=f4e682]:
+                  - generic: epic
+                  - heading "Skill Issue" [level=3]
+                  - generic: 20 pkt
+                - paragraph [ref=f4e683]: To gra była źle zbalansowana przeciwko Tobie. Trzy razy z rzędu.
+                - paragraph [ref=f4e684]: Zajmij ostatnie miejsce 3 partie z rzędu.
+                - generic [ref=f4e685]: Zdobyta 24.07.2026
+              - article [ref=f4e686]:
+                - generic [ref=f4e689]:
+                  - generic: epic
+                  - heading "Git Gud" [level=3]
+                  - generic: 35 pkt
+                - paragraph [ref=f4e690]: Okazało się, że czwarta porażka nie była obowiązkowa.
+                - paragraph [ref=f4e691]: Po 3 kolejnych porażkach w tej samej grze wygraj następną partię tej gry.
+                - generic [ref=f4e692]: Zdobyta 24.07.2026
+              - article [ref=f4e693]:
+                - generic [ref=f4e696]:
+                  - generic: epic
+                  - heading "Odkupienie" [level=3]
+                  - generic: 25 pkt
+                - paragraph [ref=f4e697]: Po wygranej już nie wydaje się taka zła.
+                - paragraph [ref=f4e698]: Po ponownej partii podnieś ocenę gry z 5 lub mniej do co najmniej 7.
+                - generic [ref=f4e699]: Zdobyta 24.07.2026
+              - article [ref=f4e700]:
+                - generic [ref=f4e703]:
+                  - generic: legendary
+                  - heading "Chosen of the Table" [level=3]
+                  - generic: 50 pkt
+                - paragraph [ref=f4e704]: Zbierasz punkty jak prawdziwy szampion.
+                - paragraph [ref=f4e705]: Zajmij pierwsze miejsce w rankingu punktowym.
+                - generic [ref=f4e706]: Zdobyta 24.07.2026
+              - article [ref=f4e707]:
+                - generic [ref=f4e710]:
+                  - generic: legendary
+                  - heading "Ostatni Boss" [level=3]
+                  - generic: 50 pkt
+                - paragraph [ref=f4e711]: Wszyscy zgładzeni, wraz z osobą tłumaczącą zasady.
+                - paragraph [ref=f4e712]: Wygraj grę z trudnością BGG co najmniej 4,0.
+                - generic [ref=f4e713]: Zdobyta 24.07.2026
+              - article [ref=f4e714]:
+                - generic [ref=f4e717]:
+                  - generic: legendary
+                  - heading "Boss Pokonany" [level=3]
+                  - generic: 50 pkt
+                - paragraph [ref=f4e718]: Po pokonaniu bossa zostało jeszcze jedno zagrożenie. Kłócenie się o punktację.
+                - paragraph [ref=f4e719]: Wygraj kooperacyjnie grę z trudnością BGG co najmniej 3,5.
+                - generic [ref=f4e720]: Zdobyta 24.07.2026
+              - article [ref=f4e721]:
+                - generic [ref=f4e724]:
+                  - generic: legendary
+                  - heading "Gracz obowiązkowy" [level=3]
+                  - generic: 50 pkt
+                - paragraph [ref=f4e725]: Gracz tak dobry, że wpisany do instrukcji.
+                - paragraph [ref=f4e726]: Wygraj 3 kolejne partie z co najmniej 4 uczestnikami.
+                - generic [ref=f4e727]: Zdobyta 24.07.2026
+              - article [ref=f4e728]:
+                - generic [ref=f4e731]:
+                  - generic: legendary
+                  - heading "Główna postać" [level=3]
+                  - generic: 50 pkt
+                - paragraph [ref=f4e732]: Inni gracze byli niewielką częścią Twojego zwycięstwa.
+                - paragraph [ref=f4e733]: Wygraj 3 kolejne spotkania w 3 różnych grach.
+                - generic [ref=f4e734]: Zdobyta 24.07.2026
+              - article [ref=f4e735]:
+                - generic [ref=f4e738]:
+                  - generic: legendary
+                  - heading "Podróżnik czasu" [level=3]
+                  - generic: 50 pkt
+                - paragraph [ref=f4e739]: Cztery dekady. Setki zasad. Nadal ktoś pyta, czy może cofnąć ruch.
+                - paragraph [ref=f4e740]: Zagraj w gry wydane w 4 różnych dekadach.
+                - generic [ref=f4e741]: Zdobyta 24.07.2026
+              - article [ref=f4e742]:
+                - generic [ref=f4e745]:
+                  - generic: secret
+                  - heading "Niech Mówią Kości" [level=3]
+                  - generic: 20 pkt
+                - paragraph [ref=f4e746]: Planowanie to objaw rozsądku. Właśnie tego zabrakło.
+                - paragraph [ref=f4e747]: "Ręcznie lub questowo: wybierz grę całkowicie losowo i ją rozegraj."
+                - generic [ref=f4e748]: Zdobyta 24.07.2026
+              - article [ref=f4e749]:
+                - generic [ref=f4e752]:
+                  - generic: secret
+                  - heading "Bratobójca" [level=3]
+                  - generic: 20 pkt
+                - paragraph [ref=f4e753]: Miło przestaje być tam, gdzie zaczynają punkty zwycięstwa.
+                - paragraph [ref=f4e754]: Przegraj 3 gry kooperacyjne.
+                - generic [ref=f4e755]: Zdobyta 24.07.2026
+              - article [ref=f4e756]:
+                - generic [ref=f4e759]:
+                  - generic: secret
+                  - heading "Determinacja" [level=3]
+                  - generic: 25 pkt
+                - paragraph [ref=f4e760]: Nie zapraszaj już Porażki do gry.
+                - paragraph [ref=f4e761]: Po 3 porażkach z rzędu rozegraj czwartą partię tej samej gry.
+                - generic [ref=f4e762]: Zdobyta 24.07.2026
+              - article [ref=f4e763]:
+                - generic [ref=f4e766]:
+                  - generic: secret
+                  - heading "Absolutny" [level=3]
+                  - generic: 50 pkt
+                - paragraph [ref=f4e767]: Decyzja o głosach i wygranej zapadła jednogłośnie. Absolutnie.
+                - paragraph [ref=f4e768]: Jednogłośny wybór gry i zwycięstwo użytkownika w późniejszej partii tej gry.
+                - generic [ref=f4e769]: Zdobyta 24.07.2026
+              - article [ref=f4e770]:
+                - generic [ref=f4e773]:
+                  - generic: secret
+                  - heading "Krytyczny sukces?" [level=3]
+                  - generic: 20 pkt
+                - paragraph [ref=f4e774]: Plan się udał. Teraz pozostaje ustalić, co to się stanęło.
+                - paragraph [ref=f4e775]: Wygraj grę, którą wcześniej oceniłeś/aś na 4/10 lub mniej.
+                - generic [ref=f4e776]: Zdobyta 24.07.2026
+              - article [ref=f4e777]:
+                - generic [ref=f4e780]:
+                  - generic: secret
+                  - heading "Gorąca seria" [level=3]
+                  - generic: 30 pkt
+                - paragraph [ref=f4e781]: Rzuty godne Michała, tylko odwrotnie.
+                - paragraph [ref=f4e782]: Wygraj partię po 5 najlepszych rzutach z rzędu.
+                - generic [ref=f4e783]: Zdobyta 24.07.2026
+          - generic [ref=f4e784]:
+            - generic [ref=f4e785]:
+              - generic [ref=f4e786]:
+                - paragraph [ref=f4e787]: Ścieżki bohaterów
+                - heading "Klasy postaci" [level=2] [ref=f4e788]
+              - paragraph [ref=f4e789]: Klasy odblokowują się automatycznie po zdobyciu kompletu wymaganych odznak.
+            - generic [ref=f4e790]:
+              - article [ref=f4e791]:
+                - generic [ref=f4e794]:
+                  - generic [ref=f4e795]:
+                    - heading "Paladyn Zasad" [level=3] [ref=f4e796]
+                    - generic [ref=f4e797]: 5/5
+                  - paragraph [ref=f4e798]: Strażnik instrukcji, obrońca uczciwej rozgrywki i pogromca każdego, kto próbuje nagiąć zasady na swoją korzyść.
+                - generic [ref=f4e799]:
+                  - generic [ref=f4e800]: Przewodnik
+                  - generic [ref=f4e801]: Gospodarz Obozu
+                  - generic [ref=f4e802]: Zwołanie Drużyny
+                  - generic [ref=f4e803]: Chosen of the Table
+                  - generic [ref=f4e804]: Strażnik Zasad
+                - button "Ustaw jako aktywną" [ref=f4e807]
+              - article [ref=f4e808]:
+                - generic [ref=f4e811]:
+                  - generic [ref=f4e812]:
+                    - heading "Bard Stołu" [level=3] [ref=f4e813]
+                    - generic [ref=f4e814]: 5/5
+                  - paragraph [ref=f4e815]: Mistrz opowieści, żartów i inspiracji, który nawet przegraną partię potrafi zamienić w legendę.
+                - generic [ref=f4e816]:
+                  - generic [ref=f4e817]: Bard Drużyny
+                  - generic [ref=f4e818]: Vicious Mockery
+                  - generic [ref=f4e819]: Hot Take
+                  - generic [ref=f4e820]: Fanboy
+                  - generic [ref=f4e821]: Jeszcze jedna Tura
+                - generic [ref=f4e822]:
+                  - generic [ref=f4e823]: Aktywna klasa
+                  - button "Usuń wybór" [ref=f4e825]
+              - article [ref=f4e826]:
+                - generic [ref=f4e829]:
+                  - generic [ref=f4e830]:
+                    - heading "Łotrzyk Kart" [level=3] [ref=f4e831]
+                    - generic [ref=f4e832]: 5/5
+                  - paragraph [ref=f4e833]: Mistrz blefu i podstępu, który zawsze ma asa w rękawie, nawet gdy talia nie sprzyja.
+                - generic [ref=f4e834]:
+                  - generic [ref=f4e835]: Łotrzyk Stołowy
+                  - generic [ref=f4e836]: Vicious Mockery
+                  - generic [ref=f4e837]: Hot Take
+                  - generic [ref=f4e838]: Oathbreaker
+                  - generic [ref=f4e839]: Krytyczny sukces?
+                - button "Ustaw jako aktywną" [ref=f4e842]
+              - article [ref=f4e843]:
+                - generic [ref=f4e846]:
+                  - generic [ref=f4e847]:
+                    - heading "Czarodziej Analizy" [level=3] [ref=f4e848]
+                    - generic [ref=f4e849]: 5/5
+                  - paragraph [ref=f4e850]: Widzi kilka tur naprzód, przelicza każdą możliwość i rzuca zaklęcia, których komponentem jest czysta strategia.
+                - generic [ref=f4e851]:
+                  - generic [ref=f4e852]: Mędrzec Candlekeep
+                  - generic [ref=f4e853]: Ostatni Boss
+                  - generic [ref=f4e854]: Boss Pokonany
+                  - generic [ref=f4e855]: Multiclass
+                  - generic [ref=f4e856]: Podróżnik czasu
+                - button "Ustaw jako aktywną" [ref=f4e859]
+              - article [ref=f4e860]:
+                - generic [ref=f4e863]:
+                  - generic [ref=f4e864]:
+                    - heading "Barbarzyńca Kości" [level=3] [ref=f4e865]
+                    - generic [ref=f4e866]: 5/5
+                  - paragraph [ref=f4e867]: Rzuca bez lęku, ufa chaosowi i każdą krytyczną porażkę zamienia w okrzyk bitewny.
+                - generic [ref=f4e868]:
+                  - generic [ref=f4e869]: Łamacz Kości
+                  - generic [ref=f4e870]: Tavern Brawler
+                  - generic [ref=f4e871]: Mroczna Żądza
+                  - generic [ref=f4e872]: Gracz obowiązkowy
+                  - generic [ref=f4e873]: Glass Cannon
+                - button "Ustaw jako aktywną" [ref=f4e876]
+              - article [ref=f4e877]:
+                - generic [ref=f4e880]:
+                  - generic [ref=f4e881]:
+                    - heading "Druid Półki" [level=3] [ref=f4e882]
+                    - generic [ref=f4e883]: 5/5
+                  - paragraph [ref=f4e884]: Opiekun kolekcji, który zna naturę każdej gry i zawsze wie, jaki tytuł przywołać na stół.
+                - generic [ref=f4e885]:
+                  - generic [ref=f4e886]: Loot Goblin
+                  - generic [ref=f4e887]: Bag of Holding
+                  - generic [ref=f4e888]: Klątwa Wiecznej Półki
+                  - generic [ref=f4e889]: Legendarny Artefakt
+                  - generic [ref=f4e890]: Wskrzeszenie
+                - button "Ustaw jako aktywną" [ref=f4e893]
+              - article [ref=f4e894]:
+                - generic [ref=f4e897]:
+                  - generic [ref=f4e898]:
+                    - heading "Nekromanta Figurek" [level=3] [ref=f4e899]
+                    - generic [ref=f4e900]: 5/5
+                  - paragraph [ref=f4e901]: Wskrzesza zapomniane tytuły, przyzywa armie z pudełek i daje drugie życie figurkom.
+                - generic [ref=f4e902]:
+                  - generic [ref=f4e903]: Wskrzeszenie
+                  - generic [ref=f4e904]: Long Rest
+                  - generic [ref=f4e905]: Legendarny Artefakt
+                  - generic [ref=f4e906]: Klątwa Wiecznej Półki
+                  - generic [ref=f4e907]: Podróżnik czasu
+                - button "Ustaw jako aktywną" [ref=f4e910]
+              - article [ref=f4e911]:
+                - generic [ref=f4e914]:
+                  - generic [ref=f4e915]:
+                    - heading "Warlock Meeplów" [level=3] [ref=f4e916]
+                    - generic [ref=f4e917]: 5/5
+                  - paragraph [ref=f4e918]: Zawarł pakt z drewnianymi pionkami, a teraz przyzywa je na stół, aby przejmowały pola, miasta i królestwa.
+                - generic [ref=f4e919]:
+                  - generic [ref=f4e920]: Tadpole Enjoyer
+                  - generic [ref=f4e921]: Oathbreaker
+                  - generic [ref=f4e922]: Mroczna Żądza
+                  - generic [ref=f4e923]: Determinacja
+                  - generic [ref=f4e924]: Absolutny
+                - button "Ustaw jako aktywną" [ref=f4e927]
+              - article [ref=f4e928]:
+                - generic [ref=f4e931]:
+                  - generic [ref=f4e932]:
+                    - heading "Multiclass Planszy" [level=3] [ref=f4e933]
+                    - generic [ref=f4e934]: 5/5
+                  - paragraph [ref=f4e935]: Łączy talenty wielu klas, odnajdując się równie dobrze w strategii, blefie, kooperacji i kontrolowanym chaosie.
+                - generic [ref=f4e936]:
+                  - generic [ref=f4e937]: Multiclass
+                  - generic [ref=f4e938]: Quest Accepted
+                  - generic [ref=f4e939]: Side Quest
+                  - generic [ref=f4e940]: Podróżnik czasu
+                  - generic [ref=f4e941]: Główna postać
+                - button "Ustaw jako aktywną" [ref=f4e944]
+              - article [ref=f4e945]:
+                - generic [ref=f4e948]:
+                  - generic [ref=f4e949]:
+                    - heading "Wojownik Stołu" [level=3] [ref=f4e950]
+                    - generic [ref=f4e951]: 5/5
+                  - paragraph [ref=f4e952]: Staje do każdej rozgrywki bez wahania, walczy do ostatniego punktu i nigdy nie odkłada miecza przed końcem partii.
+                - generic [ref=f4e953]:
+                  - generic [ref=f4e954]: Rzut Krytyczny
+                  - generic [ref=f4e955]: Gracz obowiązkowy
+                  - generic [ref=f4e956]: Główna postać
+                  - generic [ref=f4e957]: Ostatni Boss
+                  - generic [ref=f4e958]: Boss Pokonany
+                - button "Ustaw jako aktywną" [ref=f4e961]
+              - article [ref=f4e962]:
+                - generic [ref=f4e965]:
+                  - generic [ref=f4e966]:
+                    - heading "Kleryk Drużyny" [level=3] [ref=f4e967]
+                    - generic [ref=f4e968]: 5/5
+                  - paragraph [ref=f4e969]: Leczy konflikty, wzmacnia sojuszników i poświęca własną turę, by cała drużyna mogła sięgnąć po zwycięstwo.
+                - generic [ref=f4e970]:
+                  - generic [ref=f4e971]: Pełna Drużyna
+                  - generic [ref=f4e972]: Zwołanie Drużyny
+                  - generic [ref=f4e973]: Gospodarz Obozu
+                  - generic [ref=f4e974]: Przewodnik
+                  - generic [ref=f4e975]: Short Rest
+                - button "Ustaw jako aktywną" [ref=f4e978]
+              - article [ref=f4e979]:
+                - generic [ref=f4e982]:
+                  - generic [ref=f4e983]:
+                    - heading "Łowca Łupów" [level=3] [ref=f4e984]
+                    - generic [ref=f4e985]: 5/5
+                  - paragraph [ref=f4e986]: Tropi rzadkie skarby, zgarnia najlepsze nagrody i nigdy nie opuszcza stołu bez pełnego ekwipunku.
+                - generic [ref=f4e987]:
+                  - generic [ref=f4e988]: Loot Goblin
+                  - generic [ref=f4e989]: Bag of Holding
+                  - generic [ref=f4e990]: Quest Accepted
+                  - generic [ref=f4e991]: Jeszcze jedna Tura
+                  - generic [ref=f4e992]: Chosen of the Table
+                - button "Ustaw jako aktywną" [ref=f4e995]
+              - article [ref=f4e996]:
+                - generic [ref=f4e999]:
+                  - generic [ref=f4e1000]:
+                    - heading "Mnich Cierpliwości" [level=3] [ref=f4e1001]
+                    - generic [ref=f4e1002]: 5/5
+                  - paragraph [ref=f4e1003]: Zachowuje spokój przy długiej turze, czeka na idealny moment i jednym ruchem odmienia los całej rozgrywki.
+                - generic [ref=f4e1004]:
+                  - generic [ref=f4e1005]: Skill Issue
+                  - generic [ref=f4e1006]: Git Gud
+                  - generic [ref=f4e1007]: Odkupienie
+                  - generic [ref=f4e1008]: Determinacja
+                  - generic [ref=f4e1009]: Long Rest
+                - button "Ustaw jako aktywną" [ref=f4e1012]
+              - article [ref=f4e1013]:
+                - generic [ref=f4e1016]:
+                  - generic [ref=f4e1017]:
+                    - heading "Czarownik Chaosu" [level=3] [ref=f4e1018]
+                    - generic [ref=f4e1019]: 5/5
+                  - paragraph [ref=f4e1020]: Zaklina przypadek, nagina los sprawiając, że każdy rzut wywraca rozgrywkę do góry nogami.
+                - generic [ref=f4e1021]:
+                  - generic [ref=f4e1022]: Niech Mówią Kości
+                  - generic [ref=f4e1023]: Bratobójca
+                  - generic [ref=f4e1024]: Gorąca seria
+                  - generic [ref=f4e1025]: Absolutny
+                  - generic [ref=f4e1026]: Krytyczny sukces?
+                - button "Ustaw jako aktywną" [ref=f4e1029]
+    - navigation "Główna nawigacja" [ref=f4e1030]:
+      - link "Stół" [ref=f4e1031] [cursor=pointer]:
+        - /url: /
+      - link "Półka" [ref=f4e1038] [cursor=pointer]:
+        - /url: /gry
+      - link "Legendarium" [ref=f4e1042] [cursor=pointer]:
+        - /url: /legendarium
+      - link "Kalendarium" [ref=f4e1048] [cursor=pointer]:
+        - /url: /kalendarium
+      - link "Kronika" [ref=f4e1054] [cursor=pointer]:
+        - /url: /kronika
+  - button "Open Next.js Dev Tools" [ref=f4e1064] [cursor=pointer]
