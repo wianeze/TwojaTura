@@ -248,6 +248,7 @@ export function PlayForm({
           key={`participants-${JSON.stringify(values.participants)}`}
           members={members}
           defaultValue={values.participants}
+          status={status}
           error={state.fieldErrors?.participants}
           participantErrors={state.participantFieldErrors}
         />

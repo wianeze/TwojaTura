@@ -22,6 +22,83 @@ import {
 import { awardPlayPointsAfterSave } from "../../src/features/plays/play-points.ts";
 import { awardPlayResultAchievementsAfterSave } from "../../src/features/plays/play-achievements.ts";
 import { awardCampHostAfterPlaySave } from "../../src/features/plays/meeting-achievements.ts";
+import {
+  addParticipantDraft,
+  clearParticipantWinners,
+} from "../../src/features/plays/participant-drafts.ts";
+
+test("adding the first participant to a completed play marks them as winner", () => {
+  const drafts = addParticipantDraft(
+    [],
+    "10000000-0000-0000-0000-000000000002",
+    "completed",
+  );
+
+  assert.equal(drafts.length, 1);
+  assert.equal(drafts[0]?.isWinner, true);
+});
+
+test("adding a later participant to a completed play does not override the winner", () => {
+  const afterFirst = addParticipantDraft(
+    [],
+    "10000000-0000-0000-0000-000000000002",
+    "completed",
+  );
+  const afterSecond = addParticipantDraft(
+    afterFirst,
+    "10000000-0000-0000-0000-000000000003",
+    "completed",
+  );
+
+  assert.equal(afterSecond[0]?.isWinner, true);
+  assert.equal(afterSecond[1]?.isWinner, false);
+});
+
+test("adding the first participant to an in_progress play does not mark a winner", () => {
+  const drafts = addParticipantDraft(
+    [],
+    "10000000-0000-0000-0000-000000000002",
+    "in_progress",
+  );
+
+  assert.equal(drafts.length, 1);
+  assert.equal(drafts[0]?.isWinner, false);
+});
+
+test("clearing winners removes isWinner from every participant", () => {
+  const cleared = clearParticipantWinners([
+    {
+      userId: "10000000-0000-0000-0000-000000000002",
+      isWinner: true,
+      placement: "1",
+      score: "",
+    },
+    {
+      userId: "10000000-0000-0000-0000-000000000003",
+      isWinner: false,
+      placement: "2",
+      score: "",
+    },
+  ]);
+
+  assert.deepEqual(
+    cleared.map((draft) => draft.isWinner),
+    [false, false],
+  );
+});
+
+test("clearing winners is a no-op when nobody is marked as winner", () => {
+  const drafts = [
+    {
+      userId: "10000000-0000-0000-0000-000000000002",
+      isWinner: false,
+      placement: "",
+      score: "",
+    },
+  ];
+
+  assert.equal(clearParticipantWinners(drafts), drafts);
+});
 
 test("Chronicle create and result edit request natural_one evaluation", async () => {
   let requestCount = 0;
