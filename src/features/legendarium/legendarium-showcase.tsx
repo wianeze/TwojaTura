@@ -3,13 +3,13 @@ import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getMemberInitial } from "@/features/auth/current-member";
 import { AchievementCatalog } from "./achievement-catalog";
 import { ClassCatalog } from "./class-catalog";
-import { getAchievementAuraStyle } from "./mini-achievement-badge";
 import { RecentLootList } from "./recent-loot-list";
 import {
   getActiveClassBackdropGradient,
   getLeaderboardRankAsset,
   getLeaderboardRankLabel,
 } from "./leaderboard-presentation";
+import type { AchievementRarity } from "./achievement-view-model";
 import type { LegendariumData, LegendariumLeaderboardEntry } from "./queries";
 import { hasRecentPointEvents } from "./view-model";
 
@@ -130,7 +130,17 @@ export function LegendariumShowcase({ data }: LegendariumShowcaseProps) {
             <SectionTitle dark title="Ranking grupy" />
 
             {leaderboard.length > 0 ? (
-              <ol className="mt-4 ml-10 space-y-2.5 sm:ml-12">
+              // translate-x-[-19px] shifts every row (and everything
+              // positioned relative to it, incl. the rank icon/trophy) left
+              // as one rigid unit — pure paint-time transform, doesn't
+              // touch the ml-10 reserved-icon-space margin or any row's own
+              // layout, so widths/heights/internal positions are
+              // untouched. The negative sign has to live INSIDE the
+              // brackets (Tailwind's `-` prefix negation only applies to
+              // theme-scale values, not arbitrary ones — `-translate-x-[9px]`
+              // silently fails to generate any CSS at all).
+              // sm:translate-x-0 keeps sm:+ pixel-identical to before.
+              <ol className="mt-4 ml-10 translate-x-[-19px] space-y-2.5 sm:ml-12 sm:translate-x-0">
                 {leaderboard.map((entry, index) => (
                   <RankingEntry key={entry.userId} entry={entry} index={index} />
                 ))}
@@ -300,6 +310,12 @@ function RankingEntry({
         ? "left-[-2.1rem] sm:left-[-2.4rem]"
         : "left-[-1.4rem] sm:left-[-1.6rem]";
   const avatarSize = isPodium ? "size-10 sm:size-12" : "size-8 sm:size-9";
+  // Shared by the avatar and text spans below (not the row, trophy/rank,
+  // badges, or ornament) — both shift by the same amount so the gap
+  // between them (from the <li>'s own gap-2.5) is untouched; transform is
+  // paint-only and never affects gap/layout math. sm:translate-x-0 keeps
+  // desktop pixel-identical.
+  const userBlockShift = "translate-x-[-20px] sm:translate-x-0";
   const badgeSize = isFirst
     ? "size-10 text-sm sm:size-12 sm:text-base 2xl:size-24 2xl:text-2xl"
     : isPodium
@@ -343,9 +359,7 @@ function RankingEntry({
               className="absolute top-1/2 left-[-11rem] h-[190%] w-56 -translate-y-1/2 rounded-full blur-3xl sm:left-[-13rem] sm:w-72"
               style={{ backgroundImage: classBackdropGradient }}
             />
-            <span
-              className="absolute top-1/2 left-[-12rem] h-[265%] w-64 -translate-y-1/2 opacity-50 sm:left-[-14rem] sm:w-80"
-            >
+            <span className="absolute top-1/2 left-[-12rem] h-[265%] w-64 -translate-y-1/2 opacity-50 sm:left-[-14rem] sm:w-80">
               <Image
                 src={entry.activeClass.iconPath}
                 alt=""
@@ -358,9 +372,7 @@ function RankingEntry({
               className="absolute top-1/2 left-[19%] h-[135%] w-36 -translate-y-1/2 rounded-full blur-3xl sm:left-[21%] sm:w-48"
               style={{ backgroundImage: classBackdropGradient }}
             />
-            <span
-              className="absolute top-1/2 left-[19%] h-[185%] w-44 -translate-y-1/2 opacity-50 sm:left-[21%] sm:w-56"
-            >
+            <span className="absolute top-1/2 left-[19%] h-[185%] w-44 -translate-y-1/2 opacity-50 sm:left-[21%] sm:w-56">
               <Image
                 src={entry.activeClass.iconPath}
                 alt=""
@@ -385,14 +397,14 @@ function RankingEntry({
           {entry.rank}
         </span>
       )}
-      <span className="relative z-10 shrink-0">
+      <span className={`relative z-10 shrink-0 ${userBlockShift}`}>
         <Avatar
           avatarUrl={entry.avatarUrl}
           name={entry.displayName}
           sizeClass={avatarSize}
         />
       </span>
-      <span className="relative z-10 min-w-0 flex-1">
+      <span className={`relative z-10 min-w-0 flex-1 ${userBlockShift}`}>
         {entry.activeClass ? (
           <span className="mb-0.5 block truncate text-[0.62rem] font-bold tracking-[0.1em] text-[#f0c978] uppercase sm:text-[0.7rem]">
             {entry.activeClass.name}
@@ -421,6 +433,90 @@ function RankingEntry({
   );
 }
 
+type RankingTrophyRay = {
+  angleDeg: number;
+  lengthPercent: number;
+  widthPercent: number;
+};
+
+// Irregular by design (varied angles/lengths), not an even sunburst.
+// A ray's own bottom sits at the badge's vertical center (bottom: 50%),
+// so half its lengthPercent is always hidden behind the icon, and the
+// halo (-inset-[17%]) still has some opacity out to ~117% — so the ray
+// only reads as clearly connected to the badge once it clears both.
+// A shorter ray is interspersed between each pair of the original,
+// longer ("primary") rays — denser sunburst without changing the
+// primary angles.
+const EPIC_RANKING_RAYS: RankingTrophyRay[] = [
+  { angleDeg: 18, lengthPercent: 94, widthPercent: 7 },
+  { angleDeg: 82, lengthPercent: 70, widthPercent: 4 },
+  { angleDeg: 146, lengthPercent: 81, widthPercent: 6 },
+  { angleDeg: 192, lengthPercent: 66, widthPercent: 4 },
+  { angleDeg: 238, lengthPercent: 89, widthPercent: 7 },
+  { angleDeg: 308, lengthPercent: 68, widthPercent: 4 },
+];
+
+const LEGENDARY_RANKING_RAYS: RankingTrophyRay[] = [
+  { angleDeg: 8, lengthPercent: 96, widthPercent: 6 },
+  { angleDeg: 30, lengthPercent: 72, widthPercent: 4 },
+  { angleDeg: 52, lengthPercent: 83, widthPercent: 5 },
+  { angleDeg: 75, lengthPercent: 74, widthPercent: 4 },
+  { angleDeg: 98, lengthPercent: 104, widthPercent: 7 },
+  { angleDeg: 125, lengthPercent: 76, widthPercent: 4 },
+  { angleDeg: 151, lengthPercent: 86, widthPercent: 5 },
+  { angleDeg: 177, lengthPercent: 74, widthPercent: 4 },
+  { angleDeg: 203, lengthPercent: 98, widthPercent: 6 },
+  { angleDeg: 229, lengthPercent: 71, widthPercent: 4 },
+  { angleDeg: 255, lengthPercent: 81, widthPercent: 5 },
+  { angleDeg: 277, lengthPercent: 69, widthPercent: 4 },
+  { angleDeg: 299, lengthPercent: 92, widthPercent: 6 },
+  { angleDeg: 317, lengthPercent: 70, widthPercent: 4 },
+  { angleDeg: 335, lengthPercent: 84, widthPercent: 5 },
+  { angleDeg: 352, lengthPercent: 72, widthPercent: 4 },
+];
+
+/**
+ * Ranking trophy background only — deliberately separate from
+ * getAchievementAuraStyle (mini-achievement-badge.tsx), which still
+ * drives the unrelated Profil trophy case untouched. Ten-stop alpha
+ * curve and per-rarity color stops match the approved proposal; the
+ * radial-gradient MUST use `closest-side` — the default sizing
+ * (farthest-corner) reaches past the visually-clipped circle into the
+ * corners of the square box, so the tail of the curve (where alpha
+ * actually reaches 0) would never be visible and the badge would look
+ * like a nearly solid disc instead of a soft glow.
+ */
+function getRankingTrophyHaloClass(rarity: AchievementRarity): string {
+  switch (rarity) {
+    case "rare":
+      return "bg-[radial-gradient(circle_closest-side,rgba(120,175,220,0.92)_0%,rgba(80,130,180,0.72)_25%,rgba(55,105,155,0.52)_50%,rgba(42,88,130,0.30)_75%,rgba(36,76,115,0.10)_85%,rgba(33,70,105,0.05)_90%,rgba(30,65,95,0)_100%)]";
+    case "epic":
+      return "bg-[radial-gradient(circle_closest-side,rgba(240,205,255,0.92)_0%,rgba(183,152,228,0.72)_25%,rgba(160,125,208,0.52)_50%,rgba(140,102,188,0.30)_75%,rgba(127,85,170,0.10)_85%,rgba(122,76,158,0.05)_90%,rgba(120,70,150,0)_100%)]";
+    case "legendary":
+      return "bg-[radial-gradient(circle_closest-side,rgba(255,248,210,0.92)_0%,rgba(248,200,115,0.72)_25%,rgba(238,178,85,0.52)_50%,rgba(222,152,58,0.30)_75%,rgba(205,128,40,0.10)_85%,rgba(196,116,33,0.05)_90%,rgba(190,110,30,0)_100%)]";
+    case "common":
+    case "secret":
+    default:
+      return "bg-[radial-gradient(circle_closest-side,rgba(255,255,255,0.92)_0%,rgba(225,208,183,0.72)_25%,rgba(205,188,155,0.52)_50%,rgba(192,172,135,0.30)_75%,rgba(184,163,122,0.10)_85%,rgba(180,160,120,0.05)_90%,rgba(180,160,120,0)_100%)]";
+  }
+}
+
+function getRankingTrophyRays(rarity: AchievementRarity): RankingTrophyRay[] {
+  if (rarity === "epic") return EPIC_RANKING_RAYS;
+  if (rarity === "legendary") return LEGENDARY_RANKING_RAYS;
+  return [];
+}
+
+// The inner ~40-45% of every ray's own length sits behind the icon
+// (and a bit more behind the still-fading halo edge) and is never seen,
+// so the brightest stop needs to sit past that, not at a symmetric
+// midpoint, or the visible tip only ever shows the tail of the fade.
+function getRankingTrophyRayColorClass(rarity: AchievementRarity): string {
+  return rarity === "legendary"
+    ? "bg-[linear-gradient(to_top,transparent_0%,transparent_32%,rgba(255,210,120,0.48)_58%,rgba(255,210,120,0.48)_82%,transparent_100%)]"
+    : "bg-[linear-gradient(to_top,transparent_0%,transparent_32%,rgba(224,182,255,0.45)_58%,rgba(224,182,255,0.45)_82%,transparent_100%)]";
+}
+
 function TrophySet({
   badges,
   sizeClass,
@@ -437,7 +533,8 @@ function TrophySet({
       title="Najcenniejsze trofea"
     >
       {badges.map((badge) => {
-        const aura = getAchievementAuraStyle(badge.rarity);
+        const rays = getRankingTrophyRays(badge.rarity);
+        const rayColorClass = getRankingTrophyRayColorClass(badge.rarity);
 
         return (
           <span
@@ -445,15 +542,35 @@ function TrophySet({
             className={`relative isolate grid place-items-center ${sizeClass}`}
             title={badge.name}
           >
-            {aura.raysClass ? (
+            {rays.map((ray, rayIndex) => (
+              // Two elements on purpose: rotating translateX(-50%) together
+              // with rotate() in one transform only pivots exactly on
+              // center at 0deg — for any other angle the translate rotates
+              // along with it and the pivot drifts off-center. Splitting
+              // rotation (outer, dead-center by default) from centering
+              // (inner, translate only) keeps both operations independent.
               <span
+                key={rayIndex}
                 aria-hidden="true"
-                className={`absolute -inset-[14%] -z-10 rounded-full opacity-60 ${aura.raysClass}`}
-              />
-            ) : null}
+                className="absolute inset-0 -z-20 pointer-events-none"
+                style={{ transform: `rotate(${ray.angleDeg}deg)` }}
+              >
+                <span
+                  className={`trophy-ray absolute bottom-1/2 left-1/2 -translate-x-1/2 rounded-full ${rayColorClass}`}
+                  style={{
+                    height: `${ray.lengthPercent}%`,
+                    width: `${ray.widthPercent}%`,
+                  }}
+                />
+              </span>
+            ))}
             <span
               aria-hidden="true"
-              className={`absolute -inset-[12%] -z-10 rounded-full ${aura.glowClass}`}
+              className={`absolute -inset-[17%] -z-10 rounded-full ${getRankingTrophyHaloClass(badge.rarity)}`}
+            />
+            <span
+              aria-hidden="true"
+              className="trophy-sheen absolute inset-0 rounded-full"
             />
             {badge.iconPath ? (
               <Image
@@ -461,10 +578,10 @@ function TrophySet({
                 alt=""
                 fill
                 sizes="(min-width: 1536px) 96px, (min-width: 640px) 48px, 40px"
-                className="object-contain drop-shadow-[0_3px_6px_rgba(37,18,9,0.48)]"
+                className="relative z-10 object-contain drop-shadow-[0_3px_6px_rgba(37,18,9,0.48)]"
               />
             ) : (
-              <span className="text-[#fff4dc]">◆</span>
+              <span className="relative z-10 text-[#fff4dc]">◆</span>
             )}
           </span>
         );

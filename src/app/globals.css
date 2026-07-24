@@ -783,6 +783,50 @@ a {
 }
 
 /*
+ * Ranking Legendarium — trofea (TrophySet): promienie epic/legendary są
+ * flarami — węższe u nasady (blisko środka odznaki), szersze przy
+ * zewnętrznej krawędzi. Obracany jest odrębny element-rodzic (rotate
+ * wokół własnego, domyślnego środka), ten element tylko centruje się
+ * przez translateX — stąd brak transform-origin/rotate tutaj. Długość/
+ * szerokość przychodzą z JS jako inline style (procenty względem
+ * odznaki, więc skalują się z sizeClass).
+ */
+.trophy-ray {
+  clip-path: polygon(38% 100%, 62% 100%, 100% 0%, 0% 0%);
+}
+
+/*
+ * Ranking Legendarium — trofea (TrophySet): jednorazowy sheen odpalany
+ * zaraz po pojawieniu się odznaki, NIE na hover (w przeciwieństwie do
+ * .rarity-sheen) — wpisy rankingu nie są interaktywne. Reużywa tej samej
+ * animacji @keyframes quest-sheen-sweep zamiast kopiować mechanizm.
+ */
+.trophy-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 42%,
+    rgba(255, 241, 212, 0.28) 50%,
+    transparent 58%
+  );
+  background-size: 260% 100%;
+  background-position: 160% 0;
+  opacity: 0;
+  animation: quest-sheen-sweep 900ms ease-out 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trophy-sheen::after {
+    display: none;
+  }
+}
+
+/*
  * Ranking Legendarium — statyczna poświata dla podium (1./2./3. miejsce).
  * Celowo BEZ animacji/przejścia/sheenu — wpisy rankingu nie są klikalne
  * i mają świecić stale, bez pulsowania. Każda klasa zawiera też bazowy

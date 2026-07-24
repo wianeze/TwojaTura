@@ -39,6 +39,29 @@ const rarityStyles: Record<AchievementRarity, string> = {
   secret: "border-[#766275] bg-[#d9cfdc] text-[#493a4d]",
 };
 
+/**
+ * Background for ACQUIRED cards only — locked/secret cards keep the flat
+ * rarityStyles above untouched. Gradient direction and stops per rarity
+ * come from the approved Legendarium badge-background proposal.
+ */
+const acquiredRarityStyles: Record<AchievementRarity, string> = {
+  common:
+    "border-[#c9b48c] bg-[linear-gradient(140deg,#f0e8d8_0%,#d9c6a0_100%)] text-[#5f4a34]",
+  rare: "border-[#5f93a8] bg-[linear-gradient(140deg,#eaf4f8_0%,#a9cddd_100%)] text-[#24495a]",
+  epic: "border-[#7d4f9b] bg-[linear-gradient(140deg,#f2e6f7_0%,#b98ed6_100%)] text-[#4a2c62]",
+  legendary:
+    "border-[#ffdf8c] bg-[linear-gradient(140deg,#8a4a1a_0%,#f0b64a_55%,#ffe9ad_100%)] text-[#3d2409]",
+  secret: rarityStyles.secret,
+};
+
+/** Glow behind the icon for acquired rare/epic/legendary — common keeps the plain backdrop. */
+const acquiredIconGlow: Partial<Record<AchievementRarity, string>> = {
+  rare: "bg-[radial-gradient(circle,rgba(173,224,255,0.85)_0%,rgba(95,147,168,0.35)_65%,transparent_78%)]",
+  epic: "bg-[radial-gradient(circle,rgba(224,182,255,0.9)_0%,rgba(125,79,155,0.4)_65%,transparent_78%)]",
+  legendary:
+    "bg-[radial-gradient(circle,rgba(255,244,210,0.95)_0%,rgba(235,160,50,0.5)_60%,transparent_78%)] shadow-[0_0_22px_rgba(255,210,120,0.55)]",
+};
+
 export function AchievementCatalog({
   achievements,
 }: {
@@ -150,22 +173,41 @@ function AchievementCard({
   const acquired = achievement.state === "acquired";
   const secret = achievement.state === "secret";
   const progress = achievement.progress;
-  const hasRaritySheen =
-    acquired &&
-    (achievement.rarity === "epic" || achievement.rarity === "legendary");
+  // Every acquired badge gets the one-time hover/focus sheen (previously
+  // epic/legendary only) — locked/secret cards never show it.
+  const showSheen = acquired;
+  const isLegendaryAcquired = acquired && achievement.rarity === "legendary";
+  const iconGlowClass = acquired
+    ? (acquiredIconGlow[achievement.rarity] ?? "bg-black/8")
+    : "bg-black/8";
 
   return (
     <article
-      tabIndex={hasRaritySheen ? 0 : undefined}
+      tabIndex={showSheen ? 0 : undefined}
       style={{ animationDelay: `${getEntranceStaggerDelayMs(index)}ms` }}
       className={`anim-rise-in-fast relative min-h-44 rounded-[1.15rem] border p-3 pb-10 transition-[filter,opacity,transform] ${
-        rarityStyles[achievement.rarity]
-      } ${acquired ? "shadow-[0_10px_22px_rgba(73,42,22,0.18)]" : "opacity-72 grayscale-[0.35]"} ${
-        hasRaritySheen ? "rarity-sheen" : ""
+        acquired ? "overflow-hidden" : ""
+      } ${
+        acquired
+          ? acquiredRarityStyles[achievement.rarity]
+          : rarityStyles[achievement.rarity]
+      } ${acquired ? "shadow-[0_10px_22px_rgba(73,42,22,0.18)]" : "opacity-55 grayscale-[0.75]"} ${
+        showSheen ? "rarity-sheen" : ""
       }`}
     >
+      {isLegendaryAcquired ? (
+        <span
+          aria-hidden="true"
+          // Origin sits exactly behind the icon (card padding + half the
+          // icon's own size), radius sized to comfortably clear the
+          // farthest card corner so the rays reach every edge.
+          className="pointer-events-none absolute top-[3.075rem] left-[3.075rem] -z-10 size-[40rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[repeating-conic-gradient(from_0deg,rgba(255,235,180,0.32)_0deg_6deg,transparent_6deg_20deg)] opacity-70"
+        />
+      ) : null}
       <div className="flex items-start gap-2.5">
-        <div className="relative grid size-[4.65rem] shrink-0 place-items-center rounded-full bg-black/8">
+        <div
+          className={`relative grid size-[4.65rem] shrink-0 place-items-center rounded-full ${iconGlowClass}`}
+        >
           {achievement.iconPath && !secret ? (
             <Image
               src={achievement.iconPath}

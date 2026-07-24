@@ -53,7 +53,7 @@ export default async function CalendarPage({
         style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
         className="anim-rise-in-fast space-y-1 px-1 py-0.5 sm:py-1"
       >
-        <p className="text-[0.62rem] font-bold tracking-[0.22em] text-[#e3ae67] uppercase">
+        <p className="text-xs font-bold tracking-[0.22em] text-[#e3ae67] uppercase">
           Planowanie wieczorów
         </p>
         <h1 className="font-display text-cream text-[2.1rem] font-semibold tracking-tight drop-shadow-[0_2px_12px_rgba(20,10,7,0.28)] sm:text-[2.65rem]">
