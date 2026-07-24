@@ -5,11 +5,17 @@ import { useFormStatus } from "react-dom";
 export function PlaySubmitButton({
   label,
   pendingLabel,
+  pendingOverride,
 }: {
   label: string;
   pendingLabel: string;
+  // Create-mode's form uses onSubmit (not a form action), so useFormStatus
+  // can't see it as pending — the caller tracks that itself and passes it
+  // in explicitly instead.
+  pendingOverride?: boolean;
 }) {
-  const { pending } = useFormStatus();
+  const { pending: formPending } = useFormStatus();
+  const pending = pendingOverride ?? formPending;
 
   return (
     <button

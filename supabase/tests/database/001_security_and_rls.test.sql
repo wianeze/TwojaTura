@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(264);
+select plan(283);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -4159,6 +4159,338 @@ select throws_ok(
   '42501',
   null,
   '264. an unrelated member cannot update someone else''s play status'
+);
+reset role;
+
+-- 265-283: play_photos (Etap C1-C3) — RLS, position auto-assignment,
+-- 15-photo/15 MB limits, reorder_play_photos, and the play-photos bucket.
+insert into public.plays (id, game_id, created_by, played_at, status)
+values (
+  '90000000-0000-0000-0000-000000000001',
+  '30000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000002',
+  '2026-11-01 18:00:00+00',
+  'completed'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select lives_ok(
+  $$
+    insert into public.play_photos (
+      play_id, storage_path, position, byte_size, width, height, created_by
+    ) values (
+      '90000000-0000-0000-0000-000000000001',
+      '90000000-0000-0000-0000-000000000001/photo-1.webp',
+      1, 100000, 800, 600,
+      '10000000-0000-0000-0000-000000000002'
+    )
+  $$,
+  '265. play creator can insert a photo'
+);
+
+select results_eq(
+  $$
+    select position from public.play_photos
+    where storage_path = '90000000-0000-0000-0000-000000000001/photo-1.webp'
+  $$,
+  $$values (1::smallint)$$,
+  '266. first inserted photo is auto-assigned position 1'
+);
+
+select lives_ok(
+  $$
+    insert into public.play_photos (
+      play_id, storage_path, position, byte_size, width, height, created_by
+    ) values (
+      '90000000-0000-0000-0000-000000000001',
+      '90000000-0000-0000-0000-000000000001/photo-2.webp',
+      1, 100000, 800, 600,
+      '10000000-0000-0000-0000-000000000002'
+    )
+  $$,
+  '267. second photo insert ignores the client-sent position'
+);
+
+select results_eq(
+  $$
+    select position from public.play_photos
+    where storage_path = '90000000-0000-0000-0000-000000000001/photo-2.webp'
+  $$,
+  $$values (2::smallint)$$,
+  '268. second inserted photo is auto-assigned position 2'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select throws_ok(
+  $$
+    insert into public.play_photos (
+      play_id, storage_path, position, byte_size, width, height, created_by
+    ) values (
+      '90000000-0000-0000-0000-000000000001',
+      '90000000-0000-0000-0000-000000000001/photo-intruder.webp',
+      1, 100000, 800, 600,
+      '10000000-0000-0000-0000-000000000003'
+    )
+  $$,
+  '42501',
+  null,
+  '269. an unrelated member cannot insert a photo for someone else''s play'
+);
+
+select cmp_ok(
+  (
+    select count(*)::bigint from public.play_photos
+    where play_id = '90000000-0000-0000-0000-000000000001'
+  ),
+  '=',
+  2::bigint,
+  '270. an unrelated member can still read the play''s photos (select is open to members)'
+);
+
+delete from public.play_photos
+where storage_path = '90000000-0000-0000-0000-000000000001/photo-1.webp';
+
+select cmp_ok(
+  (
+    select count(*)::bigint from public.play_photos
+    where storage_path = '90000000-0000-0000-0000-000000000001/photo-1.webp'
+  ),
+  '=',
+  1::bigint,
+  '271. an unrelated member''s delete attempt removes nothing (RLS silently filters it)'
+);
+reset role;
+
+insert into public.plays (id, game_id, created_by, played_at, status)
+values (
+  '90000000-0000-0000-0000-000000000002',
+  '30000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000002',
+  '2026-11-02 18:00:00+00',
+  'completed'
+);
+
+insert into public.play_photos (
+  play_id, storage_path, position, byte_size, width, height, created_by
+)
+select
+  '90000000-0000-0000-0000-000000000002',
+  '90000000-0000-0000-0000-000000000002/limit-' || series.value || '.webp',
+  1, 100000, 800, 600,
+  '10000000-0000-0000-0000-000000000002'
+from generate_series(1, 15) as series(value);
+
+select cmp_ok(
+  (
+    select count(*)::bigint from public.play_photos
+    where play_id = '90000000-0000-0000-0000-000000000002'
+  ),
+  '=',
+  15::bigint,
+  '272. fifteen photos can be added to a single play'
+);
+
+select throws_ok(
+  $$
+    insert into public.play_photos (
+      play_id, storage_path, position, byte_size, width, height, created_by
+    ) values (
+      '90000000-0000-0000-0000-000000000002',
+      '90000000-0000-0000-0000-000000000002/limit-16.webp',
+      1, 100000, 800, 600,
+      '10000000-0000-0000-0000-000000000002'
+    )
+  $$,
+  '23514',
+  null,
+  '273. a sixteenth photo is rejected'
+);
+
+insert into public.plays (id, game_id, created_by, played_at, status)
+values (
+  '90000000-0000-0000-0000-000000000003',
+  '30000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000002',
+  '2026-11-03 18:00:00+00',
+  'completed'
+);
+
+insert into public.play_photos (
+  play_id, storage_path, position, byte_size, width, height, created_by
+) values (
+  '90000000-0000-0000-0000-000000000003',
+  '90000000-0000-0000-0000-000000000003/big-1.webp',
+  1, 15 * 1024 * 1024 - 1000, 800, 600,
+  '10000000-0000-0000-0000-000000000002'
+);
+
+select throws_ok(
+  $$
+    insert into public.play_photos (
+      play_id, storage_path, position, byte_size, width, height, created_by
+    ) values (
+      '90000000-0000-0000-0000-000000000003',
+      '90000000-0000-0000-0000-000000000003/big-2.webp',
+      1, 2000, 800, 600,
+      '10000000-0000-0000-0000-000000000002'
+    )
+  $$,
+  '23514',
+  null,
+  '274. a photo pushing the play past 15 MB total is rejected'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select lives_ok(
+  $$
+    select public.reorder_play_photos(
+      '90000000-0000-0000-0000-000000000001',
+      (
+        select array_agg(id order by position desc)
+        from public.play_photos
+        where play_id = '90000000-0000-0000-0000-000000000001'
+      )
+    )
+  $$,
+  '275. play owner can reorder photos'
+);
+
+select results_eq(
+  $$
+    select storage_path from public.play_photos
+    where play_id = '90000000-0000-0000-0000-000000000001'
+    order by position
+  $$,
+  $$values
+    ('90000000-0000-0000-0000-000000000001/photo-2.webp'),
+    ('90000000-0000-0000-0000-000000000001/photo-1.webp')
+  $$,
+  '276. reorder actually swaps stored positions'
+);
+
+select throws_ok(
+  $$
+    select public.reorder_play_photos(
+      '90000000-0000-0000-0000-000000000001',
+      array['00000000-0000-0000-0000-000000000000'::uuid]
+    )
+  $$,
+  '22023',
+  null,
+  '277. reorder rejects a photo id list that does not match existing photos'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select throws_ok(
+  $$
+    select public.reorder_play_photos(
+      '90000000-0000-0000-0000-000000000001',
+      (
+        select array_agg(id) from public.play_photos
+        where play_id = '90000000-0000-0000-0000-000000000001'
+      )
+    )
+  $$,
+  '42501',
+  null,
+  '278. an unrelated member cannot reorder someone else''s play photos'
+);
+reset role;
+
+select results_eq(
+  $$
+    select public, file_size_limit, allowed_mime_types
+    from storage.buckets
+    where id = 'play-photos'
+  $$,
+  $$values (false, 2097152::bigint, array['image/webp','image/jpeg']::text[])$$,
+  '279. play-photos bucket is private with the expected size/type limits'
+);
+
+insert into storage.objects (bucket_id, name)
+values ('play-photos', '90000000-0000-0000-0000-000000000001/existing.webp');
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select cmp_ok(
+  (select count(*)::bigint from storage.objects where bucket_id = 'play-photos'),
+  '>=',
+  1::bigint,
+  '280. an active member can list objects in the play-photos bucket'
+);
+
+select lives_ok(
+  $$
+    insert into storage.objects (bucket_id, name)
+    values ('play-photos', '90000000-0000-0000-0000-000000000001/owner-upload.webp')
+  $$,
+  '281. the play owner can insert an object under their play''s folder'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select throws_ok(
+  $$
+    insert into storage.objects (bucket_id, name)
+    values ('play-photos', '90000000-0000-0000-0000-000000000001/intruder-upload.webp')
+  $$,
+  '42501',
+  null,
+  '282. an unrelated member cannot insert an object under someone else''s play folder'
+);
+
+-- Supabase's own storage.protect_delete() trigger blocks ANY direct SQL
+-- DELETE on storage.objects (for every role, not just this one) — real
+-- deletes must go through the Storage API, which is what
+-- play_photos_storage_delete_owner_or_admin actually gates. A raw DELETE
+-- can't reach that policy at all, so this only re-confirms the built-in
+-- guard is in place rather than testing our own authorization.
+select throws_ok(
+  $$
+    delete from storage.objects
+    where bucket_id = 'play-photos'
+      and name = '90000000-0000-0000-0000-000000000001/existing.webp'
+  $$,
+  '42501',
+  null,
+  '283. direct SQL deletes on storage.objects are always blocked; deletion goes through the Storage API'
 );
 reset role;
 

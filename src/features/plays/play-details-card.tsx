@@ -255,6 +255,42 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
           </p>
         </Panel>
       ) : null}
+
+      {play.photos.length > 0 ? (
+        <Panel
+          className="anim-rise-in paper-wash p-4 sm:p-5"
+          style={{
+            animationDelay: `${35 * (2 + (play.comment ? 1 : 0) + (play.stateNote ? 1 : 0))}ms`,
+          }}
+        >
+          <p className="text-accent text-[0.56rem] font-bold tracking-[0.18em] uppercase">
+            Galeria
+          </p>
+          <h2 className="font-display mt-1 text-[1.25rem] font-semibold text-[#4c3528]">
+            Zdjęcia z partii
+          </h2>
+
+          <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4">
+            {play.photos.map((photo) => (
+              <a
+                key={photo.id}
+                href={photo.url}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="paper-wash block overflow-hidden rounded-[1.05rem] p-1.5"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- signed Storage URL, not a static asset */}
+                <img
+                  src={photo.url}
+                  alt=""
+                  loading="lazy"
+                  className="aspect-square w-full rounded-[0.8rem] object-cover"
+                />
+              </a>
+            ))}
+          </div>
+        </Panel>
+      ) : null}
     </div>
   );
 }

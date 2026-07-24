@@ -521,6 +521,57 @@ export type Database = {
           },
         ]
       }
+      play_photos: {
+        Row: {
+          byte_size: number
+          created_at: string
+          created_by: string
+          height: number
+          id: string
+          play_id: string
+          position: number
+          storage_path: string
+          width: number
+        }
+        Insert: {
+          byte_size: number
+          created_at?: string
+          created_by: string
+          height: number
+          id?: string
+          play_id: string
+          position: number
+          storage_path: string
+          width: number
+        }
+        Update: {
+          byte_size?: number
+          created_at?: string
+          created_by?: string
+          height?: number
+          id?: string
+          play_id?: string
+          position?: number
+          storage_path?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "play_photos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "play_photos_play_id_fkey"
+            columns: ["play_id"]
+            isOneToOne: false
+            referencedRelation: "plays"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plays: {
         Row: {
           comment: string | null
@@ -975,6 +1026,10 @@ export type Database = {
           display_name: string
           id: string
         }[]
+      }
+      reorder_play_photos: {
+        Args: { p_photo_ids: string[]; p_play_id: string }
+        Returns: undefined
       }
       set_active_class: { Args: { p_class_key: string }; Returns: string }
       update_game_with_expansions: {

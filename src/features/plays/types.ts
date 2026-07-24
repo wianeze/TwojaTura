@@ -43,6 +43,15 @@ export type PlayMeetingRef = {
   location: string | null;
 };
 
+export type PlayPhoto = {
+  id: string;
+  url: string;
+  position: number;
+  width: number;
+  height: number;
+  byteSize: number;
+};
+
 export type PlayListItem = {
   id: string;
   playedAt: string;
@@ -61,7 +70,9 @@ export type PlayListItem = {
   canEdit: boolean;
 };
 
-export type PlayDetails = PlayListItem;
+export type PlayDetails = PlayListItem & {
+  photos: PlayPhoto[];
+};
 
 export type ChronicleMonthGroup = {
   key: string;

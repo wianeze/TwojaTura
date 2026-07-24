@@ -48,6 +48,7 @@ export default async function EditPlayPage({
         className="anim-rise-in-fast paper-wash p-4 sm:p-5"
       >
         <PlayForm
+          mode="edit"
           action={updatePlayAction.bind(null, id)}
           initialValues={formData.initialValues}
           games={formData.games}
@@ -55,6 +56,8 @@ export default async function EditPlayPage({
           members={formData.members}
           submitLabel="Zapisz zmiany"
           pendingLabel="Zapisywanie..."
+          playId={id}
+          initialPhotos={formData.play.photos}
         />
       </Panel>
     </div>

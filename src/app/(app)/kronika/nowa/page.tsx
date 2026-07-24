@@ -47,6 +47,7 @@ export default async function NewPlayPage({
         className="anim-rise-in-fast paper-wash p-4 sm:p-5"
       >
         <PlayForm
+          mode="create"
           action={createPlayAction}
           initialValues={formData.initialValues}
           games={formData.games}

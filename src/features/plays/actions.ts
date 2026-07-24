@@ -229,19 +229,32 @@ function revalidatePlaySurfaces(params: {
   }
 }
 
+export type CreatePlayActionResult =
+  | { ok: true; playId: string }
+  | { ok: false; formState: PlayFormState };
+
+/**
+ * Unlike updatePlayAction, this never redirects: the client needs the
+ * created play_id back so it can upload any photos staged before the play
+ * existed, and only navigate to the details page once that finishes (or the
+ * user has seen which photos failed and can retry without a duplicate
+ * play).
+ */
 export async function createPlayAction(
-  _state: PlayFormState,
   formData: FormData,
-): Promise<PlayFormState> {
+): Promise<CreatePlayActionResult> {
   const access = await requireActiveMember();
   if (!access.ok) {
-    return { status: "error", message: access.message };
+    return {
+      ok: false,
+      formState: { status: "error", message: access.message },
+    };
   }
 
   const activeMemberIds = await getActiveMemberIds(access.supabase);
   const validation = validatePlayFormData(formData, activeMemberIds);
   if (!validation.ok) {
-    return toPlayFormErrorState(validation);
+    return { ok: false, formState: toPlayFormErrorState(validation) };
   }
 
   const { data, error } = await callCreatePlayWithParticipants(
@@ -251,8 +264,11 @@ export async function createPlayAction(
 
   if (error || !data) {
     return {
-      status: "error",
-      message: mapPlayDatabaseError(error ?? {}),
+      ok: false,
+      formState: {
+        status: "error",
+        message: mapPlayDatabaseError(error ?? {}),
+      },
     };
   }
 
@@ -264,7 +280,7 @@ export async function createPlayAction(
     );
 
     if (!award.ok) {
-      return { status: "error", message: award.message };
+      return { ok: false, formState: { status: "error", message: award.message } };
     }
   }
 
@@ -277,7 +293,7 @@ export async function createPlayAction(
     ),
   });
 
-  redirect(`/kronika/${data}`);
+  return { ok: true, playId: data };
 }
 
 export async function updatePlayAction(
@@ -350,6 +366,34 @@ export async function updatePlayAction(
   redirect(`/kronika/${playId}`);
 }
 
+async function removePlayPhotoFiles(
+  supabase: SupabaseServerClient,
+  playId: string,
+) {
+  const { data: photos } = await supabase
+    .from("play_photos")
+    .select("storage_path")
+    .eq("play_id", playId);
+
+  const storagePaths = (photos ?? []).map((photo) => photo.storage_path);
+
+  if (storagePaths.length === 0) return;
+
+  // Best-effort: a play the user is entitled to delete should not be stuck
+  // just because Storage had a transient failure. The reconciliation sweep
+  // (Etap C4) is the safety net for whatever this misses.
+  const { error } = await supabase.storage
+    .from("play-photos")
+    .remove(storagePaths);
+
+  if (error) {
+    console.error(
+      `Nie udało się usunąć zdjęć partii ${playId} ze Storage:`,
+      error,
+    );
+  }
+}
+
 export async function deletePlayAction(playId: string) {
   const access = await requireActiveMember();
   if (!access.ok) {
@@ -357,6 +401,7 @@ export async function deletePlayAction(playId: string) {
   }
 
   const snapshot = await getPlayRevalidationSnapshot(access.supabase, playId);
+  await removePlayPhotoFiles(access.supabase, playId);
 
   const { data, error } = await access.supabase
     .from("plays")

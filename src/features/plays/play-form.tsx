@@ -1,28 +1,55 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useMemo, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { MeetingDateField } from "@/features/meetings/meeting-date-field";
 import { getMeetingOptionDisplayLabel } from "./formatting";
 import { INITIAL_PLAY_FORM_STATE } from "./form-state";
 import { PlayParticipantsField } from "./play-participants-field";
 import { PlayPicker, type CompactPickerOption } from "./play-picker";
+import { PlayPhotoDraftsField } from "./play-photo-drafts-field";
+import { PlayPhotosField } from "./play-photos-field";
 import { PlaySubmitButton } from "./play-submit-button";
+import { reorderPlayPhotosAction } from "./photo-actions";
+import {
+  applyDraftUploadResult,
+  selectDraftsToUpload,
+  uploadStagedPhotos,
+  type PhotoDraft,
+} from "./photo-upload";
+import type { CreatePlayActionResult } from "./actions";
 import type {
   PlayFormData,
   PlayFormState,
   PlayFormValues,
+  PlayPhoto,
   PlayStatus,
 } from "./types";
 
 type PlayFormProps = {
-  action: (state: PlayFormState, formData: FormData) => Promise<PlayFormState>;
   initialValues: PlayFormValues;
   games: PlayFormData["games"];
   meetings: PlayFormData["meetings"];
   members: PlayFormData["members"];
   submitLabel: string;
   pendingLabel: string;
-};
+} & (
+  | {
+      mode: "edit";
+      action: (
+        state: PlayFormState,
+        formData: FormData,
+      ) => Promise<PlayFormState>;
+      playId: string;
+      initialPhotos: PlayPhoto[];
+    }
+  | {
+      mode: "create";
+      action: (formData: FormData) => Promise<CreatePlayActionResult>;
+    }
+);
+
+type SubmitPhase = "idle" | "saving-play" | "uploading-photos";
 
 function FieldError({ error }: { error?: string }) {
   if (!error) return null;
@@ -100,17 +127,37 @@ function ProgressiveCommentField({
   );
 }
 
-export function PlayForm({
-  action,
-  initialValues,
-  games,
-  meetings,
-  members,
-  submitLabel,
-  pendingLabel,
-}: PlayFormProps) {
-  const [state, formAction] = useActionState(action, INITIAL_PLAY_FORM_STATE);
-  const values = state.submittedValues ?? initialValues;
+async function noopEditAction(state: PlayFormState): Promise<PlayFormState> {
+  return state;
+}
+
+export function PlayForm(props: PlayFormProps) {
+  const { initialValues, games, meetings, members, submitLabel, pendingLabel } =
+    props;
+  const isCreateMode = props.mode === "create";
+  const router = useRouter();
+
+  // Edit mode's existing action/redirect flow is untouched — it's driven by
+  // useActionState. In create mode this hook call is a required no-op
+  // (rules of hooks: it must run every render regardless of mode) since the
+  // create <form> below uses onSubmit instead, so it can upload staged
+  // photos and navigate only after the play is created.
+  const [editState, editFormAction] = useActionState(
+    props.mode === "edit" ? props.action : noopEditAction,
+    INITIAL_PLAY_FORM_STATE,
+  );
+
+  const [createFormState, setCreateFormState] = useState<PlayFormState>(
+    INITIAL_PLAY_FORM_STATE,
+  );
+  const [isCreateSubmitting, setIsCreateSubmitting] = useState(false);
+  const [submitPhase, setSubmitPhase] = useState<SubmitPhase>("idle");
+  const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
+  const [createdPlayId, setCreatedPlayId] = useState<string | null>(null);
+  const [photoDrafts, setPhotoDrafts] = useState<PhotoDraft[]>([]);
+
+  const formState = isCreateMode ? createFormState : editState;
+  const values = formState.submittedValues ?? initialValues;
   const [status, setStatus] = useState<PlayStatus>(values.status);
 
   const inputClass =
@@ -144,137 +191,272 @@ export function PlayForm({
     [meetings],
   );
 
-  return (
-    <form action={formAction} className="space-y-5">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
-        <PlayPicker
-          key={`game-${values.gameId || "empty"}`}
-          name="gameId"
-          label="Gra"
-          placeholder="Szukaj gry..."
-          emptyLabel="Brak pasujących gier."
-          options={gameOptions}
-          defaultValue={values.gameId}
-          error={state.fieldErrors?.gameId}
-          required
-        />
+  async function handleCreateSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (props.mode !== "create") return;
+    if (isCreateSubmitting) return;
 
-        <PlayPicker
-          key={`meeting-${values.meetingId || "empty"}`}
-          name="meetingId"
-          label="Spotkanie opcjonalne"
-          placeholder="Spotkanie albo partia spontaniczna"
-          emptyLabel="Brak pasujących spotkań."
-          options={meetingOptions}
-          defaultValue={values.meetingId}
-          error={state.fieldErrors?.meetingId}
-          allowClear
-        />
-      </div>
+    setIsCreateSubmitting(true);
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-        <MeetingDateField
-          key={`played-${values.playedOnDate}`}
-          name="playedOnDate"
-          label="Data"
-          defaultValue={values.playedOnDate}
-          error={state.fieldErrors?.playedOnDate}
-          inputClassName={inputClass}
-        />
+    let playId = createdPlayId;
 
-        <label className="block text-sm font-semibold text-[#503828]">
-          Godzina
-          <input
-            className={inputClass}
-            name="playedOnTime"
-            defaultValue={values.playedOnTime}
-            placeholder="HH:mm"
-            inputMode="numeric"
+    if (!playId) {
+      setSubmitPhase("saving-play");
+      setCreateFormState(INITIAL_PLAY_FORM_STATE);
+
+      const formData = new FormData(event.currentTarget);
+      const result = await props.action(formData);
+
+      if (!result.ok) {
+        setCreateFormState(result.formState);
+        setIsCreateSubmitting(false);
+        setSubmitPhase("idle");
+        return;
+      }
+
+      playId = result.playId;
+      setCreatedPlayId(playId);
+    }
+
+    const draftsToUpload = selectDraftsToUpload(photoDrafts);
+    let allSucceeded = true;
+
+    if (draftsToUpload.length > 0) {
+      setSubmitPhase("uploading-photos");
+      let doneCount = photoDrafts.length - draftsToUpload.length;
+      setUploadProgress({ done: doneCount, total: photoDrafts.length });
+
+      const uploadingIds = new Set(draftsToUpload.map((draft) => draft.id));
+      setPhotoDrafts((current) =>
+        current.map((draft) =>
+          uploadingIds.has(draft.id)
+            ? { ...draft, status: "uploading" as const }
+            : draft,
+        ),
+      );
+
+      await uploadStagedPhotos({
+        playId,
+        items: draftsToUpload.map((draft) => ({
+          id: draft.id,
+          compressed: draft.compressed!,
+        })),
+        onItemResult: (draftId, result) => {
+          setPhotoDrafts((current) =>
+            applyDraftUploadResult(current, draftId, result),
+          );
+
+          if (result.ok) {
+            doneCount += 1;
+            setUploadProgress((current) => ({ ...current, done: doneCount }));
+          } else {
+            allSucceeded = false;
+          }
+        },
+      });
+    }
+
+    setIsCreateSubmitting(false);
+    setSubmitPhase("idle");
+
+    if (!allSucceeded) return;
+
+    if (draftsToUpload.length > 0) {
+      // Concurrent uploads can finish out of order, and a photo's position
+      // is auto-assigned by insertion order — this locks the final order
+      // back to what the user staged.
+      await reorderPlayPhotosAction(
+        playId,
+        photoDrafts.map((draft) => draft.id),
+      );
+    }
+
+    router.push(`/kronika/${playId}`);
+  }
+
+  const nonPhotoFieldsDisabled =
+    isCreateMode && (isCreateSubmitting || Boolean(createdPlayId));
+  const baseLabel = status === "in_progress" ? "Zapisz grę w toku" : submitLabel;
+  const submitButtonLabel =
+    isCreateMode && createdPlayId ? "Wyślij zdjęcia ponownie" : baseLabel;
+  const submitButtonPendingLabel = isCreateMode
+    ? submitPhase === "saving-play"
+      ? "Zapisywanie partii…"
+      : submitPhase === "uploading-photos"
+        ? `Wysyłanie zdjęć ${uploadProgress.done}/${uploadProgress.total}…`
+        : pendingLabel
+    : pendingLabel;
+
+  const formFields = (
+    <>
+      <fieldset disabled={nonPhotoFieldsDisabled} className="space-y-5">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
+          <PlayPicker
+            key={`game-${values.gameId || "empty"}`}
+            name="gameId"
+            label="Gra"
+            placeholder="Szukaj gry..."
+            emptyLabel="Brak pasujących gier."
+            options={gameOptions}
+            defaultValue={values.gameId}
+            error={formState.fieldErrors?.gameId}
+            required
           />
-          <FieldError error={state.fieldErrors?.playedOnTime} />
-        </label>
 
-        <label className="col-span-2 block text-sm font-semibold text-[#503828] sm:col-span-1">
-          Czas gry
-          <input
-            className={inputClass}
-            name="durationMinutes"
-            defaultValue={values.durationMinutes}
-            placeholder="np. 90"
-            inputMode="numeric"
+          <PlayPicker
+            key={`meeting-${values.meetingId || "empty"}`}
+            name="meetingId"
+            label="Spotkanie opcjonalne"
+            placeholder="Spotkanie albo partia spontaniczna"
+            emptyLabel="Brak pasujących spotkań."
+            options={meetingOptions}
+            defaultValue={values.meetingId}
+            error={formState.fieldErrors?.meetingId}
+            allowClear
           />
-          <FieldError error={state.fieldErrors?.durationMinutes} />
-        </label>
-      </div>
-
-      <section className="space-y-2.5">
-        <div>
-          <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
-            Stan gry
-          </p>
-          <h2 className="font-display mt-1 text-[1.3rem] font-semibold text-[#4c3528]">
-            Zapisz jako
-          </h2>
         </div>
 
-        <PlayStatusToggle status={status} onChange={setStatus} />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+          <MeetingDateField
+            key={`played-${values.playedOnDate}`}
+            name="playedOnDate"
+            label="Data"
+            defaultValue={values.playedOnDate}
+            error={formState.fieldErrors?.playedOnDate}
+            inputClassName={inputClass}
+          />
 
-        {status === "in_progress" ? (
           <label className="block text-sm font-semibold text-[#503828]">
-            Notatka o stanie gry
-            <textarea
-              className={textareaClass}
-              name="stateNote"
-              defaultValue={values.stateNote}
-              placeholder="np. Runda 3 z 5, wracamy do gry jutro wieczorem"
-              required
+            Godzina
+            <input
+              className={inputClass}
+              name="playedOnTime"
+              defaultValue={values.playedOnTime}
+              placeholder="HH:mm"
+              inputMode="numeric"
             />
-            <FieldError error={state.fieldErrors?.stateNote} />
+            <FieldError error={formState.fieldErrors?.playedOnTime} />
           </label>
-        ) : null}
-      </section>
 
-      <section className="space-y-2.5">
-        <div>
-          <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
-            Gracze
-          </p>
-          <h2 className="font-display mt-1 text-[1.3rem] font-semibold text-[#4c3528]">
-            Wynik partii
-          </h2>
+          <label className="col-span-2 block text-sm font-semibold text-[#503828] sm:col-span-1">
+            Czas gry
+            <input
+              className={inputClass}
+              name="durationMinutes"
+              defaultValue={values.durationMinutes}
+              placeholder="np. 90"
+              inputMode="numeric"
+            />
+            <FieldError error={formState.fieldErrors?.durationMinutes} />
+          </label>
         </div>
 
-        <PlayParticipantsField
-          key={`participants-${JSON.stringify(values.participants)}`}
-          members={members}
-          defaultValue={values.participants}
-          status={status}
-          error={state.fieldErrors?.participants}
-          participantErrors={state.participantFieldErrors}
-        />
-      </section>
+        <section className="space-y-2.5">
+          <div>
+            <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
+              Stan gry
+            </p>
+            <h2 className="font-display mt-1 text-[1.3rem] font-semibold text-[#4c3528]">
+              Zapisz jako
+            </h2>
+          </div>
 
-      <section className="space-y-2">
-        <ProgressiveCommentField
-          key={`comment-${values.comment}`}
-          defaultValue={values.comment}
-          error={state.fieldErrors?.comment}
-          textareaClass={textareaClass}
-        />
-      </section>
+          <PlayStatusToggle status={status} onChange={setStatus} />
 
-      {state.message && state.status === "error" ? (
+          {status === "in_progress" ? (
+            <label className="block text-sm font-semibold text-[#503828]">
+              Notatka o stanie gry
+              <textarea
+                className={textareaClass}
+                name="stateNote"
+                defaultValue={values.stateNote}
+                placeholder="np. Runda 3 z 5, wracamy do gry jutro wieczorem"
+                required
+              />
+              <FieldError error={formState.fieldErrors?.stateNote} />
+            </label>
+          ) : null}
+        </section>
+
+        <section className="space-y-2.5">
+          <div>
+            <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
+              Gracze
+            </p>
+            <h2 className="font-display mt-1 text-[1.3rem] font-semibold text-[#4c3528]">
+              Wynik partii
+            </h2>
+          </div>
+
+          <PlayParticipantsField
+            key={`participants-${JSON.stringify(values.participants)}`}
+            members={members}
+            defaultValue={values.participants}
+            status={status}
+            error={formState.fieldErrors?.participants}
+            participantErrors={formState.participantFieldErrors}
+          />
+        </section>
+
+        <section className="space-y-2">
+          <ProgressiveCommentField
+            key={`comment-${values.comment}`}
+            defaultValue={values.comment}
+            error={formState.fieldErrors?.comment}
+            textareaClass={textareaClass}
+          />
+        </section>
+      </fieldset>
+
+      {isCreateMode ? (
+        <section>
+          {createdPlayId ? (
+            <p className="mb-2.5 rounded-xl bg-moss-soft px-3 py-2 text-xs font-semibold text-moss">
+              Partia została zapisana. Dokończ wysyłanie zdjęć poniżej.
+            </p>
+          ) : null}
+          <PlayPhotoDraftsField
+            drafts={photoDrafts}
+            onDraftsChange={setPhotoDrafts}
+            disabled={isCreateSubmitting}
+          />
+        </section>
+      ) : props.mode === "edit" ? (
+        <section>
+          <PlayPhotosField
+            playId={props.playId}
+            initialPhotos={props.initialPhotos}
+          />
+        </section>
+      ) : null}
+
+      {formState.message && formState.status === "error" ? (
         <div className="rounded-xl border border-[#8f3528]/18 bg-[#fff2ef] px-4 py-3 text-sm text-[#7b3428]">
-          {state.message}
+          {formState.message}
         </div>
       ) : null}
 
       <div className="flex flex-wrap items-center justify-end gap-3">
         <PlaySubmitButton
-          label={status === "in_progress" ? "Zapisz grę w toku" : submitLabel}
-          pendingLabel={pendingLabel}
+          label={submitButtonLabel}
+          pendingLabel={submitButtonPendingLabel}
+          pendingOverride={isCreateMode ? isCreateSubmitting : undefined}
         />
       </div>
+    </>
+  );
+
+  if (isCreateMode) {
+    return (
+      <form onSubmit={handleCreateSubmit} className="space-y-5">
+        {formFields}
+      </form>
+    );
+  }
+
+  return (
+    <form action={editFormAction} className="space-y-5">
+      {formFields}
     </form>
   );
 }
