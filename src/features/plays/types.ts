@@ -27,6 +27,8 @@ export type PlayParticipantResult = {
   isWinner: boolean;
 };
 
+export type PlayStatus = "in_progress" | "completed";
+
 export type PlayGameRef = {
   id: string;
   title: string;
@@ -46,6 +48,8 @@ export type PlayListItem = {
   playedAt: string;
   durationMinutes: number | null;
   comment: string | null;
+  status: PlayStatus;
+  stateNote: string | null;
   createdAt: string;
   updatedAt: string;
   game: PlayGameRef;
@@ -74,6 +78,7 @@ export type RecentPlaySummary = {
   placement: number | null;
   score: number | null;
   winners: PlayMember[];
+  status: PlayStatus;
 };
 
 export type PlayFormGameOption = {
@@ -98,6 +103,8 @@ export type PlayFormValues = {
   playedOnTime: string;
   durationMinutes: string;
   comment: string;
+  status: PlayStatus;
+  stateNote: string;
   participants: PlayParticipantDraft[];
 };
 
@@ -108,7 +115,9 @@ export type PlayFormFieldName =
   | "playedOnTime"
   | "durationMinutes"
   | "participants"
-  | "comment";
+  | "comment"
+  | "status"
+  | "stateNote";
 
 export type PlayFormState = {
   status: "idle" | "error" | "success";

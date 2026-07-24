@@ -11,8 +11,14 @@ import type {
   PlayListItem,
   PlayMember,
   PlayParticipantResult,
+  PlayStatus,
   RecentPlaySummary,
 } from "./types";
+
+export const PLAY_STATUS_LABELS: Record<PlayStatus, string> = {
+  in_progress: "W toku",
+  completed: "Zakończona",
+};
 
 const dateTimeFormatter = new Intl.DateTimeFormat("pl-PL", {
   day: "2-digit",
@@ -136,6 +142,11 @@ export function getWinnerSummary(winners: PlayMember[]) {
   if (winners.length === 0) return "Brak zwycięzcy";
   if (winners.length === 1) return winners[0]!.displayName;
   return winners.map((winner) => winner.displayName).join(", ");
+}
+
+export function getPlayResultLabel(status: PlayStatus, winners: PlayMember[]) {
+  if (status === "in_progress") return PLAY_STATUS_LABELS.in_progress;
+  return getWinnerSummary(winners);
 }
 
 export function getPlayPodium(participants: PlayParticipantResult[]): Array<{
@@ -264,7 +275,12 @@ export function sortPlaysByPlayedAtDesc<T extends { playedAt: string }>(
 export function getPlayFormValues(
   play?: Pick<
     PlayDetails,
-    "playedAt" | "durationMinutes" | "comment" | "participants"
+    | "playedAt"
+    | "durationMinutes"
+    | "comment"
+    | "status"
+    | "stateNote"
+    | "participants"
   > & {
     game: { id: string };
     meeting: { id: string } | null;
@@ -282,6 +298,8 @@ export function getPlayFormValues(
       playedOnTime: zoned ? `${zoned.hour}:${zoned.minute}` : "18:00",
       durationMinutes: "",
       comment: "",
+      status: "completed",
+      stateNote: "",
       participants: [],
     };
   }
@@ -295,6 +313,8 @@ export function getPlayFormValues(
     playedOnTime: `${zoned.hour}:${zoned.minute}`,
     durationMinutes: play.durationMinutes ? String(play.durationMinutes) : "",
     comment: play.comment ?? "",
+    status: play.status,
+    stateNote: play.stateNote ?? "",
     participants: play.participants.map((participant) => ({
       userId: participant.member.id,
       isWinner: participant.isWinner,
@@ -345,6 +365,7 @@ export function toRecentPlaySummary(
     placement: ownResult?.placement ?? null,
     score: ownResult?.score ?? null,
     winners: play.winners,
+    status: play.status,
   };
 }
 

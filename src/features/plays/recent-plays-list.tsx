@@ -5,7 +5,7 @@ import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import {
   formatPlayScore,
   formatPlayShortDate,
-  getWinnerSummary,
+  getPlayResultLabel,
 } from "./formatting";
 import type { PlayListItem, RecentPlaySummary } from "./types";
 
@@ -33,7 +33,7 @@ export function GameRecentPlaysList({ items }: { items: PlayListItem[] }) {
                 {formatPlayShortDate(item.playedAt)}
               </span>
               <span className="text-[#6a4d36]">
-                {getWinnerSummary(item.winners)}
+                {getPlayResultLabel(item.status, item.winners)}
               </span>
             </div>
             <p className="text-muted mt-1 text-xs">
@@ -61,7 +61,9 @@ export function RecentMemberPlaysPanel({
 }) {
   return (
     <Panel
-      style={{ animationDelay: `${getEntranceStaggerDelayMs(entranceIndex)}ms` }}
+      style={{
+        animationDelay: `${getEntranceStaggerDelayMs(entranceIndex)}ms`,
+      }}
       className="anim-rise-in-fast paper-wash p-4 sm:p-5"
     >
       <div className="flex items-center justify-between gap-3">
@@ -111,18 +113,27 @@ export function RecentMemberPlaysPanel({
                         {formatPlayShortDate(item.playedAt)}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-[#5f4738]">
-                      {item.isWinner ? "Zwycięstwo" : "Udział"} ·{" "}
-                      {item.placement
-                        ? `${item.placement}. miejsce`
-                        : "bez miejsca"}
-                      {item.score !== null
-                        ? ` · ${formatPlayScore(item.score)}`
-                        : ""}
-                    </p>
-                    <p className="text-muted mt-1 text-xs">
-                      Zwycięzca: {getWinnerSummary(item.winners)}
-                    </p>
+                    {item.status === "in_progress" ? (
+                      <p className="mt-1 text-xs text-[#5f4738]">
+                        {getPlayResultLabel(item.status, item.winners)}
+                      </p>
+                    ) : (
+                      <>
+                        <p className="mt-1 text-xs text-[#5f4738]">
+                          {item.isWinner ? "Zwycięstwo" : "Udział"} ·{" "}
+                          {item.placement
+                            ? `${item.placement}. miejsce`
+                            : "bez miejsca"}
+                          {item.score !== null
+                            ? ` · ${formatPlayScore(item.score)}`
+                            : ""}
+                        </p>
+                        <p className="text-muted mt-1 text-xs">
+                          Zwycięzca:{" "}
+                          {getPlayResultLabel(item.status, item.winners)}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

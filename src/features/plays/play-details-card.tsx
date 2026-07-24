@@ -7,6 +7,7 @@ import {
   formatPlayDuration,
   formatPlayScore,
   getPlayDateBadgeParts,
+  PLAY_STATUS_LABELS,
 } from "./formatting";
 import type { PlayDetails } from "./types";
 
@@ -14,23 +15,48 @@ function PlayDetailsDateTile({
   playedAt,
   durationMinutes,
   meeting,
-}: Pick<PlayDetails, "playedAt" | "durationMinutes" | "meeting">) {
+  status,
+}: Pick<PlayDetails, "playedAt" | "durationMinutes" | "meeting" | "status">) {
   const date = getPlayDateBadgeParts(playedAt);
+  const isInProgress = status === "in_progress";
 
   return (
-    <div className="premium-edge rounded-[1.25rem] bg-[linear-gradient(180deg,rgba(255,251,244,0.96),rgba(241,229,208,0.92))] px-3 py-3 text-center shadow-[0_10px_22px_rgba(74,49,30,0.12)]">
-      <p className="text-[1.15rem] font-bold tracking-[0.03em] text-[#4d3528]">
+    <div
+      className={`premium-edge rounded-[1.25rem] px-3 py-3 text-center shadow-[0_10px_22px_rgba(74,49,30,0.12)] ${
+        isInProgress
+          ? "bg-[linear-gradient(145deg,rgba(246,226,177,0.98),rgba(235,208,135,0.96))] ring-1 ring-[#d1a64a]/35"
+          : "bg-[linear-gradient(180deg,rgba(255,251,244,0.96),rgba(241,229,208,0.92))]"
+      }`}
+    >
+      {isInProgress ? (
+        <span className="mb-2 inline-flex max-w-full items-center justify-center rounded-full bg-[#fff4cf] px-2 py-0.75 text-center text-[0.62rem] leading-4 font-bold text-[#775919]">
+          {PLAY_STATUS_LABELS.in_progress}
+        </span>
+      ) : null}
+      <p
+        className={`text-[1.15rem] font-bold tracking-[0.03em] ${isInProgress ? "text-[#5f461d]" : "text-[#4d3528]"}`}
+      >
         {date.day}/{date.month}
       </p>
-      <p className="text-[0.62rem] font-semibold tracking-[0.16em] text-[#9b7249] uppercase">
+      <p
+        className={`text-[0.62rem] font-semibold tracking-[0.16em] uppercase ${isInProgress ? "text-[#6c5125]" : "text-[#9b7249]"}`}
+      >
         {date.year}
       </p>
-      <p className="mt-1.5 text-[0.82rem] font-semibold text-[#6b5242]">
+      <p
+        className={`mt-1.5 text-[0.82rem] font-semibold ${isInProgress ? "text-[#6c5125]" : "text-[#6b5242]"}`}
+      >
         {date.time}
       </p>
 
       {durationMinutes ? (
-        <span className="mt-2 inline-flex rounded-full bg-[#ead7b6] px-2 py-0.75 text-[0.64rem] font-semibold text-[#705338]">
+        <span
+          className={`mt-2 inline-flex rounded-full px-2 py-0.75 text-[0.64rem] font-semibold ${
+            isInProgress
+              ? "bg-[#fff4cf] text-[#775919]"
+              : "bg-[#ead7b6] text-[#705338]"
+          }`}
+        >
           {formatPlayDuration(durationMinutes)}
         </span>
       ) : null}
@@ -38,7 +64,9 @@ function PlayDetailsDateTile({
       {meeting ? (
         <Link
           href={`/kalendarium/${meeting.id}`}
-          className="mt-2 block text-[0.66rem] leading-4 font-semibold text-[#705338] underline decoration-[#b37a46]/35 underline-offset-3"
+          className={`mt-2 block text-[0.66rem] leading-4 font-semibold underline decoration-[#b37a46]/35 underline-offset-3 ${
+            isInProgress ? "text-[#6c5125]" : "text-[#705338]"
+          }`}
         >
           {meeting.title}
         </Link>
@@ -65,7 +93,7 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
               href={`/kronika/${play.id}/edytuj`}
               className="rounded-full bg-[#7d2f3d] px-4 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
             >
-              Edytuj
+              {play.status === "in_progress" ? "Wznów grę" : "Edytuj"}
             </Link>
           </div>
         ) : null}
@@ -92,6 +120,7 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
                   playedAt={play.playedAt}
                   durationMinutes={play.durationMinutes}
                   meeting={play.meeting}
+                  status={play.status}
                 />
               </div>
             </div>
@@ -137,6 +166,7 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
               playedAt={play.playedAt}
               durationMinutes={play.durationMinutes}
               meeting={play.meeting}
+              status={play.status}
             />
           </div>
         </div>
@@ -208,6 +238,20 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
           </p>
           <p className="mt-2 text-sm leading-6 text-[#5d4737]">
             {play.comment}
+          </p>
+        </Panel>
+      ) : null}
+
+      {play.stateNote ? (
+        <Panel
+          className="anim-rise-in paper-wash p-4 sm:p-5"
+          style={{ animationDelay: play.comment ? "105ms" : "70ms" }}
+        >
+          <p className="text-accent text-[0.56rem] font-bold tracking-[0.18em] uppercase">
+            Stan gry
+          </p>
+          <p className="mt-2 text-sm leading-6 text-[#5d4737]">
+            {play.stateNote}
           </p>
         </Panel>
       ) : null}

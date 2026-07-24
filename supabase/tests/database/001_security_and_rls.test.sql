@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(253);
+select plan(264);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -3949,6 +3949,218 @@ select results_eq(
   $$values (1::bigint, 0::bigint)$$,
   '253. three cooperative 1/1/1 wins award dark_urge without natural_one'
 );
+
+-- 254-264: in_progress -> completed play status lifecycle.
+insert into auth.users (
+  instance_id,
+  id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  confirmation_token,
+  recovery_token,
+  email_change,
+  email_change_token_new,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at
+)
+values (
+  '00000000-0000-0000-0000-000000000000',
+  '10000000-0000-0000-0000-000000000011',
+  'authenticated', 'authenticated', 'in-progress-tester@twojatura.local',
+  extensions.crypt('TwojaTura123!', extensions.gen_salt('bf')),
+  '2026-01-01 10:00:00+00', '', '', '', '',
+  '{"provider":"email","providers":["email"]}',
+  '{"display_name":"In Progress Tester"}',
+  '2026-01-01 10:00:00+00', '2026-01-01 10:00:00+00'
+);
+
+insert into public.profiles (id, display_name, email)
+values (
+  '10000000-0000-0000-0000-000000000011',
+  'In Progress Tester',
+  'in-progress-tester@twojatura.local'
+);
+
+insert into public.app_members (user_id, role, is_active)
+values ('10000000-0000-0000-0000-000000000011', 'member', true);
+
+-- 24 already-completed plays so a 25th, still in_progress, play must not
+-- unlock coast_chronicler until it is actually completed.
+insert into public.plays (id, game_id, created_by, played_at, status)
+select
+  md5('in-progress-history-' || series.value)::uuid,
+  '30000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000011',
+  '2026-09-01 12:00:00+00'::timestamptz + series.value * interval '1 day',
+  'completed'
+from generate_series(1, 24) as series(value);
+
+insert into public.play_participants (play_id, user_id, placement, is_winner)
+select
+  md5('in-progress-history-' || series.value)::uuid,
+  '10000000-0000-0000-0000-000000000011',
+  1,
+  true
+from generate_series(1, 24) as series(value);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000011","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select throws_ok(
+  $$
+    select public.create_play_with_participants(
+      p_game_id := '30000000-0000-0000-0000-000000000001',
+      p_played_at := '2026-10-01 18:00:00+00'::timestamptz,
+      p_participants := '[]'::jsonb,
+      p_status := 'in_progress',
+      p_state_note := 'Brak graczy'
+    )
+  $$,
+  '23514',
+  null,
+  '254. in_progress play still requires at least one participant'
+);
+
+select throws_ok(
+  $$
+    select public.create_play_with_participants(
+      p_game_id := '30000000-0000-0000-0000-000000000001',
+      p_played_at := '2026-10-01 18:00:00+00'::timestamptz,
+      p_participants := '[{"user_id":"10000000-0000-0000-0000-000000000011","is_winner":false}]'::jsonb,
+      p_status := 'completed'
+    )
+  $$,
+  '23514',
+  null,
+  '255. completed play still requires at least one winner'
+);
+
+insert into pgtap_created_plays (label, play_id)
+select
+  'in-progress-play',
+  public.create_play_with_participants(
+    p_game_id := '30000000-0000-0000-0000-000000000001',
+    p_played_at := '2026-10-01 18:00:00+00'::timestamptz,
+    p_participants := '[{"user_id":"10000000-0000-0000-0000-000000000011","is_winner":false}]'::jsonb,
+    p_status := 'in_progress',
+    p_state_note := 'Runda 3 z 5, wracamy jutro'
+  );
+
+select ok(
+  (
+    select play_id from pgtap_created_plays
+    where label = 'in-progress-play'
+  ) is not null,
+  '256. in_progress play with a participant and no winner can be created'
+);
+
+select results_eq(
+  $$
+    select awarded, points
+    from public.award_play_logged_points(
+      (select play_id from pgtap_created_plays where label = 'in-progress-play')
+    )
+  $$,
+  $$values (false, 0)$$,
+  '257. play_logged points are withheld while a play is in_progress'
+);
+
+select public.award_current_user_simple_achievements();
+
+select ok(
+  not private.has_achievement('coast_chronicler'),
+  '258. a 25th play still in_progress does not unlock coast_chronicler'
+);
+
+select lives_ok(
+  $$
+    select public.update_play_with_participants(
+      p_play_id := (
+        select play_id from pgtap_created_plays
+        where label = 'in-progress-play'
+      ),
+      p_game_id := '30000000-0000-0000-0000-000000000001',
+      p_played_at := '2026-10-01 18:00:00+00'::timestamptz,
+      p_participants := '[{"user_id":"10000000-0000-0000-0000-000000000011","is_winner":true,"placement":1}]'::jsonb,
+      p_status := 'completed'
+    )
+  $$,
+  '259. resuming and completing the same play updates it in place'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint from public.plays
+    where created_by = '10000000-0000-0000-0000-000000000011'
+  $$,
+  $$values (25::bigint)$$,
+  '260. completing the play does not create a new row'
+);
+
+select results_eq(
+  $$
+    select awarded, points
+    from public.award_play_logged_points(
+      (select play_id from pgtap_created_plays where label = 'in-progress-play')
+    )
+  $$,
+  $$values (true, 40)$$,
+  '261. play_logged points are granted exactly when the play becomes completed'
+);
+
+select results_eq(
+  $$
+    select awarded, points
+    from public.award_play_logged_points(
+      (select play_id from pgtap_created_plays where label = 'in-progress-play')
+    )
+  $$,
+  $$values (false, 40)$$,
+  '262. re-awarding play_logged points on an already-completed play is a no-op'
+);
+
+select public.award_current_user_simple_achievements();
+
+select ok(
+  private.has_achievement('coast_chronicler'),
+  '263. completing the 25th play unlocks coast_chronicler'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select throws_ok(
+  $$
+    select public.update_play_with_participants(
+      p_play_id := (
+        select play_id from pgtap_created_plays
+        where label = 'in-progress-play'
+      ),
+      p_game_id := '30000000-0000-0000-0000-000000000001',
+      p_played_at := '2026-10-01 18:00:00+00'::timestamptz,
+      p_participants := '[{"user_id":"10000000-0000-0000-0000-000000000011","is_winner":true,"placement":1}]'::jsonb,
+      p_status := 'completed'
+    )
+  $$,
+  '42501',
+  null,
+  '264. an unrelated member cannot update someone else''s play status'
+);
+reset role;
 
 select * from finish();
 rollback;

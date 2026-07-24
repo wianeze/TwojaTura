@@ -185,6 +185,8 @@ async function hydratePlayItems(
       playedAt: play.played_at,
       durationMinutes: play.duration_minutes,
       comment: play.comment,
+      status: play.status,
+      stateNote: play.state_note,
       createdAt: play.created_at,
       updatedAt: play.updated_at,
       game: {
@@ -226,7 +228,7 @@ export async function listChroniclePlays(): Promise<PlayListItem[]> {
   const { data, error } = await supabase
     .from("plays")
     .select(
-      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, created_at, updated_at",
+      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, created_at, updated_at",
     )
     .order("played_at", { ascending: false });
 
@@ -249,7 +251,7 @@ export async function getPlayDetails(
   const { data, error } = await supabase
     .from("plays")
     .select(
-      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, created_at, updated_at",
+      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, created_at, updated_at",
     )
     .eq("id", playId)
     .maybeSingle();
@@ -390,7 +392,7 @@ export async function listRecentGamePlays(
   const { data, error } = await supabase
     .from("plays")
     .select(
-      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, created_at, updated_at",
+      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, created_at, updated_at",
     )
     .eq("game_id", gameId)
     .order("played_at", { ascending: false })
@@ -426,7 +428,7 @@ export async function listRecentMemberPlays(
   const { data: playRows, error: playError } = await supabase
     .from("plays")
     .select(
-      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, created_at, updated_at",
+      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, created_at, updated_at",
     )
     .in("id", playIds)
     .order("played_at", { ascending: false })

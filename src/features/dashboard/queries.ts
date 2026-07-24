@@ -1,4 +1,5 @@
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
+import { mapActiveClassesByUser } from "@/features/legendarium/achievement-view-model";
 import {
   getMeetingVisualLabel,
   getMeetingVisualState,
@@ -38,7 +39,7 @@ type VoteRow = Pick<Tables<"meeting_game_votes">, "meeting_id" | "user_id">;
 type RankingRow = Tables<"meeting_game_rankings">;
 type GameRow = Pick<Tables<"games">, "id" | "title" | "cover_url">;
 type RatingRow = Pick<Tables<"ratings">, "game_id">;
-type PlayRow = Pick<Tables<"plays">, "id" | "game_id" | "played_at">;
+type PlayRow = Pick<Tables<"plays">, "id" | "game_id" | "played_at" | "status">;
 type PlayParticipantRow = Pick<
   Tables<"play_participants">,
   "play_id" | "user_id" | "is_winner"
@@ -171,13 +172,16 @@ function mapRecentPlayPreviews(input: {
     gameTitle: input.gamesMap.get(play.game_id)?.title ?? "Nieznana gra",
     playedAt: play.played_at,
     playersCount: playersCountByPlayId.get(play.id) ?? 0,
-    winnerLabel: formatDashboardWinnerSummary(
-      (winnersByPlayId.get(play.id) ?? []).map((displayName, index) => ({
-        id: `${play.id}:${index}`,
-        displayName,
-        avatarUrl: null,
-      })),
-    ),
+    winnerLabel:
+      play.status === "in_progress"
+        ? "W toku"
+        : formatDashboardWinnerSummary(
+            (winnersByPlayId.get(play.id) ?? []).map((displayName, index) => ({
+              id: `${play.id}:${index}`,
+              displayName,
+              avatarUrl: null,
+            })),
+          ),
     href: `/kronika/${play.id}`,
   }));
 
@@ -189,7 +193,7 @@ async function getRecentPlayPreviews(
 ) {
   const { data: playRows, error: playError } = await supabase
     .from("plays")
-    .select("id, game_id, played_at")
+    .select("id, game_id, played_at, status")
     .order("played_at", { ascending: false })
     .limit(5);
 
@@ -456,6 +460,47 @@ export async function getDashboardData(): Promise<DashboardData> {
     hasFutureMeeting: upcomingMeetings.length > 0,
   });
 
+  const leaderboardUserIds = [
+    ...new Set((leaderboardResult.data ?? []).map((entry) => entry.user_id)),
+  ];
+
+  const [classDefinitionsResult, activeClassProfilesResult] = await Promise.all(
+    [
+      supabase
+        .from("class_definitions")
+        .select(
+          "class_key, name, description, playstyle, icon_path, sort_order",
+        )
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }),
+      leaderboardUserIds.length > 0
+        ? supabase
+            .from("profiles")
+            .select("id, active_class_key")
+            .in("id", leaderboardUserIds)
+        : Promise.resolve({ data: [], error: null }),
+    ],
+  );
+
+  if (classDefinitionsResult.error || activeClassProfilesResult.error) {
+    throw new Error("Nie udało się pobrać aktywnych klas do rankingu Stołu.");
+  }
+
+  const activeClassesByUser = mapActiveClassesByUser(
+    (classDefinitionsResult.data ?? []).map((characterClass) => ({
+      classKey: characterClass.class_key,
+      name: characterClass.name,
+      description: characterClass.description,
+      playstyle: characterClass.playstyle,
+      iconPath: characterClass.icon_path,
+      sortOrder: characterClass.sort_order,
+    })),
+    (activeClassProfilesResult.data ?? []).map((profile) => ({
+      userId: profile.id,
+      activeClassKey: profile.active_class_key,
+    })),
+  );
+
   const leaderboardEntries: DashboardLeaderboardEntry[] = (
     leaderboardResult.data ?? []
   ).map((entry) => ({
@@ -464,6 +509,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     avatarUrl: entry.avatar_url,
     totalPoints: entry.total_points,
     rank: entry.rank,
+    activeClass: activeClassesByUser[entry.user_id] ?? null,
   }));
 
   return {

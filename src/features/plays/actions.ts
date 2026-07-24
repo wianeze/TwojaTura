@@ -102,12 +102,71 @@ function toPlayRpcPayload(
     p_game_id: validation.gameId,
     p_played_at: validation.playedAt,
     p_participants: participants as Json,
+    p_status: validation.status,
     ...(validation.meetingId ? { p_meeting_id: validation.meetingId } : {}),
     ...(validation.durationMinutes !== null
       ? { p_duration_minutes: validation.durationMinutes }
       : {}),
     ...(validation.comment !== null ? { p_comment: validation.comment } : {}),
+    ...(validation.stateNote !== null
+      ? { p_state_note: validation.stateNote }
+      : {}),
   } satisfies CreatePlayRpcPayload;
+}
+
+async function awardCompletedPlayRewards(
+  supabase: SupabaseServerClient,
+  playId: string,
+  hasMeeting: boolean,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const pointAward = await awardPlayPointsAfterSave(true, () =>
+    supabase.rpc("award_play_logged_points", { p_play_id: playId }),
+  );
+
+  if (!pointAward.ok) {
+    return {
+      ok: false,
+      message:
+        "Partia została zapisana, ale nie udało się naliczyć punktów. Odśwież Kronikę przed ponowną próbą.",
+    };
+  }
+
+  const achievementAward = await awardSimpleAchievementsAfterPlayCreate(() =>
+    supabase.rpc("award_current_user_simple_achievements"),
+  );
+
+  if (!achievementAward.ok) {
+    return {
+      ok: false,
+      message:
+        "Partia została zapisana, ale nie udało się sprawdzić nowych odznak. Odśwież Kronikę przed ponowną próbą.",
+    };
+  }
+
+  const campHostAward = await awardCampHostAfterPlaySave(hasMeeting, () =>
+    supabase.rpc("award_meeting_achievements", { p_play_id: playId }),
+  );
+
+  if (!campHostAward.ok) {
+    return {
+      ok: false,
+      message: "Nie udało się sprawdzić odznaki gospodarza po zapisie partii.",
+    };
+  }
+
+  const resultAchievementAward = await awardPlayResultAchievementsAfterSave(
+    () => supabase.rpc("award_play_result_achievements", { p_play_id: playId }),
+  );
+
+  if (!resultAchievementAward.ok) {
+    return {
+      ok: false,
+      message:
+        "Partia została zapisana, ale nie udało się sprawdzić odznaki za wynik. Odśwież Kronikę przed ponowną próbą.",
+    };
+  }
+
+  return { ok: true };
 }
 
 async function callCreatePlayWithParticipants(
@@ -197,61 +256,16 @@ export async function createPlayAction(
     };
   }
 
-  const pointAward = await awardPlayPointsAfterSave(true, () =>
-    access.supabase.rpc("award_play_logged_points", {
-      p_play_id: data,
-    }),
-  );
+  if (validation.data.status === "completed") {
+    const award = await awardCompletedPlayRewards(
+      access.supabase,
+      data,
+      Boolean(validation.data.meetingId),
+    );
 
-  if (!pointAward.ok) {
-    return {
-      status: "error",
-      message:
-        "Partia została zapisana, ale nie udało się naliczyć punktów. Odśwież Kronikę przed ponowną próbą.",
-    };
-  }
-
-  const achievementAward = await awardSimpleAchievementsAfterPlayCreate(() =>
-    access.supabase.rpc("award_current_user_simple_achievements"),
-  );
-
-  if (!achievementAward.ok) {
-    return {
-      status: "error",
-      message:
-        "Partia została zapisana, ale nie udało się sprawdzić nowych odznak. Odśwież Kronikę przed ponowną próbą.",
-    };
-  }
-
-  const campHostAward = await awardCampHostAfterPlaySave(
-    Boolean(validation.data.meetingId),
-    () =>
-      access.supabase.rpc("award_meeting_achievements", {
-        p_play_id: data,
-      }),
-  );
-
-  if (!campHostAward.ok) {
-    return {
-      status: "error",
-      message:
-        "Nie uda\u0142o si\u0119 sprawdzi\u0107 odznaki gospodarza po zapisie partii.",
-    };
-  }
-
-  const resultAchievementAward = await awardPlayResultAchievementsAfterSave(
-    () =>
-      access.supabase.rpc("award_play_result_achievements", {
-        p_play_id: data,
-      }),
-  );
-
-  if (!resultAchievementAward.ok) {
-    return {
-      status: "error",
-      message:
-        "Partia została zapisana, ale nie udało się sprawdzić odznaki za wynik. Odśwież Kronikę przed ponowną próbą.",
-    };
+    if (!award.ok) {
+      return { status: "error", message: award.message };
+    }
   }
 
   revalidatePlaySurfaces({
@@ -301,35 +315,16 @@ export async function updatePlayAction(
     };
   }
 
-  const resultAchievementAward = await awardPlayResultAchievementsAfterSave(
-    () =>
-      access.supabase.rpc("award_play_result_achievements", {
-        p_play_id: data,
-      }),
-  );
+  if (validation.data.status === "completed") {
+    const award = await awardCompletedPlayRewards(
+      access.supabase,
+      data,
+      Boolean(validation.data.meetingId),
+    );
 
-  if (!resultAchievementAward.ok) {
-    return {
-      status: "error",
-      message:
-        "Partia została zapisana, ale nie udało się sprawdzić odznaki za wynik. Odśwież Kronikę przed ponowną próbą.",
-    };
-  }
-
-  const campHostAward = await awardCampHostAfterPlaySave(
-    Boolean(validation.data.meetingId),
-    () =>
-      access.supabase.rpc("award_meeting_achievements", {
-        p_play_id: data,
-      }),
-  );
-
-  if (!campHostAward.ok) {
-    return {
-      status: "error",
-      message:
-        "Partia została zapisana, ale nie udało się sprawdzić odznaki gospodarza. Odśwież Kronikę przed ponowną próbą.",
-    };
+    if (!award.ok) {
+      return { status: "error", message: award.message };
+    }
   }
 
   revalidatePlaySurfaces({

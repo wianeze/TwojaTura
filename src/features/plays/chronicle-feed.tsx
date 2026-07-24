@@ -8,9 +8,10 @@ import {
   getChronicleParticipantChips,
   getPlayDateBadgeParts,
   groupPlaysByMonth,
+  PLAY_STATUS_LABELS,
   sortPlayParticipants,
 } from "./formatting";
-import type { PlayListItem, PlayParticipantResult } from "./types";
+import type { PlayListItem, PlayParticipantResult, PlayStatus } from "./types";
 
 const medalConfig = {
   1: {
@@ -40,33 +41,63 @@ function DateTile({
   playedAt,
   durationMinutes,
   meetingTitle,
+  status,
 }: {
   playedAt: string;
   durationMinutes: number | null;
   meetingTitle: string | null;
+  status: PlayStatus;
 }) {
   const date = getPlayDateBadgeParts(playedAt);
+  const isInProgress = status === "in_progress";
 
   return (
-    <div className="premium-edge flex w-[6.75rem] shrink-0 flex-col items-center rounded-[1.2rem] bg-[linear-gradient(180deg,rgba(255,251,244,0.96),rgba(241,229,208,0.92))] px-2.5 py-2.5 text-center shadow-[0_10px_22px_rgba(74,49,30,0.12)] sm:w-[7rem]">
-      <p className="text-[1.22rem] leading-none font-bold tracking-[0.03em] text-[#4d3528]">
+    <div
+      className={`premium-edge flex w-[6.75rem] shrink-0 flex-col items-center rounded-[1.2rem] px-2.5 py-2.5 text-center shadow-[0_10px_22px_rgba(74,49,30,0.12)] sm:w-[7rem] ${
+        isInProgress
+          ? "bg-[linear-gradient(145deg,rgba(246,226,177,0.98),rgba(235,208,135,0.96))] ring-1 ring-[#d1a64a]/35"
+          : "bg-[linear-gradient(180deg,rgba(255,251,244,0.96),rgba(241,229,208,0.92))]"
+      }`}
+    >
+      {isInProgress ? (
+        <span className="mb-1.5 inline-flex max-w-full items-center justify-center rounded-full bg-[#fff4cf] px-2 py-0.75 text-center text-[0.62rem] leading-4 font-bold text-[#775919]">
+          {PLAY_STATUS_LABELS.in_progress}
+        </span>
+      ) : null}
+      <p
+        className={`text-[1.22rem] leading-none font-bold tracking-[0.03em] ${isInProgress ? "text-[#5f461d]" : "text-[#4d3528]"}`}
+      >
         {date.day}/{date.month}
       </p>
-      <p className="mt-1 text-[0.62rem] leading-none font-semibold tracking-[0.16em] text-[#9b7249] uppercase">
+      <p
+        className={`mt-1 text-[0.62rem] leading-none font-semibold tracking-[0.16em] uppercase ${isInProgress ? "text-[#6c5125]" : "text-[#9b7249]"}`}
+      >
         {date.year}
       </p>
-      <p className="mt-3 text-[0.82rem] leading-none font-semibold text-[#6b5242]">
+      <p
+        className={`mt-3 text-[0.82rem] leading-none font-semibold ${isInProgress ? "text-[#6c5125]" : "text-[#6b5242]"}`}
+      >
         {date.time}
       </p>
 
       {durationMinutes ? (
-        <span className="mt-2 inline-flex max-w-full items-center justify-center rounded-full bg-[#ead7b6] px-2 py-0.75 text-center text-[0.64rem] leading-4 font-semibold break-words text-[#705338]">
+        <span
+          className={`mt-2 inline-flex max-w-full items-center justify-center rounded-full px-2 py-0.75 text-center text-[0.64rem] leading-4 font-semibold break-words ${
+            isInProgress
+              ? "bg-[#fff4cf] text-[#775919]"
+              : "bg-[#ead7b6] text-[#705338]"
+          }`}
+        >
           {formatPlayDuration(durationMinutes)}
         </span>
       ) : null}
 
       {meetingTitle ? (
-        <span className="mt-2 line-clamp-2 max-w-full text-center text-[0.65rem] leading-4 font-semibold text-[#705338]">
+        <span
+          className={`mt-2 line-clamp-2 max-w-full text-center text-[0.65rem] leading-4 font-semibold ${
+            isInProgress ? "text-[#6c5125]" : "text-[#705338]"
+          }`}
+        >
           {meetingTitle}
         </span>
       ) : null}
@@ -288,6 +319,7 @@ export function ChronicleFeed({ items }: { items: PlayListItem[] }) {
                           playedAt={item.playedAt}
                           durationMinutes={item.durationMinutes}
                           meetingTitle={item.meeting?.title ?? null}
+                          status={item.status}
                         />
                       </div>
                     </aside>

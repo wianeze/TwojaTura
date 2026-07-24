@@ -7,7 +7,12 @@ import { INITIAL_PLAY_FORM_STATE } from "./form-state";
 import { PlayParticipantsField } from "./play-participants-field";
 import { PlayPicker, type CompactPickerOption } from "./play-picker";
 import { PlaySubmitButton } from "./play-submit-button";
-import type { PlayFormData, PlayFormState, PlayFormValues } from "./types";
+import type {
+  PlayFormData,
+  PlayFormState,
+  PlayFormValues,
+  PlayStatus,
+} from "./types";
 
 type PlayFormProps = {
   action: (state: PlayFormState, formData: FormData) => Promise<PlayFormState>;
@@ -22,6 +27,40 @@ type PlayFormProps = {
 function FieldError({ error }: { error?: string }) {
   if (!error) return null;
   return <p className="mt-1.5 text-xs font-semibold text-[#8f3528]">{error}</p>;
+}
+
+function PlayStatusToggle({
+  status,
+  onChange,
+}: {
+  status: PlayStatus;
+  onChange: (status: PlayStatus) => void;
+}) {
+  return (
+    <div className="inline-flex rounded-full border border-[#9a7657]/35 bg-white/60 p-1">
+      <input type="hidden" name="status" value={status} />
+      {(
+        [
+          { value: "completed" as const, label: "Zakończona" },
+          { value: "in_progress" as const, label: "W toku" },
+        ] satisfies Array<{ value: PlayStatus; label: string }>
+      ).map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          aria-pressed={status === option.value}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
+            status === option.value
+              ? "bg-[#7d2f3d] text-[#fff3ec]"
+              : "text-[#6b5140] hover:bg-[#f4e5cf]"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function ProgressiveCommentField({
@@ -72,6 +111,7 @@ export function PlayForm({
 }: PlayFormProps) {
   const [state, formAction] = useActionState(action, INITIAL_PLAY_FORM_STATE);
   const values = state.submittedValues ?? initialValues;
+  const [status, setStatus] = useState<PlayStatus>(values.status);
 
   const inputClass =
     "paper-wash focus:border-gold focus:ring-gold/20 mt-1.5 h-11 w-full rounded-xl border border-[#9a7657]/35 px-3.5 text-sm text-[#503828] outline-none transition focus:ring-4";
@@ -170,6 +210,33 @@ export function PlayForm({
       <section className="space-y-2.5">
         <div>
           <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
+            Stan gry
+          </p>
+          <h2 className="font-display mt-1 text-[1.3rem] font-semibold text-[#4c3528]">
+            Zapisz jako
+          </h2>
+        </div>
+
+        <PlayStatusToggle status={status} onChange={setStatus} />
+
+        {status === "in_progress" ? (
+          <label className="block text-sm font-semibold text-[#503828]">
+            Notatka o stanie gry
+            <textarea
+              className={textareaClass}
+              name="stateNote"
+              defaultValue={values.stateNote}
+              placeholder="np. Runda 3 z 5, wracamy do gry jutro wieczorem"
+              required
+            />
+            <FieldError error={state.fieldErrors?.stateNote} />
+          </label>
+        ) : null}
+      </section>
+
+      <section className="space-y-2.5">
+        <div>
+          <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
             Gracze
           </p>
           <h2 className="font-display mt-1 text-[1.3rem] font-semibold text-[#4c3528]">
@@ -202,7 +269,10 @@ export function PlayForm({
       ) : null}
 
       <div className="flex flex-wrap items-center justify-end gap-3">
-        <PlaySubmitButton label={submitLabel} pendingLabel={pendingLabel} />
+        <PlaySubmitButton
+          label={status === "in_progress" ? "Zapisz grę w toku" : submitLabel}
+          pendingLabel={pendingLabel}
+        />
       </div>
     </form>
   );

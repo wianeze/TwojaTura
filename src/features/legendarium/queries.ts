@@ -110,7 +110,8 @@ export async function getAchievementClassData(
     supabase
       .from("plays")
       .select("id, meeting_id")
-      .eq("created_by", currentUserId),
+      .eq("created_by", currentUserId)
+      .eq("status", "completed"),
     supabase
       .from("meeting_availability")
       .select("meeting_id")
@@ -183,33 +184,44 @@ export async function getAchievementClassData(
   const ownParticipantPlayIds = (ownParticipantsResult.data ?? []).map(
     (participant) => participant.play_id,
   );
-  const [completedPlaysResult, participantPlaysResult, allParticipantsResult] =
-    await Promise.all([
-      ownMeetingIds.length > 0
-        ? supabase
-            .from("plays")
-            .select("meeting_id")
-            .in("meeting_id", ownMeetingIds)
-        : Promise.resolve({ data: [], error: null }),
-      ownParticipantPlayIds.length > 0
-        ? supabase
-            .from("plays")
-            .select("id, played_at, created_at")
-            .in("id", ownParticipantPlayIds)
-        : Promise.resolve({ data: [], error: null }),
-      ownParticipantPlayIds.length > 0
-        ? supabase
-            .from("play_participants")
-            .select("play_id, user_id, placement")
-            .in("play_id", ownParticipantPlayIds)
-        : Promise.resolve({ data: [], error: null }),
-    ]);
 
-  if (
-    completedPlaysResult.error ||
-    participantPlaysResult.error ||
-    allParticipantsResult.error
-  ) {
+  const [completedPlaysResult, ownCompletedPlaysResult] = await Promise.all([
+    ownMeetingIds.length > 0
+      ? supabase
+          .from("plays")
+          .select("meeting_id")
+          .in("meeting_id", ownMeetingIds)
+          .eq("status", "completed")
+      : Promise.resolve({ data: [], error: null }),
+    ownParticipantPlayIds.length > 0
+      ? supabase
+          .from("plays")
+          .select("id, played_at, created_at")
+          .in("id", ownParticipantPlayIds)
+          .eq("status", "completed")
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (completedPlaysResult.error || ownCompletedPlaysResult.error) {
+    throw new Error("Nie udaÅ‚o siÄ™ obliczyÄ‡ progresu odznak.");
+  }
+
+  // Only completed plays may feed result-based achievement progress
+  // (win/last-place streaks, party size) — an in_progress game has no final
+  // placements/winner yet.
+  const completedOwnParticipantPlayIds = (
+    ownCompletedPlaysResult.data ?? []
+  ).map((play) => play.id);
+
+  const allParticipantsResult =
+    completedOwnParticipantPlayIds.length > 0
+      ? await supabase
+          .from("play_participants")
+          .select("play_id, user_id, placement")
+          .in("play_id", completedOwnParticipantPlayIds)
+      : { data: [], error: null };
+
+  if (allParticipantsResult.error) {
     throw new Error("Nie udaÅ‚o siÄ™ obliczyÄ‡ progresu odznak.");
   }
 
@@ -223,12 +235,17 @@ export async function getAchievementClassData(
     participantsByPlay.set(participant.play_id, existing);
   }
   const playsById = new Map(
-    (participantPlaysResult.data ?? []).map((play) => [play.id, play]),
+    (ownCompletedPlaysResult.data ?? []).map((play) => [play.id, play]),
   );
-  const ownResults = (ownParticipantsResult.data ?? []).map((participant) => ({
-    ...participant,
-    play: playsById.get(participant.play_id),
-  }));
+  const completedOwnParticipantIdSet = new Set(completedOwnParticipantPlayIds);
+  const ownResults = (ownParticipantsResult.data ?? [])
+    .filter((participant) =>
+      completedOwnParticipantIdSet.has(participant.play_id),
+    )
+    .map((participant) => ({
+      ...participant,
+      play: playsById.get(participant.play_id),
+    }));
   const lastPlaceFinishes = ownResults.filter((participant) => {
     const players = participantsByPlay.get(participant.play_id) ?? [];
     const placements = players.map((player) => player.placement);

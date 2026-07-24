@@ -2,10 +2,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
+import {
+  getActiveClassBackdropGradient,
+  getLeaderboardRankAsset,
+  getLeaderboardRankLabel,
+} from "@/features/legendarium/leaderboard-presentation";
 import { formatMeetingDateRange } from "@/features/meetings/formatting";
 import { formatPlayShortDate } from "@/features/plays/formatting";
 import { QuestCard } from "./action-card";
 import { getDashboardData } from "./queries";
+import type { DashboardLeaderboardEntry } from "./types";
 
 function MeetingStatusBadge({
   label,
@@ -75,12 +81,92 @@ function getUpcomingMeetingPanelClasses(
   };
 }
 
-function getRankMedal(rank: number) {
-  if (rank === 1) return "/brand/1st-place-nobg.png";
-  if (rank === 2) return "/brand/2nd-place-nobg.png";
-  if (rank === 3) return "/brand/3rd-place-nobg.png";
-  if (rank === 4) return "/brand/4th-place-nobg.png";
-  return "/brand/5th-place-nobg.png";
+function getRankGlowClass(rank: number) {
+  if (rank === 1) return "rank-glow-gold";
+  if (rank === 2) return "rank-glow-silver";
+  if (rank === 3) return "rank-glow-bronze";
+  return "";
+}
+
+function CompactLeaderboardEntry({
+  entry,
+  index,
+}: {
+  entry: DashboardLeaderboardEntry;
+  index: number;
+}) {
+  const rankAsset = getLeaderboardRankAsset(entry.rank);
+  const isPodium = entry.rank <= 3;
+  // Statyczna, stała poświata podium — ten sam wzorzec co ranking w
+  // Legendarium (.rank-glow-*): bez animacji/sheenu/pulsowania.
+  const rankGlow = getRankGlowClass(entry.rank);
+  const classBackdropGradient = entry.activeClass
+    ? getActiveClassBackdropGradient(entry.activeClass.key)
+    : null;
+
+  return (
+    <li
+      style={{ animationDelay: `${getEntranceStaggerDelayMs(index)}ms` }}
+      className={`anim-rise-in-fast relative isolate flex items-center gap-3 overflow-hidden rounded-[1.05rem] px-3 py-2 ${
+        isPodium
+          ? `border border-white/12 bg-[rgba(33,18,14,0.5)] ${rankGlow}`
+          : "border border-white/8 bg-[rgba(33,18,14,0.36)]"
+      }`}
+    >
+      {entry.activeClass?.iconPath ? (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 -z-10 rounded-[inherit]"
+        >
+          <span
+            className="absolute top-1/2 right-[-1.6rem] h-[170%] w-24 -translate-y-1/2 rounded-full blur-2xl"
+            style={{ backgroundImage: classBackdropGradient ?? undefined }}
+          />
+          <span className="absolute top-1/2 right-[-1.1rem] h-[135%] w-20 -translate-y-1/2 opacity-25">
+            <Image
+              src={entry.activeClass.iconPath}
+              alt=""
+              fill
+              sizes="80px"
+              className="object-contain object-right"
+            />
+          </span>
+        </span>
+      ) : null}
+
+      {rankAsset ? (
+        <Image
+          src={rankAsset}
+          alt={getLeaderboardRankLabel(entry.rank)}
+          width={36}
+          height={36}
+          className="size-8 shrink-0 object-contain"
+        />
+      ) : (
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-black/24 text-xs font-bold text-[#ffe2ad]">
+          {entry.rank}
+        </span>
+      )}
+
+      <div className="min-w-0 flex-1">
+        {entry.activeClass ? (
+          <p className="truncate text-[0.58rem] font-bold tracking-[0.1em] text-[#f0c978] uppercase">
+            {entry.activeClass.name}
+          </p>
+        ) : null}
+        <p className="truncate text-sm font-semibold text-[#fff2dc]">
+          {entry.displayName}
+        </p>
+        <p className="text-xs text-[#f2d8b8]">
+          {entry.totalPoints.toLocaleString("pl-PL")} pkt
+        </p>
+      </div>
+
+      <span className="shrink-0 text-xs text-[#f0cf9f]">
+        {entry.rank}. miejsce
+      </span>
+    </li>
+  );
 }
 
 export async function DashboardShowcase() {
@@ -119,30 +205,12 @@ export async function DashboardShowcase() {
         </div>
 
         <ol className="space-y-2">
-          {data.leaderboard.entries.map((entry) => (
-            <li
+          {data.leaderboard.entries.map((entry, index) => (
+            <CompactLeaderboardEntry
               key={entry.userId}
-              className="flex items-center gap-3 rounded-[1.05rem] border border-white/8 bg-[rgba(33,18,14,0.36)] px-3 py-2"
-            >
-              <Image
-                src={getRankMedal(entry.rank)}
-                alt={`${entry.rank}. miejsce`}
-                width={36}
-                height={36}
-                className="size-8 shrink-0 object-contain"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-[#fff2dc]">
-                  {entry.displayName}
-                </p>
-                <p className="text-xs text-[#f2d8b8]">
-                  {entry.totalPoints.toLocaleString("pl-PL")} pkt
-                </p>
-              </div>
-              <span className="text-xs text-[#f0cf9f]">
-                {entry.rank}. miejsce
-              </span>
-            </li>
+              entry={entry}
+              index={index}
+            />
           ))}
         </ol>
 
