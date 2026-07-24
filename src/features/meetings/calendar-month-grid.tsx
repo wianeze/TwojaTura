@@ -59,6 +59,9 @@ export function CalendarMonthGrid({
           const { visible, hidden } = getVisibleMarkers(day.meetings);
           const hasExtra = hidden.length > 0;
           const dayPanelId = getDayPanelId(day.dateKey);
+          // Mobile shows up to 2 inline chips (vs desktop's 1 + popover) —
+          // see the sm:hidden block below for why.
+          const mobileSplit = getVisibleMarkers(day.meetings, 2);
 
           if (day.isPlaceholder) {
             return (
@@ -92,7 +95,18 @@ export function CalendarMonthGrid({
                 className="absolute inset-0 z-0"
               />
 
-              <div className="pointer-events-none relative z-10 flex h-full flex-col">
+              {/*
+               * Desktop/tablet (sm:+) — pristine, unchanged from before.
+               * The top-right "Więcej"/"+N" popover's expanded panel is
+               * w-60 (240px) — fine on a wide desktop cell, but on a
+               * mobile 7-col grid (cells are ~45-50px) it would poke
+               * straight out of the cell/viewport, which is exactly the
+               * reported "wychodzi poza ramkę" bug. Rather than trying
+               * to make one popover work at both sizes, it's simply
+               * hidden on mobile (this whole block is) and mobile gets
+               * its own non-overflowing block below instead.
+               */}
+              <div className="pointer-events-none relative z-10 hidden h-full flex-col sm:flex">
                 <div className="flex items-start justify-between gap-1">
                   <div className="min-w-0">
                     {day.isToday ? (
@@ -223,6 +237,78 @@ export function CalendarMonthGrid({
                         })}
                       </div>
                     </details>
+                  ) : null}
+                </div>
+              </div>
+
+              {/*
+               * Mobile-only (<sm). Day number gets its own top row (own
+               * fixed space — never shared with or covered by anything
+               * else, unlike the desktop's justify-between row where a
+               * wide "Więcej" badge could crowd it on a narrow cell).
+               * Up to 2 meetings render as 1-line truncated chips
+               * (min-w-0 on the list + truncate on each chip is what
+               * makes long titles ellipsize instead of overflowing);
+               * anything beyond that collapses to a plain "+N" label
+               * instead of a "Więcej" toggle — no expandable panel here
+               * at all, so there is nothing that can ever render outside
+               * the cell's own overflow-hidden border (set on the cell
+               * wrapper above, line ~77). flex-col justify-end keeps the
+               * chips anchored to the bottom of the cell without needing
+               * absolute positioning.
+               */}
+              <div className="pointer-events-none relative z-10 flex h-full flex-col sm:hidden">
+                {/*
+                 * Day number alone on its own row (own fixed space, top-
+                 * left, first element) — the "Dziś" badge used to sit
+                 * beside it (justify-between), but a 7-col mobile cell is
+                 * only ~40px wide and the number (~21px) + badge (~29px)
+                 * together don't fit: measured with Playwright, the badge
+                 * overflowed the cell by ~19px, invisibly clipped by the
+                 * cell's own overflow-hidden into an unreadable sliver.
+                 * Stacking it on its own row below the number instead
+                 * gives it the full ~40px to itself.
+                 */}
+                <div
+                  className={`inline-flex h-5 min-w-5 shrink-0 items-center justify-center self-start rounded-full px-1 text-[0.7rem] font-bold ${
+                    day.isToday
+                      ? "bg-[#f3d5a4] text-[#4b3026]"
+                      : day.inCurrentMonth
+                        ? "text-[#fff2df]"
+                        : "text-[#b5997d]"
+                  }`}
+                >
+                  {day.dayNumber}
+                </div>
+                {day.isToday ? (
+                  <span className="mt-0.5 inline-flex w-fit shrink-0 rounded-full bg-[#f3d5a4] px-1.5 py-[0.15rem] text-[0.4rem] font-black tracking-[0.08em] text-[#4b3026] uppercase">
+                    Dziś
+                  </span>
+                ) : null}
+                {day.holidayName ? (
+                  <p className="mt-0.5 truncate text-[0.42rem] leading-3 font-semibold text-[#efc8b4]">
+                    {day.holidayName}
+                  </p>
+                ) : null}
+
+                <div className="mt-1 flex min-w-0 flex-1 flex-col justify-end gap-0.5">
+                  {mobileSplit.visible.map((meeting) => {
+                    const visualClasses = getMeetingVisualClasses(meeting);
+
+                    return (
+                      <Link
+                        key={`${meeting.id}-mobile`}
+                        href={meeting.href}
+                        className={`pointer-events-auto block min-w-0 truncate rounded-[0.4rem] px-1.5 py-[0.2rem] text-[0.56rem] leading-[1.2] font-semibold ${visualClasses.marker}`}
+                      >
+                        {meeting.title}
+                      </Link>
+                    );
+                  })}
+                  {mobileSplit.hidden.length > 0 ? (
+                    <span className="pointer-events-none block text-right text-[0.5rem] leading-none font-bold text-[#eed8b6]">
+                      +{mobileSplit.hidden.length}
+                    </span>
                   ) : null}
                 </div>
               </div>
