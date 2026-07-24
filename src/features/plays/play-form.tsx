@@ -306,7 +306,7 @@ export function PlayForm(props: PlayFormProps) {
           <PlayPicker
             key={`meeting-${values.meetingId || "empty"}`}
             name="meetingId"
-            label="Spotkanie opcjonalne"
+            label="Wybór spotkania"
             placeholder="Spotkanie albo partia spontaniczna"
             emptyLabel="Brak pasujących spotkań."
             options={meetingOptions}
@@ -316,7 +316,13 @@ export function PlayForm(props: PlayFormProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        {/*
+         * grid-cols-[55fr_45fr] (mobile only — sm:grid-cols-3 for
+         * tablet/desktop is untouched) gives Data ~55% and Godzina ~45%
+         * of the row, matching the requested ratio without affecting
+         * desktop's 3-column layout.
+         */}
+        <div className="grid grid-cols-[55fr_45fr] gap-3 sm:grid-cols-3 sm:gap-4">
           <MeetingDateField
             key={`played-${values.playedOnDate}`}
             name="playedOnDate"
@@ -326,15 +332,37 @@ export function PlayForm(props: PlayFormProps) {
             inputClassName={inputClass}
           />
 
+          {/*
+           * Godzina's <input> sits directly next to the "Godzina" text
+           * node inside the <label>, unlike Data's (wrapped in its own
+           * block div by MeetingDateField). Measured with Playwright:
+           * both inputs are h-11 (44px) but were offset by 6px top/
+           * bottom — and forcing `display:block` on the input alone
+           * did NOT fix it (still exactly -6px), so the gap isn't just
+           * inline-vs-block display, it's the text/input arrangement
+           * itself. Mirroring Data's own block-div wrapper exactly is
+           * what actually fixes it (verified below).
+           *
+           * Kept mobile-only via `sm:contents` on the wrapper: at sm:+
+           * a `display:contents` element generates no box of its own
+           * (its margin is void) and its child renders as if it were a
+           * direct child of the <label> again — i.e. pixel-identical to
+           * the original structure, so this field stays exactly where
+           * it was next to "Czas gry" on tablet/desktop. `sm:mt-1.5` on
+           * the input restores its own original margin for that case
+           * (the div's mt-1.5 does nothing once it's `contents`).
+           */}
           <label className="block text-sm font-semibold text-[#503828]">
             Godzina
-            <input
-              className={inputClass}
-              name="playedOnTime"
-              defaultValue={values.playedOnTime}
-              placeholder="HH:mm"
-              inputMode="numeric"
-            />
+            <div className="relative mt-1.5 sm:contents">
+              <input
+                className={`${inputClass} mt-0 sm:mt-1.5`}
+                name="playedOnTime"
+                defaultValue={values.playedOnTime}
+                placeholder="HH:mm"
+                inputMode="numeric"
+              />
+            </div>
             <FieldError error={formState.fieldErrors?.playedOnTime} />
           </label>
 
