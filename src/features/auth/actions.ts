@@ -123,7 +123,17 @@ export async function updatePasswordAction(
   }
 
   const supabase = await createClient();
-  const { data: claimsData } = await supabase.auth.getClaims();
+  const { data: claimsData, error: claimsError } =
+    await supabase.auth.getClaims();
+
+  // Diagnostic only — no password/email/user_id/token/cookie/JWT/session
+  // data, just enough to see whether a session was found at each stage.
+  console.info("[auth/ustaw-haslo] getClaims:", {
+    stage: "getClaims",
+    hasUser: Boolean(claimsData?.claims),
+    error: claimsError ? getSafeAuthErrorInfo(claimsError) : null,
+  });
+
   if (!claimsData?.claims) {
     return {
       status: "error",
@@ -134,10 +144,21 @@ export async function updatePasswordAction(
   const { error } = await supabase.auth.updateUser({
     password: validation.data.password,
   });
+
+  console.info("[auth/ustaw-haslo] updateUser:", {
+    stage: "updateUser",
+    hasUser: true,
+    error: error ? getSafeAuthErrorInfo(error) : null,
+  });
+
   if (error) {
+    const info = getSafeAuthErrorInfo(error);
+    // Temporary, safe-only detail (code/status, nothing else) to help
+    // diagnose the production "updateUser fails after a working recovery
+    // redirect" report.
     return {
       status: "error",
-      message: "Nie udało się ustawić hasła. Spróbuj ponownie.",
+      message: `Nie udało się ustawić hasła (Auth ${info.status ?? "?"}: ${info.code ?? info.name ?? "unknown_error"}).`,
     };
   }
 
