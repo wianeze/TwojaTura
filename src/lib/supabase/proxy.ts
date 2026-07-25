@@ -3,7 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database.generated";
 import { getServerSupabaseEnv } from "./env";
 
-const AUTH_ROUTES = ["/logowanie", "/auth/callback", "/ustaw-haslo"];
+const AUTH_ROUTES = [
+  "/logowanie",
+  "/auth/callback",
+  "/ustaw-haslo",
+  "/potwierdz-reset",
+];
 const ACCESS_DENIED_ROUTE = "/brak-dostepu";
 
 function redirectWithSession(

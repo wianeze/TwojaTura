@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { buildAppUrl } from "@/lib/app-url";
 import type { FormState } from "./form-state";
 import { getCurrentMemberFromClient } from "./queries/get-current-member";
+import { getSafeAuthErrorInfo } from "./recovery-session";
+import { getSafeInternalPath } from "./safe-redirect";
 import { validatePasswordChange, validateProfileInput } from "./validation";
 
 function value(formData: FormData, key: string) {
@@ -50,12 +52,15 @@ export async function requestPasswordResetAction(
 
   const supabase = await createClient();
 
-  // Points at /logowanie, not /auth/callback — the recovery email link is
-  // consumed client-side there (see login-form.tsx), independently of the
-  // existing token_hash flow through /auth/callback → /ustaw-haslo (still
-  // used by invites, untouched).
+  // Points at the neutral, passive-GET confirmation page — never directly
+  // at /auth/callback, whose GET used to consume the one-time token itself
+  // (vulnerable to mailbox link-prefetching/scanning). The production
+  // Supabase "Reset password" template builds its own link from
+  // {{ .SiteURL }} rather than {{ .RedirectTo }}, so this value mainly
+  // keeps resetPasswordForEmail's required redirect-URL allow-list check
+  // happy and matches local dev's recovery.html.
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: buildAppUrl("/logowanie").toString(),
+    redirectTo: buildAppUrl("/potwierdz-reset").toString(),
   });
 
   return {
@@ -63,6 +68,46 @@ export async function requestPasswordResetAction(
     message:
       "Jeśli konto istnieje, wysłaliśmy wiadomość z dalszymi instrukcjami.",
   };
+}
+
+export async function confirmPasswordRecoveryAction(
+  _state: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const tokenHash = value(formData, "token_hash");
+  const next = getSafeInternalPath(value(formData, "next"), "/ustaw-haslo");
+
+  if (!tokenHash) {
+    return {
+      status: "error",
+      message: "Link jest nieprawidłowy. Poproś o nową wiadomość.",
+    };
+  }
+
+  const supabase = await createClient();
+  // type is hardcoded here, never taken from the client — this action only
+  // ever confirms a password-recovery link (invite keeps using the
+  // separate, untouched /auth/callback token_hash flow).
+  const { error } = await supabase.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: "recovery",
+  });
+
+  if (error) {
+    const info = getSafeAuthErrorInfo(error);
+    console.error("[auth/potwierdz-reset] verifyOtp failed:", info);
+    return {
+      status: "error",
+      message:
+        info.code === "otp_expired"
+          ? "Link wygasł lub został już użyty. Poproś o nową wiadomość."
+          : "Nie udało się potwierdzić linku. Spróbuj ponownie lub poproś o nową wiadomość.",
+    };
+  }
+
+  // Success: verifyOtp already wrote the session to cookies via the
+  // server-side client — no extra sign-out, refresh, or session call here.
+  redirect(next);
 }
 
 export async function updatePasswordAction(
