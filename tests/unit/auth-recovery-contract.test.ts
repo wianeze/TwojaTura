@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  formatAuthErrorMessage,
   getAuthHashSessionKind,
   getAuthHashTokens,
+  getSafeAuthErrorInfo,
+  getUrlHostname,
   parseAuthHashParams,
 } from "../../src/features/auth/recovery-session.ts";
 
@@ -114,4 +117,91 @@ test("getAuthHashTokens finds no tokens in an empty hash (would time out, not ha
     accessToken: null,
     refreshToken: null,
   });
+});
+
+test("getSafeAuthErrorInfo extracts only the four whitelisted fields", () => {
+  const info = getSafeAuthErrorInfo({
+    name: "AuthApiError",
+    code: "refresh_token_not_found",
+    status: 400,
+    message: "Invalid Refresh Token: Refresh Token Not Found",
+    // Anything else on the error object must never survive extraction.
+    access_token: "should-never-appear",
+    session: { user: { email: "should-never-appear@example.com" } },
+  });
+  assert.deepEqual(info, {
+    name: "AuthApiError",
+    code: "refresh_token_not_found",
+    status: 400,
+    message: "Invalid Refresh Token: Refresh Token Not Found",
+  });
+  assert.equal("access_token" in info, false);
+  assert.equal("session" in info, false);
+});
+
+test("getSafeAuthErrorInfo tolerates a partial error (missing code)", () => {
+  assert.deepEqual(getSafeAuthErrorInfo({ name: "AuthError", status: 500 }), {
+    name: "AuthError",
+    code: null,
+    status: 500,
+    message: null,
+  });
+});
+
+test("getSafeAuthErrorInfo tolerates null/non-object input", () => {
+  const empty = { name: null, code: null, status: null, message: null };
+  assert.deepEqual(getSafeAuthErrorInfo(null), empty);
+  assert.deepEqual(getSafeAuthErrorInfo(undefined), empty);
+  assert.deepEqual(getSafeAuthErrorInfo("not an error object"), empty);
+});
+
+test("formatAuthErrorMessage renders status and code", () => {
+  assert.equal(
+    formatAuthErrorMessage({
+      name: "AuthApiError",
+      code: "refresh_token_not_found",
+      status: 400,
+      message: "Invalid Refresh Token: Refresh Token Not Found",
+    }),
+    "Nie udało się potwierdzić linku (Auth 400: refresh_token_not_found).",
+  );
+});
+
+test("formatAuthErrorMessage falls back to name when code is missing", () => {
+  assert.equal(
+    formatAuthErrorMessage({
+      name: "AuthUnknownError",
+      code: null,
+      status: 500,
+      message: null,
+    }),
+    "Nie udało się potwierdzić linku (Auth 500: AuthUnknownError).",
+  );
+});
+
+test("formatAuthErrorMessage stays readable with nothing but the four fields empty", () => {
+  assert.equal(
+    formatAuthErrorMessage({
+      name: null,
+      code: null,
+      status: null,
+      message: null,
+    }),
+    "Nie udało się potwierdzić linku (Auth ?: unknown_error).",
+  );
+});
+
+test("getUrlHostname extracts the expected production Supabase host", () => {
+  assert.equal(
+    getUrlHostname("https://brahsmioddvhkozoilgs.supabase.co"),
+    "brahsmioddvhkozoilgs.supabase.co",
+  );
+});
+
+test("getUrlHostname extracts a local Supabase host", () => {
+  assert.equal(getUrlHostname("http://127.0.0.1:54321"), "127.0.0.1");
+});
+
+test("getUrlHostname returns null for a malformed URL instead of throwing", () => {
+  assert.equal(getUrlHostname("not-a-url"), null);
 });

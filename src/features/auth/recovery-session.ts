@@ -54,3 +54,54 @@ export function getAuthHashTokens(params: URLSearchParams): AuthHashTokens {
     refreshToken: params.get("refresh_token"),
   };
 }
+
+export type SafeAuthErrorInfo = {
+  name: string | null;
+  code: string | null;
+  status: number | null;
+  message: string | null;
+};
+
+/**
+ * Whitelists exactly the four fields safe to log or show in the UI from a
+ * Supabase auth error (name/code/status/message) — never the raw error
+ * object itself, which must never be logged as-is: tokens/session/email
+ * are not part of these fields, but nothing here assumes that stays true
+ * of every future SDK error shape either.
+ */
+export function getSafeAuthErrorInfo(error: unknown): SafeAuthErrorInfo {
+  if (!error || typeof error !== "object") {
+    return { name: null, code: null, status: null, message: null };
+  }
+
+  const record = error as Record<string, unknown>;
+  return {
+    name: typeof record.name === "string" ? record.name : null,
+    code: typeof record.code === "string" ? record.code : null,
+    status: typeof record.status === "number" ? record.status : null,
+    message: typeof record.message === "string" ? record.message : null,
+  };
+}
+
+/**
+ * A short, safe-to-display summary — code/status only, never the full
+ * Supabase error message (which can occasionally echo request details).
+ */
+export function formatAuthErrorMessage(info: SafeAuthErrorInfo): string {
+  const status = info.status ?? "?";
+  const code = info.code ?? info.name ?? "unknown_error";
+  return `Nie udało się potwierdzić linku (Auth ${status}: ${code}).`;
+}
+
+/**
+ * Hostname only — never call this with intent to log/display the full URL
+ * or any key. Used for a temporary "which Supabase project is this build
+ * actually talking to" diagnostic.
+ */
+export function getUrlHostname(url: string): string | null {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return null;
+  }
+}

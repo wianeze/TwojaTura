@@ -9,12 +9,16 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { getPublicSupabaseEnv } from "@/lib/supabase/env";
 import { loginAction, requestPasswordResetAction } from "./actions";
 import { AuthSubmitButton } from "./auth-submit-button";
 import { INITIAL_FORM_STATE } from "./form-state";
 import {
+  formatAuthErrorMessage,
   getAuthHashSessionKind,
   getAuthHashTokens,
+  getSafeAuthErrorInfo,
+  getUrlHostname,
   parseAuthHashParams,
   type AuthHashSessionKind,
 } from "./recovery-session";
@@ -95,6 +99,9 @@ export function LoginForm({ initialError }: { initialError?: string }) {
   // Fixed for the component's lifetime once read from the hash — only
   // sessionViewMode transitions (loading → ready/error) after mount.
   const sessionKind = initialSessionHash.kind;
+  const [sessionErrorMessage, setSessionErrorMessage] = useState<string | null>(
+    null,
+  );
   const hashClearedRef = useRef(false);
 
   const [loginState, loginFormAction] = useActionState(
@@ -118,6 +125,17 @@ export function LoginForm({ initialError }: { initialError?: string }) {
     const initialKind = getAuthHashSessionKind(params).kind;
     if (initialKind !== "recovery" && initialKind !== "invite") return;
 
+    // Temporary diagnostic: which Supabase project this build is actually
+    // talking to (hostname only — never the full URL, never the key).
+    // Production is expected to log brahsmioddvhkozoilgs.supabase.co here.
+    try {
+      const { url } = getPublicSupabaseEnv();
+      console.info("[auth/recovery] Supabase host:", getUrlHostname(url));
+    } catch {
+      // getPublicSupabaseEnv() throws if env vars are missing entirely —
+      // that's its own visible failure mode already, nothing to add here.
+    }
+
     const supabase = createClient();
     let settled = false;
 
@@ -135,27 +153,45 @@ export function LoginForm({ initialError }: { initialError?: string }) {
       }
     }
 
-    function failSession() {
+    // message is only set for a concrete, reported error (setSession /
+    // getSession) — a bare timeout with no error from anywhere leaves it
+    // unset, and the UI falls back to its generic copy.
+    function failSession(message?: string) {
       if (settled) return;
       settled = true;
       window.clearTimeout(timeoutId);
+      setSessionErrorMessage(message ?? null);
       setSessionViewMode("error");
     }
 
-    // Final backstop: if nothing below manages to establish a session
-    // within ~9s (bad tokens, network hiccup, a Supabase SDK edge case),
-    // stop showing "Sprawdzanie linku…" forever and surface a clear error.
-    const timeoutId = window.setTimeout(failSession, 9000);
+    // Never pass the raw error to console/UI — only the four whitelisted
+    // fields (name/code/status/message). No token, hash, session or email
+    // is ever part of this.
+    function reportAuthError(source: string, error: unknown) {
+      const info = getSafeAuthErrorInfo(error);
+      console.error(`[auth/recovery] ${source} failed`, info);
+      failSession(formatAuthErrorMessage(info));
+    }
 
-    // Fallback path — kept, but not relied on alone (see below): the SDK's
-    // own implicit detectSessionInUrl handling may establish the session on
-    // its own, possibly before this effect even subscribes.
+    // Final backstop: only reached if neither setSession nor the fallback
+    // below ever resolves with either a session or a reported error at all
+    // (e.g. the request never completes) — surfaces after ~9s instead of
+    // leaving "Sprawdzanie linku…" up forever.
+    const timeoutId = window.setTimeout(() => failSession(), 9000);
+
+    // Fallback path — kept, but not relied on alone: the SDK's own implicit
+    // detectSessionInUrl handling may establish the session on its own,
+    // possibly before this effect even subscribes.
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
         confirmSessionReady();
       }
     });
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        reportAuthError("getSession", error);
+        return;
+      }
       if (data.session) confirmSessionReady();
     });
 
@@ -168,11 +204,11 @@ export function LoginForm({ initialError }: { initialError?: string }) {
       supabase.auth
         .setSession({ access_token: accessToken, refresh_token: refreshToken })
         .then(({ data, error }) => {
-          if (!error && data.session) {
-            confirmSessionReady();
+          if (error) {
+            reportAuthError("setSession", error);
+            return;
           }
-          // On failure, deliberately fall through to the fallback above and
-          // the timeout — setSession must not be the only mechanism.
+          if (data.session) confirmSessionReady();
         });
     }
 
@@ -228,8 +264,8 @@ export function LoginForm({ initialError }: { initialError?: string }) {
           role="alert"
           className="rounded-xl bg-[#8f3528]/10 px-4 py-3 text-sm text-[#8f3528]"
         >
-          Link wygasł lub jest nieprawidłowy. Poproś o nową wiadomość albo
-          skontaktuj się z administratorem, jeśli to zaproszenie.
+          {sessionErrorMessage ??
+            "Link wygasł lub jest nieprawidłowy. Poproś o nową wiadomość albo skontaktuj się z administratorem, jeśli to zaproszenie."}
         </p>
         <button
           type="button"
