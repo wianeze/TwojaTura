@@ -641,7 +641,7 @@ export async function DashboardShowcase() {
       </div>
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(17.5rem,0.9fr)] xl:gap-5">
-        <div className="space-y-4 xl:-mt-[15.25rem] 2xl:-mt-[15.5rem]">
+        <div className="space-y-4 xl:-mt-[11.6rem] 2xl:-mt-[11.85rem]">
           <section
             aria-labelledby="quests-heading"
             style={{ animationDelay: `${getEntranceStaggerDelayMs(2)}ms` }}
