@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { buildAuthCallbackUrl } from "@/lib/app-url";
+import { buildAppUrl } from "@/lib/app-url";
 import type { FormState } from "./form-state";
 import { getCurrentMemberFromClient } from "./queries/get-current-member";
 import { validatePasswordChange, validateProfileInput } from "./validation";
@@ -50,8 +50,12 @@ export async function requestPasswordResetAction(
 
   const supabase = await createClient();
 
+  // Points at /logowanie, not /auth/callback — the recovery email link is
+  // consumed client-side there (see login-form.tsx), independently of the
+  // existing token_hash flow through /auth/callback → /ustaw-haslo (still
+  // used by invites, untouched).
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: buildAuthCallbackUrl("/ustaw-haslo"),
+    redirectTo: buildAppUrl("/logowanie").toString(),
   });
 
   return {

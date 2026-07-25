@@ -9,7 +9,11 @@ import {
 } from "../../scripts/invite-user-lib.mjs";
 import { mapCurrentMember } from "../../src/features/auth/current-member.ts";
 import { getSafeInternalPath } from "../../src/features/auth/safe-redirect.ts";
-import { buildAuthCallbackUrl, getAppOrigin } from "../../src/lib/app-url.ts";
+import {
+  buildAppUrl,
+  buildAuthCallbackUrl,
+  getAppOrigin,
+} from "../../src/lib/app-url.ts";
 import {
   validatePasswordChange,
   validateProfileInput,
@@ -64,13 +68,25 @@ test("app origin defaults to localhost:3000", () => {
   restoreSiteUrl(previous);
 });
 
-test("password recovery callback uses localhost app origin", () => {
+test("invite callback URL still targets /ustaw-haslo (unchanged, token_hash flow)", () => {
   const previous = process.env.NEXT_PUBLIC_SITE_URL;
   process.env.NEXT_PUBLIC_SITE_URL = "http://localhost:3000";
 
   assert.equal(
     buildAuthCallbackUrl("/ustaw-haslo"),
     "http://localhost:3000/auth/callback?next=%2Fustaw-haslo",
+  );
+
+  restoreSiteUrl(previous);
+});
+
+test("password recovery redirect points at /logowanie (hash flow)", () => {
+  const previous = process.env.NEXT_PUBLIC_SITE_URL;
+  process.env.NEXT_PUBLIC_SITE_URL = "http://localhost:3000";
+
+  assert.equal(
+    buildAppUrl("/logowanie").toString(),
+    "http://localhost:3000/logowanie",
   );
 
   restoreSiteUrl(previous);
@@ -302,4 +318,19 @@ test("profile validation rejects an invalid avatar URL", () => {
 
 test("password validation detects different passwords", () => {
   assert.equal(validatePasswordChange("TwojaTura123!", "inne-haslo").ok, false);
+});
+
+test("password validation rejects empty fields", () => {
+  assert.equal(validatePasswordChange("", "").ok, false);
+  assert.equal(validatePasswordChange("TwojaTura123!", "").ok, false);
+});
+
+test("password validation rejects a too-short password", () => {
+  assert.equal(validatePasswordChange("krotkie", "krotkie").ok, false);
+});
+
+test("password validation accepts a matching, long-enough password", () => {
+  const result = validatePasswordChange("TwojaTura123!", "TwojaTura123!");
+  assert.equal(result.ok, true);
+  if (result.ok) assert.equal(result.data.password, "TwojaTura123!");
 });
