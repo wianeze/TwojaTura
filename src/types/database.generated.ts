@@ -967,6 +967,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_provision_existing_user: {
+        Args: {
+          p_role?: Database["public"]["Enums"]["membership_role"]
+          p_target_user_id: string
+        }
+        Returns: undefined
+      }
       award_current_user_simple_achievements: {
         Args: never
         Returns: {
