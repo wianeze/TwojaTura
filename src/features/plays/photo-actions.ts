@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { toPublicStorageUrl } from "@/lib/supabase/env";
 import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
 import type { PlayPhoto } from "./types";
 
@@ -38,7 +39,7 @@ function mapPhotoDatabaseError(error: DatabaseErrorLike | null) {
     case "22023":
       return "Lista zdjęć do zmiany kolejności jest nieprawidłowa.";
     default:
-      return "Nie udało się zapisać zdjęcia. Spróbuj ponownie.";
+      return "Nie zapisano metadanych zdjęcia. Spróbuj ponownie.";
   }
 }
 
@@ -68,7 +69,7 @@ async function toPhotoResult(
     ok: true,
     photo: {
       id: row.id,
-      url: signed?.signedUrl ?? "",
+      url: signed?.signedUrl ? toPublicStorageUrl(signed.signedUrl) : "",
       position: row.position,
       width: row.width,
       height: row.height,

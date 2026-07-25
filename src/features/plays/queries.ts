@@ -1,5 +1,6 @@
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { createClient } from "@/lib/supabase/server";
+import { toPublicStorageUrl } from "@/lib/supabase/env";
 import type { Tables } from "@/types/database.generated";
 import {
   getPlayFormValues,
@@ -274,7 +275,10 @@ async function getPlayPhotos(
   }
 
   const urlByPath = new Map(
-    (signedUrls ?? []).map((entry) => [entry.path, entry.signedUrl]),
+    (signedUrls ?? []).map((entry) => [
+      entry.path,
+      entry.signedUrl ? toPublicStorageUrl(entry.signedUrl) : "",
+    ]),
   );
 
   return rows

@@ -140,13 +140,14 @@ export async function uploadCompressedPhoto(params: {
       };
     }
 
+    const causeMessage = cause instanceof Error ? cause.message : String(cause);
     logPhotoUploadEvent("upload:exception", {
       ...logMeta,
-      error: cause instanceof Error ? cause.message : String(cause),
+      error: causeMessage,
     });
     return {
       ok: false,
-      message: "Nie udało się wysłać zdjęcia. Spróbuj ponownie.",
+      message: `Nie udało się połączyć ze Storage: ${causeMessage}`,
     };
   }
 
@@ -167,7 +168,7 @@ export async function uploadCompressedPhoto(params: {
       });
       return {
         ok: false,
-        message: "Nie udało się wysłać zdjęcia. Spróbuj ponownie.",
+        message: `Storage odrzucił plik: ${uploadError.message}`,
       };
     }
 

@@ -35,3 +35,28 @@ export function getServerSupabaseEnv() {
 
   return { url, publishableKey };
 }
+
+/**
+ * Storage SDK calls (createSignedUrl/createSignedUrls) made with the
+ * server-side client build their returned URL by prefixing the *server's*
+ * own configured base URL (SUPABASE_URL, e.g. http://127.0.0.1:54321) onto
+ * the path Supabase returns — that's correct for the server's own use, but
+ * this string then gets sent to and loaded by the *browser* (an <img src>).
+ * When SUPABASE_URL differs from NEXT_PUBLIC_SUPABASE_URL (LAN testing:
+ * server talks loopback, phone needs the LAN IP), the resulting <img> tries
+ * to load from the phone's own loopback and never resolves — no error, no
+ * timeout, just a photo that silently never appears. Rewriting the host
+ * here is a pure string fix: it doesn't change which URL the server itself
+ * used to talk to Supabase (already completed by this point), only what
+ * host ends up in the value handed to the browser.
+ */
+export function toPublicStorageUrl(url: string): string {
+  const serverUrl = getServerSupabaseEnv().url;
+  const publicUrl = getPublicSupabaseEnv().url;
+
+  if (serverUrl === publicUrl || !url.startsWith(serverUrl)) {
+    return url;
+  }
+
+  return publicUrl + url.slice(serverUrl.length);
+}
