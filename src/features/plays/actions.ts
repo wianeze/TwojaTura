@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Database, Json } from "@/types/database.generated";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
+import { requireWriteAccess } from "@/features/auth/require-write-access";
 import { awardSimpleAchievementsAfterPlayCreate } from "@/features/legendarium/achievement-awards";
 import { awardPlayResultAchievementsAfterSave } from "./play-achievements";
 import { awardCampHostAfterPlaySave } from "./meeting-achievements";
@@ -31,31 +31,14 @@ type CreatePlayRpcPayload =
 type UpdatePlayRpcPayload =
   Database["public"]["Functions"]["update_play_with_participants"]["Args"];
 
-async function requireActiveMember() {
-  const supabase = await createClient();
-  const memberState = await getCurrentMemberFromClient(supabase);
-
-  if (memberState.status !== "active-member") {
-    return {
-      ok: false as const,
-      message: "Sesja wygasła albo nie masz dostępu do tej sekcji.",
-    };
-  }
-
-  return {
-    ok: true as const,
-    supabase,
-    member: memberState.member,
-  };
-}
-
 async function getActiveMemberIds(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ) {
   const { data, error } = await supabase
     .from("app_members")
     .select("user_id")
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .eq("role", "member");
 
   if (error) {
     throw new Error("Nie udało się pobrać aktywnych członków.");
@@ -230,8 +213,7 @@ function revalidatePlaySurfaces(params: {
 }
 
 export type CreatePlayActionResult =
-  | { ok: true; playId: string }
-  | { ok: false; formState: PlayFormState };
+  { ok: true; playId: string } | { ok: false; formState: PlayFormState };
 
 /**
  * Unlike updatePlayAction, this never redirects: the client needs the
@@ -243,7 +225,7 @@ export type CreatePlayActionResult =
 export async function createPlayAction(
   formData: FormData,
 ): Promise<CreatePlayActionResult> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return {
       ok: false,
@@ -280,7 +262,10 @@ export async function createPlayAction(
     );
 
     if (!award.ok) {
-      return { ok: false, formState: { status: "error", message: award.message } };
+      return {
+        ok: false,
+        formState: { status: "error", message: award.message },
+      };
     }
   }
 
@@ -301,7 +286,7 @@ export async function updatePlayAction(
   _state: PlayFormState,
   formData: FormData,
 ): Promise<PlayFormState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
@@ -395,7 +380,7 @@ async function removePlayPhotoFiles(
 }
 
 export async function deletePlayAction(playId: string) {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     redirect("/kronika");
   }

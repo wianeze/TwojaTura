@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/types/database.generated";
-import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
+import { requireWriteAccess } from "@/features/auth/require-write-access";
 import {
   awardSimpleAchievementsAfterGameCreate,
   awardSimpleAchievementsAfterRatingSave,
@@ -64,28 +64,10 @@ type UpdateGameRpcPayload = GameRpcBasePayload & {
   p_game_id: string;
 };
 
-async function requireActiveMember() {
-  const supabase = await createClient();
-  const memberState = await getCurrentMemberFromClient(supabase);
-
-  if (memberState.status !== "active-member") {
-    return {
-      ok: false as const,
-      message: "Sesja wygasła albo nie masz dostępu do tej sekcji.",
-    };
-  }
-
-  return {
-    ok: true as const,
-    supabase,
-    member: memberState.member,
-  };
-}
-
 export async function fetchBggGameDetails(
   url: string,
 ): Promise<BggAutofillActionState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
@@ -110,7 +92,8 @@ async function getActiveMemberIds(
   const { data, error } = await supabase
     .from("app_members")
     .select("user_id")
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .eq("role", "member");
 
   if (error) {
     throw new Error("Nie udało się pobrać aktywnych członków.");
@@ -206,7 +189,7 @@ export async function createGameAction(
   _state: GameFormState,
   formData: FormData,
 ): Promise<GameFormState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
@@ -264,7 +247,7 @@ export async function updateGameAction(
   _state: GameFormState,
   formData: FormData,
 ): Promise<GameFormState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
@@ -309,7 +292,7 @@ export async function archiveGameAction(
   _state: GameFormState,
 ): Promise<GameFormState> {
   void _state;
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
@@ -343,7 +326,7 @@ export async function toggleGameExpansionOwnedAction(
   expansionId: string,
   isOwned: boolean,
 ): Promise<ToggleGameExpansionState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
@@ -377,7 +360,7 @@ export async function saveRatingAction(
   _state: RatingFormState,
   formData: FormData,
 ): Promise<RatingFormState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }

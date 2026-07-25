@@ -4,6 +4,7 @@ import {
   formatInviteOutcome,
   getInviteAdminConfig,
   getProvisioningState,
+  parseRole,
 } from "./invite-user-lib.mjs";
 
 function argument(name) {
@@ -17,8 +18,16 @@ async function main() {
 
   if (!email || !displayName) {
     console.error(
-      'Uzycie: pnpm invite:user -- --email osoba@example.com --name "Imie"',
+      'Uzycie: pnpm invite:user -- --email osoba@example.com --name "Imie" [--role member|admin|observer]',
     );
+    return 1;
+  }
+
+  let role;
+  try {
+    role = parseRole(argument("role"));
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
     return 1;
   }
 
@@ -56,11 +65,38 @@ async function main() {
       .maybeSingle(),
   ]);
 
-  const provisioningReady = getProvisioningState(profile, membership);
+  // The auth.users trigger always provisions new members with role
+  // "member" — apply the requested role afterwards with the service-role
+  // client rather than teaching the trigger about non-default roles.
+  let finalMembership = membership;
+  if (membership && role !== "member") {
+    const { data: updatedMembership, error: roleUpdateError } = await supabase
+      .from("app_members")
+      .update({ role })
+      .eq("user_id", data.user.id)
+      .select("user_id, role, is_active")
+      .maybeSingle();
+
+    if (roleUpdateError) {
+      console.error(
+        `Zaproszenie wyslane, ale nie udalo sie ustawic roli "${role}": ${roleUpdateError.message}`,
+      );
+      return 1;
+    }
+
+    finalMembership = updatedMembership;
+  }
+
+  const provisioningReady = getProvisioningState(
+    profile,
+    finalMembership,
+    role,
+  );
   const output = formatInviteOutcome({
     email,
     inviteSucceeded: true,
     provisioningReady,
+    role,
   });
 
   if (provisioningReady) {

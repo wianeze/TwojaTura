@@ -75,11 +75,29 @@ export function formatInviteError(error) {
   return lines.join("\n");
 }
 
-export function getProvisioningState(profile, membership) {
+export const VALID_MEMBER_ROLES = ["member", "admin", "observer"];
+
+export function parseRole(value) {
+  const role = value?.trim() || "member";
+
+  if (!VALID_MEMBER_ROLES.includes(role)) {
+    throw new Error(
+      `Nieprawidlowa rola "${role}". Dozwolone wartosci: ${VALID_MEMBER_ROLES.join(", ")}.`,
+    );
+  }
+
+  return role;
+}
+
+export function getProvisioningState(
+  profile,
+  membership,
+  expectedRole = "member",
+) {
   return (
     Boolean(profile) &&
     Boolean(membership) &&
-    membership.role === "member" &&
+    membership.role === expectedRole &&
     membership.is_active === true
   );
 }
@@ -88,6 +106,7 @@ export function formatInviteOutcome({
   email,
   inviteSucceeded,
   provisioningReady,
+  role = "member",
 }) {
   if (!inviteSucceeded) {
     return "Nie udalo sie wyslac zaproszenia.";
@@ -97,6 +116,7 @@ export function formatInviteOutcome({
     return [
       "Zaproszenie wyslane.",
       `Uzytkownik: ${email}`,
+      `Rola: ${role}.`,
       "Profil i czlonkostwo: gotowe.",
     ].join("\n");
   }
@@ -104,6 +124,7 @@ export function formatInviteOutcome({
   return [
     "Zaproszenie wyslane.",
     `Uzytkownik: ${email}`,
+    `Rola: ${role}.`,
     "Nie udalo sie potwierdzic provisioningu czlonkostwa. Sprawdz profiles i app_members.",
   ].join("\n");
 }

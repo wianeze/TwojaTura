@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useCanWrite } from "@/features/auth/member-role-context";
 import { MeetingDateField } from "@/features/meetings/meeting-date-field";
 import { getMeetingOptionDisplayLabel } from "./formatting";
 import { INITIAL_PLAY_FORM_STATE } from "./form-state";
@@ -293,9 +294,12 @@ export function PlayForm(props: PlayFormProps) {
     await uploadStagedDraftsAndFinish(createdPlayId);
   }
 
+  const canWrite = useCanWrite();
   const nonPhotoFieldsDisabled =
-    isCreateMode && (isCreateSubmitting || Boolean(createdPlayId));
-  const baseLabel = status === "in_progress" ? "Zapisz grę w toku" : submitLabel;
+    !canWrite ||
+    (isCreateMode && (isCreateSubmitting || Boolean(createdPlayId)));
+  const baseLabel =
+    status === "in_progress" ? "Zapisz grę w toku" : submitLabel;
   const submitButtonLabel =
     isCreateMode && createdPlayId ? "Wyślij zdjęcia ponownie" : baseLabel;
   const submitButtonPendingLabel = isCreateMode
@@ -473,7 +477,7 @@ export function PlayForm(props: PlayFormProps) {
                 </button>
               </div>
             ) : photosFullyUploaded ? (
-              <p className="mb-2.5 rounded-xl bg-moss-soft px-3 py-2 text-xs font-semibold text-moss">
+              <p className="bg-moss-soft text-moss mb-2.5 rounded-xl px-3 py-2 text-xs font-semibold">
                 Partia została zapisana. Zdjęcia zostały wysłane.
               </p>
             ) : (
@@ -485,7 +489,7 @@ export function PlayForm(props: PlayFormProps) {
           <PlayPhotoDraftsField
             drafts={photoDrafts}
             onDraftsChange={setPhotoDrafts}
-            disabled={isCreateSubmitting}
+            disabled={isCreateSubmitting || !canWrite}
             uploadProgress={uploadProgress}
           />
         </section>

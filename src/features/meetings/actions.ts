@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
+import { requireWriteAccess } from "@/features/auth/require-write-access";
 import {
   awardSimpleAchievementsAfterMeetingCreate,
   awardSimpleAchievementsAfterRsvpSave,
@@ -26,24 +25,6 @@ type DatabaseErrorLike = {
   code?: string | null;
 };
 
-async function requireActiveMember() {
-  const supabase = await createClient();
-  const memberState = await getCurrentMemberFromClient(supabase);
-
-  if (memberState.status !== "active-member") {
-    return {
-      ok: false as const,
-      message: "Sesja wygasła albo nie masz dostępu do tej sekcji.",
-    };
-  }
-
-  return {
-    ok: true as const,
-    supabase,
-    member: memberState.member,
-  };
-}
-
 function mapMeetingDatabaseError(error: DatabaseErrorLike) {
   switch (error.code) {
     case "42501":
@@ -59,7 +40,7 @@ export async function createMeetingAction(
   _state: MeetingFormState,
   formData: FormData,
 ): Promise<MeetingFormState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
@@ -125,7 +106,7 @@ export async function updateMeetingAction(
   _state: MeetingFormState,
   formData: FormData,
 ): Promise<MeetingFormState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
@@ -171,7 +152,7 @@ export async function saveMeetingAvailabilityAction(
   _state: MeetingAvailabilityFormState,
   formData: FormData,
 ): Promise<MeetingAvailabilityFormState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
@@ -241,7 +222,7 @@ export async function confirmMeetingAction(
   meetingId: string,
   currentStatus: "planned" | "confirmed",
 ) {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return;
   }
@@ -272,7 +253,7 @@ export async function toggleMeetingVoteAction(
   gameId: string,
   shouldVote: boolean,
 ): Promise<MeetingVoteState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }

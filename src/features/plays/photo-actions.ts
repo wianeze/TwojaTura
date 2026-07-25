@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { toPublicStorageUrl } from "@/lib/supabase/env";
-import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
+import { requireWriteAccess } from "@/features/auth/require-write-access";
 import type { PlayPhoto } from "./types";
 
 const BUCKET = "play-photos";
@@ -11,24 +11,6 @@ const BUCKET = "play-photos";
 type DatabaseErrorLike = {
   code?: string | null;
 };
-
-async function requireActiveMember() {
-  const supabase = await createClient();
-  const memberState = await getCurrentMemberFromClient(supabase);
-
-  if (memberState.status !== "active-member") {
-    return {
-      ok: false as const,
-      message: "Sesja wygasła albo nie masz dostępu do tej sekcji.",
-    };
-  }
-
-  return {
-    ok: true as const,
-    supabase,
-    member: memberState.member,
-  };
-}
 
 function mapPhotoDatabaseError(error: DatabaseErrorLike | null) {
   switch (error?.code) {
@@ -86,7 +68,7 @@ export async function createPlayPhotoAction(input: {
   width: number;
   height: number;
 }): Promise<{ ok: true; photo: PlayPhoto } | { ok: false; message: string }> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { ok: false, message: access.message };
   }
@@ -143,7 +125,7 @@ export async function deletePlayPhotoAction(
   playId: string,
   photoId: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { ok: false, message: access.message };
   }
@@ -185,7 +167,7 @@ export async function reorderPlayPhotosAction(
   playId: string,
   photoIds: string[],
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { ok: false, message: access.message };
   }

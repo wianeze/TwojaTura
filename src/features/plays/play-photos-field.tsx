@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useCanWrite } from "@/features/auth/member-role-context";
 import {
   deletePlayPhotoAction,
   reorderPlayPhotosAction,
@@ -30,6 +31,7 @@ export function PlayPhotosField({
 
   const totalBytes = photos.reduce((sum, photo) => sum + photo.byteSize, 0);
   const remainingSlots = MAX_PLAY_PHOTOS - photos.length;
+  const canWrite = useCanWrite();
 
   function handleFilesSelected(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
@@ -137,37 +139,39 @@ export function PlayPhotosField({
                 alt=""
                 className="aspect-square w-full rounded-[0.8rem] object-cover"
               />
-              <div className="mt-1.5 flex items-center justify-between gap-1">
-                <div className="flex gap-1">
+              {canWrite ? (
+                <div className="mt-1.5 flex items-center justify-between gap-1">
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      disabled={index === 0 || movingId === photo.id}
+                      onClick={() => handleMove(photo.id, -1)}
+                      className="rounded-full bg-white/80 px-2 py-1 text-xs font-bold text-[#6b5140] disabled:opacity-35"
+                      aria-label="Przesuń wcześniej"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      disabled={
+                        index === photos.length - 1 || movingId === photo.id
+                      }
+                      onClick={() => handleMove(photo.id, 1)}
+                      className="rounded-full bg-white/80 px-2 py-1 text-xs font-bold text-[#6b5140] disabled:opacity-35"
+                      aria-label="Przesuń później"
+                    >
+                      ↓
+                    </button>
+                  </div>
                   <button
                     type="button"
-                    disabled={index === 0 || movingId === photo.id}
-                    onClick={() => handleMove(photo.id, -1)}
-                    className="rounded-full bg-white/80 px-2 py-1 text-xs font-bold text-[#6b5140] disabled:opacity-35"
-                    aria-label="Przesuń wcześniej"
+                    onClick={() => handleDelete(photo.id)}
+                    className="rounded-full bg-white/80 px-2 py-1 text-xs font-bold text-[#8f3528]"
                   >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    disabled={
-                      index === photos.length - 1 || movingId === photo.id
-                    }
-                    onClick={() => handleMove(photo.id, 1)}
-                    className="rounded-full bg-white/80 px-2 py-1 text-xs font-bold text-[#6b5140] disabled:opacity-35"
-                    aria-label="Przesuń później"
-                  >
-                    ↓
+                    Usuń
                   </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(photo.id)}
-                  className="rounded-full bg-white/80 px-2 py-1 text-xs font-bold text-[#8f3528]"
-                >
-                  Usuń
-                </button>
-              </div>
+              ) : null}
             </div>
           ))}
         </div>
@@ -199,7 +203,7 @@ export function PlayPhotosField({
         </div>
       ) : null}
 
-      {remainingSlots > 0 ? (
+      {!canWrite ? null : remainingSlots > 0 ? (
         <label className="wood-grain text-cream inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold">
           + Dodaj zdjęcia
           <input

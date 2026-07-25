@@ -265,7 +265,8 @@ export async function listActiveMembers() {
   const { data: memberships, error: membershipError } = await supabase
     .from("app_members")
     .select("user_id, role, is_active")
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .eq("role", "member");
 
   if (membershipError) {
     throw new Error("Nie udało się pobrać członków grupy.");

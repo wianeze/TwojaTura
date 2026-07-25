@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
+import { useCanWrite } from "@/features/auth/member-role-context";
 import { INITIAL_MEETING_AVAILABILITY_STATE } from "./form-state";
 import type {
   MeetingAttendanceRow,
@@ -50,37 +51,40 @@ export function MeetingAvailabilityForm({
     typeof state.savedResponse === "boolean"
       ? state.savedResponse
       : ownResponse;
+  const canWrite = useCanWrite();
 
   return (
     <form action={formAction} className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="submit"
-          name="response"
-          value="available"
-          disabled={pending}
-          className={`cta-glow rounded-full px-3.5 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
-            currentResponse === true
-              ? "bg-moss text-white"
-              : "paper-wash text-[#5e4634]"
-          }`}
-        >
-          {pending && currentResponse !== true ? "Zapisuję…" : "Będę"}
-        </button>
-        <button
-          type="submit"
-          name="response"
-          value="unavailable"
-          disabled={pending}
-          className={`rounded-full px-3.5 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
-            currentResponse === false
-              ? "bg-[#8f3528] text-white"
-              : "paper-wash text-[#5e4634]"
-          }`}
-        >
-          {pending && currentResponse !== false ? "Zapisuję…" : "Nie mogę"}
-        </button>
-      </div>
+      {canWrite ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="submit"
+            name="response"
+            value="available"
+            disabled={pending}
+            className={`cta-glow rounded-full px-3.5 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
+              currentResponse === true
+                ? "bg-moss text-white"
+                : "paper-wash text-[#5e4634]"
+            }`}
+          >
+            {pending && currentResponse !== true ? "Zapisuję…" : "Będę"}
+          </button>
+          <button
+            type="submit"
+            name="response"
+            value="unavailable"
+            disabled={pending}
+            className={`rounded-full px-3.5 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
+              currentResponse === false
+                ? "bg-[#8f3528] text-white"
+                : "paper-wash text-[#5e4634]"
+            }`}
+          >
+            {pending && currentResponse !== false ? "Zapisuję…" : "Nie mogę"}
+          </button>
+        </div>
+      ) : null}
 
       {state.message && state.status === "error" ? (
         <p className="text-xs font-semibold text-[#8f3528]">{state.message}</p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { useCanWrite } from "@/features/auth/member-role-context";
 
 export function PlaySubmitButton({
   label,
@@ -16,6 +17,15 @@ export function PlaySubmitButton({
 }) {
   const { pending: formPending } = useFormStatus();
   const pending = pendingOverride ?? formPending;
+  const canWrite = useCanWrite();
+
+  if (!canWrite) {
+    return (
+      <p className="text-muted text-xs font-semibold">
+        Tryb tylko do odczytu — zapis niedostępny.
+      </p>
+    );
+  }
 
   return (
     <button

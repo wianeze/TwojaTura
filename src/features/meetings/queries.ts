@@ -115,7 +115,8 @@ async function listActiveMeetingMembers(
   const { data, error } = await supabase
     .from("app_members")
     .select("user_id")
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .eq("role", "member");
 
   if (error) {
     throw new Error("Nie udało się pobrać aktywnych członków.");

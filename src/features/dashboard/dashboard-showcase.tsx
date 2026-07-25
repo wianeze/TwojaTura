@@ -173,23 +173,30 @@ function CompactLeaderboardEntry({
 
 function MobileLeaderboardRow({ entry }: { entry: DashboardLeaderboardEntry }) {
   const rankAsset = getLeaderboardRankAsset(entry.rank);
+  const isPodium = entry.rank <= 3;
+  const iconSizeClass = isPodium ? "size-10" : "size-8";
+  const rankGlow = getRankGlowClass(entry.rank);
 
   return (
-    <li className="relative flex items-center gap-1.5 rounded-[0.65rem] border border-white/8 bg-[rgba(33,18,14,0.36)] py-1 pr-1.5 pl-8">
+    <li
+      className={`relative flex items-center gap-1.5 rounded-[0.65rem] py-1 pr-1.5 ${isPodium ? `border border-white/12 bg-[rgba(33,18,14,0.5)] pl-10 ${rankGlow}` : "border border-white/8 bg-[rgba(33,18,14,0.36)] pl-8"}`}
+    >
       {rankAsset ? (
         <Image
           src={rankAsset}
           alt={getLeaderboardRankLabel(entry.rank)}
-          width={32}
-          height={32}
-          className="absolute top-1/2 left-0 size-8 shrink-0 -translate-y-1/2 object-contain"
+          width={40}
+          height={40}
+          className={`absolute top-1/2 left-0 ${iconSizeClass} shrink-0 -translate-y-1/2 object-contain`}
         />
       ) : (
-        <span className="absolute top-1/2 left-0 grid size-8 shrink-0 -translate-y-1/2 place-items-center rounded-full bg-black/24 text-[0.6rem] font-bold text-[#ffe2ad]">
+        <span
+          className={`absolute top-1/2 left-0 ${iconSizeClass} grid shrink-0 -translate-y-1/2 place-items-center rounded-full bg-black/24 text-[0.6rem] font-bold text-[#ffe2ad]`}
+        >
           {entry.rank}
         </span>
       )}
-      <div className="min-w-0 flex-1 text-center">
+      <div className="min-w-0 flex-1 text-left">
         <p className="truncate text-[0.68rem] leading-tight font-semibold text-[#fff2dc]">
           {entry.displayName}
         </p>
@@ -501,7 +508,7 @@ export async function DashboardShowcase() {
                       Prowadzi
                     </p>
                     <p
-                      className={`truncate text-[0.66rem] font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
+                      className={`line-clamp-2 text-[0.66rem] leading-tight font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
                     >
                       {upcoming.leadingGame
                         ? upcoming.leadingGame.title

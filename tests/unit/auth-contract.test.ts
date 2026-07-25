@@ -5,6 +5,7 @@ import {
   formatInviteOutcome,
   getInviteAdminConfig,
   getProvisioningState,
+  parseRole,
 } from "../../scripts/invite-user-lib.mjs";
 import { mapCurrentMember } from "../../src/features/auth/current-member.ts";
 import { getSafeInternalPath } from "../../src/features/auth/safe-redirect.ts";
@@ -150,6 +151,25 @@ test("invite provisioning state is true only for active member profile", () => {
   );
 });
 
+test("invite provisioning state accepts an expected non-default role", () => {
+  assert.equal(
+    getProvisioningState(
+      { id: "user-1" },
+      { user_id: "user-1", role: "observer", is_active: true },
+      "observer",
+    ),
+    true,
+  );
+  assert.equal(
+    getProvisioningState(
+      { id: "user-1" },
+      { user_id: "user-1", role: "member", is_active: true },
+      "observer",
+    ),
+    false,
+  );
+});
+
 test("invite outcome reports verified success", () => {
   assert.equal(
     formatInviteOutcome({
@@ -160,6 +180,7 @@ test("invite outcome reports verified success", () => {
     [
       "Zaproszenie wyslane.",
       "Uzytkownik: zaproszony2@twojatura.local",
+      "Rola: member.",
       "Profil i czlonkostwo: gotowe.",
     ].join("\n"),
   );
@@ -175,7 +196,25 @@ test("invite outcome reports warning when provisioning is not confirmed", () => 
     [
       "Zaproszenie wyslane.",
       "Uzytkownik: zaproszony2@twojatura.local",
+      "Rola: member.",
       "Nie udalo sie potwierdzic provisioningu czlonkostwa. Sprawdz profiles i app_members.",
+    ].join("\n"),
+  );
+});
+
+test("invite outcome includes a non-default requested role", () => {
+  assert.equal(
+    formatInviteOutcome({
+      email: "zaproszony2@twojatura.local",
+      inviteSucceeded: true,
+      provisioningReady: true,
+      role: "observer",
+    }),
+    [
+      "Zaproszenie wyslane.",
+      "Uzytkownik: zaproszony2@twojatura.local",
+      "Rola: observer.",
+      "Profil i czlonkostwo: gotowe.",
     ].join("\n"),
   );
 });
@@ -189,6 +228,20 @@ test("invite outcome keeps real invite failure as failure", () => {
     }),
     "Nie udalo sie wyslac zaproszenia.",
   );
+});
+
+test("parseRole defaults to member", () => {
+  assert.equal(parseRole(undefined), "member");
+  assert.equal(parseRole(""), "member");
+});
+
+test("parseRole accepts admin and observer", () => {
+  assert.equal(parseRole("admin"), "admin");
+  assert.equal(parseRole("observer"), "observer");
+});
+
+test("parseRole rejects unknown values", () => {
+  assert.throws(() => parseRole("superadmin"), /Nieprawidlowa rola/);
 });
 
 test("maps an active member", () => {
@@ -211,6 +264,17 @@ test("maps an active admin", () => {
   assert.equal(state.status, "active-member");
   if (state.status === "active-member")
     assert.equal(state.member.role, "admin");
+});
+
+test("maps an active observer", () => {
+  const state = mapCurrentMember(
+    "user-1",
+    { role: "observer", is_active: true },
+    profile,
+  );
+  assert.equal(state.status, "active-member");
+  if (state.status === "active-member")
+    assert.equal(state.member.role, "observer");
 });
 
 test("missing membership denies access", () => {

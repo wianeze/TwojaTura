@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
+import { useCanWrite } from "@/features/auth/member-role-context";
 import { cleanBggExpansionName } from "./bgg";
 import type { GameExpansion, ToggleGameExpansionState } from "./types";
 
@@ -98,6 +99,8 @@ export function GameExpansionsChecklist({
   onToggle,
 }: GameExpansionsChecklistProps) {
   const [showAll, setShowAll] = useState(false);
+  const canWrite = useCanWrite();
+  const effectiveCanManage = canManage && canWrite;
 
   if (expansions.length === 0) {
     return (
@@ -114,7 +117,7 @@ export function GameExpansionsChecklist({
           key={`${expansion.id}:${expansion.isOwned ? "owned" : "missing"}`}
           expansion={expansion}
           gameTitle={gameTitle}
-          canManage={canManage}
+          canManage={effectiveCanManage}
           onToggle={onToggle}
           index={index}
         />

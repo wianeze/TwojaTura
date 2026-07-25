@@ -1,5 +1,5 @@
 export type NavigationIconName =
-  "dashboard" | "shelf" | "games" | "meetings" | "plays" | "profile";
+  "dashboard" | "shelf" | "games" | "meetings" | "plays" | "profile" | "admin";
 
 type NavigationIconProps = {
   name: NavigationIconName;
@@ -65,6 +65,15 @@ export function NavigationIcon({
       <svg {...commonProps}>
         <path d="M8 4h8v4a4 4 0 0 1-8 0V4Z" />
         <path d="M8 6H5a2 2 0 0 0 2 4h1M16 6h3a2 2 0 0 1-2 4h-1M12 12v5M8 21h8M9 17h6" />
+      </svg>
+    );
+  }
+
+  if (name === "admin") {
+    return (
+      <svg {...commonProps}>
+        <path d="M12 3 4 6.5v5c0 4.6 3.2 8.4 8 9.5 4.8-1.1 8-4.9 8-9.5v-5L12 3Z" />
+        <path d="m9 12 2 2 4-4" />
       </svg>
     );
   }

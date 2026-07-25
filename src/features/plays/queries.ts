@@ -1,4 +1,5 @@
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
+import type { MemberRole } from "@/features/auth/types";
 import { createClient } from "@/lib/supabase/server";
 import { toPublicStorageUrl } from "@/lib/supabase/env";
 import type { Tables } from "@/types/database.generated";
@@ -124,7 +125,7 @@ function buildParticipantsMap(
 
 async function hydratePlayItems(
   playRows: PlayRow[],
-  viewer?: { id: string; role: "member" | "admin" } | null,
+  viewer?: { id: string; role: MemberRole } | null,
 ) {
   if (playRows.length === 0) return [] as PlayListItem[];
 
@@ -339,7 +340,8 @@ export async function getPlayFormOptions(): Promise<
     supabase
       .from("app_members")
       .select("user_id, role, is_active")
-      .eq("is_active", true),
+      .eq("is_active", true)
+      .eq("role", "member"),
   ]);
 
   if (gamesResult.error || meetingsResult.error || membersResult.error) {

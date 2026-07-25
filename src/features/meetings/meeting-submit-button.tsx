@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { useCanWrite } from "@/features/auth/member-role-context";
 
 export function MeetingSubmitButton({
   label,
@@ -10,6 +11,15 @@ export function MeetingSubmitButton({
   pendingLabel: string;
 }) {
   const { pending } = useFormStatus();
+  const canWrite = useCanWrite();
+
+  if (!canWrite) {
+    return (
+      <p className="text-muted text-xs font-semibold">
+        Tryb tylko do odczytu — zapis niedostępny.
+      </p>
+    );
+  }
 
   return (
     <button

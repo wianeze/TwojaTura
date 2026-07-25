@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useCanWrite } from "@/features/auth/member-role-context";
 import { toggleMeetingVoteAction } from "./actions";
 
 export function MeetingVoteToggle({
@@ -14,6 +15,8 @@ export function MeetingVoteToggle({
 }) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const canWrite = useCanWrite();
+  if (!canWrite) return null;
 
   return (
     <div className="space-y-2">

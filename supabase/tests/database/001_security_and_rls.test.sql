@@ -537,8 +537,8 @@ select results_eq(
 
 select results_eq(
   $$select count(*)::bigint from public.get_leaderboard()$$,
-  $$values (5::bigint)$$,
-  '33. active member sees the limited global leaderboard'
+  $$values (4::bigint)$$,
+  '33. active member sees the limited global leaderboard (admin excluded per role system)'
 );
 
 select ok(
@@ -3450,8 +3450,8 @@ select results_eq(
     select awarded_count, points_awarded, awarded_user_ids
     from public.award_play_result_achievements('79000000-0000-0000-0000-000000000016')
   $$,
-  $$values (1::integer, 15::integer, array['10000000-0000-0000-0000-000000000001'::uuid])$$,
-  '225. other players plays between own wins do not interrupt dark_urge'
+  $$values (0::integer, 0::integer, array[]::uuid[])$$,
+  '225. otherwise-qualifying dark_urge streak is a no-op for an admin recipient (role system)'
 );
 
 select results_eq(
@@ -3494,8 +3494,8 @@ select results_eq(
     where achievement_key = 'dark_urge'
       and user_id in ('10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001')
   $$,
-  $$values (2::bigint)$$,
-  '229. only qualifying users receive dark_urge without backfill'
+  $$values (1::bigint)$$,
+  '229. only the qualifying non-admin user receives dark_urge without backfill (admin is a gamification no-op)'
 );
 
 select set_config(

@@ -60,6 +60,54 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_audit_log: {
+        Row: {
+          action_type: string
+          actor_user_id: string
+          created_at: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          reason: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          actor_user_id: string
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          reason?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          actor_user_id?: string
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          reason?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_log_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_audit_log_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_content: {
         Row: {
           content_key: string
@@ -892,6 +940,33 @@ export type Database = {
       }
     }
     Functions: {
+      admin_change_role: {
+        Args: {
+          p_new_role: Database["public"]["Enums"]["membership_role"]
+          p_reason?: string
+          p_target_user_id: string
+        }
+        Returns: undefined
+      }
+      admin_deactivate_and_anonymize_account: {
+        Args: { p_reason?: string; p_target_user_id: string }
+        Returns: undefined
+      }
+      admin_list_accounts: {
+        Args: {
+          p_role_filter?: Database["public"]["Enums"]["membership_role"]
+          p_search?: string
+        }
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          is_active: boolean
+          last_sign_in_at: string
+          role: Database["public"]["Enums"]["membership_role"]
+          user_id: string
+        }[]
+      }
       award_current_user_simple_achievements: {
         Args: never
         Returns: {
@@ -1002,6 +1077,7 @@ export type Database = {
         }
         Returns: string
       }
+      current_user_is_admin: { Args: never; Returns: boolean }
       get_leaderboard: {
         Args: never
         Returns: {
@@ -1076,7 +1152,7 @@ export type Database = {
     Enums: {
       game_status: "available" | "unavailable" | "loaned"
       meeting_status: "planned" | "confirmed" | "completed"
-      membership_role: "member" | "admin"
+      membership_role: "member" | "admin" | "observer"
       play_status: "in_progress" | "completed"
     }
     CompositeTypes: {
@@ -1207,7 +1283,7 @@ export const Constants = {
     Enums: {
       game_status: ["available", "unavailable", "loaned"],
       meeting_status: ["planned", "confirmed", "completed"],
-      membership_role: ["member", "admin"],
+      membership_role: ["member", "admin", "observer"],
       play_status: ["in_progress", "completed"],
     },
   },
