@@ -14,6 +14,7 @@ import { AuthSubmitButton } from "./auth-submit-button";
 import { INITIAL_FORM_STATE } from "./form-state";
 import {
   getAuthHashSessionKind,
+  getAuthHashTokens,
   parseAuthHashParams,
   type AuthHashSessionKind,
 } from "./recovery-session";
@@ -113,16 +114,17 @@ export function LoginForm({ initialError }: { initialError?: string }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const initialKind = getAuthHashSessionKind(
-      parseAuthHashParams(window.location.hash),
-    ).kind;
+    const params = parseAuthHashParams(window.location.hash);
+    const initialKind = getAuthHashSessionKind(params).kind;
     if (initialKind !== "recovery" && initialKind !== "invite") return;
 
     const supabase = createClient();
-    let active = true;
+    let settled = false;
 
     function confirmSessionReady() {
-      if (!active) return;
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
       setSessionViewMode("ready");
       // Only strip the fragment once Supabase has actually confirmed the
       // session — never speculatively, so a still-loading or failed
@@ -133,22 +135,50 @@ export function LoginForm({ initialError }: { initialError?: string }) {
       }
     }
 
+    function failSession() {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      setSessionViewMode("error");
+    }
+
+    // Final backstop: if nothing below manages to establish a session
+    // within ~9s (bad tokens, network hiccup, a Supabase SDK edge case),
+    // stop showing "Sprawdzanie linku…" forever and surface a clear error.
+    const timeoutId = window.setTimeout(failSession, 9000);
+
+    // Fallback path — kept, but not relied on alone (see below): the SDK's
+    // own implicit detectSessionInUrl handling may establish the session on
+    // its own, possibly before this effect even subscribes.
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
         confirmSessionReady();
       }
     });
-
-    // onAuthStateChange only fires for events emitted *after* the listener
-    // is attached — the SDK's own hash exchange can complete before this
-    // effect even runs, so this checks the current session directly as a
-    // backstop rather than relying on the listener alone.
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) confirmSessionReady();
     });
 
+    // Primary path: explicitly exchange the fragment's tokens for a
+    // session instead of only waiting on the fallback above to notice
+    // them. Tokens are read once here and handed straight to the SDK —
+    // never logged, never stored by this code.
+    const { accessToken, refreshToken } = getAuthHashTokens(params);
+    if (accessToken && refreshToken) {
+      supabase.auth
+        .setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ data, error }) => {
+          if (!error && data.session) {
+            confirmSessionReady();
+          }
+          // On failure, deliberately fall through to the fallback above and
+          // the timeout — setSession must not be the only mechanism.
+        });
+    }
+
     return () => {
-      active = false;
+      settled = true;
+      window.clearTimeout(timeoutId);
       authListener.subscription.unsubscribe();
     };
   }, []);

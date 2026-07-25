@@ -35,3 +35,22 @@ export function getAuthHashSessionKind(
 
   return { kind: null };
 }
+
+export type AuthHashTokens = {
+  accessToken: string | null;
+  refreshToken: string | null;
+};
+
+/**
+ * Pulls the raw session tokens out of the fragment so the caller can pass
+ * them straight to supabase.auth.setSession() — the explicit, reliable way
+ * to establish the session, rather than waiting on the SDK's own implicit
+ * detectSessionInUrl handling (onAuthStateChange/getSession) to notice them
+ * on its own. Never log or persist the return value of this function.
+ */
+export function getAuthHashTokens(params: URLSearchParams): AuthHashTokens {
+  return {
+    accessToken: params.get("access_token"),
+    refreshToken: params.get("refresh_token"),
+  };
+}
