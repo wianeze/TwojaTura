@@ -4,7 +4,13 @@ import { SetPasswordForm } from "@/features/auth/set-password-form";
 
 export const metadata: Metadata = { title: "Ustaw hasło" };
 
-export default function SetPasswordPage() {
+export default async function SetPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ flow?: string }>;
+}) {
+  const { flow } = await searchParams;
+
   return (
     <Panel className="paper-wash p-6 sm:p-8">
       <p className="text-accent text-xs font-bold tracking-[0.16em] uppercase">
@@ -15,7 +21,7 @@ export default function SetPasswordPage() {
         Wybierz nowe hasło do swojego konta. Link musi pochodzić z zaproszenia
         albo wiadomości odzyskiwania hasła.
       </p>
-      <SetPasswordForm />
+      <SetPasswordForm flow={flow === "recovery" ? "recovery" : undefined} />
     </Panel>
   );
 }

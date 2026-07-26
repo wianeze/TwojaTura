@@ -7,9 +7,9 @@ export const metadata: Metadata = { title: "Wejście do Chaty" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ authError?: string }>;
+  searchParams: Promise<{ authError?: string; passwordUpdated?: string }>;
 }) {
-  const { authError } = await searchParams;
+  const { authError, passwordUpdated } = await searchParams;
   return (
     <Panel className="paper-wash p-6 sm:p-8">
       <p className="text-accent text-xs font-bold tracking-[0.16em] uppercase">
@@ -25,6 +25,11 @@ export default async function LoginPage({
         initialError={
           authError
             ? "Link logowania wygasł lub jest nieprawidłowy. Spróbuj ponownie."
+            : undefined
+        }
+        initialSuccessMessage={
+          passwordUpdated
+            ? "Hasło zostało ustawione. Możesz się zalogować."
             : undefined
         }
       />
