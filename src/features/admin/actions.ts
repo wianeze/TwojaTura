@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
 import type { MemberRole } from "@/features/auth/types";
+import type { FeedbackStatus } from "@/features/feedback/types";
 import type { AdminActionResult } from "./types";
 
 /**
@@ -65,6 +66,31 @@ export async function adminDeactivateAccountAction(
   const { error } = await access.supabase.rpc(
     "admin_deactivate_and_anonymize_account",
     { p_target_user_id: targetUserId, p_reason: reason },
+  );
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+export async function adminUpdateFeedbackSubmissionAction(
+  submissionId: string,
+  status: FeedbackStatus,
+  adminNote: string,
+): Promise<AdminActionResult> {
+  const access = await requireAdminAccess();
+  if (!access.ok) return access;
+
+  const { error } = await access.supabase.rpc(
+    "admin_update_feedback_submission",
+    {
+      p_id: submissionId,
+      p_status: status,
+      p_admin_note: adminNote.trim(),
+    },
   );
 
   if (error) {

@@ -7,6 +7,7 @@ import {
   getLeaderboardRankAsset,
   getLeaderboardRankLabel,
 } from "@/features/legendarium/leaderboard-presentation";
+import { FeedbackSubmitPanel } from "@/features/feedback/feedback-submit-panel";
 import { formatMeetingDateRange } from "@/features/meetings/formatting";
 import { formatPlayShortDate } from "@/features/plays/formatting";
 import { QuestCard } from "./action-card";
@@ -747,6 +748,8 @@ export async function DashboardShowcase() {
               </div>
             )}
           </Panel>
+
+          <FeedbackSubmitPanel />
         </div>
       </div>
     </div>

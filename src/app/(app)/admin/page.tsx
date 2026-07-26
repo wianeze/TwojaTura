@@ -3,14 +3,16 @@ import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { AdminAccountsPanel } from "@/features/admin/admin-accounts-panel";
-import { listAdminAccounts } from "@/features/admin/queries";
+import { FeedbackReviewPanel } from "@/features/admin/feedback-review-panel";
+import { listAdminAccounts, listAdminFeedbackSubmissions } from "@/features/admin/queries";
 
 export const metadata: Metadata = { title: "Admin" };
 
 export default async function AdminPage() {
-  const [memberState, accounts] = await Promise.all([
+  const [memberState, accounts, feedbackSubmissions] = await Promise.all([
     getCurrentMember(),
     listAdminAccounts(),
+    listAdminFeedbackSubmissions(),
   ]);
 
   const currentUserId =
@@ -38,6 +40,16 @@ export default async function AdminPage() {
           initialAccounts={accounts}
           currentUserId={currentUserId}
         />
+      </Panel>
+
+      <Panel
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(2)}ms` }}
+        className="anim-rise-in-fast paper-wash p-5 sm:p-6"
+      >
+        <h2 className="font-display mb-4 text-xl font-semibold text-[#4c3528]">
+          Zgłoszenia użytkowników
+        </h2>
+        <FeedbackReviewPanel initialSubmissions={feedbackSubmissions} />
       </Panel>
     </div>
   );

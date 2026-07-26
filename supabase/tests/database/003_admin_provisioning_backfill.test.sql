@@ -3,12 +3,17 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select plan(18);
 
--- Reproduces the production incident: an auth.users row created without
--- raw_user_meta_data.twoja_tura_invite (e.g. Supabase Dashboard "Create new
--- user") — private.provision_invited_member() correctly no-ops for it (see
--- 001_security_and_rls.test.sql, "unmarked auth user is not provisioned as
--- an app member"). admin_provision_existing_user() is the safe way an admin
--- backfills it after the fact, without touching auth.users or the trigger.
+-- Historical note: this file originally reproduced a production incident
+-- where an auth.users row created without raw_user_meta_data.twoja_tura_invite
+-- (e.g. Supabase Dashboard "Create new user") was silently left unprovisioned.
+-- 20260726120000_auto_provision_new_members.sql removed that gate — every
+-- new auth.users row now self-provisions immediately (see
+-- 001_security_and_rls.test.sql, "unmarked auth user is provisioned too").
+-- admin_provision_existing_user() remains unchanged and still on conflict
+-- do nothing: it stays useful (a) as a manual escape hatch for any row that
+-- is still somehow missing a profile/app_members row, and (b) to hand a
+-- role other than 'member' to such a row — but only while it is genuinely
+-- unprovisioned, since the trigger now claims new rows as 'member' first.
 
 -- Kuba (seeded as a plain member) is promoted to observer for this file only
 -- — needed to prove observers are rejected exactly like ordinary members,
@@ -29,11 +34,11 @@ insert into auth.users (
 );
 
 select ok(
-  not exists (
+  exists (
     select 1 from public.profiles
     where id = '91000000-0000-0000-0000-000000000001'
   ),
-  '1. Dashboard-style user is not auto-provisioned (confirms the reproduction)'
+  '1. Dashboard-style user is auto-provisioned immediately (twoja_tura_invite is no longer required)'
 );
 
 select set_config(
@@ -155,6 +160,16 @@ insert into auth.users (
   '{}',
   now(), now()
 );
+
+-- The insert above already self-provisioned this row as an active 'member'
+-- via the trigger. Deleting those two rows here simulates a row that is
+-- genuinely still unprovisioned (e.g. a legacy row from before this
+-- migration existed) — the only situation left where
+-- admin_provision_existing_user's role argument still has anything to do,
+-- since its own inserts are on conflict do nothing and can no longer beat
+-- the trigger to a brand-new row.
+delete from public.app_members where user_id = '91000000-0000-0000-0000-000000000002';
+delete from public.profiles where id = '91000000-0000-0000-0000-000000000002';
 
 select set_config(
   'request.jwt.claims',

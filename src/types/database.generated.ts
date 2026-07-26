@@ -276,6 +276,44 @@ export type Database = {
           },
         ]
       }
+      feedback_submissions: {
+        Row: {
+          admin_note: string | null
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["feedback_status"]
+          updated_at: string
+        }
+        Insert: {
+          admin_note?: string | null
+          author_id?: string
+          content: string
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["feedback_status"]
+          updated_at?: string
+        }
+        Update: {
+          admin_note?: string | null
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["feedback_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_submissions_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_expansions: {
         Row: {
           created_at: string
@@ -967,10 +1005,31 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_feedback_submissions: {
+        Args: {
+          p_status_filter?: Database["public"]["Enums"]["feedback_status"]
+        }
+        Returns: {
+          admin_note: string
+          author_display_name: string
+          content: string
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["feedback_status"]
+        }[]
+      }
       admin_provision_existing_user: {
         Args: {
           p_role?: Database["public"]["Enums"]["membership_role"]
           p_target_user_id: string
+        }
+        Returns: undefined
+      }
+      admin_update_feedback_submission: {
+        Args: {
+          p_admin_note: string
+          p_id: string
+          p_status: Database["public"]["Enums"]["feedback_status"]
         }
         Returns: undefined
       }
@@ -1157,6 +1216,7 @@ export type Database = {
       }
     }
     Enums: {
+      feedback_status: "new" | "in_progress" | "completed" | "rejected"
       game_status: "available" | "unavailable" | "loaned"
       meeting_status: "planned" | "confirmed" | "completed"
       membership_role: "member" | "admin" | "observer"
@@ -1288,6 +1348,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      feedback_status: ["new", "in_progress", "completed", "rejected"],
       game_status: ["available", "unavailable", "loaned"],
       meeting_status: ["planned", "confirmed", "completed"],
       membership_role: ["member", "admin", "observer"],

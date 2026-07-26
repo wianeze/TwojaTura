@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(283);
+select plan(285);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -704,11 +704,24 @@ insert into auth.users (
 );
 
 select ok(
-  not exists (
+  exists (
     select 1 from public.profiles
     where id = '90000000-0000-0000-0000-000000000002'
+      and display_name = 'Bez Zaproszenia'
   ),
-  '46. unmarked auth user is not provisioned as an app member'
+  '46. unmarked auth user is provisioned too (twoja_tura_invite is no longer required)'
+);
+
+select results_eq(
+  $$select role from public.app_members where user_id = '90000000-0000-0000-0000-000000000002'$$,
+  $$values ('member'::public.membership_role)$$,
+  '46a. unmarked auth user provisioning still assigns member role'
+);
+
+select results_eq(
+  $$select is_active from public.app_members where user_id = '90000000-0000-0000-0000-000000000002'$$,
+  $$values (true)$$,
+  '46b. unmarked auth user provisioning still activates membership'
 );
 
 select results_eq(
@@ -3160,17 +3173,22 @@ values
     '2026-01-01 10:00:00+00', '2026-01-01 10:00:00+00'
   );
 
+-- auth.users insert above already self-provisioned these via
+-- private.provision_invited_member(); on conflict do nothing keeps this
+-- block valid without relying on trigger side effects (values are the same).
 insert into public.profiles (id, display_name, email)
 values
   ('10000000-0000-0000-0000-000000000008', 'Natural One Isolated', 'natural-one-isolated@twojatura.local'),
   ('10000000-0000-0000-0000-000000000009', 'Tied Last A', 'tied-last-a@twojatura.local'),
-  ('10000000-0000-0000-0000-000000000010', 'Tied Last B', 'tied-last-b@twojatura.local');
+  ('10000000-0000-0000-0000-000000000010', 'Tied Last B', 'tied-last-b@twojatura.local')
+on conflict (id) do nothing;
 
 insert into public.app_members (user_id, role, is_active)
 values
   ('10000000-0000-0000-0000-000000000008', 'member', true),
   ('10000000-0000-0000-0000-000000000009', 'member', true),
-  ('10000000-0000-0000-0000-000000000010', 'member', true);
+  ('10000000-0000-0000-0000-000000000010', 'member', true)
+on conflict (user_id) do nothing;
 
 insert into public.plays (
   id,
@@ -3843,15 +3861,20 @@ values (
   '2026-01-01 10:00:00+00'
 );
 
+-- auth.users insert above already self-provisioned this via
+-- private.provision_invited_member(); on conflict do nothing keeps this
+-- block valid without relying on trigger side effects (values are the same).
 insert into public.profiles (id, display_name, email)
 values (
   '10000000-0000-0000-0000-000000000007',
   'Kooperacyjny QA',
   'coop-achievement@twojatura.local'
-);
+)
+on conflict (id) do nothing;
 
 insert into public.app_members (user_id, role, is_active)
-values ('10000000-0000-0000-0000-000000000007', 'member', true);
+values ('10000000-0000-0000-0000-000000000007', 'member', true)
+on conflict (user_id) do nothing;
 
 insert into public.plays (
   id,
@@ -3979,15 +4002,20 @@ values (
   '2026-01-01 10:00:00+00', '2026-01-01 10:00:00+00'
 );
 
+-- auth.users insert above already self-provisioned this via
+-- private.provision_invited_member(); on conflict do nothing keeps this
+-- block valid without relying on trigger side effects (values are the same).
 insert into public.profiles (id, display_name, email)
 values (
   '10000000-0000-0000-0000-000000000011',
   'In Progress Tester',
   'in-progress-tester@twojatura.local'
-);
+)
+on conflict (id) do nothing;
 
 insert into public.app_members (user_id, role, is_active)
-values ('10000000-0000-0000-0000-000000000011', 'member', true);
+values ('10000000-0000-0000-0000-000000000011', 'member', true)
+on conflict (user_id) do nothing;
 
 -- 24 already-completed plays so a 25th, still in_progress, play must not
 -- unlock coast_chronicler until it is actually completed.
