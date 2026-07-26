@@ -1,6 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getSafeAuthErrorInfo } from "@/features/auth/recovery-session";
 import type { Database } from "@/types/database.generated";
 import { getServerSupabaseEnv } from "./env";
 
@@ -81,21 +80,9 @@ export async function updateSession(request: NextRequest) {
     return response;
   }
 
-  const { data: membershipRows, error: membershipError } = await supabase.rpc(
+  const { data: membershipRows } = await supabase.rpc(
     "get_own_membership_status",
   );
-
-  // Diagnostic only — no email/user_id/token/cookie/JWT/URL/session data,
-  // just enough to tell "RPC errored" apart from "genuinely not an active
-  // member" (today those two cases are indistinguishable below).
-  console.info("[proxy] get_own_membership_status:", {
-    hasUser: true,
-    rpcError: membershipError ? getSafeAuthErrorInfo(membershipError) : null,
-    rowCount: membershipRows?.length ?? 0,
-    role: membershipRows?.[0]?.role ?? null,
-    is_active: membershipRows?.[0]?.is_active ?? null,
-  });
-
   const isActiveMember = membershipRows?.[0]?.is_active === true;
 
   if (!isActiveMember && !isAccessDeniedRoute) {

@@ -9,7 +9,6 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getPublicSupabaseEnv } from "@/lib/supabase/env";
 import { loginAction, requestPasswordResetAction } from "./actions";
 import { AuthSubmitButton } from "./auth-submit-button";
 import { INITIAL_FORM_STATE } from "./form-state";
@@ -18,7 +17,6 @@ import {
   getAuthHashSessionKind,
   getAuthHashTokens,
   getSafeAuthErrorInfo,
-  getUrlHostname,
   parseAuthHashParams,
   type AuthHashSessionKind,
 } from "./recovery-session";
@@ -88,7 +86,13 @@ const SESSION_COPY: Record<
  * fragment — something only the browser ever sees — so this has to be a
  * client-side effect, not a Server Component/Action.
  */
-export function LoginForm({ initialError }: { initialError?: string }) {
+export function LoginForm({
+  initialError,
+  initialSuccessMessage,
+}: {
+  initialError?: string;
+  initialSuccessMessage?: string;
+}) {
   const router = useRouter();
   const [recoveryMode, setRecoveryMode] = useState(false);
 
@@ -125,17 +129,6 @@ export function LoginForm({ initialError }: { initialError?: string }) {
     const initialKind = getAuthHashSessionKind(params).kind;
     if (initialKind !== "recovery" && initialKind !== "invite") return;
 
-    // Temporary diagnostic: which Supabase project this build is actually
-    // talking to (hostname only — never the full URL, never the key).
-    // Production is expected to log brahsmioddvhkozoilgs.supabase.co here.
-    try {
-      const { url } = getPublicSupabaseEnv();
-      console.info("[auth/recovery] Supabase host:", getUrlHostname(url));
-    } catch {
-      // getPublicSupabaseEnv() throws if env vars are missing entirely —
-      // that's its own visible failure mode already, nothing to add here.
-    }
-
     const supabase = createClient();
     let settled = false;
 
@@ -164,13 +157,11 @@ export function LoginForm({ initialError }: { initialError?: string }) {
       setSessionViewMode("error");
     }
 
-    // Never pass the raw error to console/UI — only the four whitelisted
-    // fields (name/code/status/message). No token, hash, session or email
-    // is ever part of this.
-    function reportAuthError(source: string, error: unknown) {
-      const info = getSafeAuthErrorInfo(error);
-      console.error(`[auth/recovery] ${source} failed`, info);
-      failSession(formatAuthErrorMessage(info));
+    // Never pass the raw error to the UI — only the four whitelisted
+    // fields (name/code/status/message), via formatAuthErrorMessage. No
+    // token, hash, session or email is ever part of this.
+    function reportAuthError(error: unknown) {
+      failSession(formatAuthErrorMessage(getSafeAuthErrorInfo(error)));
     }
 
     // Final backstop: only reached if neither setSession nor the fallback
@@ -189,7 +180,7 @@ export function LoginForm({ initialError }: { initialError?: string }) {
     });
     supabase.auth.getSession().then(({ data, error }) => {
       if (error) {
-        reportAuthError("getSession", error);
+        reportAuthError(error);
         return;
       }
       if (data.session) confirmSessionReady();
@@ -205,7 +196,7 @@ export function LoginForm({ initialError }: { initialError?: string }) {
         .setSession({ access_token: accessToken, refresh_token: refreshToken })
         .then(({ data, error }) => {
           if (error) {
-            reportAuthError("setSession", error);
+            reportAuthError(error);
             return;
           }
           if (data.session) confirmSessionReady();
@@ -359,7 +350,9 @@ export function LoginForm({ initialError }: { initialError?: string }) {
   }
 
   const state = recoveryMode ? recoveryState : loginState;
-  const message = state.message ?? (!recoveryMode ? initialError : undefined);
+  const message =
+    state.message ??
+    (!recoveryMode ? (initialError ?? initialSuccessMessage) : undefined);
 
   return (
     <>

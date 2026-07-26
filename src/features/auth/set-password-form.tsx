@@ -1,11 +1,17 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { updatePasswordAction } from "./actions";
 import { AuthSubmitButton } from "./auth-submit-button";
 import { INITIAL_FORM_STATE } from "./form-state";
 
-export function SetPasswordForm() {
+export function SetPasswordForm({
+  flow,
+}: {
+  /** "recovery" when reached via /potwierdz-reset; omitted for invite. */
+  flow?: "recovery";
+}) {
   const [state, formAction] = useActionState(
     updatePasswordAction,
     INITIAL_FORM_STATE,
@@ -15,6 +21,7 @@ export function SetPasswordForm() {
 
   return (
     <form action={formAction} className="mt-7 space-y-4">
+      {flow && <input type="hidden" name="flow" value={flow} />}
       <label className="block text-sm font-semibold">
         Nowe hasło
         <input
@@ -38,12 +45,22 @@ export function SetPasswordForm() {
         />
       </label>
       {state.message && (
-        <p
-          role="alert"
-          className="rounded-xl bg-[#8f3528]/10 px-4 py-3 text-sm text-[#8f3528]"
-        >
-          {state.message}
-        </p>
+        <div className="space-y-2">
+          <p
+            role="alert"
+            className="rounded-xl bg-[#8f3528]/10 px-4 py-3 text-sm text-[#8f3528]"
+          >
+            {state.message}
+          </p>
+          {state.code === "same_password" && (
+            <Link
+              href="/logowanie"
+              className="text-accent focus-visible:outline-gold block text-sm font-semibold underline-offset-4 hover:underline focus-visible:outline-2"
+            >
+              Przejdź do logowania
+            </Link>
+          )}
+        </div>
       )}
       <AuthSubmitButton pendingLabel="Zapisujemy…">
         Ustaw nowe hasło

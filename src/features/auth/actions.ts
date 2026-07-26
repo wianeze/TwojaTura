@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { buildAppUrl } from "@/lib/app-url";
 import type { FormState } from "./form-state";
+import {
+  isSamePasswordError,
+  resolvePasswordUpdateRedirectTarget,
+} from "./password-update-flow";
 import { getCurrentMemberFromClient } from "./queries/get-current-member";
 import { getSafeAuthErrorInfo } from "./recovery-session";
 import { getSafeInternalPath } from "./safe-redirect";
@@ -95,7 +99,6 @@ export async function confirmPasswordRecoveryAction(
 
   if (error) {
     const info = getSafeAuthErrorInfo(error);
-    console.error("[auth/potwierdz-reset] verifyOtp failed:", info);
     return {
       status: "error",
       message:
@@ -107,7 +110,13 @@ export async function confirmPasswordRecoveryAction(
 
   // Success: verifyOtp already wrote the session to cookies via the
   // server-side client — no extra sign-out, refresh, or session call here.
-  redirect(next);
+  // Marks the destination as reached via the recovery flow specifically
+  // (invite reaches /ustaw-haslo through the separate /auth/callback path
+  // and never carries this marker) so updatePasswordAction knows to send a
+  // successful recovery back to /logowanie instead of straight into the app.
+  redirect(
+    next.includes("?") ? `${next}&flow=recovery` : `${next}?flow=recovery`,
+  );
 }
 
 export async function updatePasswordAction(
@@ -123,16 +132,7 @@ export async function updatePasswordAction(
   }
 
   const supabase = await createClient();
-  const { data: claimsData, error: claimsError } =
-    await supabase.auth.getClaims();
-
-  // Diagnostic only — no password/email/user_id/token/cookie/JWT/session
-  // data, just enough to see whether a session was found at each stage.
-  console.info("[auth/ustaw-haslo] getClaims:", {
-    stage: "getClaims",
-    hasUser: Boolean(claimsData?.claims),
-    error: claimsError ? getSafeAuthErrorInfo(claimsError) : null,
-  });
+  const { data: claimsData } = await supabase.auth.getClaims();
 
   if (!claimsData?.claims) {
     return {
@@ -145,26 +145,32 @@ export async function updatePasswordAction(
     password: validation.data.password,
   });
 
-  console.info("[auth/ustaw-haslo] updateUser:", {
-    stage: "updateUser",
-    hasUser: true,
-    error: error ? getSafeAuthErrorInfo(error) : null,
-  });
-
   if (error) {
     const info = getSafeAuthErrorInfo(error);
-    // Temporary, safe-only detail (code/status, nothing else) to help
-    // diagnose the production "updateUser fails after a working recovery
-    // redirect" report.
+    if (isSamePasswordError(info)) {
+      return {
+        status: "error",
+        code: "same_password",
+        message:
+          "To hasło jest już ustawione. Możesz się nim zalogować albo wybrać inne.",
+      };
+    }
     return {
       status: "error",
-      message: `Nie udało się ustawić hasła (Auth ${info.status ?? "?"}: ${info.code ?? info.name ?? "unknown_error"}).`,
+      message: "Nie udało się ustawić hasła. Spróbuj ponownie.",
     };
   }
 
-  const memberState = await getCurrentMemberFromClient(supabase);
+  // Only the recovery flow (see confirmPasswordRecoveryAction) marks the
+  // form with flow=recovery — invite reaches this same action/page without
+  // it and keeps its existing behavior (straight into the app) untouched.
+  const flow = value(formData, "flow");
+  const isActiveMember =
+    flow === "recovery"
+      ? false // unused by resolvePasswordUpdateRedirectTarget for recovery
+      : (await getCurrentMemberFromClient(supabase)).status === "active-member";
   revalidatePath("/", "layout");
-  redirect(memberState.status === "active-member" ? "/" : "/brak-dostepu");
+  redirect(resolvePasswordUpdateRedirectTarget(flow, isActiveMember));
 }
 
 export async function updateProfileAction(
