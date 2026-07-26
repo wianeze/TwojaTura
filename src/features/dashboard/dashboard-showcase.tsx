@@ -403,7 +403,7 @@ export async function DashboardShowcase() {
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,198,105,0.18),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.08),transparent_18%)]" />
           <div className="relative space-y-2">
-            <div>
+            <div className="text-center">
               <h1 className="font-display truncate text-[1.05rem] leading-tight font-semibold text-[#fff1dc]">
                 {data.summary.title}
               </h1>
@@ -584,64 +584,63 @@ export async function DashboardShowcase() {
         </div>
       </div>
 
-      <div className="hidden items-start gap-4 sm:grid xl:grid-cols-[minmax(0,1.45fr)_minmax(17.5rem,0.9fr)]">
-        <Panel
-          style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
-          className="anim-rise-in-fast table-wood-panel fire-glow overflow-hidden p-3.5 text-[#fff1dc] shadow-[inset_0_0_0_1px_rgba(255,233,184,0.08),0_24px_54px_rgba(24,9,5,0.32)] sm:p-4"
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,198,105,0.18),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.08),transparent_18%)]" />
-          <div className="relative flex flex-col gap-2.5 lg:flex-row lg:items-stretch lg:gap-5">
-            <div className="min-w-0 flex-1 space-y-2.5">
-              <div className="space-y-1">
-                <p className="text-[0.58rem] font-bold tracking-[0.18em] text-[#e2b578] uppercase">
-                  Stół
-                </p>
-                <h1 className="font-display text-[1.75rem] leading-tight font-semibold text-[#fff1dc] sm:text-[1.95rem]">
-                  {data.summary.title}
-                </h1>
-                <p className="text-[0.7rem] font-semibold text-[#e6c79f] sm:text-[0.78rem]">
-                  {data.summary.subtitle}
-                </p>
-              </div>
+      <div className="grid gap-3 sm:items-start sm:gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(17.5rem,0.9fr)] xl:gap-5">
+        <div className="flex flex-col gap-[18px]">
+          <div className="hidden sm:block">
+            <Panel
+              style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+              className="anim-rise-in-fast table-wood-panel fire-glow overflow-hidden p-3.5 text-[#fff1dc] shadow-[inset_0_0_0_1px_rgba(255,233,184,0.08),0_24px_54px_rgba(24,9,5,0.32)] sm:p-4"
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,198,105,0.18),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.08),transparent_18%)]" />
+              <div className="relative flex flex-col gap-2.5 lg:flex-row lg:items-stretch lg:gap-5">
+                <div className="min-w-0 flex-1 space-y-2.5">
+                  <div className="space-y-1">
+                    <p className="text-[0.58rem] font-bold tracking-[0.18em] text-[#e2b578] uppercase">
+                      Stół
+                    </p>
+                    <h1 className="font-display text-[1.75rem] leading-tight font-semibold text-[#fff1dc] sm:text-[1.95rem]">
+                      {data.summary.title}
+                    </h1>
+                    <p className="text-[0.7rem] font-semibold text-[#e6c79f] sm:text-[0.78rem]">
+                      {data.summary.subtitle}
+                    </p>
+                  </div>
 
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-                <Link
-                  href="/kalendarium/nowe"
-                  className="cta-glow min-w-0 rounded-xl border border-[#efbf82]/30 bg-[#9b5538]/92 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#fff0db] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
-                >
-                  Zorganizuj spotkanie
-                </Link>
-                <Link
-                  href="/gry/nowa"
-                  className="cta-glow min-w-0 rounded-xl border border-white/14 bg-black/20 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#f2e4d3] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
-                >
-                  Dodaj grę do Półki
-                </Link>
-                <Link
-                  href="/kronika/nowa"
-                  className="cta-glow min-w-0 rounded-xl border border-white/14 bg-black/20 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#f2e4d3] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
-                >
-                  Zapisz wynik gry
-                </Link>
-              </div>
-            </div>
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                    <Link
+                      href="/kalendarium/nowe"
+                      className="cta-glow min-w-0 rounded-xl border border-[#efbf82]/30 bg-[#9b5538]/92 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#fff0db] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
+                    >
+                      Zorganizuj spotkanie
+                    </Link>
+                    <Link
+                      href="/gry/nowa"
+                      className="cta-glow min-w-0 rounded-xl border border-white/14 bg-black/20 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#f2e4d3] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
+                    >
+                      Dodaj grę do Półki
+                    </Link>
+                    <Link
+                      href="/kronika/nowa"
+                      className="cta-glow min-w-0 rounded-xl border border-white/14 bg-black/20 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#f2e4d3] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
+                    >
+                      Zapisz wynik gry
+                    </Link>
+                  </div>
+                </div>
 
-            <div className="hidden w-fit shrink-0 self-stretch rounded-[1.2rem] border border-white/12 bg-[linear-gradient(145deg,rgba(19,10,7,0.32),rgba(31,17,11,0.18))] px-3.5 py-3 text-center shadow-[0_18px_36px_rgba(17,8,5,0.22)] lg:ml-auto lg:flex lg:min-h-full lg:flex-col lg:items-center lg:justify-center">
-              <p className="text-center text-[0.58rem] font-bold tracking-[0.16em] text-[#d7b486] uppercase">
-                Twoje punkty
-              </p>
-              <p className="font-display mt-1 text-center text-[1.95rem] font-semibold text-[#fff1dc]">
-                {data.pointsSummary.currentPoints.toLocaleString("pl-PL")} pkt
-              </p>
-            </div>
+                <div className="hidden w-fit shrink-0 self-stretch rounded-[1.2rem] border border-white/12 bg-[linear-gradient(145deg,rgba(19,10,7,0.32),rgba(31,17,11,0.18))] px-3.5 py-3 text-center shadow-[0_18px_36px_rgba(17,8,5,0.22)] lg:ml-auto lg:flex lg:min-h-full lg:flex-col lg:items-center lg:justify-center">
+                  <p className="text-center text-[0.58rem] font-bold tracking-[0.16em] text-[#d7b486] uppercase">
+                    Twoje punkty
+                  </p>
+                  <p className="font-display mt-1 text-center text-[1.95rem] font-semibold text-[#fff1dc]">
+                    {data.pointsSummary.currentPoints.toLocaleString("pl-PL")}{" "}
+                    pkt
+                  </p>
+                </div>
+              </div>
+            </Panel>
           </div>
-        </Panel>
 
-        {leaderboardSection}
-      </div>
-
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(17.5rem,0.9fr)] xl:gap-5">
-        <div className="space-y-4 xl:-mt-[11.6rem] 2xl:-mt-[11.85rem]">
           <section
             aria-labelledby="quests-heading"
             style={{ animationDelay: `${getEntranceStaggerDelayMs(2)}ms` }}
@@ -689,6 +688,8 @@ export async function DashboardShowcase() {
         </div>
 
         <div className="space-y-4">
+          <div className="hidden sm:block">{leaderboardSection}</div>
+
           <div className="hidden sm:block">{upcomingMeetingSection}</div>
 
           <Panel
