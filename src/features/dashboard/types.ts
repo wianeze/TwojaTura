@@ -1,5 +1,9 @@
 import type { ActiveClassView } from "@/features/legendarium/achievement-view-model";
 
+import type { DashboardActiveMeeting } from "./active-meeting";
+
+export type { DashboardActiveMeeting };
+
 export type DashboardQuestType = "action" | "question" | "info";
 
 export type DashboardQuestTone = "decision" | "action" | "success" | "neutral";
@@ -130,6 +134,8 @@ export type DashboardData = {
   pointsSummary: DashboardPointsSummary;
   quests: DashboardQuest[];
   upcomingMeeting: DashboardUpcomingMeeting | null;
+  activeMeetings: DashboardActiveMeeting[];
+  nextMeetingStartsAt: string | null;
   leaderboard: DashboardLeaderboardPreview;
   recentPlays: DashboardRecentPlayPreview[];
 };

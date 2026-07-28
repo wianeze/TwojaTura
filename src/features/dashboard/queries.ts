@@ -8,6 +8,7 @@ import { sortMeetingRanking } from "@/features/meetings/validation";
 import { listRecentMemberPlays } from "@/features/plays/queries";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database.generated";
+import { pickActiveMeetings } from "./active-meeting";
 import {
   buildDashboardHeroSummary,
   buildDashboardPointsSummary,
@@ -249,6 +250,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const [
     futureMeetingsResult,
+    activeMeetingsResult,
     finishedMeetingsResult,
     ratingsResult,
     ownGamesCountResult,
@@ -263,6 +265,13 @@ export async function getDashboardData(): Promise<DashboardData> {
       .select("id, title, location, status, starts_at, ends_at")
       .in("status", ["planned", "confirmed"])
       .gte("starts_at", nowIso)
+      .order("starts_at", { ascending: true }),
+    supabase
+      .from("meetings")
+      .select("id, title, location, status, starts_at, ends_at")
+      .in("status", ["planned", "confirmed"])
+      .lte("starts_at", nowIso)
+      .gt("ends_at", nowIso)
       .order("starts_at", { ascending: true }),
     supabase
       .from("meetings")
@@ -293,6 +302,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   if (
     futureMeetingsResult.error ||
+    activeMeetingsResult.error ||
     finishedMeetingsResult.error ||
     ratingsResult.error ||
     ownGamesCountResult.error ||
@@ -305,8 +315,15 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const futureMeetings = (futureMeetingsResult.data ?? []) as MeetingRow[];
   const futureMeetingIds = futureMeetings.map((meeting) => meeting.id);
+  const ongoingMeetings = (activeMeetingsResult.data ?? []) as MeetingRow[];
+  const ongoingMeetingIds = ongoingMeetings.map((meeting) => meeting.id);
 
-  const [availabilityResult, votesResult, rankingResult] = await Promise.all([
+  const [
+    availabilityResult,
+    votesResult,
+    rankingResult,
+    activeAvailabilityResult,
+  ] = await Promise.all([
     futureMeetingIds.length > 0
       ? supabase
           .from("meeting_availability")
@@ -326,9 +343,20 @@ export async function getDashboardData(): Promise<DashboardData> {
           .select("meeting_id, game_id, votes_count")
           .in("meeting_id", futureMeetingIds)
       : Promise.resolve({ data: [], error: null }),
+    ongoingMeetingIds.length > 0
+      ? supabase
+          .from("meeting_availability")
+          .select("meeting_id, user_id, is_available")
+          .in("meeting_id", ongoingMeetingIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
-  if (availabilityResult.error || votesResult.error || rankingResult.error) {
+  if (
+    availabilityResult.error ||
+    votesResult.error ||
+    rankingResult.error ||
+    activeAvailabilityResult.error
+  ) {
     throw new Error("Nie udało się pobrać kontekstu najbliższych spotkań.");
   }
 
@@ -366,6 +394,27 @@ export async function getDashboardData(): Promise<DashboardData> {
     ),
     currentUserId: member.id,
   });
+
+  const activeAvailabilityRows = (activeAvailabilityResult.data ??
+    []) as AvailabilityRow[];
+  const activeMeetings = pickActiveMeetings(
+    ongoingMeetings.map((meeting) => ({
+      id: meeting.id,
+      title: meeting.title,
+      location: meeting.location,
+      startsAt: meeting.starts_at,
+      endsAt: meeting.ends_at,
+      confirmedAttendeesCount: countConfirmed(
+        activeAvailabilityRows,
+        meeting.id,
+      ),
+    })),
+    now,
+  );
+
+  // Najwcześniejszy możliwy moment wejścia w stan „w trakcie" — celowo
+  // niezależny od preferencji `confirmed` w pickUpcomingMeeting.
+  const nextMeetingStartsAt = upcomingMeetings[0]?.startsAt ?? null;
 
   const finishedMeetings = (finishedMeetingsResult.data ?? []) as Array<{
     id: string;
@@ -518,6 +567,8 @@ export async function getDashboardData(): Promise<DashboardData> {
     pointsSummary,
     quests,
     upcomingMeeting: pickUpcomingMeeting(upcomingMeetings, now),
+    activeMeetings,
+    nextMeetingStartsAt,
     leaderboard: buildLeaderboardPreview({
       currentPoints: pointsSummary.currentPoints,
       entries: leaderboardEntries,

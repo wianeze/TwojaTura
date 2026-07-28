@@ -11,8 +11,127 @@ import { FeedbackSubmitPanel } from "@/features/feedback/feedback-submit-panel";
 import { formatMeetingDateRange } from "@/features/meetings/formatting";
 import { formatPlayShortDate } from "@/features/plays/formatting";
 import { QuestCard } from "./action-card";
+import { formatActiveMeetingsCount } from "./active-meeting";
+import { formatDashboardDate, formatDashboardTime } from "./formatting";
+import { MeetingActiveRefresher } from "./meeting-active-refresher";
 import { getDashboardData } from "./queries";
-import type { DashboardLeaderboardEntry } from "./types";
+import type {
+  DashboardActiveMeeting,
+  DashboardLeaderboardEntry,
+} from "./types";
+
+const ACTIVE_MEETING_TAGLINE = "Kości zostały rzucone. Ekipa jest przy stole.";
+
+const ACTIVE_MEETING_PANEL_CLASS =
+  "meeting-live-glow border border-[#e0ac5c] bg-[linear-gradient(145deg,rgba(255,247,231,0.97),rgba(250,228,186,0.92))]";
+
+const ACTIVE_MEETING_TILE_CLASS =
+  "border-[#e5c187] bg-[linear-gradient(145deg,rgba(255,252,244,0.94),rgba(250,235,206,0.86))]";
+
+function ActiveMeetingAttendees({
+  count,
+  compact = false,
+}: {
+  count: number;
+  compact?: boolean;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full bg-[#f6e3bd] font-bold whitespace-nowrap text-[#7a5220] ${compact ? "px-1 py-0.5 text-[0.46rem]" : "px-2.5 py-1 text-[0.65rem]"}`}
+    >
+      {count} osób potwierdziło
+    </span>
+  );
+}
+
+// Karta stanu „spotkanie w trakcie". Nagłówek (eyebrow + tytuł) zostaje w
+// istniejącym układzie panelu — tutaj renderujemy tylko treść właściwą,
+// żeby zachować kompaktową wysokość Stołu na mobile i desktopie.
+function ActiveMeetingCard({
+  meetings,
+  compact = false,
+}: {
+  meetings: DashboardActiveMeeting[];
+  compact?: boolean;
+}) {
+  const isMulti = meetings.length > 1;
+  const meeting = meetings[0];
+
+  return (
+    <div className={compact ? "mt-1 space-y-1" : "space-y-2"}>
+      <p
+        className={`font-semibold text-[#8a5a33] ${compact ? "text-center text-[0.55rem] leading-tight" : "text-[0.7rem]"}`}
+      >
+        {ACTIVE_MEETING_TAGLINE}
+      </p>
+
+      {isMulti ? (
+        <ul className={compact ? "space-y-1" : "grid gap-1.5"}>
+          {meetings.map((item) => (
+            <li key={item.id}>
+              <Link
+                href={item.href}
+                className={`block rounded-[0.7rem] border shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${ACTIVE_MEETING_TILE_CLASS} ${compact ? "px-1.5 py-1" : "px-3 py-2"}`}
+              >
+                <p
+                  className={`truncate font-semibold text-[#5b3f24] ${compact ? "text-[0.62rem] leading-tight" : "text-[0.82rem]"}`}
+                >
+                  {item.title}
+                </p>
+                <p
+                  className={`truncate font-semibold text-[#a9702c] ${compact ? "text-[0.5rem] leading-tight" : "text-[0.68rem]"}`}
+                >
+                  {`Od ${formatDashboardTime(item.startsAt)} · ${item.location ?? "Miejsce do ustalenia"} · ${item.confirmedAttendeesCount} os.`}
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <>
+          <div className={compact ? "space-y-1" : "grid gap-1.5"}>
+            <div
+              className={`rounded-[0.9rem] border shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${ACTIVE_MEETING_TILE_CLASS} ${compact ? "px-1.5 py-1 text-center" : "grid grid-cols-[3.95rem_minmax(0,1fr)] items-center gap-2 px-3 py-2"}`}
+            >
+              <span
+                className={`font-bold uppercase ${compact ? "block text-[0.48rem] tracking-[0.1em]" : "text-[0.56rem] tracking-[0.16em]"} text-[#a9702c]`}
+              >
+                Od
+              </span>
+              <span
+                className={`truncate font-semibold text-[#5b3f24] ${compact ? "block text-[0.66rem]" : "text-[0.82rem]"}`}
+              >
+                {`${formatDashboardDate(meeting.startsAt)} · ${formatDashboardTime(meeting.startsAt)}`}
+              </span>
+            </div>
+
+            <div
+              className={`rounded-[0.9rem] border shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${ACTIVE_MEETING_TILE_CLASS} ${compact ? "px-1.5 py-1 text-center" : "grid grid-cols-[3.95rem_minmax(0,1fr)] items-center gap-2 px-3 py-2"}`}
+            >
+              <span
+                className={`font-bold uppercase ${compact ? "block text-[0.48rem] tracking-[0.1em]" : "text-[0.56rem] tracking-[0.16em]"} text-[#a9702c]`}
+              >
+                Miejsce
+              </span>
+              <span
+                className={`truncate font-semibold text-[#5b3f24] ${compact ? "block text-[0.66rem]" : "text-[0.82rem]"}`}
+              >
+                {meeting.location ?? "Do ustalenia"}
+              </span>
+            </div>
+          </div>
+
+          <Link
+            href={meeting.href}
+            className={`flex items-center justify-center rounded-[0.7rem] border border-[#e0ac5c] bg-[#fff8ec] font-bold text-[#a6521f] ${compact ? "w-full px-2 py-1 text-[0.62rem]" : "px-2.5 py-1.5 text-[0.68rem]"}`}
+          >
+            Dołącz {"→"}
+          </Link>
+        </>
+      )}
+    </div>
+  );
+}
 
 function MeetingStatusBadge({
   label,
@@ -212,6 +331,13 @@ function MobileLeaderboardRow({ entry }: { entry: DashboardLeaderboardEntry }) {
 export async function DashboardShowcase() {
   const data = await getDashboardData();
   const upcoming = data.upcomingMeeting;
+  const activeMeetings = data.activeMeetings;
+  const hasActiveMeeting = activeMeetings.length > 0;
+  const activeMeetingHeading = !hasActiveMeeting
+    ? null
+    : activeMeetings.length > 1
+      ? formatActiveMeetingsCount(activeMeetings.length)
+      : activeMeetings[0].title;
   const upcomingVisual = upcoming
     ? getUpcomingMeetingPanelClasses(upcoming.visualState)
     : null;
@@ -267,20 +393,27 @@ export async function DashboardShowcase() {
   const upcomingMeetingSection = (
     <Panel
       style={{ animationDelay: `${getEntranceStaggerDelayMs(3)}ms` }}
-      className={`anim-rise-in-fast ${upcomingVisual?.panel ?? "paper-wash shadow-[0_18px_36px_rgba(32,16,8,0.16)]"} overflow-hidden p-3.5 sm:p-4`}
+      className={`anim-rise-in-fast ${hasActiveMeeting ? ACTIVE_MEETING_PANEL_CLASS : (upcomingVisual?.panel ?? "paper-wash shadow-[0_18px_36px_rgba(32,16,8,0.16)]")} overflow-hidden p-3.5 sm:p-4`}
     >
       <div className="flex h-full flex-col gap-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
-              Najbliższe spotkanie
+              {hasActiveMeeting ? "Spotkanie w trakcie" : "Najbliższe spotkanie"}
             </p>
             <h2 className="font-display mt-1 truncate text-[1.25rem] font-semibold text-[#4c3528]">
-              {upcoming ? upcoming.title : "Brak przyszłego spotkania"}
+              {activeMeetingHeading ??
+                (upcoming ? upcoming.title : "Brak przyszłego spotkania")}
             </h2>
           </div>
 
-          {upcoming ? (
+          {hasActiveMeeting ? (
+            activeMeetings.length === 1 ? (
+              <ActiveMeetingAttendees
+                count={activeMeetings[0].confirmedAttendeesCount}
+              />
+            ) : null
+          ) : upcoming ? (
             <div className="flex flex-wrap items-center gap-1.5">
               <MeetingStatusBadge
                 label={upcoming.visualLabel}
@@ -295,7 +428,9 @@ export async function DashboardShowcase() {
           ) : null}
         </div>
 
-        {upcoming && upcomingRange ? (
+        {hasActiveMeeting ? (
+          <ActiveMeetingCard meetings={activeMeetings} />
+        ) : upcoming && upcomingRange ? (
           <div className="grid grid-cols-[minmax(0,1fr)_5.7rem] gap-3">
             <div className="grid gap-1.5">
               <div
@@ -397,6 +532,15 @@ export async function DashboardShowcase() {
 
   return (
     <div className="space-y-2 sm:space-y-3">
+      {/* Jedna instancja na cały Stół — warianty mobile i desktop są
+          jednocześnie w DOM, więc dwa refreshery znaczyłyby dwa timery. */}
+      <MeetingActiveRefresher
+        activeMeetingEffectiveEnds={activeMeetings.map(
+          (meeting) => meeting.effectiveEndsAt,
+        )}
+        nextMeetingStartsAt={data.nextMeetingStartsAt}
+      />
+
       <div className="space-y-2 sm:hidden">
         <Panel
           style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
@@ -439,13 +583,28 @@ export async function DashboardShowcase() {
         <div className="grid grid-cols-2 items-start gap-2">
           <Panel
             style={{ animationDelay: `${getEntranceStaggerDelayMs(3)}ms` }}
-            className={`anim-rise-in-fast ${upcomingVisual?.panel ?? "paper-wash shadow-[0_12px_26px_rgba(32,16,8,0.14)]"} min-w-0 overflow-hidden p-2.5`}
+            className={`anim-rise-in-fast ${hasActiveMeeting ? ACTIVE_MEETING_PANEL_CLASS : (upcomingVisual?.panel ?? "paper-wash shadow-[0_12px_26px_rgba(32,16,8,0.14)]")} min-w-0 overflow-hidden p-2.5`}
           >
             <p className="text-accent text-center text-[0.58rem] font-bold tracking-[0.12em] uppercase">
-              Najbliższe spotkanie
+              {hasActiveMeeting ? "Spotkanie w trakcie" : "Najbliższe spotkanie"}
             </p>
 
-            {upcoming && upcomingRange ? (
+            {hasActiveMeeting ? (
+              <div className="mt-0.5">
+                <h3 className="font-display truncate text-center text-[1rem] leading-tight font-bold text-[#4c3528]">
+                  {activeMeetingHeading}
+                </h3>
+                {activeMeetings.length === 1 ? (
+                  <div className="mt-1 flex justify-center">
+                    <ActiveMeetingAttendees
+                      count={activeMeetings[0].confirmedAttendeesCount}
+                      compact
+                    />
+                  </div>
+                ) : null}
+                <ActiveMeetingCard meetings={activeMeetings} compact />
+              </div>
+            ) : upcoming && upcomingRange ? (
               <div className="mt-0.5">
                 <h3 className="font-display truncate text-center text-[1rem] leading-tight font-bold text-[#4c3528]">
                   {upcoming.title}

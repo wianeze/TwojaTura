@@ -852,3 +852,40 @@ a {
     0 0 0 1px rgba(205, 149, 100, 0.42),
     0 0 18px 4px rgba(193, 125, 74, 0.2);
 }
+
+/*
+ * Stan „spotkanie w trakcie" na Stole — złoto-pomarańczowa poświata
+ * sukcesu. W spoczynku statyczna (jak .rank-glow-*), plus delikatne
+ * pulsowanie sygnalizujące, że coś dzieje się teraz; samo pulsowanie
+ * znika pod prefers-reduced-motion, poświata zostaje.
+ */
+.meeting-live-glow {
+  box-shadow:
+    0 0 0 1px rgba(214, 160, 68, 0.45),
+    0 0 22px 4px rgba(223, 106, 53, 0.22),
+    0 18px 36px rgba(66, 25, 10, 0.16);
+  animation: meeting-live-pulse 2600ms ease-in-out infinite;
+}
+
+@keyframes meeting-live-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(214, 160, 68, 0.45),
+      0 0 22px 4px rgba(223, 106, 53, 0.22),
+      0 18px 36px rgba(66, 25, 10, 0.16);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(214, 160, 68, 0.66),
+      0 0 30px 7px rgba(223, 106, 53, 0.32),
+      0 18px 36px rgba(66, 25, 10, 0.16);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meeting-live-glow {
+    animation: none;
+  }
+}
