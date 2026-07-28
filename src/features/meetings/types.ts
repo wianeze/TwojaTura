@@ -47,6 +47,11 @@ export type MeetingVoteState = {
   message?: string;
 };
 
+export type MeetingDeleteState = {
+  status: "idle" | "error";
+  message?: string;
+};
+
 export type MeetingCardItem = {
   id: string;
   title: string;
@@ -87,6 +92,8 @@ export type MeetingGameCandidateOption = {
 
 export type MeetingDetails = MeetingCardItem & {
   canEdit: boolean;
+  canDelete: boolean;
+  hasChroniclePlay: boolean;
   canConfirm: boolean;
   hasResponded: boolean;
   attendanceRows: MeetingAttendanceRow[];

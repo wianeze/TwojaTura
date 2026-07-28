@@ -154,6 +154,7 @@ async function hydratePlayItems(
           .from("meetings")
           .select("id, title, starts_at, ends_at, location")
           .in("id", meetingIds)
+          .is("deleted_at", null)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -336,6 +337,7 @@ export async function getPlayFormOptions(): Promise<
     supabase
       .from("meetings")
       .select("id, title, starts_at, ends_at, location")
+      .is("deleted_at", null)
       .order("starts_at", { ascending: false }),
     supabase
       .from("app_members")

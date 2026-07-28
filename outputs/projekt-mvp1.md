@@ -237,6 +237,9 @@ Widok `game_rating_summaries` wylicza co najmniej `average_overall` i `ratings_c
 | `starts_at`   | `timestamptz`    | początek wydarzenia                 |
 | `ends_at`     | `timestamptz`    | koniec wydarzenia, zawsze > start   |
 | `status`      | `meeting_status` | `planned`, `confirmed`, `completed` |
+| `deleted_at`  | `timestamptz` nullable | techniczny soft delete; rekord pozostaje w bazie |
+| `deleted_by`  | `uuid` nullable | FK do `profiles`; autor operacji usunięcia |
+| `deleted_reason` | `text` nullable | czytelny powód technicznego anulowania |
 | `created_at`  | `timestamptz`    | automatycznie                       |
 | `updated_at`  | `timestamptz`    | automatycznie                       |
 
@@ -280,7 +283,7 @@ Klucz główny: `(meeting_id, game_id, user_id)`. Jeden użytkownik może zagło
 | `created_at`       | `timestamptz`      | automatycznie                               |
 | `updated_at`       | `timestamptz`      | automatycznie                               |
 
-Partia może wynikać ze spotkania w Kalendarium albo być spontaniczna. Usunięcie powiązanego spotkania ustawia `meeting_id = null`, zachowując wpis historyczny w Kronice.
+Partia może wynikać ze spotkania w Kalendarium albo być spontaniczna. Spotkania powiązanego z wpisem Kroniki nie wolno usuwać, dzięki czemu `plays.meeting_id` i pełny kontekst historyczny pozostają nienaruszone.
 
 #### `play_participants`
 
@@ -637,6 +640,7 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 - Multi-day events renderują się we wszystkich dniach zakresu, a kliknięcie pustego dnia otwiera tworzenie spotkania z prefill `date`.
 - Propozycje gier działają przez `meeting_game_votes`, a pierwszy głos jednocześnie proponuje grę. Ranking pochodzi z `meeting_game_rankings`.
 - Twórca spotkania lub admin może wykonać `planned → confirmed`, a także `confirmed → planned` przez akcję `Cofnij potwierdzenie`; cofnięcie nie zmienia RSVP ani głosów.
+- Bezpieczne „Usuń spotkanie” jest technicznie soft delete przez RPC `delete_meeting`: creator może anulować własne spotkanie, admin dowolne, a hard delete nie jest używany. Spotkania z wpisem Kroniki są chronione przed usunięciem. RSVP i głosy pozostają w bazie, dodatnie `meeting_created` / `meeting_rsvp` / `meeting_vote` są kompensowane idempotentnymi ujemnymi `reversal:*` w `point_events`, a usunięte spotkania są ukryte w Kalendarium, Stole, Questach, głosowaniach oraz listach formularzy.
 - Weryfikacja zamykająca Etap 5: lokalne `pnpm db:verify` PASS po migracji uproszczonego modelu spotkań, `pnpm test` PASS 96/96, `pnpm check` PASS, `pnpm build` PASS oraz finalny manualny odbiór Kalendarium.
 
 ### Etap 6 — Kronika

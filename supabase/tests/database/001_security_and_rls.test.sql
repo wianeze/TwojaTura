@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(285);
+select plan(306);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -4519,6 +4519,429 @@ select throws_ok(
   '42501',
   null,
   '283. direct SQL deletes on storage.objects are always blocked; deletion goes through the Storage API'
+);
+reset role;
+
+-- Safe meeting deletion: soft delete, Chronicle protection and point reversals.
+insert into public.meetings (
+  id, created_by, title, status, starts_at, ends_at
+) values
+  (
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002',
+    'Spotkanie do bezpiecznego usunięcia',
+    'planned',
+    '2027-02-01 18:00:00+00',
+    '2027-02-01 22:00:00+00'
+  ),
+  (
+    '8d000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000003',
+    'Spotkanie usuwane przez admina',
+    'planned',
+    '2027-02-02 18:00:00+00',
+    '2027-02-02 22:00:00+00'
+  ),
+  (
+    '8d000000-0000-0000-0000-000000000003',
+    '10000000-0000-0000-0000-000000000002',
+    'Spotkanie z wpisem Kroniki',
+    'completed',
+    '2027-02-03 18:00:00+00',
+    '2027-02-03 22:00:00+00'
+  );
+
+insert into public.meeting_availability (meeting_id, user_id, is_available)
+values
+  (
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002',
+    true
+  ),
+  (
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000003',
+    true
+  );
+
+insert into public.meeting_game_votes (meeting_id, game_id, user_id)
+values
+  (
+    '8d000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002'
+  ),
+  (
+    '8d000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000003'
+  );
+
+insert into public.plays (
+  id, game_id, meeting_id, created_by, played_at, status
+) values (
+  '8e000000-0000-0000-0000-000000000001',
+  '30000000-0000-0000-0000-000000000001',
+  '8d000000-0000-0000-0000-000000000003',
+  '10000000-0000-0000-0000-000000000002',
+  '2027-02-03 18:30:00+00',
+  'completed'
+);
+
+insert into public.point_events (
+  user_id,
+  points,
+  action_type,
+  description,
+  related_entity_type,
+  related_entity_id,
+  created_by
+) values
+  (
+    '10000000-0000-0000-0000-000000000002',
+    25,
+    'meeting_created',
+    'Test utworzenia spotkania',
+    'meeting',
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000002',
+    10,
+    'meeting_rsvp',
+    'Test RSVP',
+    'meeting',
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000002',
+    10,
+    'meeting_vote',
+    'Test głosu',
+    'meeting',
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000003',
+    10,
+    'meeting_rsvp',
+    'Test RSVP drugiego gracza',
+    'meeting',
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000003'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000003',
+    10,
+    'meeting_vote',
+    'Test głosu drugiego gracza',
+    'meeting',
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000003'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000002',
+    30,
+    'rating_created',
+    'Niezwiązany typ punktów',
+    'meeting',
+    '8d000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000002'
+  );
+
+create temporary table pgtap_meeting_delete_balances (
+  user_id uuid primary key,
+  total_points bigint not null
+);
+
+insert into pgtap_meeting_delete_balances (user_id, total_points)
+select user_id, sum(points)::bigint
+from public.point_events
+where user_id in (
+  '10000000-0000-0000-0000-000000000002',
+  '10000000-0000-0000-0000-000000000003'
+)
+group by user_id;
+
+grant select on pgtap_meeting_delete_balances to authenticated;
+
+select ok(
+  not has_table_privilege('authenticated', 'public.meetings', 'DELETE'),
+  '284. authenticated clients have no hard-delete privilege on meetings'
+);
+
+set local role anon;
+select throws_ok(
+  $$select public.delete_meeting('8d000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '285. anon cannot execute delete_meeting'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000006","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select public.delete_meeting('8d000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '286. inactive member cannot execute delete_meeting'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select public.delete_meeting('8d000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '287. member cannot delete another creator meeting'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select public.delete_meeting('8d000000-0000-0000-0000-000000000003')$$,
+  'P0001',
+  'Nie można usunąć spotkania z zapisaną partią w Kronice.',
+  '288. meeting linked to a Chronicle play cannot be deleted'
+);
+reset role;
+
+select is(
+  (
+    select deleted_at
+    from public.meetings
+    where id = '8d000000-0000-0000-0000-000000000003'
+  ),
+  null::timestamptz,
+  '289. blocked Chronicle meeting remains active'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$select public.delete_meeting('8d000000-0000-0000-0000-000000000001')$$,
+  $$values (true)$$,
+  '290. creator can soft-delete their own meeting'
+);
+reset role;
+
+select results_eq(
+  $$
+    select deleted_at is not null, deleted_by
+    from public.meetings
+    where id = '8d000000-0000-0000-0000-000000000001'
+  $$,
+  $$
+    values (
+      true,
+      '10000000-0000-0000-0000-000000000002'::uuid
+    )
+  $$,
+  '291. soft delete stores deleted_at and deleted_by'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.meetings
+    where id = '8d000000-0000-0000-0000-000000000001'
+  $$,
+  $$values (1::bigint)$$,
+  '292. soft-deleted meeting is not physically deleted'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.meeting_availability
+    where meeting_id = '8d000000-0000-0000-0000-000000000001'
+  $$,
+  $$values (2::bigint)$$,
+  '293. soft delete physically retains RSVP rows'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.meeting_game_votes
+    where meeting_id = '8d000000-0000-0000-0000-000000000001'
+  $$,
+  $$values (2::bigint)$$,
+  '294. soft delete physically retains vote rows'
+);
+
+select results_eq(
+  $$
+    select
+      action_type,
+      count(*)::bigint,
+      sum(points)::bigint
+    from public.point_events
+    where related_entity_type = 'meeting'
+      and related_entity_id = '8d000000-0000-0000-0000-000000000001'
+      and action_type like 'reversal:%'
+    group by action_type
+    order by action_type
+  $$,
+  $$
+    values
+      ('reversal:meeting_created', 1::bigint, -25::bigint),
+      ('reversal:meeting_rsvp', 2::bigint, -20::bigint),
+      ('reversal:meeting_vote', 2::bigint, -20::bigint)
+  $$,
+  '295. deletion reverses only created RSVP and vote meeting points'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$
+    select
+      before.user_id,
+      before.total_points - current_balance.total_points as balance_drop
+    from pgtap_meeting_delete_balances as before
+    join public.user_point_balances as current_balance
+      on current_balance.user_id = before.user_id
+    order by before.user_id
+  $$,
+  $$
+    values
+      ('10000000-0000-0000-0000-000000000002'::uuid, 45::bigint),
+      ('10000000-0000-0000-0000-000000000003'::uuid, 20::bigint)
+  $$,
+  '296. user_point_balances drops by each recipient reversed points'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$select public.delete_meeting('8d000000-0000-0000-0000-000000000001')$$,
+  $$values (false)$$,
+  '297. repeated delete_meeting call is an idempotent no-op'
+);
+reset role;
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.point_events
+    where related_entity_id = '8d000000-0000-0000-0000-000000000001'
+      and action_type like 'reversal:%'
+  $$,
+  $$values (5::bigint)$$,
+  '298. repeated deletion does not duplicate reversal events'
+);
+
+select results_eq(
+  $$
+    select points, action_type
+    from public.point_events
+    where related_entity_id = '8d000000-0000-0000-0000-000000000002'
+      and action_type = 'rating_created'
+  $$,
+  $$values (30, 'rating_created')$$,
+  '299. unrelated point events are not reversed'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$select public.delete_meeting('8d000000-0000-0000-0000-000000000002')$$,
+  $$values (true)$$,
+  '300. admin can soft-delete another creator meeting'
+);
+reset role;
+
+select results_eq(
+  $$
+    select deleted_at is not null, deleted_by
+    from public.meetings
+    where id = '8d000000-0000-0000-0000-000000000002'
+  $$,
+  $$
+    values (
+      true,
+      '10000000-0000-0000-0000-000000000001'::uuid
+    )
+  $$,
+  '301. admin deletion records the admin as deleted_by'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.meetings
+    where id = '8d000000-0000-0000-0000-000000000001'
+  $$,
+  $$values (0::bigint)$$,
+  '302. soft-deleted meeting is hidden by RLS'
+);
+
+select throws_ok(
+  $$
+    select *
+    from public.award_meeting_created_points(
+      '8d000000-0000-0000-0000-000000000001'
+    )
+  $$,
+  '22023',
+  null,
+  '303. deleted meeting cannot receive fresh automatic points'
+);
+
+select throws_ok(
+  $$
+    insert into public.meeting_game_votes (meeting_id, game_id, user_id)
+    values (
+      '8d000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000003',
+      '10000000-0000-0000-0000-000000000002'
+    )
+  $$,
+  '42501',
+  null,
+  '304. deleted meeting cannot accept new votes'
 );
 reset role;
 

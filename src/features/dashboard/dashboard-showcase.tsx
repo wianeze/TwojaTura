@@ -151,7 +151,7 @@ function MeetingStatusBadge({
 
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap rounded-full font-bold ${compact ? "gap-0.5 px-1 py-0.5 text-[0.46rem]" : "gap-1.5 px-2.5 py-1 text-[0.65rem]"} ${classes}`}
+      className={`inline-flex items-center rounded-full font-bold whitespace-nowrap ${compact ? "gap-0.5 px-1 py-0.5 text-[0.46rem]" : "gap-1.5 px-2.5 py-1 text-[0.65rem]"} ${classes}`}
     >
       {state === "decision-required" ? (
         <Image
@@ -159,7 +159,9 @@ function MeetingStatusBadge({
           alt=""
           width={16}
           height={16}
-          className={compact ? "size-3 object-contain" : "size-4 object-contain"}
+          className={
+            compact ? "size-3 object-contain" : "size-4 object-contain"
+          }
         />
       ) : null}
       {label}
@@ -351,7 +353,8 @@ export async function DashboardShowcase() {
   const leaderboardSection = (
     <Panel
       style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
-      className="anim-rise-in-fast leaderboard-rug-panel p-4 text-[#fff6ea] shadow-[inset_0_0_0_1px_rgba(255,230,184,0.08),0_18px_42px_rgba(22,9,5,0.24)] sm:p-4.5">
+      className="anim-rise-in-fast leaderboard-rug-panel p-4 text-[#fff6ea] shadow-[inset_0_0_0_1px_rgba(255,230,184,0.08),0_18px_42px_rgba(22,9,5,0.24)] sm:p-4.5"
+    >
       <div className="space-y-3">
         <div className="flex items-end justify-between gap-3">
           <div>
@@ -399,7 +402,9 @@ export async function DashboardShowcase() {
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
-              {hasActiveMeeting ? "Spotkanie w trakcie" : "Najbliższe spotkanie"}
+              {hasActiveMeeting
+                ? "Spotkanie w trakcie"
+                : "Najbliższe spotkanie"}
             </p>
             <h2 className="font-display mt-1 truncate text-[1.25rem] font-semibold text-[#4c3528]">
               {activeMeetingHeading ??
@@ -586,7 +591,9 @@ export async function DashboardShowcase() {
             className={`anim-rise-in-fast ${hasActiveMeeting ? ACTIVE_MEETING_PANEL_CLASS : (upcomingVisual?.panel ?? "paper-wash shadow-[0_12px_26px_rgba(32,16,8,0.14)]")} min-w-0 overflow-hidden p-2.5`}
           >
             <p className="text-accent text-center text-[0.58rem] font-bold tracking-[0.12em] uppercase">
-              {hasActiveMeeting ? "Spotkanie w trakcie" : "Najbliższe spotkanie"}
+              {hasActiveMeeting
+                ? "Spotkanie w trakcie"
+                : "Najbliższe spotkanie"}
             </p>
 
             {hasActiveMeeting ? (

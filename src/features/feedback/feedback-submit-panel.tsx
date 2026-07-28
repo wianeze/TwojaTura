@@ -70,7 +70,7 @@ export function FeedbackSubmitPanel() {
             required
             rows={3}
             disabled={isPending}
-            className="focus:border-gold focus:ring-gold/20 w-full rounded-xl border border-[#9a7657]/35 bg-white/70 px-3 py-2 text-sm text-[#503828] outline-none transition focus:ring-4 disabled:opacity-65"
+            className="focus:border-gold focus:ring-gold/20 w-full rounded-xl border border-[#9a7657]/35 bg-white/70 px-3 py-2 text-sm text-[#503828] transition outline-none focus:ring-4 disabled:opacity-65"
           />
 
           <div className="flex items-center justify-between gap-2">

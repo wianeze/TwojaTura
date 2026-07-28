@@ -8,14 +8,16 @@ import type {
 import { adminUpdateFeedbackSubmissionAction } from "./actions";
 import { FEEDBACK_STATUS_LABELS, formatAdminDate } from "./formatting";
 
-const STATUS_FILTER_OPTIONS: Array<{ value: FeedbackStatus | "all"; label: string }> =
-  [
-    { value: "all", label: "Wszystkie statusy" },
-    { value: "new", label: FEEDBACK_STATUS_LABELS.new },
-    { value: "in_progress", label: FEEDBACK_STATUS_LABELS.in_progress },
-    { value: "completed", label: FEEDBACK_STATUS_LABELS.completed },
-    { value: "rejected", label: FEEDBACK_STATUS_LABELS.rejected },
-  ];
+const STATUS_FILTER_OPTIONS: Array<{
+  value: FeedbackStatus | "all";
+  label: string;
+}> = [
+  { value: "all", label: "Wszystkie statusy" },
+  { value: "new", label: FEEDBACK_STATUS_LABELS.new },
+  { value: "in_progress", label: FEEDBACK_STATUS_LABELS.in_progress },
+  { value: "completed", label: FEEDBACK_STATUS_LABELS.completed },
+  { value: "rejected", label: FEEDBACK_STATUS_LABELS.rejected },
+];
 
 function FeedbackRow({
   submission,
@@ -31,8 +33,7 @@ function FeedbackRow({
   const [isNoteOpen, setIsNoteOpen] = useState(false);
 
   const isDirty =
-    status !== submission.status ||
-    adminNote !== (submission.adminNote ?? "");
+    status !== submission.status || adminNote !== (submission.adminNote ?? "");
 
   return (
     <li className="paper-wash rounded-xl border border-[#9a7657]/25 p-3">
@@ -47,9 +48,7 @@ function FeedbackRow({
         </div>
         <select
           value={status}
-          onChange={(event) =>
-            setStatus(event.target.value as FeedbackStatus)
-          }
+          onChange={(event) => setStatus(event.target.value as FeedbackStatus)}
           disabled={isPending}
           className="rounded-full border border-[#9a7657]/35 bg-white/70 px-3 py-1 text-xs font-semibold text-[#503828] outline-none disabled:opacity-60"
         >
@@ -83,7 +82,7 @@ function FeedbackRow({
           disabled={isPending}
           rows={2}
           placeholder="Wewnętrzna notatka (niewidoczna dla użytkownika)"
-          className="focus:border-gold focus:ring-gold/20 mt-2 w-full rounded-xl border border-[#9a7657]/35 bg-white/70 px-3 py-2 text-sm text-[#503828] outline-none transition focus:ring-4 disabled:opacity-65"
+          className="focus:border-gold focus:ring-gold/20 mt-2 w-full rounded-xl border border-[#9a7657]/35 bg-white/70 px-3 py-2 text-sm text-[#503828] transition outline-none focus:ring-4 disabled:opacity-65"
         />
       ) : null}
 

@@ -64,7 +64,8 @@ export function PlayPhotoDraftsField({
                 ? {
                     ...item,
                     status: "error",
-                    error: "Przekroczono łączny limit 15 MB zdjęć na tę partię.",
+                    error:
+                      "Przekroczono łączny limit 15 MB zdjęć na tę partię.",
                   }
                 : item,
             ),
@@ -174,7 +175,7 @@ export function PlayPhotoDraftsField({
                     </div>
                   ) : null}
                   {draft.status === "done" ? (
-                    <div className="absolute right-1.5 bottom-1.5 rounded-full bg-moss px-2 py-0.5 text-[0.6rem] font-bold text-white shadow-[0_2px_6px_rgba(0,0,0,0.25)]">
+                    <div className="bg-moss absolute right-1.5 bottom-1.5 rounded-full px-2 py-0.5 text-[0.6rem] font-bold text-white shadow-[0_2px_6px_rgba(0,0,0,0.25)]">
                       Zdjęcie zapisane
                     </div>
                   ) : null}

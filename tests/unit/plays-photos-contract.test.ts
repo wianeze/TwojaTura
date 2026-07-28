@@ -30,7 +30,14 @@ function fakeCompressed() {
 }
 
 function fakePlayPhoto(id: string): PlayPhoto {
-  return { id, url: `https://example.test/${id}`, position: 1, width: 800, height: 600, byteSize: 3 };
+  return {
+    id,
+    url: `https://example.test/${id}`,
+    position: 1,
+    width: 800,
+    height: 600,
+    byteSize: 3,
+  };
 }
 
 function readyDraft(id: string): PhotoDraft {
@@ -140,7 +147,11 @@ test("selectDraftsToUpload includes ready and error drafts but skips done ones",
   const drafts: PhotoDraft[] = [
     readyDraft("a"),
     { ...readyDraft("b"), status: "done" },
-    { ...readyDraft("c"), status: "error", error: "Nie udało się wysłać zdjęcia." },
+    {
+      ...readyDraft("c"),
+      status: "error",
+      error: "Nie udało się wysłać zdjęcia.",
+    },
     { id: "d", fileName: "d.webp", status: "compressing" },
   ];
 
@@ -163,7 +174,11 @@ test("selectDraftsToUpload returns nothing once every compressed draft is done (
 
 test("applyDraftUploadResult marks a successful upload as done and clears any prior error", () => {
   const drafts: PhotoDraft[] = [
-    { ...readyDraft("a"), status: "error", error: "Nie udało się wysłać zdjęcia." },
+    {
+      ...readyDraft("a"),
+      status: "error",
+      error: "Nie udało się wysłać zdjęcia.",
+    },
     readyDraft("b"),
   ];
 

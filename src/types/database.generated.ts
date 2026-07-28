@@ -525,6 +525,9 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           description: string | null
           ends_at: string
           id: string
@@ -537,6 +540,9 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           description?: string | null
           ends_at: string
           id?: string
@@ -549,6 +555,9 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           description?: string | null
           ends_at?: string
           id?: string
@@ -562,6 +571,13 @@ export type Database = {
           {
             foreignKeyName: "meetings_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_deleted_by_fkey"
+            columns: ["deleted_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1144,6 +1160,7 @@ export type Database = {
         Returns: string
       }
       current_user_is_admin: { Args: never; Returns: boolean }
+      delete_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
       get_leaderboard: {
         Args: never
         Returns: {
