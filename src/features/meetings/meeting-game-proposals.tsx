@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { GameCover } from "@/components/ui/game-cover";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { toggleMeetingVoteAction } from "./actions";
 import { MeetingVoteToggle } from "./meeting-vote-toggle";
 import type { MeetingGameCandidateOption, MeetingGameVoteItem } from "./types";
@@ -62,10 +63,13 @@ export function MeetingGameProposals({
 
       {games.length > 0 ? (
         <div className="space-y-2">
-          {games.map((game) => (
+          {games.map((game, index) => (
             <div
               key={game.gameId}
-              className="paper-wash flex items-center gap-3 rounded-[1.15rem] px-3.5 py-3"
+              style={{
+                animationDelay: `${getEntranceStaggerDelayMs(index)}ms`,
+              }}
+              className="anim-rise-in-fast paper-wash flex items-center gap-3 rounded-[1.15rem] px-3.5 py-3"
             >
               <GameCover
                 title={game.title}
@@ -162,7 +166,7 @@ export function MeetingGameProposals({
                       type="button"
                       disabled={pending}
                       onClick={() => handlePropose(game.gameId)}
-                      className="rounded-full border border-[#7d2f3d]/28 px-3 py-1.5 text-[0.68rem] font-bold text-[#7d2f3d] disabled:opacity-60"
+                      className="cta-glow rounded-full border border-[#7d2f3d]/28 px-3 py-1.5 text-[0.68rem] font-bold text-[#7d2f3d] disabled:opacity-60"
                     >
                       Głosuj
                     </button>
@@ -171,7 +175,7 @@ export function MeetingGameProposals({
                       type="button"
                       disabled={pending}
                       onClick={() => handlePropose(game.gameId)}
-                      className="rounded-full bg-[#7d2f3d] px-3 py-1.5 text-[0.68rem] font-bold text-[#fff3ec] disabled:opacity-60"
+                      className="cta-glow rounded-full bg-[#7d2f3d] px-3 py-1.5 text-[0.68rem] font-bold text-[#fff3ec] disabled:opacity-60"
                     >
                       {pending ? "Dodaję…" : "Proponuj"}
                     </button>

@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Panel } from "@/components/ui/panel";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import {
   confirmMeetingAction,
+  deleteMeetingAction,
   saveMeetingAvailabilityAction,
 } from "@/features/meetings/actions";
+import { DeleteMeetingButton } from "@/features/meetings/delete-meeting-button";
 import {
   formatMeetingDateRange,
   getMeetingStatusClass,
@@ -55,7 +58,10 @@ export default async function MeetingDetailsPage({
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <header
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+        className="anim-rise-in-fast flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+      >
         <div className="max-w-3xl">
           <p className="text-[0.62rem] font-bold tracking-[0.18em] text-[#e3ae67] uppercase">
             Kalendarium
@@ -92,6 +98,12 @@ export default async function MeetingDetailsPage({
             >
               Edytuj
             </Link>
+            {meeting.canDelete ? (
+              <DeleteMeetingButton
+                action={deleteMeetingAction.bind(null, meeting.id)}
+                hasChroniclePlay={meeting.hasChroniclePlay}
+              />
+            ) : null}
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
@@ -111,7 +123,10 @@ export default async function MeetingDetailsPage({
         )}
       </header>
 
-      <Panel className="parchment-card space-y-4 p-4 sm:p-5">
+      <Panel
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
+        className="anim-rise-in-fast parchment-card space-y-4 p-4 sm:p-5"
+      >
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="space-y-2">
             <div className="space-y-0.5">
@@ -151,7 +166,7 @@ export default async function MeetingDetailsPage({
                 type="submit"
                 className={
                   meeting.status === "planned"
-                    ? "rounded-full bg-[#7d2f3d] px-3.5 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
+                    ? "cta-glow rounded-full bg-[#7d2f3d] px-3.5 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
                     : "paper-wash rounded-full px-3.5 py-2 text-xs font-bold text-[#6a4d36] transition-colors hover:bg-[#f1e4d0]"
                 }
               >
@@ -162,7 +177,10 @@ export default async function MeetingDetailsPage({
         </div>
       </Panel>
 
-      <Panel className="paper-wash overflow-hidden p-4 sm:p-5">
+      <Panel
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(2)}ms` }}
+        className="anim-rise-in-fast paper-wash overflow-hidden p-4 sm:p-5"
+      >
         <div className="flex flex-col gap-2 border-b border-white/50 pb-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-accent text-[0.62rem] font-bold tracking-[0.18em] uppercase">
@@ -187,7 +205,10 @@ export default async function MeetingDetailsPage({
         </div>
       </Panel>
 
-      <Panel className="space-y-4 p-4 sm:p-5">
+      <Panel
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(3)}ms` }}
+        className="anim-rise-in-fast space-y-4 p-4 sm:p-5"
+      >
         <div>
           <p className="text-accent text-[0.62rem] font-bold tracking-[0.18em] uppercase">
             Wieczór przy stole

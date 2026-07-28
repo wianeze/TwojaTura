@@ -115,7 +115,8 @@ async function listActiveMeetingMembers(
   const { data, error } = await supabase
     .from("app_members")
     .select("user_id")
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .eq("role", "member");
 
   if (error) {
     throw new Error("Nie udało się pobrać aktywnych członków.");
@@ -226,6 +227,7 @@ export async function listMeetings(): Promise<MeetingCardItem[]> {
     .select(
       "id, created_by, title, description, location, status, starts_at, ends_at, created_at, updated_at",
     )
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -286,6 +288,7 @@ export async function getMeetingDetails(
       "id, created_by, title, description, location, status, starts_at, ends_at, created_at, updated_at",
     )
     .eq("id", meetingId)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (error) {
@@ -301,6 +304,7 @@ export async function getMeetingDetails(
     votesResult,
     rankingResult,
     gamesResult,
+    relatedPlaysResult,
   ] = await Promise.all([
     listActiveMeetingMembers(supabase),
     getProfilesMap(supabase, [meeting.created_by]),
@@ -321,13 +325,18 @@ export async function getMeetingDetails(
       .select("id, title, cover_url, owner_id, archived_at")
       .is("archived_at", null)
       .order("title", { ascending: true }),
+    supabase
+      .from("plays")
+      .select("id", { count: "exact", head: true })
+      .eq("meeting_id", meetingId),
   ]);
 
   if (
     availabilityResult.error ||
     votesResult.error ||
     rankingResult.error ||
-    gamesResult.error
+    gamesResult.error ||
+    relatedPlaysResult.error
   ) {
     throw new Error("Nie udało się pobrać szczegółów spotkania.");
   }
@@ -382,6 +391,8 @@ export async function getMeetingDetails(
       new Map([[meeting.id, confirmedAttendeesCount]]),
     ),
     canEdit,
+    canDelete: canEdit,
+    hasChroniclePlay: (relatedPlaysResult.count ?? 0) > 0,
     canConfirm: canEdit && meeting.status === "planned",
     hasResponded: typeof ownResponse === "boolean",
     attendanceRows,
@@ -405,6 +416,7 @@ export async function getMeetingLocationSuggestions() {
   const { data, error } = await supabase
     .from("meetings")
     .select("location")
+    .is("deleted_at", null)
     .not("location", "is", null)
     .order("location", { ascending: true });
 

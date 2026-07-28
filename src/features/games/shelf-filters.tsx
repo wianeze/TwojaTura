@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { PropsWithChildren } from "react";
 import { useMemo, useState } from "react";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { countAdvancedShelfFilters } from "./filters";
 import type { GameFilterOptions, GameFilters } from "./types";
 
@@ -202,7 +203,10 @@ export function ShelfFilters({
     "paper-wash focus:border-gold focus:ring-gold/20 h-10 w-full rounded-xl border border-[#9a7657]/28 px-3.5 text-sm text-[#503828] outline-none transition focus:ring-4";
 
   return (
-    <section className="premium-edge material-panel rounded-[1.7rem] px-3 py-3 sm:px-4 sm:py-3.5">
+    <section
+      style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
+      className="anim-rise-in-fast premium-edge material-panel rounded-[1.7rem] px-3 py-3 sm:px-4 sm:py-3.5"
+    >
       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
         <div>
           <p className="text-accent text-[0.62rem] font-bold tracking-[0.18em] uppercase">
@@ -307,7 +311,7 @@ export function ShelfFilters({
 
             <button
               type="submit"
-              className="bg-brand hover:bg-brand-strong h-10 rounded-xl px-4 text-sm font-semibold text-white transition-colors"
+              className="cta-glow bg-brand hover:bg-brand-strong h-10 rounded-xl px-4 text-sm font-semibold text-white transition-colors"
             >
               Zastosuj
             </button>
@@ -355,7 +359,7 @@ export function ShelfFilters({
           </button>
           <button
             type="submit"
-            className="bg-brand hover:bg-brand-strong rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+            className="cta-glow bg-brand hover:bg-brand-strong rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors"
           >
             Zastosuj
           </button>
@@ -460,7 +464,7 @@ export function ShelfFilters({
                 <div className="mt-5 flex flex-wrap gap-2">
                   <button
                     type="submit"
-                    className="bg-brand hover:bg-brand-strong rounded-xl px-4 py-3 text-sm font-semibold text-white transition-colors"
+                    className="cta-glow bg-brand hover:bg-brand-strong rounded-xl px-4 py-3 text-sm font-semibold text-white transition-colors"
                   >
                     Zastosuj filtry
                   </button>

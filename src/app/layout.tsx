@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ServiceWorkerRegistration } from "@/components/layout/service-worker-registration";
 import { getAppOrigin } from "@/lib/app-url";
 import "./globals.css";
 
@@ -47,7 +48,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pl" className="h-full antialiased">
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        <ServiceWorkerRegistration />
+        {children}
+      </body>
     </html>
   );
 }

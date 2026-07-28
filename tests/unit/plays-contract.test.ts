@@ -22,6 +22,83 @@ import {
 import { awardPlayPointsAfterSave } from "../../src/features/plays/play-points.ts";
 import { awardPlayResultAchievementsAfterSave } from "../../src/features/plays/play-achievements.ts";
 import { awardCampHostAfterPlaySave } from "../../src/features/plays/meeting-achievements.ts";
+import {
+  addParticipantDraft,
+  clearParticipantWinners,
+} from "../../src/features/plays/participant-drafts.ts";
+
+test("adding the first participant to a completed play marks them as winner", () => {
+  const drafts = addParticipantDraft(
+    [],
+    "10000000-0000-0000-0000-000000000002",
+    "completed",
+  );
+
+  assert.equal(drafts.length, 1);
+  assert.equal(drafts[0]?.isWinner, true);
+});
+
+test("adding a later participant to a completed play does not override the winner", () => {
+  const afterFirst = addParticipantDraft(
+    [],
+    "10000000-0000-0000-0000-000000000002",
+    "completed",
+  );
+  const afterSecond = addParticipantDraft(
+    afterFirst,
+    "10000000-0000-0000-0000-000000000003",
+    "completed",
+  );
+
+  assert.equal(afterSecond[0]?.isWinner, true);
+  assert.equal(afterSecond[1]?.isWinner, false);
+});
+
+test("adding the first participant to an in_progress play does not mark a winner", () => {
+  const drafts = addParticipantDraft(
+    [],
+    "10000000-0000-0000-0000-000000000002",
+    "in_progress",
+  );
+
+  assert.equal(drafts.length, 1);
+  assert.equal(drafts[0]?.isWinner, false);
+});
+
+test("clearing winners removes isWinner from every participant", () => {
+  const cleared = clearParticipantWinners([
+    {
+      userId: "10000000-0000-0000-0000-000000000002",
+      isWinner: true,
+      placement: "1",
+      score: "",
+    },
+    {
+      userId: "10000000-0000-0000-0000-000000000003",
+      isWinner: false,
+      placement: "2",
+      score: "",
+    },
+  ]);
+
+  assert.deepEqual(
+    cleared.map((draft) => draft.isWinner),
+    [false, false],
+  );
+});
+
+test("clearing winners is a no-op when nobody is marked as winner", () => {
+  const drafts = [
+    {
+      userId: "10000000-0000-0000-0000-000000000002",
+      isWinner: false,
+      placement: "",
+      score: "",
+    },
+  ];
+
+  assert.equal(clearParticipantWinners(drafts), drafts);
+});
 
 test("Chronicle create and result edit request natural_one evaluation", async () => {
   let requestCount = 0;
@@ -187,6 +264,8 @@ function buildFormData(
     playedOnTime: string;
     durationMinutes: string;
     comment: string;
+    status: string;
+    stateNote: string;
     participants: string;
   }>,
 ) {
@@ -200,6 +279,8 @@ function buildFormData(
   formData.set("playedOnTime", overrides?.playedOnTime ?? "18:30");
   formData.set("durationMinutes", overrides?.durationMinutes ?? "95");
   formData.set("comment", overrides?.comment ?? "Świetna końcówka.");
+  formData.set("status", overrides?.status ?? "completed");
+  formData.set("stateNote", overrides?.stateNote ?? "");
   formData.set(
     "participants",
     overrides?.participants ?? buildParticipantsInput(),
@@ -219,6 +300,8 @@ function createPlay(overrides?: Partial<PlayListItem>): PlayListItem {
     playedAt: overrides?.playedAt ?? "2026-07-18T16:30:00.000Z",
     durationMinutes: overrides?.durationMinutes ?? 95,
     comment: overrides?.comment ?? null,
+    status: overrides?.status ?? "completed",
+    stateNote: overrides?.stateNote ?? null,
     createdAt: overrides?.createdAt ?? "2026-07-18T18:10:00.000Z",
     updatedAt: overrides?.updatedAt ?? "2026-07-18T18:10:00.000Z",
     game: overrides?.game ?? {
@@ -292,6 +375,60 @@ test("play validation rejects zero winners", () => {
   assert.equal(
     validation.fieldErrors.participants,
     "Zaznacz przynajmniej jednego zwycięzcę.",
+  );
+});
+
+test("play validation allows in_progress without a winner", () => {
+  const validation = validatePlayFormData(
+    buildFormData({
+      status: "in_progress",
+      stateNote: "Runda 3 z 5, wracamy jutro",
+      participants: buildParticipantsInput([
+        {
+          userId: "10000000-0000-0000-0000-000000000002",
+          isWinner: false,
+          placement: "",
+        },
+      ]),
+    }),
+    ACTIVE_MEMBER_IDS,
+  );
+
+  assert.equal(validation.ok, true);
+  if (!validation.ok) return;
+  assert.equal(validation.data.status, "in_progress");
+  assert.equal(validation.data.stateNote, "Runda 3 z 5, wracamy jutro");
+});
+
+test("play validation still requires at least one participant when in_progress", () => {
+  const validation = validatePlayFormData(
+    buildFormData({
+      status: "in_progress",
+      stateNote: "Runda 3 z 5",
+      participants: "[]",
+    }),
+    ACTIVE_MEMBER_IDS,
+  );
+
+  assert.equal(validation.ok, false);
+  if (validation.ok) return;
+  assert.equal(
+    validation.fieldErrors.participants,
+    "Dodaj przynajmniej jednego gracza do tej partii.",
+  );
+});
+
+test("play validation requires a state note when in_progress", () => {
+  const validation = validatePlayFormData(
+    buildFormData({ status: "in_progress", stateNote: "" }),
+    ACTIVE_MEMBER_IDS,
+  );
+
+  assert.equal(validation.ok, false);
+  if (validation.ok) return;
+  assert.equal(
+    validation.fieldErrors.stateNote,
+    "Opisz stan gry w toku (np. do którego miejsca dotarliście).",
   );
 });
 
@@ -623,6 +760,8 @@ test("meeting prefill contract maps starts_at into play form values", () => {
     playedOnTime: "18:30",
     durationMinutes: "",
     comment: "",
+    status: "completed",
+    stateNote: "",
     participants: [],
   });
 });

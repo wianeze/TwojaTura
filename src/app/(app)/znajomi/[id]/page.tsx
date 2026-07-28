@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Panel } from "@/components/ui/panel";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { getMemberInitial } from "@/features/auth/current-member";
 import {
@@ -29,7 +30,10 @@ export default async function FriendProfilePage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
-      <Panel className="paper-wash p-6 sm:p-8">
+      <Panel
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+        className="anim-rise-in-fast paper-wash p-6 sm:p-8"
+      >
         <div className="flex items-center gap-4">
           {profile.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- external user-provided URL
@@ -58,6 +62,7 @@ export default async function FriendProfilePage({
         title="Ostatnie partie"
         items={recentPlays}
         emptyMessage="Ten gracz nie ma jeszcze zapisanych partii w Kronice."
+        entranceIndex={1}
       />
     </div>
   );

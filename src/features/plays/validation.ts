@@ -4,6 +4,7 @@ import type {
   PlayFormValues,
   PlayParticipantDraft,
   PlayParticipantFieldError,
+  PlayStatus,
 } from "./types";
 
 type FieldErrors<T extends string> = Partial<Record<T, string>>;
@@ -16,6 +17,8 @@ type PlayValidationSuccess = {
     playedAt: string;
     durationMinutes: number | null;
     comment: string | null;
+    status: PlayStatus;
+    stateNote: string | null;
     participants: Array<{
       userId: string;
       isWinner: boolean;
@@ -82,6 +85,10 @@ function pushParticipantError(
 function normalizeNullableText(input: string) {
   const normalized = input.trim();
   return normalized ? normalized : null;
+}
+
+function parsePlayStatus(rawValue: string): PlayStatus {
+  return rawValue === "in_progress" ? "in_progress" : "completed";
 }
 
 function parsePolishDate(rawValue: string) {
@@ -284,6 +291,8 @@ export function buildPlaySubmittedValues(formData: FormData): PlayFormValues {
     playedOnTime: value(formData, "playedOnTime"),
     durationMinutes: value(formData, "durationMinutes"),
     comment: value(formData, "comment"),
+    status: parsePlayStatus(value(formData, "status")),
+    stateNote: value(formData, "stateNote"),
     participants: parsedParticipants.ok ? parsedParticipants.data : [],
   };
 }
@@ -335,6 +344,16 @@ export function validatePlayFormData(
     fieldErrors,
     "Czas gry musi być dodatnią liczbą całkowitą.",
   );
+
+  const status = submittedValues.status;
+  const stateNote = normalizeNullableText(submittedValues.stateNote);
+  if (status === "in_progress" && !stateNote) {
+    pushError(
+      fieldErrors,
+      "stateNote",
+      "Opisz stan gry w toku (np. do którego miejsca dotarliście).",
+    );
+  }
 
   const parsedParticipants = parseParticipantDrafts(
     value(formData, "participants"),
@@ -403,7 +422,7 @@ export function validatePlayFormData(
     );
   }
 
-  if (participants.length > 0 && winnersCount === 0) {
+  if (participants.length > 0 && winnersCount === 0 && status === "completed") {
     pushError(
       fieldErrors,
       "participants",
@@ -425,6 +444,8 @@ export function validatePlayFormData(
         playedAt: toWarsawIso(playedDate, playedTime),
         durationMinutes,
         comment: normalizeNullableText(submittedValues.comment),
+        status,
+        stateNote,
         participants: normalizedParticipants.map((participant) => ({
           userId: participant.userId,
           isWinner: participant.isWinner,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useCanWrite } from "@/features/auth/member-role-context";
 import type { GameFormState } from "./types";
 import { INITIAL_GAME_FORM_STATE } from "./form-state";
 
@@ -13,6 +14,8 @@ export function ArchiveGameButton({
     action,
     INITIAL_GAME_FORM_STATE,
   );
+  const canWrite = useCanWrite();
+  if (!canWrite) return null;
 
   return (
     <form

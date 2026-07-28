@@ -1,5 +1,7 @@
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
+import type { MemberRole } from "@/features/auth/types";
 import { createClient } from "@/lib/supabase/server";
+import { toPublicStorageUrl } from "@/lib/supabase/env";
 import type { Tables } from "@/types/database.generated";
 import {
   getPlayFormValues,
@@ -15,8 +17,12 @@ import type {
   PlayListItem,
   PlayMember,
   PlayParticipantResult,
+  PlayPhoto,
   RecentPlaySummary,
 } from "./types";
+
+const PLAY_PHOTOS_BUCKET = "play-photos";
+const PLAY_PHOTO_SIGNED_URL_TTL_SECONDS = 3600;
 
 type PlayRow = Tables<"plays">;
 type PlayParticipantRow = Tables<"play_participants">;
@@ -119,7 +125,7 @@ function buildParticipantsMap(
 
 async function hydratePlayItems(
   playRows: PlayRow[],
-  viewer?: { id: string; role: "member" | "admin" } | null,
+  viewer?: { id: string; role: MemberRole } | null,
 ) {
   if (playRows.length === 0) return [] as PlayListItem[];
 
@@ -148,6 +154,7 @@ async function hydratePlayItems(
           .from("meetings")
           .select("id, title, starts_at, ends_at, location")
           .in("id", meetingIds)
+          .is("deleted_at", null)
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -185,6 +192,8 @@ async function hydratePlayItems(
       playedAt: play.played_at,
       durationMinutes: play.duration_minutes,
       comment: play.comment,
+      status: play.status,
+      stateNote: play.state_note,
       createdAt: play.created_at,
       updatedAt: play.updated_at,
       game: {
@@ -226,7 +235,7 @@ export async function listChroniclePlays(): Promise<PlayListItem[]> {
   const { data, error } = await supabase
     .from("plays")
     .select(
-      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, created_at, updated_at",
+      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, created_at, updated_at",
     )
     .order("played_at", { ascending: false });
 
@@ -236,6 +245,54 @@ export async function listChroniclePlays(): Promise<PlayListItem[]> {
 
   const items = await hydratePlayItems((data ?? []) as PlayRow[], viewer);
   return sortPlaysByPlayedAtDesc(items);
+}
+
+async function getPlayPhotos(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  playId: string,
+): Promise<PlayPhoto[]> {
+  const { data, error } = await supabase
+    .from("play_photos")
+    .select("id, storage_path, position, width, height, byte_size")
+    .eq("play_id", playId)
+    .order("position", { ascending: true });
+
+  if (error) {
+    throw new Error("Nie udało się pobrać zdjęć partii.");
+  }
+
+  const rows = data ?? [];
+
+  if (rows.length === 0) return [];
+
+  const { data: signedUrls, error: signError } = await supabase.storage
+    .from(PLAY_PHOTOS_BUCKET)
+    .createSignedUrls(
+      rows.map((row) => row.storage_path),
+      PLAY_PHOTO_SIGNED_URL_TTL_SECONDS,
+    );
+
+  if (signError) {
+    throw new Error("Nie udało się przygotować podglądu zdjęć.");
+  }
+
+  const urlByPath = new Map(
+    (signedUrls ?? []).map((entry) => [
+      entry.path,
+      entry.signedUrl ? toPublicStorageUrl(entry.signedUrl) : "",
+    ]),
+  );
+
+  return rows
+    .map((row) => ({
+      id: row.id,
+      url: urlByPath.get(row.storage_path) ?? "",
+      position: row.position,
+      width: row.width,
+      height: row.height,
+      byteSize: row.byte_size,
+    }))
+    .filter((photo) => photo.url !== "");
 }
 
 export async function getPlayDetails(
@@ -249,7 +306,7 @@ export async function getPlayDetails(
   const { data, error } = await supabase
     .from("plays")
     .select(
-      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, created_at, updated_at",
+      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, created_at, updated_at",
     )
     .eq("id", playId)
     .maybeSingle();
@@ -261,7 +318,10 @@ export async function getPlayDetails(
   if (!data) return null;
 
   const [item] = await hydratePlayItems([data as PlayRow], viewer);
-  return item ?? null;
+  if (!item) return null;
+
+  const photos = await getPlayPhotos(supabase, playId);
+  return { ...item, photos };
 }
 
 export async function getPlayFormOptions(): Promise<
@@ -277,11 +337,13 @@ export async function getPlayFormOptions(): Promise<
     supabase
       .from("meetings")
       .select("id, title, starts_at, ends_at, location")
+      .is("deleted_at", null)
       .order("starts_at", { ascending: false }),
     supabase
       .from("app_members")
       .select("user_id, role, is_active")
-      .eq("is_active", true),
+      .eq("is_active", true)
+      .eq("role", "member"),
   ]);
 
   if (gamesResult.error || meetingsResult.error || membersResult.error) {
@@ -390,7 +452,7 @@ export async function listRecentGamePlays(
   const { data, error } = await supabase
     .from("plays")
     .select(
-      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, created_at, updated_at",
+      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, created_at, updated_at",
     )
     .eq("game_id", gameId)
     .order("played_at", { ascending: false })
@@ -426,7 +488,7 @@ export async function listRecentMemberPlays(
   const { data: playRows, error: playError } = await supabase
     .from("plays")
     .select(
-      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, created_at, updated_at",
+      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, created_at, updated_at",
     )
     .in("id", playIds)
     .order("played_at", { ascending: false })

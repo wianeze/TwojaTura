@@ -9,6 +9,7 @@ import {
 } from "@/components/layout/navigation-icon";
 import { signOutAction } from "@/features/auth/actions";
 import { getMemberInitial } from "@/features/auth/current-member";
+import { useMemberRole } from "@/features/auth/member-role-context";
 import type { CurrentMember } from "@/features/auth/types";
 import { ActiveClassEmblem } from "@/features/legendarium/active-class-emblem";
 import type { ActiveClassView } from "@/features/legendarium/achievement-view-model";
@@ -24,6 +25,22 @@ const navigationItems: NavigationItem[] = [
   { href: "/kronika", label: "Kronika", icon: "plays" },
 ];
 
+const adminNavigationItem: NavigationItem = {
+  href: "/admin",
+  label: "Admin",
+  icon: "admin",
+};
+
+// Only a visible link — /admin itself is guarded server-side (layout
+// redirect) and every admin Server Action re-checks is_admin(), so this is
+// purely "don't show a link a non-admin can't use," never the real gate.
+function useNavigationItems(): NavigationItem[] {
+  const role = useMemberRole();
+  return role === "admin"
+    ? [...navigationItems, adminNavigationItem]
+    : navigationItems;
+}
+
 function isCurrentPath(pathname: string, href: string) {
   return href === "/" ? pathname === href : pathname.startsWith(href);
 }
@@ -36,6 +53,7 @@ export function DesktopNavigation({
   activeClass: ActiveClassView | null;
 }) {
   const pathname = usePathname();
+  const items = useNavigationItems();
 
   return (
     <aside className="wood-grain text-cream sticky top-0 hidden h-screen border-r border-white/8 px-5 py-7 lg:flex lg:flex-col">
@@ -43,7 +61,7 @@ export function DesktopNavigation({
         <LogoMark tone="light" />
       </div>
       <nav className="mt-5 flex flex-col gap-1.5" aria-label="Główna nawigacja">
-        {navigationItems.map((item) => {
+        {items.map((item) => {
           const active = isCurrentPath(pathname, item.href);
           return (
             <Link
@@ -124,12 +142,15 @@ export function DesktopNavigation({
 
 export function MobileNavigation() {
   const pathname = usePathname();
+  const items = useNavigationItems();
   return (
     <nav
-      className="wood-grain shadow-warm fixed inset-x-3 bottom-3 z-40 grid grid-cols-5 rounded-2xl border border-white/10 p-1.5 backdrop-blur lg:hidden"
+      className={`wood-grain shadow-warm fixed inset-x-3 bottom-3 z-40 grid rounded-2xl border border-white/10 p-1.5 backdrop-blur lg:hidden ${
+        items.length > 5 ? "grid-cols-6" : "grid-cols-5"
+      }`}
       aria-label="Główna nawigacja"
     >
-      {navigationItems.map((item) => {
+      {items.map((item) => {
         const active = isCurrentPath(pathname, item.href);
         return (
           <Link

@@ -1,0 +1,5 @@
+export const MAX_PLAY_PHOTOS = 15;
+export const MAX_PLAY_PHOTOS_TOTAL_BYTES = 15 * 1024 * 1024;
+export const MAX_PLAY_PHOTO_BYTES = 1.5 * 1024 * 1024;
+export const MAX_PLAY_PHOTO_DIMENSION = 1600;
+export const MAX_CONCURRENT_PHOTO_UPLOADS = 3;

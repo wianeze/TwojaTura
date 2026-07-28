@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { ChronicleFeed } from "@/features/plays/chronicle-feed";
 import { listChroniclePlays } from "@/features/plays/queries";
 
@@ -7,9 +8,12 @@ export default async function ChroniclePage() {
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <header
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+        className="anim-rise-in-fast flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
+      >
         <div>
-          <p className="text-[0.62rem] font-bold tracking-[0.18em] text-[#e3ae67] uppercase">
+          <p className="text-xs font-bold tracking-[0.18em] text-[#e3ae67] uppercase">
             Historia stołu
           </p>
           <h1 className="font-display text-cream mt-2 text-[1.85rem] font-semibold tracking-tight sm:text-[2.2rem]">

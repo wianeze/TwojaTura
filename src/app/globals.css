@@ -447,3 +447,445 @@ a {
   background: var(--brand-soft);
   color: var(--brand-strong);
 }
+
+/*
+ * Addytywny wariant głównego CTA — dopisywany do istniejących klas
+ * przycisku (kolor bazowy bez zmian). Poświata tylko na hover/focus,
+ * bez efektu przy spoczynku.
+ */
+.cta-glow {
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  transition:
+    box-shadow 150ms ease,
+    transform 150ms ease,
+    background-color 150ms ease;
+}
+
+.cta-glow:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 230, 183, 0.45),
+    0 10px 22px rgba(223, 106, 53, 0.3);
+  transform: translateY(-1px);
+}
+
+.cta-glow:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 230, 183, 0.45),
+    0 10px 22px rgba(223, 106, 53, 0.26);
+}
+
+.cta-glow:active {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+  transform: translateY(0);
+}
+
+.cta-glow:disabled {
+  box-shadow: none;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-glow {
+    transition: none;
+  }
+
+  .cta-glow:hover {
+    transform: none;
+  }
+}
+
+/*
+ * Delikatniejszy wariant poświaty dla aktywnych, klikalnych kafli
+ * questów — świadomie słabszy niż .cta-glow (mniejszy blur/spread,
+ * niższe opacity, brak cienia "wciśnięcia" na active).
+ */
+.quest-glow {
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  transition:
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.quest-glow:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 230, 183, 0.28),
+    0 0 10px 1px rgba(223, 106, 53, 0.28),
+    0 0 20px 4px rgba(214, 160, 68, 0.18);
+  transform: translateY(-1px);
+}
+
+.quest-glow:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 230, 183, 0.28),
+    0 0 10px 1px rgba(223, 106, 53, 0.24),
+    0 0 20px 4px rgba(214, 160, 68, 0.16);
+}
+
+.quest-glow:active {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quest-glow {
+    transition: none;
+  }
+
+  .quest-glow:hover {
+    transform: none;
+  }
+}
+
+/*
+ * Opcjonalny, pojedynczy sheen — wyłącznie dla najważniejszego
+ * (pierwszego) aktywnego questu, jeden przebieg, bez pętli.
+ */
+.quest-glow-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 42%,
+    rgba(255, 241, 212, 0.24) 50%,
+    transparent 58%
+  );
+  background-size: 260% 100%;
+  background-position: 160% 0;
+  opacity: 0;
+  animation: quest-sheen-sweep 900ms ease-out 1;
+}
+
+@keyframes quest-sheen-sweep {
+  0% {
+    background-position: 160% 0;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    background-position: -60% 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quest-glow-sheen::after {
+    display: none;
+  }
+}
+
+/*
+ * Delikatna poświata dla klikalnych kart gier (Półka) — ta sama
+ * rodzina co .quest-glow (subtelniejsza niż .cta-glow), osobna klasa
+ * bo to inny kontekst (karty gier, nie kafle questów).
+ *
+ * Poświata żyje na ::before, NIE na box-shadow samego elementu — karty
+ * na Półce mają już własny focus-visible ring (Tailwind, też oparty
+ * o box-shadow); gdyby .game-card-glow ustawiał box-shadow wprost na
+ * elemencie, nadpisałby ten istniejący pierścień fokusu. ::before to
+ * osobna warstwa, więc oba efekty współistnieją bez konfliktu.
+ */
+.game-card-glow {
+  position: relative;
+  transition: transform 150ms ease;
+}
+
+.game-card-glow::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 230, 183, 0.28),
+    0 0 10px 1px rgba(223, 106, 53, 0.28),
+    0 0 20px 4px rgba(214, 160, 68, 0.18);
+  transition: opacity 150ms ease;
+}
+
+.game-card-glow:hover,
+.game-card-glow:focus-visible {
+  transform: translateY(-1px);
+}
+
+.game-card-glow:hover::before,
+.game-card-glow:focus-visible::before {
+  opacity: 1;
+}
+
+.game-card-glow:active {
+  transform: translateY(0);
+}
+
+.game-card-glow:active::before {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-card-glow,
+  .game-card-glow::before {
+    transition: none;
+  }
+
+  .game-card-glow:hover,
+  .game-card-glow:focus-visible {
+    transform: none;
+  }
+}
+
+/*
+ * Przygotowany, ale na razie NIEUŻYWANY: opcjonalny pojedynczy sheen
+ * dla kart oznaczonych jako wyróżnione/ulubione. Brak dziś takiej flagi
+ * w modelu danych gier — patrz komentarz w raporcie odpowiedzi.
+ */
+.game-card-glow-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 42%,
+    rgba(255, 241, 212, 0.24) 50%,
+    transparent 58%
+  );
+  background-size: 260% 100%;
+  background-position: 160% 0;
+  opacity: 0;
+  animation: game-card-sheen-sweep 900ms ease-out 1;
+}
+
+@keyframes game-card-sheen-sweep {
+  0% {
+    background-position: 160% 0;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    background-position: -60% 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-card-glow-sheen::after {
+    display: none;
+  }
+}
+
+/*
+ * Wspólny prymityw wejścia (fade + rise) — pilot: Kalendarium (siatka
+ * miesiąca, zawartość otwieranego dnia) i Półka (karty gier).
+ * Wyłącznie opacity + transform, jeden przebieg, bez pętli.
+ */
+@keyframes anim-rise-in-kf {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.anim-rise-in {
+  animation: anim-rise-in-kf 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-rise-in {
+    animation: none;
+  }
+}
+
+/*
+ * Szybszy, współdzielony wariant wejścia — dłuższy czas (520ms) niż
+ * .anim-rise-in (320ms, używany przez Kalendarium/Kronikę/szczegóły
+ * partii). Używany przez Półkę ORAZ Legendarium (ranking, "Jak zdobywać
+ * łupy", odznaki, klasy) — jedna, współdzielona klasa zamiast kopiowania
+ * tej samej reguły w wielu miejscach. Ten sam keyframe (przesunięcie
+ * 6px) i ten sam easing co .anim-rise-in, tylko dłuższy czas.
+ *
+ * Uwaga: ta klasa nazywała się wcześniej .shelf-card-rise-in — sama
+ * animacja (czas/easing/przesunięcie) jest identyczna, zmieniła się
+ * tylko nazwa, żeby uczciwie odzwierciedlać, że jest teraz współdzielona.
+ */
+.anim-rise-in-fast {
+  animation: anim-rise-in-kf 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-rise-in-fast {
+    animation: none;
+  }
+}
+
+/*
+ * Legendarium — pojedynczy, ciepły sheen na hover/focus-visible dla
+ * zdobytych odznak epic/legendary i odblokowanych klas. WYŁĄCZNIE na
+ * hover/focus (nie na mount, w przeciwieństwie do .quest-glow-sheen) —
+ * jedna współdzielona klasa dla obu przypadków użycia (odznaki i klasy),
+ * reużywająca istniejącą animację @keyframes quest-sheen-sweep zamiast
+ * kopiować mechanizm.
+ */
+.rarity-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 42%,
+    rgba(255, 241, 212, 0.26) 50%,
+    transparent 58%
+  );
+  background-size: 260% 100%;
+  background-position: 160% 0;
+  opacity: 0;
+}
+
+.rarity-sheen:hover::after,
+.rarity-sheen:focus-visible::after {
+  animation: quest-sheen-sweep 900ms ease-out 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rarity-sheen::after {
+    display: none;
+  }
+}
+
+/*
+ * Ranking Legendarium — trofea (TrophySet): promienie epic/legendary są
+ * flarami — węższe u nasady (blisko środka odznaki), szersze przy
+ * zewnętrznej krawędzi. Obracany jest odrębny element-rodzic (rotate
+ * wokół własnego, domyślnego środka), ten element tylko centruje się
+ * przez translateX — stąd brak transform-origin/rotate tutaj. Długość/
+ * szerokość przychodzą z JS jako inline style (procenty względem
+ * odznaki, więc skalują się z sizeClass).
+ */
+.trophy-ray {
+  clip-path: polygon(38% 100%, 62% 100%, 100% 0%, 0% 0%);
+}
+
+/*
+ * Ranking Legendarium — trofea (TrophySet): jednorazowy sheen odpalany
+ * zaraz po pojawieniu się odznaki, NIE na hover (w przeciwieństwie do
+ * .rarity-sheen) — wpisy rankingu nie są interaktywne. Reużywa tej samej
+ * animacji @keyframes quest-sheen-sweep zamiast kopiować mechanizm.
+ */
+.trophy-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 42%,
+    rgba(255, 241, 212, 0.28) 50%,
+    transparent 58%
+  );
+  background-size: 260% 100%;
+  background-position: 160% 0;
+  opacity: 0;
+  animation: quest-sheen-sweep 900ms ease-out 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trophy-sheen::after {
+    display: none;
+  }
+}
+
+/*
+ * Ranking Legendarium — statyczna poświata dla podium (1./2./3. miejsce).
+ * Celowo BEZ animacji/przejścia/sheenu — wpisy rankingu nie są klikalne
+ * i mają świecić stale, bez pulsowania. Każda klasa zawiera też bazowy
+ * cień karty (0 9px 18px), żeby nie nadpisać go, tylko rozszerzyć.
+ */
+.rank-glow-gold {
+  box-shadow:
+    0 9px 18px rgba(76, 44, 23, 0.14),
+    0 0 0 1px rgba(246, 215, 139, 0.5),
+    0 0 22px 4px rgba(246, 215, 139, 0.28);
+}
+
+.rank-glow-silver {
+  box-shadow:
+    0 9px 18px rgba(76, 44, 23, 0.14),
+    0 0 0 1px rgba(216, 219, 226, 0.45),
+    0 0 20px 4px rgba(200, 205, 214, 0.22);
+}
+
+.rank-glow-bronze {
+  box-shadow:
+    0 9px 18px rgba(76, 44, 23, 0.14),
+    0 0 0 1px rgba(205, 149, 100, 0.42),
+    0 0 18px 4px rgba(193, 125, 74, 0.2);
+}
+
+/*
+ * Stan „spotkanie w trakcie" na Stole — złoto-pomarańczowa poświata
+ * sukcesu. W spoczynku statyczna (jak .rank-glow-*), plus delikatne
+ * pulsowanie sygnalizujące, że coś dzieje się teraz; samo pulsowanie
+ * znika pod prefers-reduced-motion, poświata zostaje.
+ */
+.meeting-live-glow {
+  box-shadow:
+    0 0 0 1px rgba(214, 160, 68, 0.45),
+    0 0 22px 4px rgba(223, 106, 53, 0.22),
+    0 18px 36px rgba(66, 25, 10, 0.16);
+  animation: meeting-live-pulse 2600ms ease-in-out infinite;
+}
+
+@keyframes meeting-live-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(214, 160, 68, 0.45),
+      0 0 22px 4px rgba(223, 106, 53, 0.22),
+      0 18px 36px rgba(66, 25, 10, 0.16);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(214, 160, 68, 0.66),
+      0 0 30px 7px rgba(223, 106, 53, 0.32),
+      0 18px 36px rgba(66, 25, 10, 0.16);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meeting-live-glow {
+    animation: none;
+  }
+}

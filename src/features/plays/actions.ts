@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Database, Json } from "@/types/database.generated";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
+import { requireWriteAccess } from "@/features/auth/require-write-access";
 import { awardSimpleAchievementsAfterPlayCreate } from "@/features/legendarium/achievement-awards";
 import { awardPlayResultAchievementsAfterSave } from "./play-achievements";
 import { awardCampHostAfterPlaySave } from "./meeting-achievements";
@@ -31,31 +31,14 @@ type CreatePlayRpcPayload =
 type UpdatePlayRpcPayload =
   Database["public"]["Functions"]["update_play_with_participants"]["Args"];
 
-async function requireActiveMember() {
-  const supabase = await createClient();
-  const memberState = await getCurrentMemberFromClient(supabase);
-
-  if (memberState.status !== "active-member") {
-    return {
-      ok: false as const,
-      message: "Sesja wygasła albo nie masz dostępu do tej sekcji.",
-    };
-  }
-
-  return {
-    ok: true as const,
-    supabase,
-    member: memberState.member,
-  };
-}
-
 async function getActiveMemberIds(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ) {
   const { data, error } = await supabase
     .from("app_members")
     .select("user_id")
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .eq("role", "member");
 
   if (error) {
     throw new Error("Nie udało się pobrać aktywnych członków.");
@@ -102,12 +85,71 @@ function toPlayRpcPayload(
     p_game_id: validation.gameId,
     p_played_at: validation.playedAt,
     p_participants: participants as Json,
+    p_status: validation.status,
     ...(validation.meetingId ? { p_meeting_id: validation.meetingId } : {}),
     ...(validation.durationMinutes !== null
       ? { p_duration_minutes: validation.durationMinutes }
       : {}),
     ...(validation.comment !== null ? { p_comment: validation.comment } : {}),
+    ...(validation.stateNote !== null
+      ? { p_state_note: validation.stateNote }
+      : {}),
   } satisfies CreatePlayRpcPayload;
+}
+
+async function awardCompletedPlayRewards(
+  supabase: SupabaseServerClient,
+  playId: string,
+  hasMeeting: boolean,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const pointAward = await awardPlayPointsAfterSave(true, () =>
+    supabase.rpc("award_play_logged_points", { p_play_id: playId }),
+  );
+
+  if (!pointAward.ok) {
+    return {
+      ok: false,
+      message:
+        "Partia została zapisana, ale nie udało się naliczyć punktów. Odśwież Kronikę przed ponowną próbą.",
+    };
+  }
+
+  const achievementAward = await awardSimpleAchievementsAfterPlayCreate(() =>
+    supabase.rpc("award_current_user_simple_achievements"),
+  );
+
+  if (!achievementAward.ok) {
+    return {
+      ok: false,
+      message:
+        "Partia została zapisana, ale nie udało się sprawdzić nowych odznak. Odśwież Kronikę przed ponowną próbą.",
+    };
+  }
+
+  const campHostAward = await awardCampHostAfterPlaySave(hasMeeting, () =>
+    supabase.rpc("award_meeting_achievements", { p_play_id: playId }),
+  );
+
+  if (!campHostAward.ok) {
+    return {
+      ok: false,
+      message: "Nie udało się sprawdzić odznaki gospodarza po zapisie partii.",
+    };
+  }
+
+  const resultAchievementAward = await awardPlayResultAchievementsAfterSave(
+    () => supabase.rpc("award_play_result_achievements", { p_play_id: playId }),
+  );
+
+  if (!resultAchievementAward.ok) {
+    return {
+      ok: false,
+      message:
+        "Partia została zapisana, ale nie udało się sprawdzić odznaki za wynik. Odśwież Kronikę przed ponowną próbą.",
+    };
+  }
+
+  return { ok: true };
 }
 
 async function callCreatePlayWithParticipants(
@@ -170,19 +212,31 @@ function revalidatePlaySurfaces(params: {
   }
 }
 
+export type CreatePlayActionResult =
+  { ok: true; playId: string } | { ok: false; formState: PlayFormState };
+
+/**
+ * Unlike updatePlayAction, this never redirects: the client needs the
+ * created play_id back so it can upload any photos staged before the play
+ * existed, and only navigate to the details page once that finishes (or the
+ * user has seen which photos failed and can retry without a duplicate
+ * play).
+ */
 export async function createPlayAction(
-  _state: PlayFormState,
   formData: FormData,
-): Promise<PlayFormState> {
-  const access = await requireActiveMember();
+): Promise<CreatePlayActionResult> {
+  const access = await requireWriteAccess();
   if (!access.ok) {
-    return { status: "error", message: access.message };
+    return {
+      ok: false,
+      formState: { status: "error", message: access.message },
+    };
   }
 
   const activeMemberIds = await getActiveMemberIds(access.supabase);
   const validation = validatePlayFormData(formData, activeMemberIds);
   if (!validation.ok) {
-    return toPlayFormErrorState(validation);
+    return { ok: false, formState: toPlayFormErrorState(validation) };
   }
 
   const { data, error } = await callCreatePlayWithParticipants(
@@ -192,66 +246,27 @@ export async function createPlayAction(
 
   if (error || !data) {
     return {
-      status: "error",
-      message: mapPlayDatabaseError(error ?? {}),
+      ok: false,
+      formState: {
+        status: "error",
+        message: mapPlayDatabaseError(error ?? {}),
+      },
     };
   }
 
-  const pointAward = await awardPlayPointsAfterSave(true, () =>
-    access.supabase.rpc("award_play_logged_points", {
-      p_play_id: data,
-    }),
-  );
+  if (validation.data.status === "completed") {
+    const award = await awardCompletedPlayRewards(
+      access.supabase,
+      data,
+      Boolean(validation.data.meetingId),
+    );
 
-  if (!pointAward.ok) {
-    return {
-      status: "error",
-      message:
-        "Partia została zapisana, ale nie udało się naliczyć punktów. Odśwież Kronikę przed ponowną próbą.",
-    };
-  }
-
-  const achievementAward = await awardSimpleAchievementsAfterPlayCreate(() =>
-    access.supabase.rpc("award_current_user_simple_achievements"),
-  );
-
-  if (!achievementAward.ok) {
-    return {
-      status: "error",
-      message:
-        "Partia została zapisana, ale nie udało się sprawdzić nowych odznak. Odśwież Kronikę przed ponowną próbą.",
-    };
-  }
-
-  const campHostAward = await awardCampHostAfterPlaySave(
-    Boolean(validation.data.meetingId),
-    () =>
-      access.supabase.rpc("award_meeting_achievements", {
-        p_play_id: data,
-      }),
-  );
-
-  if (!campHostAward.ok) {
-    return {
-      status: "error",
-      message:
-        "Nie uda\u0142o si\u0119 sprawdzi\u0107 odznaki gospodarza po zapisie partii.",
-    };
-  }
-
-  const resultAchievementAward = await awardPlayResultAchievementsAfterSave(
-    () =>
-      access.supabase.rpc("award_play_result_achievements", {
-        p_play_id: data,
-      }),
-  );
-
-  if (!resultAchievementAward.ok) {
-    return {
-      status: "error",
-      message:
-        "Partia została zapisana, ale nie udało się sprawdzić odznaki za wynik. Odśwież Kronikę przed ponowną próbą.",
-    };
+    if (!award.ok) {
+      return {
+        ok: false,
+        formState: { status: "error", message: award.message },
+      };
+    }
   }
 
   revalidatePlaySurfaces({
@@ -263,7 +278,7 @@ export async function createPlayAction(
     ),
   });
 
-  redirect(`/kronika/${data}`);
+  return { ok: true, playId: data };
 }
 
 export async function updatePlayAction(
@@ -271,7 +286,7 @@ export async function updatePlayAction(
   _state: PlayFormState,
   formData: FormData,
 ): Promise<PlayFormState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
@@ -301,35 +316,16 @@ export async function updatePlayAction(
     };
   }
 
-  const resultAchievementAward = await awardPlayResultAchievementsAfterSave(
-    () =>
-      access.supabase.rpc("award_play_result_achievements", {
-        p_play_id: data,
-      }),
-  );
+  if (validation.data.status === "completed") {
+    const award = await awardCompletedPlayRewards(
+      access.supabase,
+      data,
+      Boolean(validation.data.meetingId),
+    );
 
-  if (!resultAchievementAward.ok) {
-    return {
-      status: "error",
-      message:
-        "Partia została zapisana, ale nie udało się sprawdzić odznaki za wynik. Odśwież Kronikę przed ponowną próbą.",
-    };
-  }
-
-  const campHostAward = await awardCampHostAfterPlaySave(
-    Boolean(validation.data.meetingId),
-    () =>
-      access.supabase.rpc("award_meeting_achievements", {
-        p_play_id: data,
-      }),
-  );
-
-  if (!campHostAward.ok) {
-    return {
-      status: "error",
-      message:
-        "Partia została zapisana, ale nie udało się sprawdzić odznaki gospodarza. Odśwież Kronikę przed ponowną próbą.",
-    };
+    if (!award.ok) {
+      return { status: "error", message: award.message };
+    }
   }
 
   revalidatePlaySurfaces({
@@ -355,13 +351,42 @@ export async function updatePlayAction(
   redirect(`/kronika/${playId}`);
 }
 
+async function removePlayPhotoFiles(
+  supabase: SupabaseServerClient,
+  playId: string,
+) {
+  const { data: photos } = await supabase
+    .from("play_photos")
+    .select("storage_path")
+    .eq("play_id", playId);
+
+  const storagePaths = (photos ?? []).map((photo) => photo.storage_path);
+
+  if (storagePaths.length === 0) return;
+
+  // Best-effort: a play the user is entitled to delete should not be stuck
+  // just because Storage had a transient failure. The reconciliation sweep
+  // (Etap C4) is the safety net for whatever this misses.
+  const { error } = await supabase.storage
+    .from("play-photos")
+    .remove(storagePaths);
+
+  if (error) {
+    console.error(
+      `Nie udało się usunąć zdjęć partii ${playId} ze Storage:`,
+      error,
+    );
+  }
+}
+
 export async function deletePlayAction(playId: string) {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     redirect("/kronika");
   }
 
   const snapshot = await getPlayRevalidationSnapshot(access.supabase, playId);
+  await removePlayPhotoFiles(access.supabase, playId);
 
   const { data, error } = await access.supabase
     .from("plays")

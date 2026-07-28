@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useCanWrite } from "@/features/auth/member-role-context";
 import { toggleMeetingVoteAction } from "./actions";
 
 export function MeetingVoteToggle({
@@ -14,6 +15,8 @@ export function MeetingVoteToggle({
 }) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const canWrite = useCanWrite();
+  if (!canWrite) return null;
 
   return (
     <div className="space-y-2">
@@ -32,7 +35,7 @@ export function MeetingVoteToggle({
             );
           })
         }
-        className={`rounded-full px-3.5 py-2 text-xs font-bold transition-colors ${
+        className={`cta-glow rounded-full px-3.5 py-2 text-xs font-bold transition-colors ${
           hasOwnVote ? "bg-moss text-white" : "paper-wash text-[#6a4f38]"
         } disabled:cursor-not-allowed disabled:opacity-70`}
       >

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Panel } from "@/components/ui/panel";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import type {
   AchievementView,
   ActiveClassView,
@@ -33,7 +34,10 @@ export function ProfileAchievementsPanel({
     .slice(0, 4);
 
   return (
-    <Panel className="paper-wash p-4 sm:p-5">
+    <Panel
+      style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
+      className="anim-rise-in-fast paper-wash p-4 sm:p-5"
+    >
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="text-accent text-[0.62rem] font-bold tracking-[0.17em] uppercase">
@@ -56,10 +60,13 @@ export function ProfileAchievementsPanel({
             Ostatnio zdobyte
           </p>
           <div className="mt-2 grid grid-cols-3 gap-2">
-            {recent.map((achievement) => (
+            {recent.map((achievement, index) => (
               <article
                 key={achievement.key}
-                className="rounded-xl border border-[#d4b88f]/55 bg-[#fff8e9]/75 p-2 text-center"
+                style={{
+                  animationDelay: `${getEntranceStaggerDelayMs(index)}ms`,
+                }}
+                className="anim-rise-in-fast rounded-xl border border-[#d4b88f]/55 bg-[#fff8e9]/75 p-2 text-center"
               >
                 <MiniAchievementBadge
                   iconPath={achievement.iconPath}
@@ -99,10 +106,13 @@ export function ProfileAchievementsPanel({
           Progres klas
         </p>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          {closestClasses.map((characterClass) => (
+          {closestClasses.map((characterClass, index) => (
             <article
               key={characterClass.key}
-              className="flex items-center gap-2 rounded-xl bg-[#6d402d]/92 px-2.5 py-2 text-[#fff0d8]"
+              style={{
+                animationDelay: `${getEntranceStaggerDelayMs(index)}ms`,
+              }}
+              className="anim-rise-in-fast flex items-center gap-2 rounded-xl bg-[#6d402d]/92 px-2.5 py-2 text-[#fff0d8]"
             >
               <div className="relative -my-1.5 size-[3.7rem] shrink-0">
                 {characterClass.iconPath ? (

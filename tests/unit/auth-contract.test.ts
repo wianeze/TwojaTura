@@ -5,10 +5,15 @@ import {
   formatInviteOutcome,
   getInviteAdminConfig,
   getProvisioningState,
+  parseRole,
 } from "../../scripts/invite-user-lib.mjs";
 import { mapCurrentMember } from "../../src/features/auth/current-member.ts";
 import { getSafeInternalPath } from "../../src/features/auth/safe-redirect.ts";
-import { buildAuthCallbackUrl, getAppOrigin } from "../../src/lib/app-url.ts";
+import {
+  buildAppUrl,
+  buildAuthCallbackUrl,
+  getAppOrigin,
+} from "../../src/lib/app-url.ts";
 import {
   validatePasswordChange,
   validateProfileInput,
@@ -63,13 +68,25 @@ test("app origin defaults to localhost:3000", () => {
   restoreSiteUrl(previous);
 });
 
-test("password recovery callback uses localhost app origin", () => {
+test("invite callback URL still targets /ustaw-haslo (unchanged, token_hash flow)", () => {
   const previous = process.env.NEXT_PUBLIC_SITE_URL;
   process.env.NEXT_PUBLIC_SITE_URL = "http://localhost:3000";
 
   assert.equal(
     buildAuthCallbackUrl("/ustaw-haslo"),
     "http://localhost:3000/auth/callback?next=%2Fustaw-haslo",
+  );
+
+  restoreSiteUrl(previous);
+});
+
+test("password recovery redirect points at /logowanie (hash flow)", () => {
+  const previous = process.env.NEXT_PUBLIC_SITE_URL;
+  process.env.NEXT_PUBLIC_SITE_URL = "http://localhost:3000";
+
+  assert.equal(
+    buildAppUrl("/logowanie").toString(),
+    "http://localhost:3000/logowanie",
   );
 
   restoreSiteUrl(previous);
@@ -150,6 +167,25 @@ test("invite provisioning state is true only for active member profile", () => {
   );
 });
 
+test("invite provisioning state accepts an expected non-default role", () => {
+  assert.equal(
+    getProvisioningState(
+      { id: "user-1" },
+      { user_id: "user-1", role: "observer", is_active: true },
+      "observer",
+    ),
+    true,
+  );
+  assert.equal(
+    getProvisioningState(
+      { id: "user-1" },
+      { user_id: "user-1", role: "member", is_active: true },
+      "observer",
+    ),
+    false,
+  );
+});
+
 test("invite outcome reports verified success", () => {
   assert.equal(
     formatInviteOutcome({
@@ -160,6 +196,7 @@ test("invite outcome reports verified success", () => {
     [
       "Zaproszenie wyslane.",
       "Uzytkownik: zaproszony2@twojatura.local",
+      "Rola: member.",
       "Profil i czlonkostwo: gotowe.",
     ].join("\n"),
   );
@@ -175,7 +212,25 @@ test("invite outcome reports warning when provisioning is not confirmed", () => 
     [
       "Zaproszenie wyslane.",
       "Uzytkownik: zaproszony2@twojatura.local",
+      "Rola: member.",
       "Nie udalo sie potwierdzic provisioningu czlonkostwa. Sprawdz profiles i app_members.",
+    ].join("\n"),
+  );
+});
+
+test("invite outcome includes a non-default requested role", () => {
+  assert.equal(
+    formatInviteOutcome({
+      email: "zaproszony2@twojatura.local",
+      inviteSucceeded: true,
+      provisioningReady: true,
+      role: "observer",
+    }),
+    [
+      "Zaproszenie wyslane.",
+      "Uzytkownik: zaproszony2@twojatura.local",
+      "Rola: observer.",
+      "Profil i czlonkostwo: gotowe.",
     ].join("\n"),
   );
 });
@@ -189,6 +244,20 @@ test("invite outcome keeps real invite failure as failure", () => {
     }),
     "Nie udalo sie wyslac zaproszenia.",
   );
+});
+
+test("parseRole defaults to member", () => {
+  assert.equal(parseRole(undefined), "member");
+  assert.equal(parseRole(""), "member");
+});
+
+test("parseRole accepts admin and observer", () => {
+  assert.equal(parseRole("admin"), "admin");
+  assert.equal(parseRole("observer"), "observer");
+});
+
+test("parseRole rejects unknown values", () => {
+  assert.throws(() => parseRole("superadmin"), /Nieprawidlowa rola/);
 });
 
 test("maps an active member", () => {
@@ -211,6 +280,17 @@ test("maps an active admin", () => {
   assert.equal(state.status, "active-member");
   if (state.status === "active-member")
     assert.equal(state.member.role, "admin");
+});
+
+test("maps an active observer", () => {
+  const state = mapCurrentMember(
+    "user-1",
+    { role: "observer", is_active: true },
+    profile,
+  );
+  assert.equal(state.status, "active-member");
+  if (state.status === "active-member")
+    assert.equal(state.member.role, "observer");
 });
 
 test("missing membership denies access", () => {
@@ -238,4 +318,19 @@ test("profile validation rejects an invalid avatar URL", () => {
 
 test("password validation detects different passwords", () => {
   assert.equal(validatePasswordChange("TwojaTura123!", "inne-haslo").ok, false);
+});
+
+test("password validation rejects empty fields", () => {
+  assert.equal(validatePasswordChange("", "").ok, false);
+  assert.equal(validatePasswordChange("TwojaTura123!", "").ok, false);
+});
+
+test("password validation rejects a too-short password", () => {
+  assert.equal(validatePasswordChange("krotkie", "krotkie").ok, false);
+});
+
+test("password validation accepts a matching, long-enough password", () => {
+  const result = validatePasswordChange("TwojaTura123!", "TwojaTura123!");
+  assert.equal(result.ok, true);
+  if (result.ok) assert.equal(result.data.password, "TwojaTura123!");
 });

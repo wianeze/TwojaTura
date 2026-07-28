@@ -1,8 +1,9 @@
+import type { MemberRole } from "@/features/auth/types";
 import type { MeetingStatus } from "./types";
 
 type ConfirmationActor = {
   id: string;
-  role: "member" | "admin";
+  role: MemberRole;
 };
 
 type ConfirmationMeeting = {

@@ -48,3 +48,7 @@ next-env.d.ts
 /work/
 /supabase/.branches/
 /supabase/.temp/
+
+.playwright-mcp/
+
+.playwright-mcp/

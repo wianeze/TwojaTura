@@ -7,6 +7,7 @@ Instrukcje dla agentów AI (Claude Code i inni) pracujących nad projektem „Tw
 „Twoja Tura!" to prywatna aplikacja webowa dla zamkniętej grupy znajomych grających w gry planszowe — cyfrowe centrum grupy, nie tylko katalog gier. Łączy: wspólną kolekcję gier, organizację spotkań, historię rozgrywek, oceny graczy oraz system grywalizacji (punkty, ranking, osiągnięcia, klasy postaci).
 
 Pięć głównych obszarów aplikacji (routing i UI):
+
 - **Stół** (`/`) — dashboard, bieżąca aktywność, questy
 - **Półka** (`/gry`) — wspólna kolekcja gier
 - **Kalendarium** (`/kalendarium`) — organizacja spotkań
@@ -94,15 +95,15 @@ Główna logika naliczania punktów, przyznawania osiągnięć i weryfikacji kla
 
 ## Polecenia deweloperskie
 
-| Polecenie | Cel |
-|---|---|
-| `pnpm dev` / `build` / `start` | uruchomienie aplikacji Next.js |
-| `pnpm lint` / `typecheck` / `format:check` / `check` | jakość kodu (`check` = wszystkie trzy) |
-| `pnpm test` | testy jednostkowe (`node --test`) |
-| `pnpm supabase:start/status/stop` | lokalny Supabase (Docker) |
-| `pnpm db:migrate` / `db:reset` / `db:test` / `db:types` / `db:verify` | cykl migracji i typów (destrukcyjne — patrz zasady wyżej) |
-| `pnpm invite:user -- --email ... --name ...` | zaproszenie nowego użytkownika (operator) |
-| `pnpm qa:achievements/classes/badges[:reset\|:check]` | fixture'y QA do lokalnego testowania grywalizacji (reset — patrz zasady wyżej) |
+| Polecenie                                                             | Cel                                                                            |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `pnpm dev` / `build` / `start`                                        | uruchomienie aplikacji Next.js                                                 |
+| `pnpm lint` / `typecheck` / `format:check` / `check`                  | jakość kodu (`check` = wszystkie trzy)                                         |
+| `pnpm test`                                                           | testy jednostkowe (`node --test`)                                              |
+| `pnpm supabase:start/status/stop`                                     | lokalny Supabase (Docker)                                                      |
+| `pnpm db:migrate` / `db:reset` / `db:test` / `db:types` / `db:verify` | cykl migracji i typów (destrukcyjne — patrz zasady wyżej)                      |
+| `pnpm invite:user -- --email ... --name ...`                          | zaproszenie nowego użytkownika (operator)                                      |
+| `pnpm qa:achievements/classes/badges[:reset\|:check]`                 | fixture'y QA do lokalnego testowania grywalizacji (reset — patrz zasady wyżej) |
 
 ## Zasady dla agentów
 

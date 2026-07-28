@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Panel } from "@/components/ui/panel";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { CalendarMonthGrid } from "@/features/meetings/calendar-month-grid";
 import {
@@ -48,8 +49,11 @@ export default async function CalendarPage({
 
   return (
     <div className="space-y-3.5 lg:space-y-4">
-      <header className="space-y-1 px-1 py-0.5 sm:py-1">
-        <p className="text-[0.62rem] font-bold tracking-[0.22em] text-[#e3ae67] uppercase">
+      <header
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+        className="anim-rise-in-fast space-y-1 px-1 py-0.5 sm:py-1"
+      >
+        <p className="text-xs font-bold tracking-[0.22em] text-[#e3ae67] uppercase">
           Planowanie wieczorów
         </p>
         <h1 className="font-display text-cream text-[2.1rem] font-semibold tracking-tight drop-shadow-[0_2px_12px_rgba(20,10,7,0.28)] sm:text-[2.65rem]">
@@ -57,9 +61,12 @@ export default async function CalendarPage({
         </h1>
       </header>
 
-      <Panel className="premium-edge paper-wash overflow-hidden px-2.5 py-2 sm:px-3 sm:py-2.5">
+      <Panel
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
+        className="anim-rise-in-fast premium-edge paper-wash overflow-hidden px-2.5 py-2 sm:px-3 sm:py-2.5"
+      >
         {timelineItems.length === 0 ? (
-          <EmptyState variant="meetings" />
+          <EmptyState variant="meetings" compact />
         ) : (
           <div className="-mx-1 overflow-x-auto px-1 pb-0.5">
             <div className="relative flex min-w-max items-end gap-2 pt-1 pr-3">
@@ -77,13 +84,16 @@ export default async function CalendarPage({
                 <div className="h-5.5 w-px bg-gradient-to-b from-[#b67a4b]/70 to-[#c89d62]/18" />
               </div>
 
-              {timelineItems.map((meeting) => {
+              {timelineItems.map((meeting, index) => {
                 const visualClasses = getMeetingVisualClasses(meeting);
 
                 return (
                   <div
                     key={meeting.id}
-                    className="relative flex w-[9.2rem] shrink-0 flex-col items-center justify-end"
+                    style={{
+                      animationDelay: `${getEntranceStaggerDelayMs(index)}ms`,
+                    }}
+                    className="anim-rise-in-fast relative flex w-[9.2rem] shrink-0 flex-col items-center justify-end"
                   >
                     <Link
                       href={meeting.href}
@@ -144,7 +154,10 @@ export default async function CalendarPage({
         )}
       </Panel>
 
-      <Panel className="calendar-wood-panel premium-edge overflow-hidden p-2 sm:p-2.5 lg:p-3">
+      <Panel
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(2)}ms` }}
+        className="anim-rise-in-fast calendar-wood-panel premium-edge overflow-hidden p-2 sm:p-2.5 lg:p-3"
+      >
         <div className="mb-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             <Link
@@ -169,13 +182,17 @@ export default async function CalendarPage({
         </div>
 
         <div className="space-y-2.5">
-          <CalendarMonthGrid month={calendar} weekdayLabels={weekdayLabels} />
+          <div key={calendar.monthParam} className="anim-rise-in">
+            <CalendarMonthGrid month={calendar} weekdayLabels={weekdayLabels} />
+          </div>
           {continuationMonth.weeks.length > 0 ? (
-            <CalendarMonthGrid
-              month={continuationMonth}
-              weekdayLabels={weekdayLabels}
-              muted
-            />
+            <div key={continuationMonth.monthParam} className="anim-rise-in">
+              <CalendarMonthGrid
+                month={continuationMonth}
+                weekdayLabels={weekdayLabels}
+                muted
+              />
+            </div>
           ) : null}
         </div>
       </Panel>

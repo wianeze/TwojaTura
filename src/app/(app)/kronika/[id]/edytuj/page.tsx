@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Panel } from "@/components/ui/panel";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { updatePlayAction } from "@/features/plays/actions";
 import { PlayForm } from "@/features/plays/play-form";
@@ -30,7 +31,10 @@ export default async function EditPlayPage({
         ← Wróć do partii
       </Link>
 
-      <header>
+      <header
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+        className="anim-rise-in-fast"
+      >
         <p className="text-[0.62rem] font-bold tracking-[0.18em] text-[#e3ae67] uppercase">
           Kronika
         </p>
@@ -39,8 +43,12 @@ export default async function EditPlayPage({
         </h1>
       </header>
 
-      <Panel className="paper-wash p-4 sm:p-5">
+      <Panel
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
+        className="anim-rise-in-fast paper-wash p-4 sm:p-5"
+      >
         <PlayForm
+          mode="edit"
           action={updatePlayAction.bind(null, id)}
           initialValues={formData.initialValues}
           games={formData.games}
@@ -48,6 +56,8 @@ export default async function EditPlayPage({
           members={formData.members}
           submitLabel="Zapisz zmiany"
           pendingLabel="Zapisywanie..."
+          playId={id}
+          initialPhotos={formData.play.photos}
         />
       </Panel>
     </div>

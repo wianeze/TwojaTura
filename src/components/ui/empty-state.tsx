@@ -29,22 +29,28 @@ const emptyStateContent = {
 
 type EmptyStateProps = {
   variant: keyof typeof emptyStateContent;
+  compact?: boolean;
 };
 
-export function EmptyState({ variant }: EmptyStateProps) {
+export function EmptyState({ variant, compact = false }: EmptyStateProps) {
   const content = emptyStateContent[variant];
+  const heightClass = compact ? "min-h-[12.5rem]" : "min-h-[25rem]";
 
   return (
-    <section className="shadow-warm relative isolate min-h-[25rem] overflow-hidden rounded-[2rem] border border-white/10">
+    <section
+      className={`anim-rise-in-fast shadow-warm relative isolate ${heightClass} overflow-hidden rounded-[2rem] border border-white/10`}
+    >
       <Image
         src={content.src}
         alt={content.alt}
         fill
         sizes="(max-width: 1024px) 100vw, 70vw"
-        className="-z-20 object-cover"
+        className={`-z-20 object-cover ${compact ? "object-bottom" : ""}`}
       />
       <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(25,14,10,0.88),rgba(25,14,10,0.5)_58%,rgba(25,14,10,0.18))]" />
-      <div className="text-cream flex min-h-[25rem] max-w-lg flex-col justify-end p-6 sm:p-9">
+      <div
+        className={`text-cream flex ${heightClass} max-w-lg flex-col justify-end p-6 sm:p-9`}
+      >
         <p className="text-[0.65rem] font-bold tracking-[0.2em] text-[#e4b36d] uppercase">
           {content.eyebrow}
         </p>

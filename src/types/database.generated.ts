@@ -60,6 +60,54 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_audit_log: {
+        Row: {
+          action_type: string
+          actor_user_id: string
+          created_at: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          reason: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          actor_user_id: string
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          reason?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          actor_user_id?: string
+          created_at?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          reason?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_log_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_audit_log_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_content: {
         Row: {
           content_key: string
@@ -225,6 +273,44 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "class_definitions"
             referencedColumns: ["class_key"]
+          },
+        ]
+      }
+      feedback_submissions: {
+        Row: {
+          admin_note: string | null
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["feedback_status"]
+          updated_at: string
+        }
+        Insert: {
+          admin_note?: string | null
+          author_id?: string
+          content: string
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["feedback_status"]
+          updated_at?: string
+        }
+        Update: {
+          admin_note?: string | null
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["feedback_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_submissions_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -439,6 +525,9 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           description: string | null
           ends_at: string
           id: string
@@ -451,6 +540,9 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           description?: string | null
           ends_at: string
           id?: string
@@ -463,6 +555,9 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           description?: string | null
           ends_at?: string
           id?: string
@@ -476,6 +571,13 @@ export type Database = {
           {
             foreignKeyName: "meetings_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meetings_deleted_by_fkey"
+            columns: ["deleted_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -521,6 +623,57 @@ export type Database = {
           },
         ]
       }
+      play_photos: {
+        Row: {
+          byte_size: number
+          created_at: string
+          created_by: string
+          height: number
+          id: string
+          play_id: string
+          position: number
+          storage_path: string
+          width: number
+        }
+        Insert: {
+          byte_size: number
+          created_at?: string
+          created_by: string
+          height: number
+          id?: string
+          play_id: string
+          position: number
+          storage_path: string
+          width: number
+        }
+        Update: {
+          byte_size?: number
+          created_at?: string
+          created_by?: string
+          height?: number
+          id?: string
+          play_id?: string
+          position?: number
+          storage_path?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "play_photos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "play_photos_play_id_fkey"
+            columns: ["play_id"]
+            isOneToOne: false
+            referencedRelation: "plays"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plays: {
         Row: {
           comment: string | null
@@ -531,6 +684,8 @@ export type Database = {
           id: string
           meeting_id: string | null
           played_at: string
+          state_note: string | null
+          status: Database["public"]["Enums"]["play_status"]
           updated_at: string
         }
         Insert: {
@@ -542,6 +697,8 @@ export type Database = {
           id?: string
           meeting_id?: string | null
           played_at: string
+          state_note?: string | null
+          status?: Database["public"]["Enums"]["play_status"]
           updated_at?: string
         }
         Update: {
@@ -553,6 +710,8 @@ export type Database = {
           id?: string
           meeting_id?: string | null
           played_at?: string
+          state_note?: string | null
+          status?: Database["public"]["Enums"]["play_status"]
           updated_at?: string
         }
         Relationships: [
@@ -835,6 +994,61 @@ export type Database = {
       }
     }
     Functions: {
+      admin_change_role: {
+        Args: {
+          p_new_role: Database["public"]["Enums"]["membership_role"]
+          p_reason?: string
+          p_target_user_id: string
+        }
+        Returns: undefined
+      }
+      admin_deactivate_and_anonymize_account: {
+        Args: { p_reason?: string; p_target_user_id: string }
+        Returns: undefined
+      }
+      admin_list_accounts: {
+        Args: {
+          p_role_filter?: Database["public"]["Enums"]["membership_role"]
+          p_search?: string
+        }
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          is_active: boolean
+          last_sign_in_at: string
+          role: Database["public"]["Enums"]["membership_role"]
+          user_id: string
+        }[]
+      }
+      admin_list_feedback_submissions: {
+        Args: {
+          p_status_filter?: Database["public"]["Enums"]["feedback_status"]
+        }
+        Returns: {
+          admin_note: string
+          author_display_name: string
+          content: string
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["feedback_status"]
+        }[]
+      }
+      admin_provision_existing_user: {
+        Args: {
+          p_role?: Database["public"]["Enums"]["membership_role"]
+          p_target_user_id: string
+        }
+        Returns: undefined
+      }
+      admin_update_feedback_submission: {
+        Args: {
+          p_admin_note: string
+          p_id: string
+          p_status: Database["public"]["Enums"]["feedback_status"]
+        }
+        Returns: undefined
+      }
       award_current_user_simple_achievements: {
         Args: never
         Returns: {
@@ -940,9 +1154,13 @@ export type Database = {
           p_meeting_id?: string
           p_participants?: Json
           p_played_at: string
+          p_state_note?: string
+          p_status?: Database["public"]["Enums"]["play_status"]
         }
         Returns: string
       }
+      current_user_is_admin: { Args: never; Returns: boolean }
+      delete_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
       get_leaderboard: {
         Args: never
         Returns: {
@@ -967,6 +1185,10 @@ export type Database = {
           display_name: string
           id: string
         }[]
+      }
+      reorder_play_photos: {
+        Args: { p_photo_ids: string[]; p_play_id: string }
+        Returns: undefined
       }
       set_active_class: { Args: { p_class_key: string }; Returns: string }
       update_game_with_expansions: {
@@ -1004,14 +1226,18 @@ export type Database = {
           p_participants?: Json
           p_play_id: string
           p_played_at: string
+          p_state_note?: string
+          p_status?: Database["public"]["Enums"]["play_status"]
         }
         Returns: string
       }
     }
     Enums: {
+      feedback_status: "new" | "in_progress" | "completed" | "rejected"
       game_status: "available" | "unavailable" | "loaned"
       meeting_status: "planned" | "confirmed" | "completed"
-      membership_role: "member" | "admin"
+      membership_role: "member" | "admin" | "observer"
+      play_status: "in_progress" | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1139,9 +1365,11 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      feedback_status: ["new", "in_progress", "completed", "rejected"],
       game_status: ["available", "unavailable", "loaned"],
       meeting_status: ["planned", "confirmed", "completed"],
-      membership_role: ["member", "admin"],
+      membership_role: ["member", "admin", "observer"],
+      play_status: ["in_progress", "completed"],
     },
   },
 } as const

@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { useCanWrite } from "@/features/auth/member-role-context";
 
 function DeletePlaySubmitButton() {
   const { pending } = useFormStatus();
@@ -17,6 +18,9 @@ function DeletePlaySubmitButton() {
 }
 
 export function DeletePlayButton({ action }: { action: () => Promise<void> }) {
+  const canWrite = useCanWrite();
+  if (!canWrite) return null;
+
   return (
     <form
       action={action}

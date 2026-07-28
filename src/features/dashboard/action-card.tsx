@@ -5,17 +5,21 @@ import type { DashboardQuest } from "./types";
 
 type QuestCardProps = {
   quest: DashboardQuest;
+  isPrimary?: boolean;
 };
 
-export function QuestCard({ quest }: QuestCardProps) {
+export function QuestCard({ quest, isPrimary = false }: QuestCardProps) {
   const variant = getQuestVisualVariant(quest);
   const hasFollowUp = Boolean(quest.reward.followUpPoints);
+  const isActiveClickable = quest.type !== "info";
 
   return (
     <Link
       href={quest.href}
       className={`premium-edge group relative ml-6 flex min-h-[6.5rem] w-[calc(100%-1.5rem)] overflow-visible rounded-[1.05rem] px-3 py-2.25 pl-9 transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e2a05d] sm:ml-7 sm:min-h-[6.75rem] sm:w-[calc(100%-1.75rem)] sm:px-3.5 sm:py-2.5 sm:pl-10 ${
         variant.cardClassName
+      } ${isActiveClickable ? "quest-glow" : ""} ${
+        isActiveClickable && isPrimary ? "quest-glow-sheen" : ""
       }`}
     >
       <span

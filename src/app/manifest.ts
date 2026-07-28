@@ -6,6 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Twoja Tura!",
     description: "Prywatny klub planszówkowy dla znajomych.",
     start_url: "/",
+    scope: "/",
     display: "standalone",
     background_color: "#2f1e19",
     theme_color: "#2f1e19",

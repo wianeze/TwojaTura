@@ -36,7 +36,7 @@ export function RecentLootList({
     : events.slice(0, collapsedEventCount);
 
   return (
-    <div className="mt-3 flex flex-1 flex-col">
+    <div className="mt-3 flex min-w-0 flex-1 flex-col">
       <div id="recent-loot-list" className="space-y-2">
         {visibleEvents.map((event) => (
           <LootEvent key={event.id} event={event} />

@@ -2,15 +2,21 @@
 
 import { useMemo, useState } from "react";
 import { getMemberInitial } from "@/features/auth/current-member";
+import {
+  addParticipantDraft,
+  clearParticipantWinners,
+} from "./participant-drafts";
 import type {
   PlayMember,
   PlayParticipantDraft,
   PlayParticipantFieldError,
+  PlayStatus,
 } from "./types";
 
 type PlayParticipantsFieldProps = {
   members: PlayMember[];
   defaultValue: PlayParticipantDraft[];
+  status: PlayStatus;
   error?: string;
   participantErrors?: Record<string, PlayParticipantFieldError>;
 };
@@ -27,10 +33,25 @@ function normalizeDrafts(drafts: PlayParticipantDraft[]) {
 export function PlayParticipantsField({
   members,
   defaultValue,
+  status,
   error,
   participantErrors,
 }: PlayParticipantsFieldProps) {
   const [drafts, setDrafts] = useState(() => normalizeDrafts(defaultValue));
+  const [previousStatus, setPreviousStatus] = useState(status);
+
+  // Switching to "w toku" clears any already-marked winner — an in-progress
+  // game has no result yet, and completing it later requires picking the
+  // winner by hand rather than reusing a stale selection. Adjusted during
+  // render (not in an effect) per React's guidance for state derived from a
+  // prop change, so it takes effect in the same commit as the status flip.
+  if (status !== previousStatus) {
+    setPreviousStatus(status);
+    if (status === "in_progress") {
+      setDrafts((current) => clearParticipantWinners(current));
+    }
+  }
+
   const selectedIds = useMemo(
     () => new Set(drafts.map((draft) => draft.userId)),
     [drafts],
@@ -43,15 +64,7 @@ export function PlayParticipantsField({
         return current.filter((draft) => draft.userId !== memberId);
       }
 
-      return [
-        ...current,
-        {
-          userId: memberId,
-          isWinner: current.length === 0,
-          placement: "",
-          score: "",
-        },
-      ];
+      return addParticipantDraft(current, memberId, status);
     });
   }
 

@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
+import { requireWriteAccess } from "@/features/auth/require-write-access";
 import {
   awardSimpleAchievementsAfterMeetingCreate,
   awardSimpleAchievementsAfterRsvpSave,
@@ -14,9 +13,11 @@ import {
   awardMeetingRsvpPointsAfterSave,
   awardMeetingVotePointsAfterSave,
 } from "./meeting-points";
+import { mapMeetingDeleteError } from "./meeting-deletion";
 import { DEFAULT_MEETING_STATUS } from "./types";
 import type {
   MeetingAvailabilityFormState,
+  MeetingDeleteState,
   MeetingFormState,
   MeetingVoteState,
 } from "./types";
@@ -24,25 +25,8 @@ import { toMeetingFormErrorState, validateMeetingFormData } from "./validation";
 
 type DatabaseErrorLike = {
   code?: string | null;
+  message?: string | null;
 };
-
-async function requireActiveMember() {
-  const supabase = await createClient();
-  const memberState = await getCurrentMemberFromClient(supabase);
-
-  if (memberState.status !== "active-member") {
-    return {
-      ok: false as const,
-      message: "Sesja wygasła albo nie masz dostępu do tej sekcji.",
-    };
-  }
-
-  return {
-    ok: true as const,
-    supabase,
-    member: memberState.member,
-  };
-}
 
 function mapMeetingDatabaseError(error: DatabaseErrorLike) {
   switch (error.code) {
@@ -59,7 +43,7 @@ export async function createMeetingAction(
   _state: MeetingFormState,
   formData: FormData,
 ): Promise<MeetingFormState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
@@ -125,7 +109,7 @@ export async function updateMeetingAction(
   _state: MeetingFormState,
   formData: FormData,
 ): Promise<MeetingFormState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
@@ -171,7 +155,7 @@ export async function saveMeetingAvailabilityAction(
   _state: MeetingAvailabilityFormState,
   formData: FormData,
 ): Promise<MeetingAvailabilityFormState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
@@ -241,7 +225,7 @@ export async function confirmMeetingAction(
   meetingId: string,
   currentStatus: "planned" | "confirmed",
 ) {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return;
   }
@@ -272,7 +256,7 @@ export async function toggleMeetingVoteAction(
   gameId: string,
   shouldVote: boolean,
 ): Promise<MeetingVoteState> {
-  const access = await requireActiveMember();
+  const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
@@ -316,4 +300,33 @@ export async function toggleMeetingVoteAction(
   revalidatePath("/kalendarium");
   revalidatePath(`/kalendarium/${meetingId}`);
   return { status: "success" };
+}
+
+export async function deleteMeetingAction(
+  meetingId: string,
+  _state: MeetingDeleteState,
+): Promise<MeetingDeleteState> {
+  void _state;
+
+  const access = await requireWriteAccess();
+  if (!access.ok) {
+    return { status: "error", message: access.message };
+  }
+
+  const { error } = await access.supabase.rpc("delete_meeting", {
+    p_meeting_id: meetingId,
+  });
+
+  if (error) {
+    return {
+      status: "error",
+      message: mapMeetingDeleteError(error),
+    };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/kalendarium");
+  revalidatePath(`/kalendarium/${meetingId}`);
+  revalidatePath(`/kalendarium/${meetingId}/edytuj`);
+  redirect("/kalendarium");
 }

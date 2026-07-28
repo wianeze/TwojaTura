@@ -1,9 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database.generated";
-import { getPublicSupabaseEnv } from "./env";
+import { getServerSupabaseEnv } from "./env";
 
-const AUTH_ROUTES = ["/logowanie", "/auth/callback", "/ustaw-haslo"];
+const AUTH_ROUTES = [
+  "/logowanie",
+  "/auth/callback",
+  "/ustaw-haslo",
+  "/potwierdz-reset",
+];
 const ACCESS_DENIED_ROUTE = "/brak-dostepu";
 
 function redirectWithSession(
@@ -33,7 +38,7 @@ function matchesRoute(pathname: string, route: string) {
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
-  const { url, publishableKey } = getPublicSupabaseEnv();
+  const { url, publishableKey } = getServerSupabaseEnv();
 
   const supabase = createServerClient<Database>(url, publishableKey, {
     cookies: {

@@ -27,6 +27,8 @@ export type PlayParticipantResult = {
   isWinner: boolean;
 };
 
+export type PlayStatus = "in_progress" | "completed";
+
 export type PlayGameRef = {
   id: string;
   title: string;
@@ -41,11 +43,22 @@ export type PlayMeetingRef = {
   location: string | null;
 };
 
+export type PlayPhoto = {
+  id: string;
+  url: string;
+  position: number;
+  width: number;
+  height: number;
+  byteSize: number;
+};
+
 export type PlayListItem = {
   id: string;
   playedAt: string;
   durationMinutes: number | null;
   comment: string | null;
+  status: PlayStatus;
+  stateNote: string | null;
   createdAt: string;
   updatedAt: string;
   game: PlayGameRef;
@@ -57,7 +70,9 @@ export type PlayListItem = {
   canEdit: boolean;
 };
 
-export type PlayDetails = PlayListItem;
+export type PlayDetails = PlayListItem & {
+  photos: PlayPhoto[];
+};
 
 export type ChronicleMonthGroup = {
   key: string;
@@ -74,6 +89,7 @@ export type RecentPlaySummary = {
   placement: number | null;
   score: number | null;
   winners: PlayMember[];
+  status: PlayStatus;
 };
 
 export type PlayFormGameOption = {
@@ -98,6 +114,8 @@ export type PlayFormValues = {
   playedOnTime: string;
   durationMinutes: string;
   comment: string;
+  status: PlayStatus;
+  stateNote: string;
   participants: PlayParticipantDraft[];
 };
 
@@ -108,7 +126,9 @@ export type PlayFormFieldName =
   | "playedOnTime"
   | "durationMinutes"
   | "participants"
-  | "comment";
+  | "comment"
+  | "status"
+  | "stateNote";
 
 export type PlayFormState = {
   status: "idle" | "error" | "success";

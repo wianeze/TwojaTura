@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(253);
+select plan(306);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -537,8 +537,8 @@ select results_eq(
 
 select results_eq(
   $$select count(*)::bigint from public.get_leaderboard()$$,
-  $$values (5::bigint)$$,
-  '33. active member sees the limited global leaderboard'
+  $$values (4::bigint)$$,
+  '33. active member sees the limited global leaderboard (admin excluded per role system)'
 );
 
 select ok(
@@ -704,11 +704,24 @@ insert into auth.users (
 );
 
 select ok(
-  not exists (
+  exists (
     select 1 from public.profiles
     where id = '90000000-0000-0000-0000-000000000002'
+      and display_name = 'Bez Zaproszenia'
   ),
-  '46. unmarked auth user is not provisioned as an app member'
+  '46. unmarked auth user is provisioned too (twoja_tura_invite is no longer required)'
+);
+
+select results_eq(
+  $$select role from public.app_members where user_id = '90000000-0000-0000-0000-000000000002'$$,
+  $$values ('member'::public.membership_role)$$,
+  '46a. unmarked auth user provisioning still assigns member role'
+);
+
+select results_eq(
+  $$select is_active from public.app_members where user_id = '90000000-0000-0000-0000-000000000002'$$,
+  $$values (true)$$,
+  '46b. unmarked auth user provisioning still activates membership'
 );
 
 select results_eq(
@@ -3160,17 +3173,22 @@ values
     '2026-01-01 10:00:00+00', '2026-01-01 10:00:00+00'
   );
 
+-- auth.users insert above already self-provisioned these via
+-- private.provision_invited_member(); on conflict do nothing keeps this
+-- block valid without relying on trigger side effects (values are the same).
 insert into public.profiles (id, display_name, email)
 values
   ('10000000-0000-0000-0000-000000000008', 'Natural One Isolated', 'natural-one-isolated@twojatura.local'),
   ('10000000-0000-0000-0000-000000000009', 'Tied Last A', 'tied-last-a@twojatura.local'),
-  ('10000000-0000-0000-0000-000000000010', 'Tied Last B', 'tied-last-b@twojatura.local');
+  ('10000000-0000-0000-0000-000000000010', 'Tied Last B', 'tied-last-b@twojatura.local')
+on conflict (id) do nothing;
 
 insert into public.app_members (user_id, role, is_active)
 values
   ('10000000-0000-0000-0000-000000000008', 'member', true),
   ('10000000-0000-0000-0000-000000000009', 'member', true),
-  ('10000000-0000-0000-0000-000000000010', 'member', true);
+  ('10000000-0000-0000-0000-000000000010', 'member', true)
+on conflict (user_id) do nothing;
 
 insert into public.plays (
   id,
@@ -3450,8 +3468,8 @@ select results_eq(
     select awarded_count, points_awarded, awarded_user_ids
     from public.award_play_result_achievements('79000000-0000-0000-0000-000000000016')
   $$,
-  $$values (1::integer, 15::integer, array['10000000-0000-0000-0000-000000000001'::uuid])$$,
-  '225. other players plays between own wins do not interrupt dark_urge'
+  $$values (0::integer, 0::integer, array[]::uuid[])$$,
+  '225. otherwise-qualifying dark_urge streak is a no-op for an admin recipient (role system)'
 );
 
 select results_eq(
@@ -3494,8 +3512,8 @@ select results_eq(
     where achievement_key = 'dark_urge'
       and user_id in ('10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001')
   $$,
-  $$values (2::bigint)$$,
-  '229. only qualifying users receive dark_urge without backfill'
+  $$values (1::bigint)$$,
+  '229. only the qualifying non-admin user receives dark_urge without backfill (admin is a gamification no-op)'
 );
 
 select set_config(
@@ -3843,15 +3861,20 @@ values (
   '2026-01-01 10:00:00+00'
 );
 
+-- auth.users insert above already self-provisioned this via
+-- private.provision_invited_member(); on conflict do nothing keeps this
+-- block valid without relying on trigger side effects (values are the same).
 insert into public.profiles (id, display_name, email)
 values (
   '10000000-0000-0000-0000-000000000007',
   'Kooperacyjny QA',
   'coop-achievement@twojatura.local'
-);
+)
+on conflict (id) do nothing;
 
 insert into public.app_members (user_id, role, is_active)
-values ('10000000-0000-0000-0000-000000000007', 'member', true);
+values ('10000000-0000-0000-0000-000000000007', 'member', true)
+on conflict (user_id) do nothing;
 
 insert into public.plays (
   id,
@@ -3949,6 +3972,978 @@ select results_eq(
   $$values (1::bigint, 0::bigint)$$,
   '253. three cooperative 1/1/1 wins award dark_urge without natural_one'
 );
+
+-- 254-264: in_progress -> completed play status lifecycle.
+insert into auth.users (
+  instance_id,
+  id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  confirmation_token,
+  recovery_token,
+  email_change,
+  email_change_token_new,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at
+)
+values (
+  '00000000-0000-0000-0000-000000000000',
+  '10000000-0000-0000-0000-000000000011',
+  'authenticated', 'authenticated', 'in-progress-tester@twojatura.local',
+  extensions.crypt('TwojaTura123!', extensions.gen_salt('bf')),
+  '2026-01-01 10:00:00+00', '', '', '', '',
+  '{"provider":"email","providers":["email"]}',
+  '{"display_name":"In Progress Tester"}',
+  '2026-01-01 10:00:00+00', '2026-01-01 10:00:00+00'
+);
+
+-- auth.users insert above already self-provisioned this via
+-- private.provision_invited_member(); on conflict do nothing keeps this
+-- block valid without relying on trigger side effects (values are the same).
+insert into public.profiles (id, display_name, email)
+values (
+  '10000000-0000-0000-0000-000000000011',
+  'In Progress Tester',
+  'in-progress-tester@twojatura.local'
+)
+on conflict (id) do nothing;
+
+insert into public.app_members (user_id, role, is_active)
+values ('10000000-0000-0000-0000-000000000011', 'member', true)
+on conflict (user_id) do nothing;
+
+-- 24 already-completed plays so a 25th, still in_progress, play must not
+-- unlock coast_chronicler until it is actually completed.
+insert into public.plays (id, game_id, created_by, played_at, status)
+select
+  md5('in-progress-history-' || series.value)::uuid,
+  '30000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000011',
+  '2026-09-01 12:00:00+00'::timestamptz + series.value * interval '1 day',
+  'completed'
+from generate_series(1, 24) as series(value);
+
+insert into public.play_participants (play_id, user_id, placement, is_winner)
+select
+  md5('in-progress-history-' || series.value)::uuid,
+  '10000000-0000-0000-0000-000000000011',
+  1,
+  true
+from generate_series(1, 24) as series(value);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000011","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select throws_ok(
+  $$
+    select public.create_play_with_participants(
+      p_game_id := '30000000-0000-0000-0000-000000000001',
+      p_played_at := '2026-10-01 18:00:00+00'::timestamptz,
+      p_participants := '[]'::jsonb,
+      p_status := 'in_progress',
+      p_state_note := 'Brak graczy'
+    )
+  $$,
+  '23514',
+  null,
+  '254. in_progress play still requires at least one participant'
+);
+
+select throws_ok(
+  $$
+    select public.create_play_with_participants(
+      p_game_id := '30000000-0000-0000-0000-000000000001',
+      p_played_at := '2026-10-01 18:00:00+00'::timestamptz,
+      p_participants := '[{"user_id":"10000000-0000-0000-0000-000000000011","is_winner":false}]'::jsonb,
+      p_status := 'completed'
+    )
+  $$,
+  '23514',
+  null,
+  '255. completed play still requires at least one winner'
+);
+
+insert into pgtap_created_plays (label, play_id)
+select
+  'in-progress-play',
+  public.create_play_with_participants(
+    p_game_id := '30000000-0000-0000-0000-000000000001',
+    p_played_at := '2026-10-01 18:00:00+00'::timestamptz,
+    p_participants := '[{"user_id":"10000000-0000-0000-0000-000000000011","is_winner":false}]'::jsonb,
+    p_status := 'in_progress',
+    p_state_note := 'Runda 3 z 5, wracamy jutro'
+  );
+
+select ok(
+  (
+    select play_id from pgtap_created_plays
+    where label = 'in-progress-play'
+  ) is not null,
+  '256. in_progress play with a participant and no winner can be created'
+);
+
+select results_eq(
+  $$
+    select awarded, points
+    from public.award_play_logged_points(
+      (select play_id from pgtap_created_plays where label = 'in-progress-play')
+    )
+  $$,
+  $$values (false, 0)$$,
+  '257. play_logged points are withheld while a play is in_progress'
+);
+
+select public.award_current_user_simple_achievements();
+
+select ok(
+  not private.has_achievement('coast_chronicler'),
+  '258. a 25th play still in_progress does not unlock coast_chronicler'
+);
+
+select lives_ok(
+  $$
+    select public.update_play_with_participants(
+      p_play_id := (
+        select play_id from pgtap_created_plays
+        where label = 'in-progress-play'
+      ),
+      p_game_id := '30000000-0000-0000-0000-000000000001',
+      p_played_at := '2026-10-01 18:00:00+00'::timestamptz,
+      p_participants := '[{"user_id":"10000000-0000-0000-0000-000000000011","is_winner":true,"placement":1}]'::jsonb,
+      p_status := 'completed'
+    )
+  $$,
+  '259. resuming and completing the same play updates it in place'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint from public.plays
+    where created_by = '10000000-0000-0000-0000-000000000011'
+  $$,
+  $$values (25::bigint)$$,
+  '260. completing the play does not create a new row'
+);
+
+select results_eq(
+  $$
+    select awarded, points
+    from public.award_play_logged_points(
+      (select play_id from pgtap_created_plays where label = 'in-progress-play')
+    )
+  $$,
+  $$values (true, 40)$$,
+  '261. play_logged points are granted exactly when the play becomes completed'
+);
+
+select results_eq(
+  $$
+    select awarded, points
+    from public.award_play_logged_points(
+      (select play_id from pgtap_created_plays where label = 'in-progress-play')
+    )
+  $$,
+  $$values (false, 40)$$,
+  '262. re-awarding play_logged points on an already-completed play is a no-op'
+);
+
+select public.award_current_user_simple_achievements();
+
+select ok(
+  private.has_achievement('coast_chronicler'),
+  '263. completing the 25th play unlocks coast_chronicler'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select throws_ok(
+  $$
+    select public.update_play_with_participants(
+      p_play_id := (
+        select play_id from pgtap_created_plays
+        where label = 'in-progress-play'
+      ),
+      p_game_id := '30000000-0000-0000-0000-000000000001',
+      p_played_at := '2026-10-01 18:00:00+00'::timestamptz,
+      p_participants := '[{"user_id":"10000000-0000-0000-0000-000000000011","is_winner":true,"placement":1}]'::jsonb,
+      p_status := 'completed'
+    )
+  $$,
+  '42501',
+  null,
+  '264. an unrelated member cannot update someone else''s play status'
+);
+reset role;
+
+-- 265-283: play_photos (Etap C1-C3) — RLS, position auto-assignment,
+-- 15-photo/15 MB limits, reorder_play_photos, and the play-photos bucket.
+insert into public.plays (id, game_id, created_by, played_at, status)
+values (
+  '90000000-0000-0000-0000-000000000001',
+  '30000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000002',
+  '2026-11-01 18:00:00+00',
+  'completed'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select lives_ok(
+  $$
+    insert into public.play_photos (
+      play_id, storage_path, position, byte_size, width, height, created_by
+    ) values (
+      '90000000-0000-0000-0000-000000000001',
+      '90000000-0000-0000-0000-000000000001/photo-1.webp',
+      1, 100000, 800, 600,
+      '10000000-0000-0000-0000-000000000002'
+    )
+  $$,
+  '265. play creator can insert a photo'
+);
+
+select results_eq(
+  $$
+    select position from public.play_photos
+    where storage_path = '90000000-0000-0000-0000-000000000001/photo-1.webp'
+  $$,
+  $$values (1::smallint)$$,
+  '266. first inserted photo is auto-assigned position 1'
+);
+
+select lives_ok(
+  $$
+    insert into public.play_photos (
+      play_id, storage_path, position, byte_size, width, height, created_by
+    ) values (
+      '90000000-0000-0000-0000-000000000001',
+      '90000000-0000-0000-0000-000000000001/photo-2.webp',
+      1, 100000, 800, 600,
+      '10000000-0000-0000-0000-000000000002'
+    )
+  $$,
+  '267. second photo insert ignores the client-sent position'
+);
+
+select results_eq(
+  $$
+    select position from public.play_photos
+    where storage_path = '90000000-0000-0000-0000-000000000001/photo-2.webp'
+  $$,
+  $$values (2::smallint)$$,
+  '268. second inserted photo is auto-assigned position 2'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select throws_ok(
+  $$
+    insert into public.play_photos (
+      play_id, storage_path, position, byte_size, width, height, created_by
+    ) values (
+      '90000000-0000-0000-0000-000000000001',
+      '90000000-0000-0000-0000-000000000001/photo-intruder.webp',
+      1, 100000, 800, 600,
+      '10000000-0000-0000-0000-000000000003'
+    )
+  $$,
+  '42501',
+  null,
+  '269. an unrelated member cannot insert a photo for someone else''s play'
+);
+
+select cmp_ok(
+  (
+    select count(*)::bigint from public.play_photos
+    where play_id = '90000000-0000-0000-0000-000000000001'
+  ),
+  '=',
+  2::bigint,
+  '270. an unrelated member can still read the play''s photos (select is open to members)'
+);
+
+delete from public.play_photos
+where storage_path = '90000000-0000-0000-0000-000000000001/photo-1.webp';
+
+select cmp_ok(
+  (
+    select count(*)::bigint from public.play_photos
+    where storage_path = '90000000-0000-0000-0000-000000000001/photo-1.webp'
+  ),
+  '=',
+  1::bigint,
+  '271. an unrelated member''s delete attempt removes nothing (RLS silently filters it)'
+);
+reset role;
+
+insert into public.plays (id, game_id, created_by, played_at, status)
+values (
+  '90000000-0000-0000-0000-000000000002',
+  '30000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000002',
+  '2026-11-02 18:00:00+00',
+  'completed'
+);
+
+insert into public.play_photos (
+  play_id, storage_path, position, byte_size, width, height, created_by
+)
+select
+  '90000000-0000-0000-0000-000000000002',
+  '90000000-0000-0000-0000-000000000002/limit-' || series.value || '.webp',
+  1, 100000, 800, 600,
+  '10000000-0000-0000-0000-000000000002'
+from generate_series(1, 15) as series(value);
+
+select cmp_ok(
+  (
+    select count(*)::bigint from public.play_photos
+    where play_id = '90000000-0000-0000-0000-000000000002'
+  ),
+  '=',
+  15::bigint,
+  '272. fifteen photos can be added to a single play'
+);
+
+select throws_ok(
+  $$
+    insert into public.play_photos (
+      play_id, storage_path, position, byte_size, width, height, created_by
+    ) values (
+      '90000000-0000-0000-0000-000000000002',
+      '90000000-0000-0000-0000-000000000002/limit-16.webp',
+      1, 100000, 800, 600,
+      '10000000-0000-0000-0000-000000000002'
+    )
+  $$,
+  '23514',
+  null,
+  '273. a sixteenth photo is rejected'
+);
+
+insert into public.plays (id, game_id, created_by, played_at, status)
+values (
+  '90000000-0000-0000-0000-000000000003',
+  '30000000-0000-0000-0000-000000000001',
+  '10000000-0000-0000-0000-000000000002',
+  '2026-11-03 18:00:00+00',
+  'completed'
+);
+
+insert into public.play_photos (
+  play_id, storage_path, position, byte_size, width, height, created_by
+) values (
+  '90000000-0000-0000-0000-000000000003',
+  '90000000-0000-0000-0000-000000000003/big-1.webp',
+  1, 15 * 1024 * 1024 - 1000, 800, 600,
+  '10000000-0000-0000-0000-000000000002'
+);
+
+select throws_ok(
+  $$
+    insert into public.play_photos (
+      play_id, storage_path, position, byte_size, width, height, created_by
+    ) values (
+      '90000000-0000-0000-0000-000000000003',
+      '90000000-0000-0000-0000-000000000003/big-2.webp',
+      1, 2000, 800, 600,
+      '10000000-0000-0000-0000-000000000002'
+    )
+  $$,
+  '23514',
+  null,
+  '274. a photo pushing the play past 15 MB total is rejected'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select lives_ok(
+  $$
+    select public.reorder_play_photos(
+      '90000000-0000-0000-0000-000000000001',
+      (
+        select array_agg(id order by position desc)
+        from public.play_photos
+        where play_id = '90000000-0000-0000-0000-000000000001'
+      )
+    )
+  $$,
+  '275. play owner can reorder photos'
+);
+
+select results_eq(
+  $$
+    select storage_path from public.play_photos
+    where play_id = '90000000-0000-0000-0000-000000000001'
+    order by position
+  $$,
+  $$values
+    ('90000000-0000-0000-0000-000000000001/photo-2.webp'),
+    ('90000000-0000-0000-0000-000000000001/photo-1.webp')
+  $$,
+  '276. reorder actually swaps stored positions'
+);
+
+select throws_ok(
+  $$
+    select public.reorder_play_photos(
+      '90000000-0000-0000-0000-000000000001',
+      array['00000000-0000-0000-0000-000000000000'::uuid]
+    )
+  $$,
+  '22023',
+  null,
+  '277. reorder rejects a photo id list that does not match existing photos'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select throws_ok(
+  $$
+    select public.reorder_play_photos(
+      '90000000-0000-0000-0000-000000000001',
+      (
+        select array_agg(id) from public.play_photos
+        where play_id = '90000000-0000-0000-0000-000000000001'
+      )
+    )
+  $$,
+  '42501',
+  null,
+  '278. an unrelated member cannot reorder someone else''s play photos'
+);
+reset role;
+
+select results_eq(
+  $$
+    select public, file_size_limit, allowed_mime_types
+    from storage.buckets
+    where id = 'play-photos'
+  $$,
+  $$values (false, 2097152::bigint, array['image/webp','image/jpeg']::text[])$$,
+  '279. play-photos bucket is private with the expected size/type limits'
+);
+
+insert into storage.objects (bucket_id, name)
+values ('play-photos', '90000000-0000-0000-0000-000000000001/existing.webp');
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select cmp_ok(
+  (select count(*)::bigint from storage.objects where bucket_id = 'play-photos'),
+  '>=',
+  1::bigint,
+  '280. an active member can list objects in the play-photos bucket'
+);
+
+select lives_ok(
+  $$
+    insert into storage.objects (bucket_id, name)
+    values ('play-photos', '90000000-0000-0000-0000-000000000001/owner-upload.webp')
+  $$,
+  '281. the play owner can insert an object under their play''s folder'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select throws_ok(
+  $$
+    insert into storage.objects (bucket_id, name)
+    values ('play-photos', '90000000-0000-0000-0000-000000000001/intruder-upload.webp')
+  $$,
+  '42501',
+  null,
+  '282. an unrelated member cannot insert an object under someone else''s play folder'
+);
+
+-- Supabase's own storage.protect_delete() trigger blocks ANY direct SQL
+-- DELETE on storage.objects (for every role, not just this one) — real
+-- deletes must go through the Storage API, which is what
+-- play_photos_storage_delete_owner_or_admin actually gates. A raw DELETE
+-- can't reach that policy at all, so this only re-confirms the built-in
+-- guard is in place rather than testing our own authorization.
+select throws_ok(
+  $$
+    delete from storage.objects
+    where bucket_id = 'play-photos'
+      and name = '90000000-0000-0000-0000-000000000001/existing.webp'
+  $$,
+  '42501',
+  null,
+  '283. direct SQL deletes on storage.objects are always blocked; deletion goes through the Storage API'
+);
+reset role;
+
+-- Safe meeting deletion: soft delete, Chronicle protection and point reversals.
+insert into public.meetings (
+  id, created_by, title, status, starts_at, ends_at
+) values
+  (
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002',
+    'Spotkanie do bezpiecznego usunięcia',
+    'planned',
+    '2027-02-01 18:00:00+00',
+    '2027-02-01 22:00:00+00'
+  ),
+  (
+    '8d000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000003',
+    'Spotkanie usuwane przez admina',
+    'planned',
+    '2027-02-02 18:00:00+00',
+    '2027-02-02 22:00:00+00'
+  ),
+  (
+    '8d000000-0000-0000-0000-000000000003',
+    '10000000-0000-0000-0000-000000000002',
+    'Spotkanie z wpisem Kroniki',
+    'completed',
+    '2027-02-03 18:00:00+00',
+    '2027-02-03 22:00:00+00'
+  );
+
+insert into public.meeting_availability (meeting_id, user_id, is_available)
+values
+  (
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002',
+    true
+  ),
+  (
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000003',
+    true
+  );
+
+insert into public.meeting_game_votes (meeting_id, game_id, user_id)
+values
+  (
+    '8d000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002'
+  ),
+  (
+    '8d000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000003'
+  );
+
+insert into public.plays (
+  id, game_id, meeting_id, created_by, played_at, status
+) values (
+  '8e000000-0000-0000-0000-000000000001',
+  '30000000-0000-0000-0000-000000000001',
+  '8d000000-0000-0000-0000-000000000003',
+  '10000000-0000-0000-0000-000000000002',
+  '2027-02-03 18:30:00+00',
+  'completed'
+);
+
+insert into public.point_events (
+  user_id,
+  points,
+  action_type,
+  description,
+  related_entity_type,
+  related_entity_id,
+  created_by
+) values
+  (
+    '10000000-0000-0000-0000-000000000002',
+    25,
+    'meeting_created',
+    'Test utworzenia spotkania',
+    'meeting',
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000002',
+    10,
+    'meeting_rsvp',
+    'Test RSVP',
+    'meeting',
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000002',
+    10,
+    'meeting_vote',
+    'Test głosu',
+    'meeting',
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000003',
+    10,
+    'meeting_rsvp',
+    'Test RSVP drugiego gracza',
+    'meeting',
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000003'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000003',
+    10,
+    'meeting_vote',
+    'Test głosu drugiego gracza',
+    'meeting',
+    '8d000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000003'
+  ),
+  (
+    '10000000-0000-0000-0000-000000000002',
+    30,
+    'rating_created',
+    'Niezwiązany typ punktów',
+    'meeting',
+    '8d000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000002'
+  );
+
+create temporary table pgtap_meeting_delete_balances (
+  user_id uuid primary key,
+  total_points bigint not null
+);
+
+insert into pgtap_meeting_delete_balances (user_id, total_points)
+select user_id, sum(points)::bigint
+from public.point_events
+where user_id in (
+  '10000000-0000-0000-0000-000000000002',
+  '10000000-0000-0000-0000-000000000003'
+)
+group by user_id;
+
+grant select on pgtap_meeting_delete_balances to authenticated;
+
+select ok(
+  not has_table_privilege('authenticated', 'public.meetings', 'DELETE'),
+  '284. authenticated clients have no hard-delete privilege on meetings'
+);
+
+set local role anon;
+select throws_ok(
+  $$select public.delete_meeting('8d000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '285. anon cannot execute delete_meeting'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000006","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select public.delete_meeting('8d000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '286. inactive member cannot execute delete_meeting'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select public.delete_meeting('8d000000-0000-0000-0000-000000000001')$$,
+  '42501',
+  null,
+  '287. member cannot delete another creator meeting'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select public.delete_meeting('8d000000-0000-0000-0000-000000000003')$$,
+  'P0001',
+  'Nie można usunąć spotkania z zapisaną partią w Kronice.',
+  '288. meeting linked to a Chronicle play cannot be deleted'
+);
+reset role;
+
+select is(
+  (
+    select deleted_at
+    from public.meetings
+    where id = '8d000000-0000-0000-0000-000000000003'
+  ),
+  null::timestamptz,
+  '289. blocked Chronicle meeting remains active'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$select public.delete_meeting('8d000000-0000-0000-0000-000000000001')$$,
+  $$values (true)$$,
+  '290. creator can soft-delete their own meeting'
+);
+reset role;
+
+select results_eq(
+  $$
+    select deleted_at is not null, deleted_by
+    from public.meetings
+    where id = '8d000000-0000-0000-0000-000000000001'
+  $$,
+  $$
+    values (
+      true,
+      '10000000-0000-0000-0000-000000000002'::uuid
+    )
+  $$,
+  '291. soft delete stores deleted_at and deleted_by'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.meetings
+    where id = '8d000000-0000-0000-0000-000000000001'
+  $$,
+  $$values (1::bigint)$$,
+  '292. soft-deleted meeting is not physically deleted'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.meeting_availability
+    where meeting_id = '8d000000-0000-0000-0000-000000000001'
+  $$,
+  $$values (2::bigint)$$,
+  '293. soft delete physically retains RSVP rows'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.meeting_game_votes
+    where meeting_id = '8d000000-0000-0000-0000-000000000001'
+  $$,
+  $$values (2::bigint)$$,
+  '294. soft delete physically retains vote rows'
+);
+
+select results_eq(
+  $$
+    select
+      action_type,
+      count(*)::bigint,
+      sum(points)::bigint
+    from public.point_events
+    where related_entity_type = 'meeting'
+      and related_entity_id = '8d000000-0000-0000-0000-000000000001'
+      and action_type like 'reversal:%'
+    group by action_type
+    order by action_type
+  $$,
+  $$
+    values
+      ('reversal:meeting_created', 1::bigint, -25::bigint),
+      ('reversal:meeting_rsvp', 2::bigint, -20::bigint),
+      ('reversal:meeting_vote', 2::bigint, -20::bigint)
+  $$,
+  '295. deletion reverses only created RSVP and vote meeting points'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$
+    select
+      before.user_id,
+      before.total_points - current_balance.total_points as balance_drop
+    from pgtap_meeting_delete_balances as before
+    join public.user_point_balances as current_balance
+      on current_balance.user_id = before.user_id
+    order by before.user_id
+  $$,
+  $$
+    values
+      ('10000000-0000-0000-0000-000000000002'::uuid, 45::bigint),
+      ('10000000-0000-0000-0000-000000000003'::uuid, 20::bigint)
+  $$,
+  '296. user_point_balances drops by each recipient reversed points'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$select public.delete_meeting('8d000000-0000-0000-0000-000000000001')$$,
+  $$values (false)$$,
+  '297. repeated delete_meeting call is an idempotent no-op'
+);
+reset role;
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.point_events
+    where related_entity_id = '8d000000-0000-0000-0000-000000000001'
+      and action_type like 'reversal:%'
+  $$,
+  $$values (5::bigint)$$,
+  '298. repeated deletion does not duplicate reversal events'
+);
+
+select results_eq(
+  $$
+    select points, action_type
+    from public.point_events
+    where related_entity_id = '8d000000-0000-0000-0000-000000000002'
+      and action_type = 'rating_created'
+  $$,
+  $$values (30, 'rating_created')$$,
+  '299. unrelated point events are not reversed'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$select public.delete_meeting('8d000000-0000-0000-0000-000000000002')$$,
+  $$values (true)$$,
+  '300. admin can soft-delete another creator meeting'
+);
+reset role;
+
+select results_eq(
+  $$
+    select deleted_at is not null, deleted_by
+    from public.meetings
+    where id = '8d000000-0000-0000-0000-000000000002'
+  $$,
+  $$
+    values (
+      true,
+      '10000000-0000-0000-0000-000000000001'::uuid
+    )
+  $$,
+  '301. admin deletion records the admin as deleted_by'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.meetings
+    where id = '8d000000-0000-0000-0000-000000000001'
+  $$,
+  $$values (0::bigint)$$,
+  '302. soft-deleted meeting is hidden by RLS'
+);
+
+select throws_ok(
+  $$
+    select *
+    from public.award_meeting_created_points(
+      '8d000000-0000-0000-0000-000000000001'
+    )
+  $$,
+  '22023',
+  null,
+  '303. deleted meeting cannot receive fresh automatic points'
+);
+
+select throws_ok(
+  $$
+    insert into public.meeting_game_votes (meeting_id, game_id, user_id)
+    values (
+      '8d000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000003',
+      '10000000-0000-0000-0000-000000000002'
+    )
+  $$,
+  '42501',
+  null,
+  '304. deleted meeting cannot accept new votes'
+);
+reset role;
 
 select * from finish();
 rollback;

@@ -108,6 +108,12 @@ select
 from auth.users
 where email like '%@twojatura.local';
 
+-- on conflict do update (not do nothing): auth.users now self-provisions a
+-- default member/active profile+app_members row via
+-- private.provision_invited_member() the moment the insert above runs, so
+-- these seed rows already exist by the time we get here. This block stays
+-- the authoritative source for exact seeded values (role, is_active,
+-- display_name) regardless of what the trigger's defaults produced.
 insert into public.profiles (id, display_name, email, avatar_url)
 values
   ('10000000-0000-0000-0000-000000000001', 'Przemek', 'admin@twojatura.local', null),
@@ -115,7 +121,11 @@ values
   ('10000000-0000-0000-0000-000000000003', 'Michał', 'michal@twojatura.local', null),
   ('10000000-0000-0000-0000-000000000004', 'Ania', 'ania@twojatura.local', null),
   ('10000000-0000-0000-0000-000000000005', 'Kuba', 'kuba@twojatura.local', null),
-  ('10000000-0000-0000-0000-000000000006', 'Nieaktywny', 'inactive@twojatura.local', null);
+  ('10000000-0000-0000-0000-000000000006', 'Nieaktywny', 'inactive@twojatura.local', null)
+on conflict (id) do update set
+  display_name = excluded.display_name,
+  email = excluded.email,
+  avatar_url = excluded.avatar_url;
 
 insert into public.app_members (user_id, role, is_active)
 values
@@ -124,7 +134,10 @@ values
   ('10000000-0000-0000-0000-000000000003', 'member', true),
   ('10000000-0000-0000-0000-000000000004', 'member', true),
   ('10000000-0000-0000-0000-000000000005', 'member', true),
-  ('10000000-0000-0000-0000-000000000006', 'member', false);
+  ('10000000-0000-0000-0000-000000000006', 'member', false)
+on conflict (user_id) do update set
+  role = excluded.role,
+  is_active = excluded.is_active;
 
 insert into public.app_content (content_key, value)
 values

@@ -59,7 +59,7 @@ function ClassSubmitButton({
       className={`rounded-full border px-2.5 py-1 text-[0.66rem] font-bold transition-colors disabled:cursor-wait disabled:opacity-60 ${
         subdued
           ? "border-white/18 bg-black/16 text-[#d8c7b1] hover:bg-black/28"
-          : "border-[#e2b361]/70 bg-[#8c4e2f] text-[#fff0d5] hover:bg-[#a45c35]"
+          : "cta-glow border-[#e2b361]/70 bg-[#8c4e2f] text-[#fff0d5] hover:bg-[#a45c35]"
       }`}
     >
       {pending ? "Zapisuję…" : label}

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Panel } from "@/components/ui/panel";
 import { SectionHeading } from "@/components/ui/section-heading";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { updateGameAction } from "@/features/games/actions";
 import { GameForm } from "@/features/games/game-form";
@@ -34,21 +35,29 @@ export default async function EditGamePage({
 
   return (
     <div className="space-y-7">
-      <SectionHeading
-        eyebrow="Edycja egzemplarza"
-        title={game.title}
-        description="Zmieniasz dane fizycznego egzemplarza we wspólnej Półce. Uprawnienia właściciela i administratora nadal pilnuje baza danych."
-        action={
-          <Link
-            href={`/gry/${id}`}
-            className="paper-wash rounded-full px-4 py-2 text-xs font-bold text-[#6a4d36]"
-          >
-            Wróć do karty gry
-          </Link>
-        }
-      />
+      <div
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+        className="anim-rise-in-fast"
+      >
+        <SectionHeading
+          eyebrow="Edycja egzemplarza"
+          title={game.title}
+          description="Zmieniasz dane fizycznego egzemplarza we wspólnej Półce. Uprawnienia właściciela i administratora nadal pilnuje baza danych."
+          action={
+            <Link
+              href={`/gry/${id}`}
+              className="paper-wash rounded-full px-4 py-2 text-xs font-bold text-[#6a4d36]"
+            >
+              Wróć do karty gry
+            </Link>
+          }
+        />
+      </div>
 
-      <Panel className="paper-wash p-5 sm:p-7">
+      <Panel
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
+        className="anim-rise-in-fast paper-wash p-5 sm:p-7"
+      >
         <GameForm
           action={updateGameAction.bind(null, game.id)}
           initialValues={getGameFormValues(game)}

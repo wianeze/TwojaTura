@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { GameCover } from "@/components/ui/game-cover";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getBggExpansionPreview } from "./bgg";
 import { getOwnedExpansionNames } from "./expansions";
 import { formatDecimal, formatPlayerRange, formatPlayTime } from "./formatting";
@@ -53,11 +54,19 @@ function TagList({ label, values }: { label: string; values: string[] }) {
 
 type ShelfSegmentProps = {
   games: GameShelfItem[];
+  startIndex: number;
+  animateEntrance: boolean;
   label: string;
   onSelect: (game: GameShelfItem) => void;
 };
 
-function ShelfSegment({ games, label, onSelect }: ShelfSegmentProps) {
+function ShelfSegment({
+  games,
+  startIndex,
+  animateEntrance,
+  label,
+  onSelect,
+}: ShelfSegmentProps) {
   const router = useRouter();
 
   const handleGameClick = (game: GameShelfItem) => {
@@ -83,6 +92,8 @@ function ShelfSegment({ games, label, onSelect }: ShelfSegmentProps) {
             game.title,
           );
 
+          const absoluteIndex = startIndex + index;
+
           return (
             <div
               key={game.id}
@@ -91,15 +102,33 @@ function ShelfSegment({ games, label, onSelect }: ShelfSegmentProps) {
               <button
                 type="button"
                 onClick={() => handleGameClick(game)}
-                className="group focus-visible:ring-gold focus-visible:ring-offset-wood-dark relative w-full rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-offset-4"
+                className="game-card-glow group focus-visible:ring-gold focus-visible:ring-offset-wood-dark relative w-full rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-offset-4"
                 aria-label={`Otwórz kartę gry ${game.title}`}
               >
-                <GameCover
-                  title={game.title}
-                  coverUrl={game.coverUrl}
-                  size="shelf"
-                  className="mx-auto transition-transform duration-300 group-hover:-translate-y-2 group-focus-visible:-translate-y-2"
-                />
+                {/*
+                  Animacja wejścia żyje TYLKO na tym opakowaniu okładki, nie
+                  na całej karcie/przycisku — CSS Animation na opacity/transform
+                  tworzy nowy stacking context, a popup podglądu (niżej) musi
+                  zostać POZA nim, inaczej jego z-index jest izolowany wewnątrz
+                  tej jednej karty i nie może wznieść się nad sąsiednie karty.
+                */}
+                <div
+                  className={animateEntrance ? "anim-rise-in-fast" : undefined}
+                  style={
+                    animateEntrance
+                      ? {
+                          animationDelay: `${getEntranceStaggerDelayMs(absoluteIndex)}ms`,
+                        }
+                      : undefined
+                  }
+                >
+                  <GameCover
+                    title={game.title}
+                    coverUrl={game.coverUrl}
+                    size="shelf"
+                    className="mx-auto transition-transform duration-300 group-hover:-translate-y-2 group-focus-visible:-translate-y-2"
+                  />
+                </div>
 
                 <div
                   aria-hidden="true"
@@ -197,6 +226,12 @@ type ShelfShowcaseProps = {
 export function ShelfShowcase({ games }: ShelfShowcaseProps) {
   const [selectedGame, setSelectedGame] = useState<GameShelfItem | null>(null);
   const [groupSize, setGroupSize] = useState(3);
+  // Startuje identycznie na serwerze i przy hydracji (false) — brak
+  // mismatchu. Dopiero po potwierdzeniu realnej szerokości viewportu
+  // włączamy animację wejścia, żeby nie odtwarzała się dwa razy (raz na
+  // błędnym groupSize=3 z SSR, raz po korekcie) — to właśnie sprawiało,
+  // że wejście wyglądało jak niewidoczne mignięcie zamiast animacji.
+  const [isViewportReady, setIsViewportReady] = useState(false);
 
   useEffect(() => {
     const smallMobileQuery = window.matchMedia("(min-width: 360px)");
@@ -215,6 +250,7 @@ export function ShelfShowcase({ games }: ShelfShowcaseProps) {
                 ? 3
                 : 2,
       );
+      setIsViewportReady(true);
     };
 
     updateGroupSize();
@@ -232,6 +268,25 @@ export function ShelfShowcase({ games }: ShelfShowcaseProps) {
   }, []);
 
   const gameGroups = groupGames(games, groupSize);
+  const gameGroupsWithOffsets = gameGroups.reduce<
+    Array<{ group: GameShelfItem[]; startIndex: number }>
+  >((acc, group) => {
+    const previous = acc.at(-1);
+    const startIndex = previous
+      ? previous.startIndex + previous.group.length
+      : 0;
+    return [...acc, { group, startIndex }];
+  }, []);
+
+  // Zmienia się przy każdej korekcie groupSize ORAZ przy każdej zmianie
+  // listy gier (np. po zastosowaniu filtrów) — wymusza jeden świeży
+  // remount całej siatki, więc animacja wejścia jest widoczna zarówno po
+  // wejściu na Półkę, jak i po zmianie filtrów. Przed potwierdzeniem
+  // viewportu klucz jest stały ("initial"), żeby pierwszy render po
+  // stronie klienta dokładnie odpowiadał SSR (bez mismatchu).
+  const gridInstanceKey = isViewportReady
+    ? `${groupSize}:${games.map((game) => game.id).join(",")}`
+    : "initial";
 
   useEffect(() => {
     if (!selectedGame) return;
@@ -253,12 +308,26 @@ export function ShelfShowcase({ games }: ShelfShowcaseProps) {
 
   return (
     <>
-      <section className="wood-grain fire-glow premium-edge text-cream relative overflow-visible rounded-[2rem] p-4 sm:p-5 lg:p-6">
-        <div className="space-y-4 sm:space-y-5">
-          {gameGroups.map((group, index) => (
+      {/*
+        isolate: .premium-edge (użyta zarówno tu, jak i w panelu filtrów
+        nad Półką) rysuje dekoracyjną krawędź przez ::after z z-index:30.
+        Bez własnego stacking contextu te pseudo-elementy "wyciekają" do
+        wspólnego, odległego przodka i mieszają się tam z krawędzią panelu
+        filtrów w nieprzewidywalny sposób — to właśnie dawało efekt linii
+        z filtrów przechodzącej przez popup podglądu gry. isolate zamyka
+        całą Półkę (wraz z popupem) w jednym, spójnym stacking contexcie,
+        więc naturalna kolejność DOM (Półka renderuje się PO filtrach)
+        poprawnie decyduje, że Półka rysuje się na wierzchu — bez zgadywania
+        konkretnych wartości z-index.
+      */}
+      <section className="wood-grain fire-glow premium-edge text-cream relative isolate overflow-visible rounded-[2rem] p-4 sm:p-5 lg:p-6">
+        <div key={gridInstanceKey} className="space-y-4 sm:space-y-5">
+          {gameGroupsWithOffsets.map(({ group, startIndex }, index) => (
             <ShelfSegment
               key={group[0].id}
               games={group}
+              startIndex={startIndex}
+              animateEntrance={isViewportReady}
               label={`Segment półki ${index + 1} — ${group.length} gier`}
               onSelect={setSelectedGame}
             />
