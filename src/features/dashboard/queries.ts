@@ -261,12 +261,14 @@ export async function getDashboardData(): Promise<DashboardData> {
     supabase
       .from("meetings")
       .select("id, title, location, status, starts_at, ends_at")
+      .is("deleted_at", null)
       .in("status", ["planned", "confirmed"])
       .gte("starts_at", nowIso)
       .order("starts_at", { ascending: true }),
     supabase
       .from("meetings")
       .select("id, title, status, starts_at, ends_at")
+      .is("deleted_at", null)
       .in("status", ["confirmed", "completed"])
       .lt("ends_at", nowIso)
       .order("ends_at", { ascending: false })

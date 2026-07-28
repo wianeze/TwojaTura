@@ -16,8 +16,7 @@ export type PhotoDraft = {
 };
 
 export type DraftUploadResult =
-  | { ok: true; photo: PlayPhoto }
-  | { ok: false; message: string };
+  { ok: true; photo: PlayPhoto } | { ok: false; message: string };
 
 /** Drafts still needing an upload attempt — excludes ones already done. */
 export function selectDraftsToUpload(drafts: PhotoDraft[]) {

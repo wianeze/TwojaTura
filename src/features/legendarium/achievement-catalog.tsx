@@ -276,12 +276,14 @@ function AchievementCard({
             </span>
           ) : null}
           {!secret ? (
-            <span className="text-[10px] font-bold">{achievement.points} pkt</span>
+            <span className="text-[10px] font-bold">
+              {achievement.points} pkt
+            </span>
           ) : null}
         </div>
       </div>
       {/* Mobile-only name, full card width — see comment above. */}
-      <h3 className="font-display mt-2 line-clamp-2 break-words text-[13px] leading-[1.2] font-semibold sm:hidden">
+      <h3 className="font-display mt-2 line-clamp-2 text-[13px] leading-[1.2] font-semibold break-words sm:hidden">
         {achievement.name}
       </h3>
       <p className="mt-1 text-[0.76rem] leading-[1.15rem] sm:mt-2">

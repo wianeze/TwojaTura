@@ -13,9 +13,11 @@ import {
   awardMeetingRsvpPointsAfterSave,
   awardMeetingVotePointsAfterSave,
 } from "./meeting-points";
+import { mapMeetingDeleteError } from "./meeting-deletion";
 import { DEFAULT_MEETING_STATUS } from "./types";
 import type {
   MeetingAvailabilityFormState,
+  MeetingDeleteState,
   MeetingFormState,
   MeetingVoteState,
 } from "./types";
@@ -23,6 +25,7 @@ import { toMeetingFormErrorState, validateMeetingFormData } from "./validation";
 
 type DatabaseErrorLike = {
   code?: string | null;
+  message?: string | null;
 };
 
 function mapMeetingDatabaseError(error: DatabaseErrorLike) {
@@ -297,4 +300,33 @@ export async function toggleMeetingVoteAction(
   revalidatePath("/kalendarium");
   revalidatePath(`/kalendarium/${meetingId}`);
   return { status: "success" };
+}
+
+export async function deleteMeetingAction(
+  meetingId: string,
+  _state: MeetingDeleteState,
+): Promise<MeetingDeleteState> {
+  void _state;
+
+  const access = await requireWriteAccess();
+  if (!access.ok) {
+    return { status: "error", message: access.message };
+  }
+
+  const { error } = await access.supabase.rpc("delete_meeting", {
+    p_meeting_id: meetingId,
+  });
+
+  if (error) {
+    return {
+      status: "error",
+      message: mapMeetingDeleteError(error),
+    };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/kalendarium");
+  revalidatePath(`/kalendarium/${meetingId}`);
+  revalidatePath(`/kalendarium/${meetingId}/edytuj`);
+  redirect("/kalendarium");
 }

@@ -160,7 +160,11 @@ export function LegendariumShowcase({ data }: LegendariumShowcaseProps) {
               // sm:translate-x-0 keeps sm:+ pixel-identical to before.
               <ol className="mt-4 ml-10 translate-x-[-19px] space-y-2.5 sm:ml-12 sm:translate-x-0">
                 {leaderboard.map((entry, index) => (
-                  <RankingEntry key={entry.userId} entry={entry} index={index} />
+                  <RankingEntry
+                    key={entry.userId}
+                    entry={entry}
+                    index={index}
+                  />
                 ))}
               </ol>
             ) : (
@@ -401,7 +405,7 @@ function RankingEntry({
   return (
     <li
       style={{ animationDelay: `${getEntranceStaggerDelayMs(index)}ms` }}
-      className={`anim-rise-in-fast relative isolate flex min-w-0 items-center gap-2.5 overflow-visible rounded-[1.25rem] border shadow-[0_9px_18px_rgba(76,44,23,0.14)] mr-[-23px] sm:mr-0 sm:gap-3.5 ${
+      className={`anim-rise-in-fast relative isolate mr-[-23px] flex min-w-0 items-center gap-2.5 overflow-visible rounded-[1.25rem] border shadow-[0_9px_18px_rgba(76,44,23,0.14)] sm:mr-0 sm:gap-3.5 ${
         isPodium
           ? `${podiumTone} ${entry.isCurrentMember ? "ring-1 ring-[#f4d48a]/65" : ""}`
           : entry.isCurrentMember
@@ -501,7 +505,11 @@ function RankingEntry({
             />
           </>
         ) : (
-          <TrophySet badges={entry.badges} sizeClass={badgeSize} gapClass={badgeGap} />
+          <TrophySet
+            badges={entry.badges}
+            sizeClass={badgeSize}
+            gapClass={badgeGap}
+          />
         )}
       </span>
     </li>
@@ -621,7 +629,7 @@ function TrophyBadge({
         <span
           key={rayIndex}
           aria-hidden="true"
-          className="absolute inset-0 -z-20 pointer-events-none"
+          className="pointer-events-none absolute inset-0 -z-20"
           style={{ transform: `rotate(${ray.angleDeg}deg)` }}
         >
           <span

@@ -5,8 +5,10 @@ import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import {
   confirmMeetingAction,
+  deleteMeetingAction,
   saveMeetingAvailabilityAction,
 } from "@/features/meetings/actions";
+import { DeleteMeetingButton } from "@/features/meetings/delete-meeting-button";
 import {
   formatMeetingDateRange,
   getMeetingStatusClass,
@@ -96,6 +98,12 @@ export default async function MeetingDetailsPage({
             >
               Edytuj
             </Link>
+            {meeting.canDelete ? (
+              <DeleteMeetingButton
+                action={deleteMeetingAction.bind(null, meeting.id)}
+                hasChroniclePlay={meeting.hasChroniclePlay}
+              />
+            ) : null}
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-2">

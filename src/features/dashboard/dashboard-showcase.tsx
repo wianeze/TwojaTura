@@ -32,7 +32,7 @@ function MeetingStatusBadge({
 
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap rounded-full font-bold ${compact ? "gap-0.5 px-1 py-0.5 text-[0.46rem]" : "gap-1.5 px-2.5 py-1 text-[0.65rem]"} ${classes}`}
+      className={`inline-flex items-center rounded-full font-bold whitespace-nowrap ${compact ? "gap-0.5 px-1 py-0.5 text-[0.46rem]" : "gap-1.5 px-2.5 py-1 text-[0.65rem]"} ${classes}`}
     >
       {state === "decision-required" ? (
         <Image
@@ -40,7 +40,9 @@ function MeetingStatusBadge({
           alt=""
           width={16}
           height={16}
-          className={compact ? "size-3 object-contain" : "size-4 object-contain"}
+          className={
+            compact ? "size-3 object-contain" : "size-4 object-contain"
+          }
         />
       ) : null}
       {label}
@@ -225,7 +227,8 @@ export async function DashboardShowcase() {
   const leaderboardSection = (
     <Panel
       style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
-      className="anim-rise-in-fast leaderboard-rug-panel p-4 text-[#fff6ea] shadow-[inset_0_0_0_1px_rgba(255,230,184,0.08),0_18px_42px_rgba(22,9,5,0.24)] sm:p-4.5">
+      className="anim-rise-in-fast leaderboard-rug-panel p-4 text-[#fff6ea] shadow-[inset_0_0_0_1px_rgba(255,230,184,0.08),0_18px_42px_rgba(22,9,5,0.24)] sm:p-4.5"
+    >
       <div className="space-y-3">
         <div className="flex items-end justify-between gap-3">
           <div>

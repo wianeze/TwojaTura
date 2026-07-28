@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   buildCalendarMonthView,
@@ -21,6 +22,10 @@ import {
   awardMeetingRsvpPointsAfterSave,
   awardMeetingVotePointsAfterSave,
 } from "../../src/features/meetings/meeting-points.ts";
+import {
+  mapMeetingDeleteError,
+  MEETING_WITH_CHRONICLE_DELETE_ERROR,
+} from "../../src/features/meetings/meeting-deletion.ts";
 import {
   DEFAULT_MEETING_STATUS,
   formatDateKeyForDisplay,
@@ -136,6 +141,56 @@ test("idempotent meeting_created no-op does not fail meeting create", async () =
   assert.equal(result.ok, true);
   if (!result.ok) return;
   assert.equal(result.awarded, false);
+});
+
+test("meeting delete maps Chronicle protection to the product message", () => {
+  assert.equal(
+    mapMeetingDeleteError({
+      code: "P0001",
+      message: MEETING_WITH_CHRONICLE_DELETE_ERROR,
+    }),
+    MEETING_WITH_CHRONICLE_DELETE_ERROR,
+  );
+});
+
+test("meeting delete action calls only the delete_meeting RPC", () => {
+  const source = readFileSync(
+    new URL("../../src/features/meetings/actions.ts", import.meta.url),
+    "utf8",
+  );
+  const actionSource = source.slice(
+    source.indexOf("export async function deleteMeetingAction"),
+  );
+
+  assert.match(actionSource, /\.rpc\("delete_meeting"/);
+  assert.doesNotMatch(actionSource, /\.from\("meetings"\)\s*\.delete\(\)/);
+});
+
+test("meeting read model exposes deletion only to existing managers", () => {
+  const source = readFileSync(
+    new URL("../../src/features/meetings/queries.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /canDelete:\s*canEdit/);
+  assert.match(source, /hasChroniclePlay:/);
+});
+
+test("all application meeting reads explicitly exclude soft-deleted rows", () => {
+  const sources = [
+    "../../src/features/meetings/queries.ts",
+    "../../src/features/dashboard/queries.ts",
+    "../../src/features/plays/queries.ts",
+    "../../src/features/legendarium/queries.ts",
+  ].map((path) => readFileSync(new URL(path, import.meta.url), "utf8"));
+
+  for (const source of sources) {
+    const meetingReads = source.split('.from("meetings")').slice(1);
+    assert.ok(meetingReads.length > 0);
+    for (const read of meetingReads) {
+      assert.match(read.slice(0, 500), /\.is\("deleted_at", null\)/);
+    }
+  }
 });
 
 function buildFormData(

@@ -21,11 +21,7 @@ export {
 } from "./photo-draft-status.ts";
 
 export type PhotoUploadStatus =
-  | "pending"
-  | "compressing"
-  | "uploading"
-  | "done"
-  | "error";
+  "pending" | "compressing" | "uploading" | "done" | "error";
 
 export type PhotoUploadItem = {
   id: string;
@@ -106,7 +102,8 @@ export async function uploadCompressedPhoto(params: {
   compressed: CompressedPhoto;
 }): Promise<UploadResult> {
   const supabase = createClient();
-  const extension = params.compressed.mimeType === "image/webp" ? "webp" : "jpg";
+  const extension =
+    params.compressed.mimeType === "image/webp" ? "webp" : "jpg";
   const storagePath = `${params.playId}/${params.photoId}.${extension}`;
   const logMeta = {
     playId: params.playId,
@@ -120,10 +117,12 @@ export async function uploadCompressedPhoto(params: {
   let uploadError: { message: string } | null;
   try {
     const result = await withTimeout(
-      supabase.storage.from(BUCKET).upload(storagePath, params.compressed.blob, {
-        contentType: params.compressed.mimeType,
-        upsert: false,
-      }),
+      supabase.storage
+        .from(BUCKET)
+        .upload(storagePath, params.compressed.blob, {
+          contentType: params.compressed.mimeType,
+          upsert: false,
+        }),
       UPLOAD_TIMEOUT_MS,
     );
     uploadError = result.error;
@@ -355,6 +354,9 @@ export async function uploadStagedPhotos(params: {
     }
   }
 
-  const workerCount = Math.min(MAX_CONCURRENT_PHOTO_UPLOADS, params.items.length);
+  const workerCount = Math.min(
+    MAX_CONCURRENT_PHOTO_UPLOADS,
+    params.items.length,
+  );
   await Promise.all(Array.from({ length: workerCount }, worker));
 }

@@ -101,8 +101,8 @@ export function MobileRewardsSheet({
                     </div>
 
                     <p className="text-muted mt-2 text-sm leading-5">
-                      Każda nagroda jest naliczana raz dla danego zdarzenia
-                      lub progu.
+                      Każda nagroda jest naliczana raz dla danego zdarzenia lub
+                      progu.
                     </p>
 
                     <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">

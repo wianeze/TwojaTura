@@ -4,7 +4,10 @@ import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { AdminAccountsPanel } from "@/features/admin/admin-accounts-panel";
 import { FeedbackReviewPanel } from "@/features/admin/feedback-review-panel";
-import { listAdminAccounts, listAdminFeedbackSubmissions } from "@/features/admin/queries";
+import {
+  listAdminAccounts,
+  listAdminFeedbackSubmissions,
+} from "@/features/admin/queries";
 
 export const metadata: Metadata = { title: "Admin" };
 

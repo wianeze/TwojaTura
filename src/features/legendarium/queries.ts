@@ -97,7 +97,11 @@ export async function getAchievementClassData(
     supabase
       .from(plan.classes.requirementsTable)
       .select("class_key, achievement_key"),
-    supabase.from("meetings").select("id").eq("created_by", currentUserId),
+    supabase
+      .from("meetings")
+      .select("id")
+      .eq("created_by", currentUserId)
+      .is("deleted_at", null),
     supabase
       .from("ratings")
       .select("game_id, overall, wants_to_play_again, comment")
