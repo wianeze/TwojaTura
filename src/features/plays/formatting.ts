@@ -11,7 +11,9 @@ import type {
   PlayListItem,
   PlayMember,
   PlayParticipantResult,
+  PlayMode,
   PlayStatus,
+  PlayTeamResult,
   RecentPlaySummary,
 } from "./types";
 
@@ -144,8 +146,22 @@ export function getWinnerSummary(winners: PlayMember[]) {
   return winners.map((winner) => winner.displayName).join(", ");
 }
 
-export function getPlayResultLabel(status: PlayStatus, winners: PlayMember[]) {
+export function getPlayResultLabel(
+  status: PlayStatus,
+  winners: PlayMember[],
+  mode: PlayMode = "competitive",
+  teamResult: PlayTeamResult | null = null,
+) {
   if (status === "in_progress") return PLAY_STATUS_LABELS.in_progress;
+
+  // W kooperacji wynik należy do drużyny — wypisywanie listy „zwycięzców”
+  // sugerowałoby indywidualne rozstrzygnięcie, którego w tym trybie nie ma.
+  if (mode === "cooperative") {
+    if (teamResult === "win") return "Wygrana drużyny";
+    if (teamResult === "loss") return "Porażka drużyny";
+    return "Bez wyniku drużyny";
+  }
+
   return getWinnerSummary(winners);
 }
 
@@ -182,10 +198,22 @@ export function getPlayPodium(participants: PlayParticipantResult[]): Array<{
 
 export function getChronicleParticipantChips(
   participants: PlayParticipantResult[],
+  mode: PlayMode = "competitive",
 ): Array<{
   participant: PlayParticipantResult;
   medalRank: 1 | 2 | 3 | null;
 }> {
+  // W kooperacji nikt nie zajmuje miejsca. Bez tego wyjścia zadziałałby
+  // fallback „każdy zwycięzca dostaje medal za pierwsze miejsce” niżej i cała
+  // drużyna wyświetliłaby się ze złotymi medalami — czyli dokładnie tą
+  // indywidualną hierarchią, której w tym trybie nie ma.
+  if (mode === "cooperative") {
+    return participants.map((participant) => ({
+      participant,
+      medalRank: null,
+    }));
+  }
+
   const podiumParticipants = participants.filter(
     (participant) =>
       participant.placement === 1 ||
@@ -280,6 +308,8 @@ export function getPlayFormValues(
     | "comment"
     | "status"
     | "stateNote"
+    | "mode"
+    | "teamResult"
     | "participants"
   > & {
     game: { id: string };
@@ -300,6 +330,8 @@ export function getPlayFormValues(
       comment: "",
       status: "completed",
       stateNote: "",
+      mode: "competitive",
+      teamResult: "",
       participants: [],
     };
   }
@@ -315,6 +347,8 @@ export function getPlayFormValues(
     comment: play.comment ?? "",
     status: play.status,
     stateNote: play.stateNote ?? "",
+    mode: play.mode,
+    teamResult: play.teamResult ?? "",
     participants: play.participants.map((participant) => ({
       userId: participant.member.id,
       isWinner: participant.isWinner,

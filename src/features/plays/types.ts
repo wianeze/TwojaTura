@@ -29,6 +29,16 @@ export type PlayParticipantResult = {
 
 export type PlayStatus = "in_progress" | "completed";
 
+/**
+ * Tryb partii. W `competitive` wynik należy do pojedynczych graczy (miejsca,
+ * zwycięzcy). W `cooperative` wynik należy do całej drużyny — miejsc nie ma
+ * wcale, a `isWinner` jest techniczną pochodną `teamResult`, jednakową dla
+ * wszystkich uczestników.
+ */
+export type PlayMode = "competitive" | "cooperative";
+
+export type PlayTeamResult = "win" | "loss";
+
 export type PlayGameRef = {
   id: string;
   title: string;
@@ -59,6 +69,8 @@ export type PlayListItem = {
   comment: string | null;
   status: PlayStatus;
   stateNote: string | null;
+  mode: PlayMode;
+  teamResult: PlayTeamResult | null;
   createdAt: string;
   updatedAt: string;
   game: PlayGameRef;
@@ -116,6 +128,8 @@ export type PlayFormValues = {
   comment: string;
   status: PlayStatus;
   stateNote: string;
+  mode: PlayMode;
+  teamResult: PlayTeamResult | "";
   participants: PlayParticipantDraft[];
 };
 
@@ -128,7 +142,9 @@ export type PlayFormFieldName =
   | "participants"
   | "comment"
   | "status"
-  | "stateNote";
+  | "stateNote"
+  | "mode"
+  | "teamResult";
 
 export type PlayFormState = {
   status: "idle" | "error" | "success";

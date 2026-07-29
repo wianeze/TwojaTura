@@ -166,7 +166,7 @@ function ParticipantChip({
 }
 
 function ParticipantsRow({ item }: { item: PlayListItem }) {
-  const chips = getChronicleParticipantChips(item.participants);
+  const chips = getChronicleParticipantChips(item.participants, item.mode);
 
   return (
     <div className="space-y-1.5">
@@ -188,12 +188,17 @@ function ParticipantsRow({ item }: { item: PlayListItem }) {
 
 function MobileParticipantsList({ item }: { item: PlayListItem }) {
   const participants = sortPlayParticipants(item.participants);
+  const isCooperative = item.mode === "cooperative";
 
   return (
     <div className="space-y-1">
       {participants.map((participant, index) => {
-        const placement =
-          participant.placement ?? (participant.isWinner ? 1 : index + 1);
+        // Partia kooperacyjna nie ma miejsc — wynik należy do drużyny. Dawniej
+        // w tym miejscu miejsce było DOMYŚLANE z indeksu na liście, przez co
+        // kooperacja wyrenderowałaby fałszywe „1., 2., 3. miejsce”.
+        const placement = isCooperative
+          ? null
+          : (participant.placement ?? (participant.isWinner ? 1 : index + 1));
         const scoreLabel = formatChronicleChipScore(participant.score);
         const medalRank =
           placement === 1 || placement === 2 || placement === 3

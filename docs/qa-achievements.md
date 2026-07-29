@@ -17,7 +17,7 @@ Wspólne hasło wszystkich kont: `QaAchievements123!`.
 | `qa-achievements-ready@twojatura.local`         | Pełne progi, Naturalna Jedynka 3/3, Mroczna Żądza 3/3, Gospodarz Obozu 5/5 oraz odznaki 0/1. |
 | `qa-achievements-last-one@twojatura.local`      | Naturalna Jedynka 1/3.                                                                       |
 | `qa-achievements-last-two@twojatura.local`      | Naturalna Jedynka 2/3.                                                                       |
-| `qa-achievements-coop@twojatura.local`          | Trzy wspólne zwycięstwa 1/1/1: Naturalna Jedynka 0/3 i Mroczna Żądza 3/3.                    |
+| `qa-achievements-coop@twojatura.local`          | Trzy partie w trybie kooperacyjnym z wynikiem drużyny „wygrana" (bez miejsc): Naturalna Jedynka 0/3 i Mroczna Żądza 3/3. |
 | `qa-achievements-loot-near@twojatura.local`     | Loot Goblin 24/25.                                                                           |
 | `qa-achievements-streak-broken@twojatura.local` | Przerwana seria zwycięstw — bez Mrocznej Żądzy.                                              |
 | `qa-achievements-class-locked@twojatura.local`  | Bard Stołu 4/5.                                                                              |
@@ -32,8 +32,8 @@ Jeśli poprzednie przygotowanie danych zostało przerwane, checker kończy się 
 Bez klikania sprawdzane są:
 
 - Naturalna Jedynka 1/3, 2/3 i 3/3,
-- brak progresu Naturalnej Jedynki dla kooperacyjnych wyników 1/1/1,
-- Mroczna Żądza po trzech kooperacyjnych zwycięstwach,
+- brak progresu Naturalnej Jedynki dla partii kooperacyjnych (nie mają miejsc, więc nie istnieje w nich „ostatnie miejsce"),
+- Mroczna Żądza po trzech kooperacyjnych zwycięstwach drużyny,
 - Gospodarz Obozu 4/5 i 5/5,
 - klasa Bard Stołu 4/5 i 5/5,
 - ustawiona aktywna klasa,
@@ -51,7 +51,9 @@ pnpm qa:achievements
 pnpm qa:achievements:check
 ```
 
-`pnpm qa:achievements:reset` wykonuje pełny reset **wyłącznie lokalnej** bazy Supabase, a więc usuwa również inne lokalne dane deweloperskie. Reset usuwa też ewentualną Naturalną Jedynkę błędnie naliczoną wcześniej za wynik 1/1/1. Migracja produkcyjna nie cofa takich historycznych rekordów automatycznie.
+`pnpm qa:achievements:reset` wykonuje pełny reset **wyłącznie lokalnej** bazy Supabase, a więc usuwa również inne lokalne dane deweloperskie. Reset usuwa też ewentualną Naturalną Jedynkę błędnie naliczoną wcześniej za wynik 1/1/1.
+
+Od wdrożenia silnika przeliczania nagród sytuacja jest inna niż wcześniej: nagrody pochodzące z partii (punkty za zapis, odznaki uczestnikowe) są przeliczane deklaratywnie przy każdej mutacji partii, więc edycja albo usunięcie wpisu potrafi je **cofnąć** — przez zdarzenie kompensujące w księdze punktowej, nie przez usunięcie historii. Poza tym zakresem (odznaki ręczne, odznaki spoza domeny partii, punkty za RSVP/głosy/spotkania/oceny) nic nie jest ruszane. Partie sprzed wdrożenia mają `plays.rewards_managed = false` i nigdy nie dostaną punktów za zapis z mocą wsteczną.
 
 ## Bezpieczeństwo
 

@@ -4,19 +4,25 @@ import { useMemo, useState } from "react";
 import { getMemberInitial } from "@/features/auth/current-member";
 import {
   addParticipantDraft,
+  applyTeamResultToDrafts,
+  clearParticipantPlacements,
   clearParticipantWinners,
 } from "./participant-drafts";
 import type {
   PlayMember,
+  PlayMode,
   PlayParticipantDraft,
   PlayParticipantFieldError,
   PlayStatus,
+  PlayTeamResult,
 } from "./types";
 
 type PlayParticipantsFieldProps = {
   members: PlayMember[];
   defaultValue: PlayParticipantDraft[];
   status: PlayStatus;
+  mode: PlayMode;
+  teamResult: PlayTeamResult | "";
   error?: string;
   participantErrors?: Record<string, PlayParticipantFieldError>;
 };
@@ -34,11 +40,42 @@ export function PlayParticipantsField({
   members,
   defaultValue,
   status,
+  mode,
+  teamResult,
   error,
   participantErrors,
 }: PlayParticipantsFieldProps) {
   const [drafts, setDrafts] = useState(() => normalizeDrafts(defaultValue));
   const [previousStatus, setPreviousStatus] = useState(status);
+  const [previousMode, setPreviousMode] = useState(mode);
+  const [previousTeamResult, setPreviousTeamResult] = useState(teamResult);
+  const isCooperative = mode === "cooperative";
+
+  // Przejście na kooperację kasuje miejsca — w tym trybie w ogóle nie istnieją,
+  // a zostawienie ich odrzuciłoby zapis. Wracając do rywalizacji nie
+  // odtwarzamy niczego: miejsca trzeba wskazać na nowo, bo poprzednie zniknęły
+  // razem z trybem.
+  if (mode !== previousMode) {
+    setPreviousMode(mode);
+    if (mode === "cooperative") {
+      setDrafts((current) =>
+        applyTeamResultToDrafts(
+          clearParticipantPlacements(current),
+          status,
+          teamResult,
+        ),
+      );
+    } else {
+      setDrafts((current) => clearParticipantWinners(current));
+    }
+  }
+
+  // W kooperacji zwycięstwo jest wspólne: zmiana wyniku drużyny przestawia
+  // znacznik u wszystkich naraz.
+  if (isCooperative && teamResult !== previousTeamResult) {
+    setPreviousTeamResult(teamResult);
+    setDrafts((current) => applyTeamResultToDrafts(current, status, teamResult));
+  }
 
   // Switching to "w toku" clears any already-marked winner — an in-progress
   // game has no result yet, and completing it later requires picking the
@@ -64,7 +101,7 @@ export function PlayParticipantsField({
         return current.filter((draft) => draft.userId !== memberId);
       }
 
-      return addParticipantDraft(current, memberId, status);
+      return addParticipantDraft(current, memberId, status, mode, teamResult);
     });
   }
 
@@ -151,19 +188,25 @@ export function PlayParticipantsField({
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateDraft(draft.userId, { isWinner: !draft.isWinner })
-                      }
-                      className={`rounded-full px-3 py-1.5 text-[0.68rem] font-bold transition ${
-                        draft.isWinner
-                          ? "bg-moss-soft text-moss"
-                          : "bg-[#eadcc6] text-[#72553a] hover:bg-[#e4d2b7]"
-                      }`}
-                    >
-                      Zwycięzca
-                    </button>
+                    {/* W kooperacji nie ma indywidualnego zwycięzcy — wynik
+                        ustawia się raz dla całej drużyny nad listą graczy. */}
+                    {isCooperative ? null : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateDraft(draft.userId, {
+                            isWinner: !draft.isWinner,
+                          })
+                        }
+                        className={`rounded-full px-3 py-1.5 text-[0.68rem] font-bold transition ${
+                          draft.isWinner
+                            ? "bg-moss-soft text-moss"
+                            : "bg-[#eadcc6] text-[#72553a] hover:bg-[#e4d2b7]"
+                        }`}
+                      >
+                        Zwycięzca
+                      </button>
+                    )}
 
                     <button
                       type="button"
@@ -175,25 +218,30 @@ export function PlayParticipantsField({
                   </div>
                 </div>
 
-                <div className="mt-2 grid grid-cols-2 gap-2.5">
-                  <label className="text-[0.7rem] font-semibold text-[#6a4d38]">
-                    Miejsce
-                    <input
-                      value={draft.placement}
-                      onChange={(event) =>
-                        updateDraft(draft.userId, {
-                          placement: event.target.value,
-                        })
-                      }
-                      inputMode="numeric"
-                      className="mt-1 h-9 w-full rounded-lg border border-[#b79674]/45 bg-white/85 px-2.5 text-sm text-[#4d3528] outline-none"
-                    />
-                    {rowErrors?.placement ? (
-                      <span className="mt-1 block text-[0.68rem] text-[#8f3528]">
-                        {rowErrors.placement}
-                      </span>
-                    ) : null}
-                  </label>
+                <div
+                  className={`mt-2 grid gap-2.5 ${isCooperative ? "grid-cols-1" : "grid-cols-2"}`}
+                >
+                  {/* Miejsca istnieją wyłącznie w rywalizacji. */}
+                  {isCooperative ? null : (
+                    <label className="text-[0.7rem] font-semibold text-[#6a4d38]">
+                      Miejsce
+                      <input
+                        value={draft.placement}
+                        onChange={(event) =>
+                          updateDraft(draft.userId, {
+                            placement: event.target.value,
+                          })
+                        }
+                        inputMode="numeric"
+                        className="mt-1 h-9 w-full rounded-lg border border-[#b79674]/45 bg-white/85 px-2.5 text-sm text-[#4d3528] outline-none"
+                      />
+                      {rowErrors?.placement ? (
+                        <span className="mt-1 block text-[0.68rem] text-[#8f3528]">
+                          {rowErrors.placement}
+                        </span>
+                      ) : null}
+                    </label>
+                  )}
 
                   <label className="text-[0.7rem] font-semibold text-[#6a4d38]">
                     Wynik

@@ -200,7 +200,7 @@ export async function getAchievementClassData(
     ownParticipantPlayIds.length > 0
       ? supabase
           .from("plays")
-          .select("id, played_at, created_at")
+          .select("id, played_at, created_at, mode, team_result")
           .in("id", ownParticipantPlayIds)
           .eq("status", "completed")
       : Promise.resolve({ data: [], error: null }),
@@ -263,9 +263,20 @@ export async function getAchievementClassData(
         a.play!.created_at.localeCompare(b.play!.created_at) ||
         a.play_id.localeCompare(b.play_id),
     );
+  // Musi odpowiadać regule dark_urge z private.qualifies_for_achievement:
+  // zwycięstwo to wyłącznie is_winner (człon `placement === 1` zniknął razem z
+  // wprowadzeniem trybu kooperacyjnego), a partia bez rozstrzygnięcia —
+  // kooperacja bez zapisanego wyniku drużyny — nie jest liczona ani jako
+  // zwycięstwo, ani jako przerwanie serii. Rozjazd tych dwóch implementacji
+  // objawiłby się paskiem postępu niezgodnym z faktycznie przyznaną odznaką.
   let currentWinStreak = 0;
   for (const participant of orderedResults) {
-    if (participant.placement === 1 || participant.is_winner) {
+    const hasResult =
+      participant.play!.mode === "competitive" ||
+      participant.play!.team_result !== null;
+    if (!hasResult) continue;
+
+    if (participant.is_winner) {
       currentWinStreak += 1;
     } else {
       currentWinStreak = 0;

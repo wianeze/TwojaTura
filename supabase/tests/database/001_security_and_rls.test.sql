@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(306);
+select plan(309);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -1496,9 +1496,16 @@ select set_config(
   true
 );
 set local role authenticated;
+-- Kontrakt zmieniony wraz z silnikiem przeliczania nagród: mutacje partii
+-- przez RPC (create/update/delete) przyznają nagrody w TEJ SAMEJ transakcji,
+-- zamiast polegać na osobnych wywołaniach z warstwy TS. Testy 63 i 65 tworzą i
+-- edytują partie tego użytkownika, więc jego saldo zawiera teraz dodatkowo
+-- punkty za zapis partii utworzonej przez RPC oraz odznaki uczestnikowe.
+-- Punkty za partie sprzed wdrożenia (legacy-untracked) NIE są doliczane —
+-- pilnuje tego test 89a poniżej.
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (1174::bigint)$$,
+  $$values (1249::bigint)$$,
   '88. user point balance includes idempotent awards and repeatable corrections'
 );
 
@@ -1508,10 +1515,27 @@ select results_eq(
     from public.get_leaderboard()
     where user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$values (1174::bigint)$$,
+  $$values (1249::bigint)$$,
   '89. leaderboard includes the same updated ledger balance'
 );
 reset role;
+
+-- Straż modelu legacy: partie z seeda istniały przed wdrożeniem silnika, więc
+-- mają rewards_managed = false i nigdy nie mogą dostać punktów za zapis z mocą
+-- wsteczną — nawet po edycji przez RPC (test 65 edytuje partię 5000...0001).
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.point_events
+    where action_type = 'play_logged'
+      and related_entity_id in (
+        '50000000-0000-0000-0000-000000000001',
+        '50000000-0000-0000-0000-000000000002'
+      )
+  $$,
+  $$values (0::bigint)$$,
+  '89a. legacy plays never receive retroactive play_logged points'
+);
 
 select results_eq(
   $$
@@ -2540,9 +2564,13 @@ select results_eq(
   $$values (51::bigint)$$,
   '163. admin reads all achievement definitions including secrets'
 );
+-- Liczba wzrosła, bo przeliczanie przyznaje odznaki uczestnikowe wszystkim
+-- uprawnionym graczom partii, a nie tylko osobie zapisującej wpis (decyzja
+-- właściciela z 2026-07-29). Test sprawdza uprawnienie admina do odczytu, a nie
+-- konkretną wartość licznika.
 select results_eq(
   $$select count(*)::bigint from public.user_achievements$$,
-  $$values (1::bigint)$$,
+  $$values (7::bigint)$$,
   '164. admin reads awarded achievements'
 );
 reset role;
@@ -2631,17 +2659,25 @@ select
 from public.point_events
 where user_id = '10000000-0000-0000-0000-000000000002';
 
+-- Nośnik zmieniony z 'critical_roll' na 'bag_of_holding'. Te testy sprawdzają
+-- MECHANIKĘ helpera (pierwsze przyznanie, brak duplikatu, jedno zdarzenie
+-- punktowe), a nie konkretną odznakę. 'critical_roll' przestał się nadawać, bo
+-- należy do domeny 'play' i jest teraz przyznawany wcześniej przez
+-- przeliczanie — pierwsze wywołanie helpera nigdy nie byłoby już „pierwsze”.
+-- 'bag_of_holding' należy do domeny 'collection', więc pozostaje poza zakresem
+-- przeliczania wywołanego zmianą partii i nie jest osiągalny dla tego
+-- użytkownika żadną inną ścieżką w tym pliku.
 select results_eq(
   $$
     select awarded, achievement_key, awarded_at is not null
     from private.award_achievement_once(
       '10000000-0000-0000-0000-000000000002',
-      'critical_roll',
+      'bag_of_holding',
       'test',
       '81000000-0000-0000-0000-000000000003'
     )
   $$,
-  $$values (true, 'critical_roll', true)$$,
+  $$values (true, 'bag_of_holding', true)$$,
   '169. helper awards an active definition to an active user'
 );
 
@@ -2650,12 +2686,12 @@ select results_eq(
     select awarded, achievement_key, awarded_at is null
     from private.award_achievement_once(
       '10000000-0000-0000-0000-000000000002',
-      'critical_roll',
+      'bag_of_holding',
       'repeat',
       '81000000-0000-0000-0000-000000000004'
     )
   $$,
-  $$values (false, 'critical_roll', true)$$,
+  $$values (false, 'bag_of_holding', true)$$,
   '170. helper does not duplicate an earned achievement'
 );
 
@@ -2719,7 +2755,9 @@ select results_eq(
     from public.point_events
     where user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$select total_points + 5 from pgtap_achievement_points_before$$,
+  -- 30 zamiast 5: wartość wynika z definicji nośnika ('bag_of_holding'),
+  -- zmienionego w teście 169 z powodów opisanych tam.
+  $$select total_points + 30 from pgtap_achievement_points_before$$,
   '175. first achievement award adds definition points to the user balance'
 );
 
@@ -3436,13 +3474,29 @@ select set_config(
 );
 set local role authenticated;
 
+-- Kontrakt zmieniony: dark_urge jest przyznawany przez przeliczanie wewnątrz
+-- mutacji partii, a nie przez to osobne wywołanie. Zanim test tu dotrze,
+-- użytkownik ma już odznakę, więc jawne wywołanie jest bezpiecznym no-opem.
+-- Istotą testu pozostaje „trzy zwycięstwa z rzędu dają dark_urge” — sprawdzamy
+-- to teraz wprost na stanie, zamiast na wartości zwracanej przez wywołanie,
+-- które przestało być momentem przyznania.
+select ok(
+  exists (
+    select 1
+    from public.user_achievements
+    where user_id = '10000000-0000-0000-0000-000000000002'
+      and achievement_key = 'dark_urge'
+  ),
+  '222. three consecutive own wins award dark_urge'
+);
+
 select results_eq(
   $$
     select awarded_count, points_awarded, awarded_user_ids
     from public.award_play_result_achievements('79000000-0000-0000-0000-000000000004')
   $$,
-  $$values (1::integer, 15::integer, array['10000000-0000-0000-0000-000000000002'::uuid])$$,
-  '222. three consecutive own wins award dark_urge'
+  $$values (0::integer, 0::integer, array[]::uuid[])$$,
+  '222a. explicit result-achievement call is a no-op once recompute granted it'
 );
 
 select results_eq(
@@ -3454,13 +3508,23 @@ select results_eq(
   '223. a loss between wins prevents dark_urge'
 );
 
+-- Kontrakt zmieniony wraz z nową definicją dark_urge. Poprzednia reguła
+-- wymagała, by seria KOŃCZYŁA SIĘ na partii przekazanej do wywołania — przez
+-- co uczestnik, którego serię domknęła partia zapisana przez kogoś innego,
+-- nie dostawał odznaki nigdy. Nowa reguła pyta o historię użytkownika:
+-- gracz 0004 ma trzy kolejne zwycięstwa (partie 0009, 0010 i 0015), więc
+-- odznaka mu się należy niezależnie od tego, kto zapisał którą partię
+-- (wyrównanie zatwierdzone 2026-07-29).
+--
+-- Niezmiennik „dwa zwycięstwa to za mało” pozostaje pokryty testem 223,
+-- gdzie porażka rozdziela zwycięstwa i żadne okno trzech nie powstaje.
 select results_eq(
   $$
-    select awarded_count, points_awarded
+    select awarded_count, points_awarded, awarded_user_ids
     from public.award_play_result_achievements('79000000-0000-0000-0000-000000000010')
   $$,
-  $$values (0::integer, 0::integer)$$,
-  '224. two own wins do not award dark_urge'
+  $$values (1::integer, 15::integer, array['10000000-0000-0000-0000-000000000004'::uuid])$$,
+  '224. whole-history streak awards dark_urge to the qualifying participant'
 );
 
 select results_eq(
@@ -3486,7 +3550,11 @@ select results_eq(
 
 select results_eq(
   $$select total_points from public.user_point_balances where user_id = '10000000-0000-0000-0000-000000000002'$$,
-  $$select total_points + 15 from pgtap_dark_urge_balance_before$$,
+  -- + 0, bo dark_urge (15 pkt) trafił do salda już WCZEŚNIEJ — przy mutacji
+  -- partii, która domknęła serię — a więc jest zawarty w migawce
+  -- pgtap_dark_urge_balance_before. Test nadal pilnuje tego, o co chodziło:
+  -- odznaka podnosi saldo dokładnie raz i powtórne wywołania nic nie dodają.
+  $$select total_points + 0 from pgtap_dark_urge_balance_before$$,
   '227. dark_urge increases the qualifying participant balance exactly once'
 );
 reset role;
@@ -4134,6 +4202,24 @@ select results_eq(
   '260. completing the play does not create a new row'
 );
 
+-- Kontrakt zmieniony: punkty za zapis przyznaje przeliczanie wewnątrz
+-- update_play_with_participants (test 259), a nie to osobne wywołanie.
+-- Sedno testu — „punkty pojawiają się dokładnie w chwili ukończenia partii,
+-- dokładnie raz” — sprawdzamy teraz wprost na księdze, a jawne wywołanie
+-- pozostaje jako dowód idempotencji (awarded = false).
+select results_eq(
+  $$
+    select count(*)::bigint, coalesce(sum(points), 0)::bigint
+    from public.point_events
+    where action_type = 'play_logged'
+      and related_entity_id = (
+        select play_id from pgtap_created_plays where label = 'in-progress-play'
+      )
+  $$,
+  $$values (1::bigint, 40::bigint)$$,
+  '261. play_logged points are granted exactly when the play becomes completed'
+);
+
 select results_eq(
   $$
     select awarded, points
@@ -4141,8 +4227,8 @@ select results_eq(
       (select play_id from pgtap_created_plays where label = 'in-progress-play')
     )
   $$,
-  $$values (true, 40)$$,
-  '261. play_logged points are granted exactly when the play becomes completed'
+  $$values (false, 40)$$,
+  '261a. explicit play_logged award is a no-op once recompute granted it'
 );
 
 select results_eq(

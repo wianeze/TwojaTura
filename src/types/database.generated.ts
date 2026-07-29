@@ -23,6 +23,7 @@ export type Database = {
           name: string
           points: number
           rarity: string
+          reward_domain: Database["public"]["Enums"]["reward_domain"]
           sort_order: number
           updated_at: string
         }
@@ -39,6 +40,7 @@ export type Database = {
           name: string
           points?: number
           rarity: string
+          reward_domain?: Database["public"]["Enums"]["reward_domain"]
           sort_order: number
           updated_at?: string
         }
@@ -55,10 +57,92 @@ export type Database = {
           name?: string
           points?: number
           rarity?: string
+          reward_domain?: Database["public"]["Enums"]["reward_domain"]
           sort_order?: number
           updated_at?: string
         }
         Relationships: []
+      }
+      achievement_domain_dependencies: {
+        Row: {
+          achievement_key: string
+          domain: Database["public"]["Enums"]["reward_domain"]
+        }
+        Insert: {
+          achievement_key: string
+          domain: Database["public"]["Enums"]["reward_domain"]
+        }
+        Update: {
+          achievement_key?: string
+          domain?: Database["public"]["Enums"]["reward_domain"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "achievement_domain_dependencies_achievement_key_fkey"
+            columns: ["achievement_key"]
+            isOneToOne: false
+            referencedRelation: "achievement_definitions"
+            referencedColumns: ["achievement_key"]
+          },
+        ]
+      }
+      achievement_history: {
+        Row: {
+          achievement_key: string
+          action: Database["public"]["Enums"]["achievement_history_action"]
+          created_at: string
+          created_by: string | null
+          id: string
+          reason: string
+          revision: number
+          triggered_by_play_id: string | null
+          user_id: string
+        }
+        Insert: {
+          achievement_key: string
+          action: Database["public"]["Enums"]["achievement_history_action"]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reason: string
+          revision: number
+          triggered_by_play_id?: string | null
+          user_id: string
+        }
+        Update: {
+          achievement_key?: string
+          action?: Database["public"]["Enums"]["achievement_history_action"]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reason?: string
+          revision?: number
+          triggered_by_play_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "achievement_history_achievement_key_fkey"
+            columns: ["achievement_key"]
+            isOneToOne: false
+            referencedRelation: "achievement_definitions"
+            referencedColumns: ["achievement_key"]
+          },
+          {
+            foreignKeyName: "achievement_history_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "achievement_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       admin_audit_log: {
         Row: {
@@ -674,6 +758,54 @@ export type Database = {
           },
         ]
       }
+      play_reward_states: {
+        Row: {
+          created_at: string
+          is_active: boolean
+          last_play_id: string | null
+          revision: number
+          reward_key: string
+          reward_type: Database["public"]["Enums"]["reward_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          is_active: boolean
+          last_play_id?: string | null
+          revision?: number
+          reward_key: string
+          reward_type: Database["public"]["Enums"]["reward_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          is_active?: boolean
+          last_play_id?: string | null
+          revision?: number
+          reward_key?: string
+          reward_type?: Database["public"]["Enums"]["reward_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "play_reward_states_last_play_id_fkey"
+            columns: ["last_play_id"]
+            isOneToOne: false
+            referencedRelation: "plays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "play_reward_states_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plays: {
         Row: {
           comment: string | null
@@ -683,9 +815,12 @@ export type Database = {
           game_id: string
           id: string
           meeting_id: string | null
+          mode: Database["public"]["Enums"]["play_mode"]
           played_at: string
+          rewards_managed: boolean
           state_note: string | null
           status: Database["public"]["Enums"]["play_status"]
+          team_result: Database["public"]["Enums"]["play_team_result"] | null
           updated_at: string
         }
         Insert: {
@@ -696,9 +831,12 @@ export type Database = {
           game_id: string
           id?: string
           meeting_id?: string | null
+          mode?: Database["public"]["Enums"]["play_mode"]
           played_at: string
+          rewards_managed?: boolean
           state_note?: string | null
           status?: Database["public"]["Enums"]["play_status"]
+          team_result?: Database["public"]["Enums"]["play_team_result"] | null
           updated_at?: string
         }
         Update: {
@@ -709,9 +847,12 @@ export type Database = {
           game_id?: string
           id?: string
           meeting_id?: string | null
+          mode?: Database["public"]["Enums"]["play_mode"]
           played_at?: string
+          rewards_managed?: boolean
           state_note?: string | null
           status?: Database["public"]["Enums"]["play_status"]
+          team_result?: Database["public"]["Enums"]["play_team_result"] | null
           updated_at?: string
         }
         Relationships: [
@@ -748,6 +889,7 @@ export type Database = {
           points: number
           related_entity_id: string | null
           related_entity_type: string | null
+          reward_revision: number
           user_id: string
         }
         Insert: {
@@ -759,6 +901,7 @@ export type Database = {
           points: number
           related_entity_id?: string | null
           related_entity_type?: string | null
+          reward_revision?: number
           user_id: string
         }
         Update: {
@@ -770,6 +913,7 @@ export type Database = {
           points?: number
           related_entity_id?: string | null
           related_entity_type?: string | null
+          reward_revision?: number
           user_id?: string
         }
         Relationships: [
@@ -1152,15 +1296,18 @@ export type Database = {
           p_duration_minutes?: number
           p_game_id: string
           p_meeting_id?: string
+          p_mode?: Database["public"]["Enums"]["play_mode"]
           p_participants?: Json
           p_played_at: string
           p_state_note?: string
           p_status?: Database["public"]["Enums"]["play_status"]
+          p_team_result?: Database["public"]["Enums"]["play_team_result"]
         }
         Returns: string
       }
       current_user_is_admin: { Args: never; Returns: boolean }
       delete_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
+      delete_play: { Args: { p_play_id: string }; Returns: string }
       get_leaderboard: {
         Args: never
         Returns: {
@@ -1223,21 +1370,34 @@ export type Database = {
           p_duration_minutes?: number
           p_game_id: string
           p_meeting_id?: string
+          p_mode?: Database["public"]["Enums"]["play_mode"]
           p_participants?: Json
           p_play_id: string
           p_played_at: string
           p_state_note?: string
           p_status?: Database["public"]["Enums"]["play_status"]
+          p_team_result?: Database["public"]["Enums"]["play_team_result"]
         }
         Returns: string
       }
     }
     Enums: {
+      achievement_history_action: "granted" | "revoked" | "regranted"
       feedback_status: "new" | "in_progress" | "completed" | "rejected"
       game_status: "available" | "unavailable" | "loaned"
       meeting_status: "planned" | "confirmed" | "completed"
       membership_role: "member" | "admin" | "observer"
+      play_mode: "competitive" | "cooperative"
       play_status: "in_progress" | "completed"
+      play_team_result: "win" | "loss"
+      reward_domain:
+        | "play"
+        | "meeting"
+        | "collection"
+        | "rating"
+        | "manual"
+        | "other"
+      reward_type: "play_points" | "achievement"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1365,11 +1525,23 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      achievement_history_action: ["granted", "revoked", "regranted"],
       feedback_status: ["new", "in_progress", "completed", "rejected"],
       game_status: ["available", "unavailable", "loaned"],
       meeting_status: ["planned", "confirmed", "completed"],
       membership_role: ["member", "admin", "observer"],
+      play_mode: ["competitive", "cooperative"],
       play_status: ["in_progress", "completed"],
+      play_team_result: ["win", "loss"],
+      reward_domain: [
+        "play",
+        "meeting",
+        "collection",
+        "rating",
+        "manual",
+        "other",
+      ],
+      reward_type: ["play_points", "achievement"],
     },
   },
 } as const

@@ -823,7 +823,15 @@ Centralny, seedowany katalog wszystkich odznak:
 
 #### `user_achievements`
 
-Trwałe, append-only przypisanie odznaki do gracza: `user_id`, `achievement_key`, `awarded_at`, `awarded_by nullable`, `source_event_type nullable`, `source_entity_id nullable`, `note nullable`, z kluczem głównym `(user_id, achievement_key)`. Odznaki są idempotentne: nie odbiera się ich automatycznie po edycji, usunięciu ani cofnięciu akcji źródłowej. Historyczny backfill nie należy do pierwszego kroku.
+Przypisanie aktualnie posiadanej odznaki do gracza: `user_id`, `achievement_key`, `awarded_at`, `awarded_by nullable`, `source_event_type nullable`, `source_entity_id nullable`, `note nullable`, z kluczem głównym `(user_id, achievement_key)`. Historyczny backfill nie należy do pierwszego kroku.
+
+Zasada przeliczania nagród po korekcie partii:
+
+- automatyczne odznaki zależne od partii są przeliczane po dodaniu, edycji i usunięciu partii,
+- jeżeli warunek przestaje być spełniony, odznaka może zostać odebrana,
+- punkty pozostają w księdze append-only, a cofnięcie jest realizowane ujemnym zdarzeniem kompensującym,
+- ponowne spełnienie warunku ponownie przyznaje odznakę i dodaje nowe dodatnie zdarzenie,
+- odznaki ręczne i nagrody niezwiązane z partiami nie są objęte tym przeliczeniem.
 
 Prywatny helper `private.award_achievement_once(p_user_id uuid, p_achievement_key text, p_source_event_type text default null, p_source_entity_id uuid default null, p_note text default null, p_awarded_by uuid default auth.uid())` jest `SECURITY DEFINER`, ma pusty `search_path`, sprawdza aktywne członkostwo i aktywną definicję. Zwraca wynik przyznania, datę, `points_awarded` i `point_event_id`. Konflikt `(user_id, achievement_key)` nie jest błędem, a punkty trafiają do ledgeru tylko przy pierwszym insercie. Helper nie ma bezpośredniego `EXECUTE` dla `anon` ani `authenticated`.
 

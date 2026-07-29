@@ -2,9 +2,11 @@ import type {
   PlayFormFieldName,
   PlayFormState,
   PlayFormValues,
+  PlayMode,
   PlayParticipantDraft,
   PlayParticipantFieldError,
   PlayStatus,
+  PlayTeamResult,
 } from "./types";
 
 type FieldErrors<T extends string> = Partial<Record<T, string>>;
@@ -18,6 +20,8 @@ type PlayValidationSuccess = {
     durationMinutes: number | null;
     comment: string | null;
     status: PlayStatus;
+    mode: PlayMode;
+    teamResult: PlayTeamResult | null;
     stateNote: string | null;
     participants: Array<{
       userId: string;
@@ -89,6 +93,15 @@ function normalizeNullableText(input: string) {
 
 function parsePlayStatus(rawValue: string): PlayStatus {
   return rawValue === "in_progress" ? "in_progress" : "completed";
+}
+
+function parsePlayMode(rawValue: string): PlayMode {
+  return rawValue === "cooperative" ? "cooperative" : "competitive";
+}
+
+function parsePlayTeamResult(rawValue: string): PlayTeamResult | "" {
+  if (rawValue === "win" || rawValue === "loss") return rawValue;
+  return "";
 }
 
 function parsePolishDate(rawValue: string) {
@@ -293,6 +306,8 @@ export function buildPlaySubmittedValues(formData: FormData): PlayFormValues {
     comment: value(formData, "comment"),
     status: parsePlayStatus(value(formData, "status")),
     stateNote: value(formData, "stateNote"),
+    mode: parsePlayMode(value(formData, "mode")),
+    teamResult: parsePlayTeamResult(value(formData, "teamResult")),
     participants: parsedParticipants.ok ? parsedParticipants.data : [],
   };
 }
@@ -422,12 +437,63 @@ export function validatePlayFormData(
     );
   }
 
-  if (participants.length > 0 && winnersCount === 0 && status === "completed") {
-    pushError(
-      fieldErrors,
-      "participants",
-      "Zaznacz przynajmniej jednego zwycięzcę.",
-    );
+  const mode = submittedValues.mode;
+  const teamResult = submittedValues.teamResult;
+
+  if (mode === "competitive") {
+    if (
+      participants.length > 0 &&
+      winnersCount === 0 &&
+      status === "completed"
+    ) {
+      pushError(
+        fieldErrors,
+        "participants",
+        "Zaznacz przynajmniej jednego zwycięzcę.",
+      );
+    }
+  } else {
+    // Kooperacja: wynik należy do drużyny, miejsc nie ma, a zwycięstwo jest
+    // wspólne. Te same reguły egzekwuje niezależnie baza
+    // (private.assert_valid_play_payload) — tutaj chodzi o czytelny komunikat
+    // w formularzu zamiast surowego błędu z bazy.
+    if (status === "completed" && !teamResult) {
+      pushError(
+        fieldErrors,
+        "teamResult",
+        "Wybierz wynik drużyny: wygrana albo porażka.",
+      );
+    }
+
+    if (status !== "completed" && teamResult) {
+      pushError(
+        fieldErrors,
+        "teamResult",
+        "Partia w toku nie ma jeszcze wyniku drużyny.",
+      );
+    }
+
+    if (normalizedParticipants.some((participant) => participant.placement !== null)) {
+      pushError(
+        fieldErrors,
+        "participants",
+        "Gra kooperacyjna nie ma miejsc — wynik dotyczy całej drużyny.",
+      );
+    }
+
+    const expectedWinner = status === "completed" && teamResult === "win";
+    if (
+      participants.length > 0 &&
+      normalizedParticipants.some(
+        (participant) => participant.isWinner !== expectedWinner,
+      )
+    ) {
+      pushError(
+        fieldErrors,
+        "participants",
+        "W grze kooperacyjnej wszyscy uczestnicy dzielą ten sam wynik.",
+      );
+    }
   }
 
   if (
@@ -446,6 +512,8 @@ export function validatePlayFormData(
         comment: normalizeNullableText(submittedValues.comment),
         status,
         stateNote,
+        mode,
+        teamResult: mode === "cooperative" && teamResult ? teamResult : null,
         participants: normalizedParticipants.map((participant) => ({
           userId: participant.userId,
           isWinner: participant.isWinner,

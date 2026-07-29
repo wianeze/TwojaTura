@@ -5,12 +5,8 @@ import { redirect } from "next/navigation";
 import type { Database, Json } from "@/types/database.generated";
 import { createClient } from "@/lib/supabase/server";
 import { requireWriteAccess } from "@/features/auth/require-write-access";
-import { awardSimpleAchievementsAfterPlayCreate } from "@/features/legendarium/achievement-awards";
-import { awardPlayResultAchievementsAfterSave } from "./play-achievements";
-import { awardCampHostAfterPlaySave } from "./meeting-achievements";
 import type { PlayFormState } from "./types";
 import { toPlayFormErrorState, validatePlayFormData } from "./validation";
-import { awardPlayPointsAfterSave } from "./play-points";
 
 type DatabaseErrorLike = {
   code?: string | null;
@@ -86,6 +82,8 @@ function toPlayRpcPayload(
     p_played_at: validation.playedAt,
     p_participants: participants as Json,
     p_status: validation.status,
+    p_mode: validation.mode,
+    ...(validation.teamResult ? { p_team_result: validation.teamResult } : {}),
     ...(validation.meetingId ? { p_meeting_id: validation.meetingId } : {}),
     ...(validation.durationMinutes !== null
       ? { p_duration_minutes: validation.durationMinutes }
@@ -95,61 +93,6 @@ function toPlayRpcPayload(
       ? { p_state_note: validation.stateNote }
       : {}),
   } satisfies CreatePlayRpcPayload;
-}
-
-async function awardCompletedPlayRewards(
-  supabase: SupabaseServerClient,
-  playId: string,
-  hasMeeting: boolean,
-): Promise<{ ok: true } | { ok: false; message: string }> {
-  const pointAward = await awardPlayPointsAfterSave(true, () =>
-    supabase.rpc("award_play_logged_points", { p_play_id: playId }),
-  );
-
-  if (!pointAward.ok) {
-    return {
-      ok: false,
-      message:
-        "Partia została zapisana, ale nie udało się naliczyć punktów. Odśwież Kronikę przed ponowną próbą.",
-    };
-  }
-
-  const achievementAward = await awardSimpleAchievementsAfterPlayCreate(() =>
-    supabase.rpc("award_current_user_simple_achievements"),
-  );
-
-  if (!achievementAward.ok) {
-    return {
-      ok: false,
-      message:
-        "Partia została zapisana, ale nie udało się sprawdzić nowych odznak. Odśwież Kronikę przed ponowną próbą.",
-    };
-  }
-
-  const campHostAward = await awardCampHostAfterPlaySave(hasMeeting, () =>
-    supabase.rpc("award_meeting_achievements", { p_play_id: playId }),
-  );
-
-  if (!campHostAward.ok) {
-    return {
-      ok: false,
-      message: "Nie udało się sprawdzić odznaki gospodarza po zapisie partii.",
-    };
-  }
-
-  const resultAchievementAward = await awardPlayResultAchievementsAfterSave(
-    () => supabase.rpc("award_play_result_achievements", { p_play_id: playId }),
-  );
-
-  if (!resultAchievementAward.ok) {
-    return {
-      ok: false,
-      message:
-        "Partia została zapisana, ale nie udało się sprawdzić odznaki za wynik. Odśwież Kronikę przed ponowną próbą.",
-    };
-  }
-
-  return { ok: true };
 }
 
 async function callCreatePlayWithParticipants(
@@ -254,20 +197,11 @@ export async function createPlayAction(
     };
   }
 
-  if (validation.data.status === "completed") {
-    const award = await awardCompletedPlayRewards(
-      access.supabase,
-      data,
-      Boolean(validation.data.meetingId),
-    );
-
-    if (!award.ok) {
-      return {
-        ok: false,
-        formState: { status: "error", message: award.message },
-      };
-    }
-  }
+  // Nagrody nalicza teraz baza, w tej samej transakcji co zapis partii
+  // (private.recompute_play_rewards wywoływane z RPC). Wcześniejsza sekwencja
+  // czterech osobnych wywołań RPC z tego miejsca zniknęła: mogła się nie
+  // wykonać po udanym zapisie i zostawić punkty oraz odznaki niespójne z
+  // danymi.
 
   revalidatePlaySurfaces({
     playId: data,
@@ -316,17 +250,12 @@ export async function updatePlayAction(
     };
   }
 
-  if (validation.data.status === "completed") {
-    const award = await awardCompletedPlayRewards(
-      access.supabase,
-      data,
-      Boolean(validation.data.meetingId),
-    );
-
-    if (!award.ok) {
-      return { status: "error", message: award.message };
-    }
-  }
+  // Nagrody nalicza baza w tej samej transakcji co edycję (recompute wołane z
+  // RPC). Dawne wywołanie award_play_logged_points z tego miejsca było nie
+  // tylko zbędne, ale i szkodliwe: ta funkcja odrzuca każdego, kto nie jest
+  // autorem partii, więc admin edytujący cudzy wpis dostawał komunikat o
+  // nieudanym naliczeniu punktów mimo poprawnie zapisanej i przeliczonej
+  // partii.
 
   revalidatePlaySurfaces({
     playId,
@@ -388,12 +317,13 @@ export async function deletePlayAction(playId: string) {
   const snapshot = await getPlayRevalidationSnapshot(access.supabase, playId);
   await removePlayPhotoFiles(access.supabase, playId);
 
-  const { data, error } = await access.supabase
-    .from("plays")
-    .delete()
-    .eq("id", playId)
-    .select("id")
-    .maybeSingle();
+  // Usuwanie idzie przez RPC, a nie przez bezpośredni DELETE na tabeli:
+  // skutki nagrodowe partii (punkty za zapis, odznaki uczestników) muszą
+  // zostać skompensowane w tej samej transakcji, w której znika sama partia.
+  // Pliki zdjęć kasujemy wcześniej — baza nie ma dostępu do Storage.
+  const { data, error } = await access.supabase.rpc("delete_play", {
+    p_play_id: playId,
+  });
 
   if (error || !data) {
     redirect(`/kronika/${playId}`);

@@ -24,8 +24,10 @@ import type {
   PlayFormData,
   PlayFormState,
   PlayFormValues,
+  PlayMode,
   PlayPhoto,
   PlayStatus,
+  PlayTeamResult,
 } from "./types";
 
 type PlayFormProps = {
@@ -81,6 +83,77 @@ function PlayStatusToggle({
           aria-pressed={status === option.value}
           className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
             status === option.value
+              ? "bg-[#7d2f3d] text-[#fff3ec]"
+              : "text-[#6b5140] hover:bg-[#f4e5cf]"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PlayModeToggle({
+  mode,
+  onChange,
+}: {
+  mode: PlayMode;
+  onChange: (mode: PlayMode) => void;
+}) {
+  return (
+    <div className="inline-flex rounded-full border border-[#9a7657]/35 bg-white/60 p-1">
+      <input type="hidden" name="mode" value={mode} />
+      {(
+        [
+          { value: "competitive" as const, label: "Rywalizacja" },
+          { value: "cooperative" as const, label: "Kooperacja" },
+        ] satisfies Array<{ value: PlayMode; label: string }>
+      ).map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          aria-pressed={mode === option.value}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
+            mode === option.value
+              ? "bg-[#7d2f3d] text-[#fff3ec]"
+              : "text-[#6b5140] hover:bg-[#f4e5cf]"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function TeamResultToggle({
+  teamResult,
+  onChange,
+  disabled,
+}: {
+  teamResult: PlayTeamResult | "";
+  onChange: (teamResult: PlayTeamResult) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="inline-flex rounded-full border border-[#9a7657]/35 bg-white/60 p-1">
+      <input type="hidden" name="teamResult" value={teamResult} />
+      {(
+        [
+          { value: "win" as const, label: "Drużyna wygrała" },
+          { value: "loss" as const, label: "Drużyna przegrała" },
+        ] satisfies Array<{ value: PlayTeamResult; label: string }>
+      ).map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(option.value)}
+          aria-pressed={teamResult === option.value}
+          className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition disabled:opacity-45 ${
+            teamResult === option.value
               ? "bg-[#7d2f3d] text-[#fff3ec]"
               : "text-[#6b5140] hover:bg-[#f4e5cf]"
           }`}
@@ -165,6 +238,10 @@ export function PlayForm(props: PlayFormProps) {
   const formState = isCreateMode ? createFormState : editState;
   const values = formState.submittedValues ?? initialValues;
   const [status, setStatus] = useState<PlayStatus>(values.status);
+  const [mode, setMode] = useState<PlayMode>(values.mode);
+  const [teamResult, setTeamResult] = useState<PlayTeamResult | "">(
+    values.teamResult,
+  );
 
   const inputClass =
     "paper-wash focus:border-gold focus:ring-gold/20 mt-1.5 h-11 w-full rounded-xl border border-[#9a7657]/35 px-3.5 text-sm text-[#503828] outline-none transition focus:ring-4";
@@ -439,11 +516,42 @@ export function PlayForm(props: PlayFormProps) {
             </h2>
           </div>
 
+          <div className="flex flex-wrap items-center gap-2">
+            <PlayModeToggle
+              mode={mode}
+              onChange={(nextMode) => {
+                setMode(nextMode);
+                // Wynik drużyny istnieje tylko w kooperacji — przy powrocie do
+                // rywalizacji musi zniknąć, inaczej zapis zostałby odrzucony.
+                if (nextMode === "competitive") setTeamResult("");
+              }}
+            />
+
+            {mode === "cooperative" ? (
+              <TeamResultToggle
+                teamResult={teamResult}
+                onChange={setTeamResult}
+                disabled={status !== "completed"}
+              />
+            ) : null}
+          </div>
+
+          {mode === "cooperative" ? (
+            <p className="text-xs text-[#6b5140]">
+              W grze kooperacyjnej wynik dotyczy całej drużyny — nie ma miejsc
+              ani indywidualnego zwycięzcy.
+            </p>
+          ) : null}
+
+          <FieldError error={formState.fieldErrors?.teamResult} />
+
           <PlayParticipantsField
             key={`participants-${JSON.stringify(values.participants)}`}
             members={members}
             defaultValue={values.participants}
             status={status}
+            mode={mode}
+            teamResult={teamResult}
             error={formState.fieldErrors?.participants}
             participantErrors={formState.participantFieldErrors}
           />

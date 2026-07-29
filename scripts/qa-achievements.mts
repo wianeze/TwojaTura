@@ -221,6 +221,8 @@ async function upsertPlay(
     gameId: string;
     playedAt: string;
     meetingId?: string | null;
+    mode?: "competitive" | "cooperative";
+    teamResult?: "win" | "loss" | null;
     participants: Array<{
       user: QaUser;
       placement: number | null;
@@ -238,6 +240,8 @@ async function upsertPlay(
         played_at: options.playedAt,
         duration_minutes: 90,
         comment: "QA fixture osiągnięć",
+        mode: options.mode ?? "competitive",
+        team_result: options.teamResult ?? null,
       })
     ).error,
     `Nie udało się przygotować partii ${options.id}`,
@@ -384,10 +388,15 @@ async function prepareProgressFixtures(
       owner: coop,
       gameId: coopGames[index - 1].id,
       playedAt: `2025-09-0${index}T12:00:00.000Z`,
+      // Prawdziwy tryb kooperacyjny: wynik należy do drużyny, miejsc nie ma
+      // wcale. Wcześniej ten fixture udawał kooperację zapisem 1/1/1, który w
+      // nowym modelu jest po prostu remisem w partii rywalizacyjnej.
+      mode: "cooperative",
+      teamResult: "win",
       participants: [
-        { user: coop, placement: 1, winner: true },
-        { user: lastOne, placement: 1, winner: true },
-        { user: lastTwo, placement: 1, winner: true },
+        { user: coop, placement: null, winner: true },
+        { user: lastOne, placement: null, winner: true },
+        { user: lastTwo, placement: null, winner: true },
       ],
     });
   }
@@ -569,6 +578,8 @@ function currentWinStreak(
     played_at: string;
     created_at: string;
     play_id: string;
+    mode?: "competitive" | "cooperative";
+    team_result?: "win" | "loss" | null;
   }>,
 ) {
   const ordered = [...results].sort(
@@ -579,7 +590,15 @@ function currentWinStreak(
   );
   let streak = 0;
   for (const result of ordered) {
-    streak = result.placement === 1 || result.is_winner ? streak + 1 : 0;
+    // Ta sama reguła co private.qualifies_for_achievement dla dark_urge:
+    // zwycięstwo to wyłącznie is_winner, a partia bez rozstrzygnięcia
+    // (kooperacja bez wyniku drużyny) nie jest w ogóle liczona.
+    const hasResult =
+      (result.mode ?? "competitive") === "competitive" ||
+      (result.team_result ?? null) !== null;
+    if (!hasResult) continue;
+
+    streak = result.is_winner ? streak + 1 : 0;
   }
   return streak;
 }
@@ -691,7 +710,9 @@ async function checkQaFixtures(config: LocalConfig, service: SupabaseClient) {
         .in("play_id", playIds),
       service
         .from("plays")
-        .select("id, meeting_id, created_by, played_at, created_at")
+        .select(
+          "id, meeting_id, created_by, played_at, created_at, mode, team_result",
+        )
         .in("id", playIds),
       service
         .from("user_achievements")
@@ -742,6 +763,8 @@ async function checkQaFixtures(config: LocalConfig, service: SupabaseClient) {
       played_at: string;
       created_at: string;
       play_id: string;
+      mode: "competitive" | "cooperative";
+      team_result: "win" | "loss" | null;
     }>
   >();
   for (const participant of ownParticipantsResult.data ?? []) {
@@ -754,6 +777,8 @@ async function checkQaFixtures(config: LocalConfig, service: SupabaseClient) {
       played_at: play.played_at,
       created_at: play.created_at,
       play_id: participant.play_id,
+      mode: play.mode,
+      team_result: play.team_result,
     });
     resultsByUser.set(participant.user_id, rows);
   }
