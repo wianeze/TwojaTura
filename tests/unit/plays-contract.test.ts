@@ -6,6 +6,7 @@ import {
   formatPlayCompactDateTime,
   getPlayFormValues,
   getPlayPodium,
+  getPlayResultLabel,
   getWinnerSummary,
   groupPlaysByMonth,
   sortPlaysByPlayedAtDesc,
@@ -24,8 +25,13 @@ import { awardPlayResultAchievementsAfterSave } from "../../src/features/plays/p
 import { awardCampHostAfterPlaySave } from "../../src/features/plays/meeting-achievements.ts";
 import {
   addParticipantDraft,
+  applyTeamResultToDrafts,
+  clearParticipantPlacements,
   clearParticipantWinners,
 } from "../../src/features/plays/participant-drafts.ts";
+
+const MEMBER_A = "10000000-0000-0000-0000-000000000002";
+const MEMBER_B = "10000000-0000-0000-0000-000000000003";
 
 test("adding the first participant to a completed play marks them as winner", () => {
   const drafts = addParticipantDraft(
@@ -266,6 +272,8 @@ function buildFormData(
     comment: string;
     status: string;
     stateNote: string;
+    mode: string;
+    teamResult: string;
     participants: string;
   }>,
 ) {
@@ -281,6 +289,8 @@ function buildFormData(
   formData.set("comment", overrides?.comment ?? "Świetna końcówka.");
   formData.set("status", overrides?.status ?? "completed");
   formData.set("stateNote", overrides?.stateNote ?? "");
+  formData.set("mode", overrides?.mode ?? "competitive");
+  formData.set("teamResult", overrides?.teamResult ?? "");
   formData.set(
     "participants",
     overrides?.participants ?? buildParticipantsInput(),
@@ -299,6 +309,8 @@ function createPlay(overrides?: Partial<PlayListItem>): PlayListItem {
     id: overrides?.id ?? "play-1",
     playedAt: overrides?.playedAt ?? "2026-07-18T16:30:00.000Z",
     durationMinutes: overrides?.durationMinutes ?? 95,
+    mode: overrides?.mode ?? "competitive",
+    teamResult: overrides?.teamResult ?? null,
     comment: overrides?.comment ?? null,
     status: overrides?.status ?? "completed",
     stateNote: overrides?.stateNote ?? null,
@@ -744,6 +756,178 @@ test("chronicle participant chips fall back to winner flag when placements are m
   ]);
 });
 
+test("cooperative loss is accepted with no winners at all", () => {
+  const result = validatePlayFormData(
+    buildFormData({
+      mode: "cooperative",
+      teamResult: "loss",
+      participants: JSON.stringify([
+        { userId: MEMBER_A, isWinner: false, placement: "", score: "" },
+        { userId: MEMBER_B, isWinner: false, placement: "", score: "" },
+      ]),
+    }),
+    [MEMBER_A, MEMBER_B],
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.data.mode, "cooperative");
+  assert.equal(result.data.teamResult, "loss");
+  assert.deepEqual(
+    result.data.participants.map((participant) => participant.isWinner),
+    [false, false],
+  );
+});
+
+test("cooperative completed play requires a team result", () => {
+  const result = validatePlayFormData(
+    buildFormData({
+      mode: "cooperative",
+      teamResult: "",
+      participants: JSON.stringify([
+        { userId: MEMBER_A, isWinner: false, placement: "", score: "" },
+      ]),
+    }),
+    [MEMBER_A],
+  );
+
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.match(result.fieldErrors.teamResult ?? "", /wynik drużyny/i);
+});
+
+test("cooperative play rejects participant placements", () => {
+  const result = validatePlayFormData(
+    buildFormData({
+      mode: "cooperative",
+      teamResult: "win",
+      participants: JSON.stringify([
+        { userId: MEMBER_A, isWinner: true, placement: "1", score: "" },
+      ]),
+    }),
+    [MEMBER_A],
+  );
+
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.match(result.fieldErrors.participants ?? "", /nie ma miejsc/i);
+});
+
+test("cooperative win requires every participant to share the result", () => {
+  const result = validatePlayFormData(
+    buildFormData({
+      mode: "cooperative",
+      teamResult: "win",
+      participants: JSON.stringify([
+        { userId: MEMBER_A, isWinner: true, placement: "", score: "" },
+        { userId: MEMBER_B, isWinner: false, placement: "", score: "" },
+      ]),
+    }),
+    [MEMBER_A, MEMBER_B],
+  );
+
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.match(result.fieldErrors.participants ?? "", /ten sam wynik/i);
+});
+
+test("competitive play still rejects a team result", () => {
+  const result = validatePlayFormData(
+    buildFormData({ mode: "competitive", teamResult: "win" }),
+    [MEMBER_A, MEMBER_B],
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  // Wynik drużyny jest ignorowany poza kooperacją — do bazy trafia null,
+  // dzięki czemu CHECK plays_team_result_matches_mode nigdy nie jest łamany.
+  assert.equal(result.data.teamResult, null);
+});
+
+test("switching to cooperative clears placements in participant drafts", () => {
+  const drafts = [
+    { userId: MEMBER_A, isWinner: true, placement: "1", score: "10" },
+    { userId: MEMBER_B, isWinner: false, placement: "2", score: "8" },
+  ];
+
+  assert.deepEqual(
+    clearParticipantPlacements(drafts).map((draft) => draft.placement),
+    ["", ""],
+  );
+});
+
+test("team result is applied to every cooperative participant", () => {
+  const drafts = [
+    { userId: MEMBER_A, isWinner: false, placement: "", score: "" },
+    { userId: MEMBER_B, isWinner: false, placement: "", score: "" },
+  ];
+
+  assert.deepEqual(
+    applyTeamResultToDrafts(drafts, "completed", "win").map(
+      (draft) => draft.isWinner,
+    ),
+    [true, true],
+  );
+  assert.deepEqual(
+    applyTeamResultToDrafts(drafts, "completed", "loss").map(
+      (draft) => draft.isWinner,
+    ),
+    [false, false],
+  );
+});
+
+test("cooperative play never renders podium medals", () => {
+  const member = (id: string, displayName: string): PlayMember => ({
+    id,
+    displayName,
+    avatarUrl: null,
+  });
+
+  // Wszyscy uczestnicy kooperacyjnej wygranej mają isWinner = true. Bez
+  // rozpoznania trybu zadziałałby fallback „zwycięzca = pierwsze miejsce”
+  // i cała drużyna dostałaby złote medale.
+  const participants = [
+    {
+      member: member(MEMBER_A, "Marta"),
+      placement: null,
+      score: null,
+      isWinner: true,
+    },
+    {
+      member: member(MEMBER_B, "Michał"),
+      placement: null,
+      score: null,
+      isWinner: true,
+    },
+  ];
+
+  assert.deepEqual(
+    getChronicleParticipantChips(participants, "cooperative").map(
+      (chip) => chip.medalRank,
+    ),
+    [null, null],
+  );
+
+  // W rywalizacji fallback ma nadal działać jak dotąd.
+  assert.deepEqual(
+    getChronicleParticipantChips(participants, "competitive").map(
+      (chip) => chip.medalRank,
+    ),
+    [1, 1],
+  );
+});
+
+test("cooperative result label replaces the winner list", () => {
+  assert.equal(
+    getPlayResultLabel("completed", [], "cooperative", "win"),
+    "Wygrana drużyny",
+  );
+  assert.equal(
+    getPlayResultLabel("completed", [], "cooperative", "loss"),
+    "Porażka drużyny",
+  );
+});
+
 test("meeting prefill contract maps starts_at into play form values", () => {
   const meeting: PlayFormMeetingOption = {
     id: "meeting-1",
@@ -762,6 +946,10 @@ test("meeting prefill contract maps starts_at into play form values", () => {
     comment: "",
     status: "completed",
     stateNote: "",
+    // Nowa partia startuje w trybie rywalizacyjnym — tak samo jak wszystkie
+    // wpisy sprzed wdrożenia trybu kooperacyjnego.
+    mode: "competitive",
+    teamResult: "",
     participants: [],
   });
 });
