@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import { ActionButton, ActionLink } from "@/components/ui/action-button";
 import type { PropsWithChildren } from "react";
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { countAdvancedShelfFilters } from "./filters";
 import type { GameFilterOptions, GameFilters } from "./types";
@@ -14,6 +15,17 @@ type ShelfFiltersProps = {
 };
 
 const timeOptions = [30, 45, 60, 90, 120, 150, 180, 240];
+
+/*
+ * Arkusz filtrów renderujemy przez portal do <body>, bo sekcja filtrów ma
+ * klasę wejścia (.anim-rise-in-fast) z animation-fill-mode: both — utrwalony
+ * transform tworzy kontekst układania i zamyka w nim pozycjonowanie fixed,
+ * przez co nakładka chowała się pod kafelkami Półki.
+ *
+ * Portal wynosi pola poza <form>, więc każde z nich wiążemy z formularzem
+ * atrybutem form="…". Zachowanie wysyłki zostaje bez zmian.
+ */
+const MOBILE_FORM_ID = "shelf-filters-mobile";
 
 function pluralizeGames(count: number) {
   if (count === 1) return "gra";
@@ -33,11 +45,13 @@ function FilterChip({
   value,
   label,
   defaultChecked,
+  form,
 }: {
   name: string;
   value: string;
   label: string;
   defaultChecked: boolean;
+  form?: string;
 }) {
   return (
     <label className="cursor-pointer">
@@ -46,6 +60,7 @@ function FilterChip({
         name={name}
         value={value}
         defaultChecked={defaultChecked}
+        form={form}
         className="peer sr-only"
       />
       <span className="paper-wash peer-checked:bg-brand peer-checked:text-cream inline-flex rounded-full px-3 py-2 text-xs font-semibold text-[#6d5037] transition-colors">
@@ -59,20 +74,23 @@ function FilterSelect({
   label,
   name,
   defaultValue,
+  form,
   children,
 }: PropsWithChildren<{
   label: string;
   name: string;
   defaultValue: string;
+  form?: string;
 }>) {
   return (
     <label className="block text-xs font-semibold text-[#5b4332]">
-      <span className="mb-1.5 block tracking-[0.14em] text-[#9a7251] uppercase">
+      <span className="mb-1 block tracking-[0.14em] text-[#9a7251] uppercase">
         {label}
       </span>
       <select
         name={name}
         defaultValue={defaultValue}
+        form={form}
         className="paper-wash focus:border-gold focus:ring-gold/20 h-10 w-full rounded-xl border border-[#9a7657]/28 px-3 text-sm text-[#503828] transition outline-none focus:ring-4"
       >
         {children}
@@ -86,11 +104,13 @@ function FilterChipsGroup({
   name,
   values,
   selectedValues,
+  form,
 }: {
   label: string;
   name: string;
   values: string[];
   selectedValues: string[];
+  form?: string;
 }) {
   if (values.length === 0) return null;
 
@@ -99,7 +119,7 @@ function FilterChipsGroup({
       <p className="text-xs font-semibold tracking-[0.14em] text-[#9a7251] uppercase">
         {label}
       </p>
-      <div className="mt-2 flex flex-wrap gap-2">
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
         {values.map((value) => (
           <FilterChip
             key={value}
@@ -107,6 +127,7 @@ function FilterChipsGroup({
             value={value}
             label={value}
             defaultChecked={selectedValues.includes(value)}
+            form={form}
           />
         ))}
       </div>
@@ -117,17 +138,26 @@ function FilterChipsGroup({
 function AdvancedFilterPanel({
   filters,
   options,
+  form,
+  compact = false,
 }: {
   filters: GameFilters;
   options: GameFilterOptions;
+  form?: string;
+  compact?: boolean;
 }) {
   return (
-    <div className="paper-wash rounded-[1.4rem] border border-[#9a7657]/18 p-4">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,0.75fr)_minmax(0,1fr)_minmax(0,1fr)]">
+    <div
+      className={`paper-wash rounded-[1.4rem] border border-[#9a7657]/18 ${compact ? "p-3" : "p-4"}`}
+    >
+      <div
+        className={`grid md:grid-cols-2 xl:grid-cols-[minmax(0,0.75fr)_minmax(0,1fr)_minmax(0,1fr)] ${compact ? "gap-3" : "gap-4"}`}
+      >
         <FilterSelect
           label="Typ gry"
           name="type"
           defaultValue={filters.type ?? ""}
+          form={form}
         >
           <option value="">Każdy typ</option>
           {options.types.map((type) => (
@@ -142,6 +172,7 @@ function AdvancedFilterPanel({
           name="mechanic"
           values={options.mechanics}
           selectedValues={filters.mechanics}
+          form={form}
         />
 
         <FilterChipsGroup
@@ -149,6 +180,7 @@ function AdvancedFilterPanel({
           name="category"
           values={options.categories}
           selectedValues={filters.categories}
+          form={form}
         />
       </div>
     </div>
@@ -300,28 +332,38 @@ export function ShelfFilters({
           </FilterSelect>
 
           <div className="mt-[1.55rem] flex flex-wrap items-center justify-end gap-2 md:col-span-2 xl:col-span-1 xl:justify-start">
-            <button
+            <ActionButton
               type="button"
+              action="neutral"
+              size="compact"
+              emphasis="secondary"
+              pill
+              withIcon={false}
               onClick={() => setIsDesktopAdvancedOpen((current) => !current)}
-              className="paper-wash h-10 rounded-xl px-3 text-sm font-semibold text-[#6d5037]"
               aria-expanded={isDesktopAdvancedOpen}
             >
               {advancedCount > 0 ? `Filtry · ${advancedCount}` : "Filtry"}
-            </button>
+            </ActionButton>
 
-            <button
+            <ActionButton
               type="submit"
-              className="cta-glow bg-brand hover:bg-brand-strong h-10 rounded-xl px-4 text-sm font-semibold text-white transition-colors"
+              action="shelf"
+              size="compact"
+              withIcon={false}
             >
               Zastosuj
-            </button>
+            </ActionButton>
 
-            <Link
+            <ActionLink
+              action="neutral"
+              size="compact"
+              emphasis="secondary"
+              pill
+              withIcon={false}
               href="/gry"
-              className="paper-wash inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold text-[#6d5037]"
             >
               Wyczyść
-            </Link>
+            </ActionLink>
           </div>
         </div>
 
@@ -330,7 +372,11 @@ export function ShelfFilters({
         )}
       </form>
 
-      <form method="get" className="mt-4 space-y-3 md:hidden">
+      <form
+        id={MOBILE_FORM_ID}
+        method="get"
+        className="mt-4 space-y-3 md:hidden"
+      >
         <PersistAdvancedFiltersHidden
           filters={filters}
           enabled={!isMobileOpen}
@@ -349,65 +395,82 @@ export function ShelfFilters({
         </label>
 
         <div className="flex flex-wrap gap-2">
-          <button
+          <ActionButton
             type="button"
+            action="neutral"
+            size="compact"
+            emphasis="secondary"
+            pill
+            withIcon={false}
             onClick={() => setIsMobileOpen(true)}
-            className="wood-grain text-cream rounded-xl px-4 py-2.5 text-sm font-semibold"
             aria-expanded={isMobileOpen}
           >
             {advancedCount > 0 ? `Filtry · ${advancedCount}` : "Filtry"}
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             type="submit"
-            className="cta-glow bg-brand hover:bg-brand-strong rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+            action="shelf"
+            size="compact"
+            withIcon={false}
           >
             Zastosuj
-          </button>
-          <Link
+          </ActionButton>
+          <ActionLink
+            action="neutral"
+            size="compact"
+            emphasis="secondary"
+            pill
+            withIcon={false}
             href="/gry"
-            className="paper-wash rounded-xl px-4 py-2.5 text-sm font-semibold text-[#6d5037]"
           >
             Wyczyść
-          </Link>
+          </ActionLink>
         </div>
+      </form>
 
-        {isMobileOpen && (
+      {isMobileOpen &&
+        createPortal(
           <div
-            className="fixed inset-0 z-[70] bg-[#1c120d]/72 backdrop-blur-sm"
+            className="fixed inset-0 z-[80] flex items-end bg-[#1c120d]/72 backdrop-blur-sm"
             role="dialog"
             aria-modal="true"
             aria-label="Filtry Półki"
             onClick={() => setIsMobileOpen(false)}
           >
-            <div className="flex min-h-full items-end">
-              <div
-                className="parchment-card premium-edge relative w-full rounded-t-[2rem] p-5"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-accent text-[0.62rem] font-bold tracking-[0.18em] uppercase">
-                      Filtry Półki
-                    </p>
-                    <h3 className="font-display mt-2 text-2xl font-semibold text-[#4c3528]">
-                      Ustaw kryteria widoku
-                    </h3>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsMobileOpen(false)}
-                    className="wood-grain text-cream grid size-9 place-items-center rounded-full text-lg"
-                    aria-label="Zamknij filtry"
-                  >
-                    ×
-                  </button>
+            {/*
+              Arkusz nigdy nie wychodzi poza ekran: ograniczony do 88 % wysokości
+              okna, z przewijaniem w środku i akcjami przyklejonymi do dołu.
+            */}
+            <div
+              className="parchment-card premium-edge relative flex max-h-[88dvh] w-full flex-col rounded-t-[1.75rem]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-center justify-between gap-3 px-4 pt-4">
+                <div>
+                  <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
+                    Filtry Półki
+                  </p>
+                  <h3 className="font-display mt-0.5 text-lg font-semibold text-[#4c3528]">
+                    Ustaw kryteria widoku
+                  </h3>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileOpen(false)}
+                  className="wood-grain text-cream grid size-8 shrink-0 place-items-center rounded-full text-base"
+                  aria-label="Zamknij filtry"
+                >
+                  ×
+                </button>
+              </div>
 
-                <div className="mt-5 space-y-4">
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
+                <div className="grid grid-cols-2 gap-2.5">
                   <FilterSelect
                     label="Właściciel"
                     name="owner"
                     defaultValue={filters.owner ?? ""}
+                    form={MOBILE_FORM_ID}
                   >
                     <option value="">Wszyscy</option>
                     {options.owners.map((owner) => (
@@ -417,34 +480,34 @@ export function ShelfFilters({
                     ))}
                   </FilterSelect>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <FilterSelect
-                      label="Status"
-                      name="status"
-                      defaultValue={filters.status ?? ""}
-                    >
-                      <option value="">Każdy</option>
-                      <option value="available">Dostępna</option>
-                      <option value="unavailable">Niedostępna</option>
-                      <option value="loaned">Pożyczona</option>
-                    </FilterSelect>
+                  <FilterSelect
+                    label="Status"
+                    name="status"
+                    defaultValue={filters.status ?? ""}
+                    form={MOBILE_FORM_ID}
+                  >
+                    <option value="">Każdy</option>
+                    <option value="available">Dostępna</option>
+                    <option value="unavailable">Niedostępna</option>
+                    <option value="loaned">Pożyczona</option>
+                  </FilterSelect>
 
-                    <FilterSelect
-                      label="Maks. czas"
-                      name="maxTime"
-                      defaultValue={filters.maxTime?.toString() ?? ""}
-                    >
-                      <option value="">Bez limitu</option>
-                      {timeOptions.map((time) => (
-                        <option key={time} value={time}>
-                          do {time} min
-                        </option>
-                      ))}
-                    </FilterSelect>
-                  </div>
+                  <FilterSelect
+                    label="Maks. czas"
+                    name="maxTime"
+                    defaultValue={filters.maxTime?.toString() ?? ""}
+                    form={MOBILE_FORM_ID}
+                  >
+                    <option value="">Bez limitu</option>
+                    {timeOptions.map((time) => (
+                      <option key={time} value={time}>
+                        do {time} min
+                      </option>
+                    ))}
+                  </FilterSelect>
 
                   <label className="block text-xs font-semibold text-[#5b4332]">
-                    <span className="mb-1.5 block tracking-[0.14em] text-[#9a7251] uppercase">
+                    <span className="mb-1 block tracking-[0.14em] text-[#9a7251] uppercase">
                       Gracze
                     </span>
                     <input
@@ -455,38 +518,54 @@ export function ShelfFilters({
                       name="players"
                       defaultValue={filters.players ?? ""}
                       placeholder="np. 4"
+                      form={MOBILE_FORM_ID}
                     />
                   </label>
-
-                  <AdvancedFilterPanel filters={filters} options={options} />
                 </div>
 
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <button
-                    type="submit"
-                    className="cta-glow bg-brand hover:bg-brand-strong rounded-xl px-4 py-3 text-sm font-semibold text-white transition-colors"
-                  >
-                    Zastosuj filtry
-                  </button>
-                  <Link
-                    href="/gry"
-                    className="paper-wash rounded-xl px-4 py-3 text-sm font-semibold text-[#6d5037]"
-                  >
-                    Wyczyść
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setIsMobileOpen(false)}
-                    className="paper-wash rounded-xl px-4 py-3 text-sm font-semibold text-[#6d5037]"
-                  >
-                    Zamknij
-                  </button>
-                </div>
+                <AdvancedFilterPanel
+                  filters={filters}
+                  options={options}
+                  form={MOBILE_FORM_ID}
+                  compact
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2 border-t border-[#b99d72]/40 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+                <ActionButton
+                  type="submit"
+                  action="shelf"
+                  size="compact"
+                  withIcon={false}
+                  form={MOBILE_FORM_ID}
+                >
+                  Zastosuj filtry
+                </ActionButton>
+                <ActionLink
+                  action="neutral"
+                  size="compact"
+                  emphasis="secondary"
+                  withIcon={false}
+                  href="/gry"
+                >
+                  Wyczyść
+                </ActionLink>
+                <ActionButton
+                  type="button"
+                  action="neutral"
+                  size="compact"
+                  emphasis="secondary"
+                  withIcon={false}
+                  className="ml-auto"
+                  onClick={() => setIsMobileOpen(false)}
+                >
+                  Zamknij
+                </ActionButton>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body,
         )}
-      </form>
     </section>
   );
 }

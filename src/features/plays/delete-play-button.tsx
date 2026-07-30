@@ -1,19 +1,23 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { ActionButton } from "@/components/ui/action-button";
 import { useCanWrite } from "@/features/auth/member-role-context";
 
 function DeletePlaySubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <button
+    <ActionButton
       type="submit"
+      action="danger"
+      size="compact"
       disabled={pending}
-      className="rounded-full border border-[#b9876a]/40 bg-white/70 px-4 py-2 text-xs font-bold text-[#8a433a] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-70"
+      loading={pending}
+      loadingLabel="Usuwanie..."
     >
-      {pending ? "Usuwanie..." : "Usuń"}
-    </button>
+      Usuń
+    </ActionButton>
   );
 }
 

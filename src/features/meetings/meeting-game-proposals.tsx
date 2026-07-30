@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { ActionButton } from "@/components/ui/action-button";
 import { GameCover } from "@/components/ui/game-cover";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { toggleMeetingVoteAction } from "./actions";
@@ -52,13 +53,19 @@ export function MeetingGameProposals({
           kandydatów na ten wieczór.
         </p>
 
-        <button
+        {/*
+          Po zawinięciu na wąskim ekranie justify-between ustawiłoby przycisk
+          przy lewej krawędzi — ml-auto trzyma go po prawej w obu układach.
+        */}
+        <ActionButton
           type="button"
+          action="vote"
+          size="compact"
+          className="ml-auto"
           onClick={() => setIsOpen(true)}
-          className="rounded-full bg-[#7d2f3d] px-3.5 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
         >
-          + Proponuj grę
-        </button>
+          Proponuj grę
+        </ActionButton>
       </div>
 
       {games.length > 0 ? (
@@ -161,24 +168,20 @@ export function MeetingGameProposals({
                     <span className="bg-moss/12 text-moss rounded-full px-2.5 py-1 text-[0.64rem] font-bold">
                       Twój głos
                     </span>
-                  ) : game.alreadyProposed ? (
-                    <button
-                      type="button"
-                      disabled={pending}
-                      onClick={() => handlePropose(game.gameId)}
-                      className="cta-glow rounded-full border border-[#7d2f3d]/28 px-3 py-1.5 text-[0.68rem] font-bold text-[#7d2f3d] disabled:opacity-60"
-                    >
-                      Głosuj
-                    </button>
                   ) : (
-                    <button
+                    // Obie ścieżki wołają tę samą akcję głosowania, więc
+                    // noszą ten sam wariant — różni je tylko etykieta.
+                    <ActionButton
                       type="button"
+                      action="vote"
+                      size="compact"
                       disabled={pending}
+                      loading={pending}
+                      loadingLabel="Dodaję…"
                       onClick={() => handlePropose(game.gameId)}
-                      className="cta-glow rounded-full bg-[#7d2f3d] px-3 py-1.5 text-[0.68rem] font-bold text-[#fff3ec] disabled:opacity-60"
                     >
-                      {pending ? "Dodaję…" : "Proponuj"}
-                    </button>
+                      {game.alreadyProposed ? "Głosuj" : "Proponuj"}
+                    </ActionButton>
                   )}
                 </div>
               ))}

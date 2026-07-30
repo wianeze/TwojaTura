@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { ActionLink } from "@/components/ui/action-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
@@ -57,12 +57,19 @@ export default async function GamesPage({
           <span className="bg-moss-soft text-moss w-fit rounded-full px-4 py-2 text-xs font-bold">
             {pluralizeGames(shelf.totalCount)} na półce
           </span>
-          <Link
+          {/*
+            Na smartfonie rząd jest wyrównany do lewej — ml-auto dosuwa
+            akcję do prawej krawędzi, także gdy zawinie się pod licznik.
+            Od md: układ przejmuje justify-end i margines znika.
+          */}
+          <ActionLink
+            action="shelf"
+            size="compact"
             href="/gry/nowa"
-            className="inline-flex rounded-full bg-[#7d2f3d] px-4 py-2 text-xs font-bold text-[#fff3ec] shadow-[0_10px_24px_rgba(73,21,31,0.28)] transition-colors hover:bg-[#8d3747]"
+            className="ml-auto md:ml-0"
           >
             Dodaj egzemplarz
-          </Link>
+          </ActionLink>
         </div>
       </header>
 
@@ -85,12 +92,9 @@ export default async function GamesPage({
           <p className="text-muted max-w-2xl text-sm leading-6">
             Spróbuj poluzować kryteria albo wróć do pełnej Półki całej grupy.
           </p>
-          <Link
-            href="/gry"
-            className="bg-brand hover:bg-brand-strong inline-flex rounded-xl px-4 py-3 text-sm font-semibold text-white transition-colors"
-          >
+          <ActionLink action="neutral" href="/gry">
             Wyczyść filtry
-          </Link>
+          </ActionLink>
         </Panel>
       ) : (
         <div className="space-y-5">
@@ -108,12 +112,9 @@ export default async function GamesPage({
                 grupy wraz z właścicielem, statusem i ocenami.
               </p>
             </div>
-            <Link
-              href="/gry/nowa"
-              className="bg-brand hover:bg-brand-strong rounded-xl px-4 py-3 text-sm font-semibold text-white transition-colors"
-            >
+            <ActionLink action="shelf" size="large" href="/gry/nowa">
               Dodaj pierwszą grę
-            </Link>
+            </ActionLink>
           </Panel>
         </div>
       )}

@@ -1,0 +1,915 @@
+/*
+ * Prototypowe style Button Labu (trasa /lab/przyciski).
+ * Wszystko pod prefiksem .lab- — nic tutaj nie jest używane przez
+ * produkcyjne przyciski aplikacji i nie nadpisuje globals.css.
+ *
+ * Model: klasa .lab-act-* ustawia tokeny barwy wariantu, klasa
+ * .lab-dir-* buduje z nich wygląd danego kierunku. Dzięki temu
+ * kierunki różnią się mechanizmem, a nie tylko odcieniem.
+ */
+
+.lab-act-meeting {
+  --hue-light: #d9873a;
+  --hue-base: #b96f22;
+  --hue-dark: #8f5417;
+  --hue-rgb: 223, 106, 53;
+  --hue-on: #fff6e6;
+  --hue-tint: #f3b96b;
+  --hue-bright: #f6c88a;
+  --hue-ink: #7a4712;
+  --hue-accent: #b96f22;
+  --hue-deep: #7f4410;
+}
+
+.lab-act-vote {
+  --hue-light: #4a8fbe;
+  --hue-base: #2e6b99;
+  --hue-dark: #22506f;
+  --hue-rgb: 93, 163, 214;
+  --hue-on: #f0f8ff;
+  --hue-tint: #9fd0ee;
+  --hue-bright: #a8d6f2;
+  --hue-ink: #235a80;
+  --hue-accent: #2e6b99;
+  --hue-deep: #1f4d70;
+}
+
+.lab-act-chronicle {
+  --hue-light: #8a68b4;
+  --hue-base: #6f4f9c;
+  --hue-dark: #503872;
+  --hue-rgb: 173, 134, 210;
+  --hue-on: #f8f1ff;
+  --hue-tint: #c8ade1;
+  --hue-bright: #d3bbe8;
+  --hue-ink: #59407f;
+  --hue-accent: #6f4f9c;
+  --hue-deep: #4d3570;
+}
+
+.lab-act-rating {
+  --hue-light: #5d8a58;
+  --hue-base: #49734b;
+  --hue-dark: #34532f;
+  --hue-rgb: 141, 178, 139;
+  --hue-on: #f2faef;
+  --hue-tint: #a9cba2;
+  --hue-bright: #b9d8b2;
+  --hue-ink: #3c6039;
+  --hue-accent: #49734b;
+  --hue-deep: #2b4b2c;
+}
+
+.lab-act-shelf {
+  --hue-light: #fffaf0;
+  --hue-base: #f4e7cd;
+  --hue-dark: #e2cfab;
+  --hue-rgb: 214, 160, 68;
+  --hue-on: #5c3d21;
+  --hue-tint: #c39a5c;
+  --hue-bright: #f7ecd6;
+  --hue-ink: #5c3d21;
+  --hue-accent: #b8862f;
+  --hue-deep: #674919;
+}
+
+.lab-act-neutral {
+  --hue-light: #efe7d8;
+  --hue-base: #ded2bd;
+  --hue-dark: #c9bba3;
+  --hue-rgb: 150, 128, 102;
+  --hue-on: #524029;
+  --hue-tint: #b7a68c;
+  --hue-bright: #e0d3c0;
+  --hue-ink: #524029;
+  --hue-accent: #8a7660;
+  --hue-deep: #4f4231;
+}
+
+.lab-act-danger {
+  --hue-light: #a8452f;
+  --hue-base: #8f3528;
+  --hue-dark: #6c2418;
+  --hue-rgb: 160, 60, 44;
+  --hue-on: #fff1e9;
+  --hue-tint: #e0a08c;
+  --hue-bright: #f0b7a4;
+  --hue-ink: #7d2c1f;
+  --hue-accent: #8f3528;
+  --hue-deep: #6b2116;
+}
+
+/* Baza wspólna dla wszystkich kierunków */
+
+/*
+ * Rejestrowana właściwość pozwala płynnie animować wypełnienie wnętrza
+ * przycisku barwą kategorii — zwykłe tło z gradientem nie interpoluje się
+ * między dwiema definicjami, a liczba już tak.
+ */
+@property --lab-glow {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+.lab-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  isolation: isolate;
+  --lab-glow: 0;
+  transition:
+    box-shadow 150ms ease,
+    transform 150ms ease,
+    filter 150ms ease,
+    color 200ms ease,
+    background-color 150ms ease,
+    --lab-glow 220ms ease;
+}
+
+/*
+ * Etykieta ma prawo do maksymalnie dwóch linii. Kiedy przycisk jest wąski,
+ * znika ikona, a nie czytelność nazwy akcji — font i wysokość zostają bez
+ * zmian, więc wariant z ikoną i bez ikony mają tę samą wysokość.
+ */
+.lab-fit {
+  container-type: inline-size;
+}
+
+@container (max-width: 160px) {
+  .lab-btn-icon {
+    display: none;
+  }
+}
+
+.lab-btn:focus-visible,
+.lab-btn[data-force="focus"] {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.lab-btn:disabled,
+.lab-btn[data-force="disabled"] {
+  cursor: not-allowed;
+  opacity: 0.5;
+  filter: grayscale(0.35);
+  transform: none;
+}
+
+.lab-btn-label {
+  display: inline-flex;
+  align-items: center;
+  gap: inherit;
+  min-width: 0;
+}
+
+.lab-btn-label-hidden {
+  visibility: hidden;
+}
+
+.lab-btn-spinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.lab-btn-spinner::after {
+  content: "";
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: lab-btn-spin 700ms linear infinite;
+}
+
+@keyframes lab-btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Rozmiary */
+
+.lab-size-compact {
+  min-height: 40px;
+  padding: 0 14px;
+  gap: 8px;
+  font-size: 0.8125rem;
+}
+
+.lab-size-default {
+  min-height: 44px;
+  padding: 0 18px;
+  gap: 10px;
+  font-size: 0.875rem;
+}
+
+.lab-size-large {
+  min-height: 50px;
+  padding: 0 24px;
+  gap: 10px;
+  font-size: 0.9375rem;
+}
+
+/*
+ * Kafel hero Stołu: przy 360 px kolumna ma ~104 px, więc etykieta i tak
+ * łamie się na dwie linie. Ikona zostaje w rzędzie obok tekstu — ustawiona
+ * nad tekstem podbijałaby kafel do ~60 px, czyli ponad zakładane 40–42 px.
+ */
+.lab-size-hero {
+  min-height: 42px;
+  padding: 6px 8px;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  width: 100%;
+}
+
+.lab-size-hero .lab-btn-label {
+  align-items: center;
+  gap: 6px;
+}
+
+@media (min-width: 640px) {
+  .lab-size-compact {
+    min-height: 36px;
+    padding: 0 12px;
+  }
+
+  .lab-size-default {
+    min-height: 42px;
+    padding: 0 16px;
+    font-size: 0.84rem;
+  }
+
+  .lab-size-large {
+    min-height: 46px;
+    padding: 0 20px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Kierunek A — rzeźbione fantasy: barwa niesiona przez tłoczenie i fazę */
+
+.lab-dir-a {
+  border: 2px solid var(--hue-tint);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--hue-light) 88%, #ffffff),
+      var(--hue-base) 58%,
+      var(--hue-dark)
+    ),
+    var(--hue-base);
+  color: var(--hue-on);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.3),
+    0 3px 0 rgba(0, 0, 0, 0.22),
+    0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.lab-dir-a:hover:not(:disabled),
+.lab-dir-a[data-force="hover"] {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.3),
+    0 4px 0 rgba(0, 0, 0, 0.22),
+    0 10px 22px rgba(var(--hue-rgb), 0.32);
+}
+
+.lab-dir-a:active:not(:disabled),
+.lab-dir-a[data-force="active"] {
+  transform: translateY(2px);
+  filter: brightness(0.95);
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.34),
+    0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.lab-dir-a:disabled,
+.lab-dir-a[data-force="disabled"] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 1px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* Kierunek B — magiczna poświata: ciemna baza, barwa w obramowaniu i świetle */
+
+.lab-dir-b {
+  border: 1px solid rgba(var(--hue-rgb), 0.6);
+  border-radius: 12px;
+  background:
+    radial-gradient(
+      130% 100% at 50% 0%,
+      rgba(var(--hue-rgb), 0.32),
+      rgba(var(--hue-rgb), 0) 68%
+    ),
+    linear-gradient(180deg, #2b1f19, #1d1511);
+  color: var(--hue-bright);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 4px 14px rgba(0, 0, 0, 0.32);
+}
+
+.lab-dir-b:hover:not(:disabled),
+.lab-dir-b[data-force="hover"] {
+  transform: translateY(-1px);
+  border-color: rgba(var(--hue-rgb), 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 0 14px 1px rgba(var(--hue-rgb), 0.42),
+    0 8px 22px rgba(0, 0, 0, 0.34);
+}
+
+.lab-dir-b:active:not(:disabled),
+.lab-dir-b[data-force="active"] {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 3px 7px rgba(0, 0, 0, 0.45),
+    0 0 8px rgba(var(--hue-rgb), 0.28);
+}
+
+.lab-dir-b:disabled,
+.lab-dir-b[data-force="disabled"] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Kierunek C — emaliowane kafle: ostry podział połysku, twardy rant */
+
+.lab-dir-c {
+  border: 1px solid rgba(0, 0, 0, 0.38);
+  border-radius: 10px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--hue-light) 82%, #ffffff) 0%,
+    color-mix(in srgb, var(--hue-light) 82%, #ffffff) 48%,
+    var(--hue-base) 52%,
+    var(--hue-dark) 100%
+  );
+  color: var(--hue-on);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 2px 6px rgba(0, 0, 0, 0.24);
+}
+
+.lab-dir-c:hover:not(:disabled),
+.lab-dir-c[data-force="hover"] {
+  filter: brightness(1.06) saturate(1.06);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.34),
+    0 6px 16px rgba(var(--hue-rgb), 0.34);
+}
+
+.lab-dir-c:active:not(:disabled),
+.lab-dir-c[data-force="active"] {
+  transform: translateY(1px);
+  background: linear-gradient(180deg, var(--hue-base), var(--hue-dark));
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.34);
+}
+
+.lab-dir-c:disabled,
+.lab-dir-c[data-force="disabled"] {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+/* Kierunek D — pergamin i złocenie: barwa w akcencie, ikonie i tekście */
+
+.lab-dir-d {
+  border: 1px solid rgba(var(--hue-rgb), 0.55);
+  border-bottom: 3px solid var(--hue-base);
+  border-radius: 11px;
+  background: linear-gradient(180deg, #fdf7ea, #efe3cc);
+  color: var(--hue-ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 3px 10px rgba(var(--hue-rgb), 0.2);
+}
+
+.lab-dir-d.lab-act-neutral {
+  border: 1px solid rgba(var(--hue-rgb), 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.lab-dir-d:hover:not(:disabled),
+.lab-dir-d[data-force="hover"] {
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, #fffdf6, #f4ead8);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 6px 16px rgba(var(--hue-rgb), 0.3);
+}
+
+.lab-dir-d:active:not(:disabled),
+.lab-dir-d[data-force="active"] {
+  transform: translateY(1px);
+  background: linear-gradient(180deg, #eee2ca, #f7efdd);
+  box-shadow: inset 0 2px 5px rgba(120, 92, 56, 0.28);
+}
+
+.lab-dir-d:disabled,
+.lab-dir-d[data-force="disabled"] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/*
+ * B × C3 — pieczęć z poświatą: ciemna baza i radialne światło z pierwotnego
+ * kierunku B, ubrane w oprawę z C3 (podwójna ramka, złoty włos, heraldyczne
+ * ćwieki, skośny połysk). Ramka jest w barwie kategorii, złoto i ćwieki są
+ * wspólne — dzięki temu na ciemnym tle detal oprawy w ogóle się czyta.
+ * Dwa ciężary bazy: bc3 to oryginalna czerń B, bc3m ma bazę podniesioną.
+ */
+
+.lab-dir-bc3,
+.lab-dir-bc3m {
+  border: 2px solid rgba(var(--hue-rgb), 0.8);
+  border-radius: 10px;
+  color: var(--hue-bright);
+}
+
+.lab-dir-bc3 .lab-btn-label,
+.lab-dir-bc3m .lab-btn-label {
+  position: relative;
+  z-index: 1;
+}
+
+.lab-dir-bc3::before,
+.lab-dir-bc3m::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 40%,
+    rgba(255, 241, 212, 0.26) 50%,
+    transparent 60%
+  );
+}
+
+.lab-dir-bc3::after,
+.lab-dir-bc3m::after {
+  content: "";
+  position: absolute;
+  inset: 6px 5px;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, #e8c377 45%, transparent 47%),
+    radial-gradient(circle, #e8c377 45%, transparent 47%);
+  background-position:
+    left center,
+    right center;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  opacity: 0.8;
+}
+
+/*
+ * Wnętrze rozpala się barwą kategorii proporcjonalnie do --lab-glow.
+ * Krawędź zostaje ciemna dzięki winiecie w box-shadow, więc nawet przy
+ * pełnym wypełnieniu przycisk ma oprawę, a nie płaską kolorową plamę.
+ */
+.lab-dir-bc3 {
+  background:
+    radial-gradient(
+      130% 105% at 50% 0%,
+      rgba(var(--hue-rgb), calc(0.34 - 0.02 * var(--lab-glow))),
+      rgba(var(--hue-rgb), calc(0.18 * var(--lab-glow))) 62%,
+      rgba(var(--hue-rgb), calc(0.1 * var(--lab-glow))) 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--hue-deep) calc(var(--lab-glow) * 88%), #2b1f19),
+      color-mix(in srgb, var(--hue-deep) calc(var(--lab-glow) * 62%), #1d1511)
+    );
+  box-shadow:
+    inset 0 0 0 2px rgba(214, 160, 68, calc(0.45 + 0.33 * var(--lab-glow))),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 15px 4px rgba(0, 0, 0, calc(0.1 + 0.3 * var(--lab-glow))),
+    0 0 calc(10px + 8px * var(--lab-glow))
+      rgba(var(--hue-rgb), calc(0.2 + 0.24 * var(--lab-glow))),
+    0 3px 10px rgba(0, 0, 0, 0.34);
+}
+
+.lab-dir-bc3m {
+  background:
+    radial-gradient(
+      130% 105% at 50% 0%,
+      rgba(var(--hue-rgb), calc(0.38 - 0.04 * var(--lab-glow))),
+      rgba(var(--hue-rgb), calc(0.06 + 0.14 * var(--lab-glow))) 64%,
+      rgba(var(--hue-rgb), calc(0.08 * var(--lab-glow))) 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--hue-deep) calc(var(--lab-glow) * 84%), #4d382a),
+      color-mix(in srgb, var(--hue-deep) calc(var(--lab-glow) * 58%), #33241c)
+    );
+  box-shadow:
+    inset 0 0 0 2px rgba(214, 160, 68, calc(0.5 + 0.28 * var(--lab-glow))),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 0 15px 4px rgba(0, 0, 0, calc(0.08 + 0.28 * var(--lab-glow))),
+    0 0 calc(10px + 8px * var(--lab-glow))
+      rgba(var(--hue-rgb), calc(0.22 + 0.22 * var(--lab-glow))),
+    0 3px 10px rgba(0, 0, 0, 0.28);
+}
+
+.lab-dir-bc3:hover:not(:disabled),
+.lab-dir-bc3[data-force="hover"],
+.lab-dir-bc3m:hover:not(:disabled),
+.lab-dir-bc3m[data-force="hover"] {
+  --lab-glow: 1;
+  transform: translateY(-1px);
+  border-color: rgba(var(--hue-rgb), 1);
+  color: color-mix(in srgb, var(--hue-bright) 30%, #ffffff);
+}
+
+.lab-dir-bc3:active:not(:disabled),
+.lab-dir-bc3[data-force="active"],
+.lab-dir-bc3m:active:not(:disabled),
+.lab-dir-bc3m[data-force="active"] {
+  --lab-glow: 0.8;
+  transform: translateY(1px);
+  color: color-mix(in srgb, var(--hue-bright) 30%, #ffffff);
+  box-shadow:
+    inset 0 0 0 2px rgba(214, 160, 68, 0.4),
+    inset 0 3px 7px rgba(0, 0, 0, 0.5),
+    inset 0 0 15px 4px rgba(0, 0, 0, 0.3),
+    0 0 8px rgba(var(--hue-rgb), 0.28);
+}
+
+.lab-dir-bc3:disabled,
+.lab-dir-bc3[data-force="disabled"],
+.lab-dir-bc3m:disabled,
+.lab-dir-bc3m[data-force="disabled"] {
+  box-shadow: inset 0 0 0 2px rgba(214, 160, 68, 0.25);
+}
+
+/*
+ * Jasna rodzina wywodząca się z kierunku B: mechanika zostaje ta sama —
+ * barwa mieszka w obramowaniu, ikonie i poświacie, nigdy w pełnej ciemnej
+ * powierzchni. Zmienia się tylko baza: zamiast ciemnego drewna jest
+ * pergamin, kość lub emalia. Tekst zawsze w ciemnym odcieniu barwy.
+ */
+
+.lab-light {
+  color: var(--hue-ink);
+}
+
+.lab-light .lab-btn-label {
+  position: relative;
+  z-index: 1;
+}
+
+.lab-light .lab-btn-icon {
+  color: var(--hue-accent);
+}
+
+.lab-light::before,
+.lab-light::after {
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* B1 — jasny metal: kremowa baza, barwa wyłącznie w cienkiej ramce i poświacie */
+
+.lab-dir-b1 {
+  border: 1px solid var(--hue-accent);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fdf8ec 0%, #f7f0e0 46%, #ede3d0 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -1px 0 rgba(120, 96, 60, 0.14),
+    0 1px 2px rgba(70, 50, 28, 0.14),
+    0 3px 10px rgba(var(--hue-rgb), 0.16);
+}
+
+.lab-dir-b1:hover:not(:disabled),
+.lab-dir-b1[data-force="hover"] {
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, #fffdf6 0%, #faf4e8 46%, #f1e8d7 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(120, 96, 60, 0.14),
+    0 0 12px rgba(var(--hue-rgb), 0.34),
+    0 6px 16px rgba(var(--hue-rgb), 0.22);
+}
+
+.lab-dir-b1:active:not(:disabled),
+.lab-dir-b1[data-force="active"] {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 2px 5px rgba(110, 88, 56, 0.26),
+    0 0 6px rgba(var(--hue-rgb), 0.22);
+}
+
+.lab-dir-b1:disabled,
+.lab-dir-b1[data-force="disabled"] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* B2 — miękka emalia: ciepła, lekko zabarwiona baza z kolorową fazą i połyskiem */
+
+.lab-dir-b2 {
+  border: 1px solid color-mix(in srgb, var(--hue-accent) 62%, #ffffff);
+  border-bottom-color: var(--hue-accent);
+  border-radius: 13px;
+  background: linear-gradient(
+    180deg,
+    #fffdf7 0%,
+    color-mix(in srgb, var(--hue-accent) 11%, #fffaf0) 55%,
+    color-mix(in srgb, var(--hue-accent) 20%, #f7eeda) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -2px 0 rgba(var(--hue-rgb), 0.38),
+    0 2px 9px rgba(var(--hue-rgb), 0.22);
+}
+
+.lab-dir-b2::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  left: 1px;
+  height: 44%;
+  border-radius: 12px 12px 9px 9px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.82),
+    rgba(255, 255, 255, 0)
+  );
+}
+
+.lab-dir-b2:hover:not(:disabled),
+.lab-dir-b2[data-force="hover"] {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -2px 0 rgba(var(--hue-rgb), 0.5),
+    0 0 13px rgba(var(--hue-rgb), 0.34),
+    0 6px 16px rgba(var(--hue-rgb), 0.24);
+}
+
+.lab-dir-b2:active:not(:disabled),
+.lab-dir-b2[data-force="active"] {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 3px 6px rgba(var(--hue-rgb), 0.3),
+    inset 0 -1px 0 rgba(var(--hue-rgb), 0.2);
+}
+
+.lab-dir-b2:disabled,
+.lab-dir-b2[data-force="disabled"] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* B3 — jasny kamień: prawie biała baza, barwa w obramowaniu, ikonie i ledwie widocznym tle */
+
+.lab-dir-b3 {
+  border: 1.5px solid color-mix(in srgb, var(--hue-accent) 58%, #cfc3ad);
+  border-radius: 10px;
+  background:
+    radial-gradient(
+      120% 100% at 50% 0%,
+      rgba(var(--hue-rgb), 0.14),
+      rgba(var(--hue-rgb), 0) 72%
+    ),
+    linear-gradient(180deg, #fdfaf3, #f2ede0);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 2px rgba(110, 90, 60, 0.16),
+    0 1px 3px rgba(70, 50, 28, 0.16);
+}
+
+.lab-dir-b3:hover:not(:disabled),
+.lab-dir-b3[data-force="hover"] {
+  transform: translateY(-1px);
+  border-color: var(--hue-accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 2px rgba(110, 90, 60, 0.16),
+    0 0 11px rgba(var(--hue-rgb), 0.28),
+    0 5px 14px rgba(70, 50, 28, 0.16);
+}
+
+.lab-dir-b3:active:not(:disabled),
+.lab-dir-b3[data-force="active"] {
+  transform: translateY(1px);
+  box-shadow: inset 0 3px 6px rgba(110, 90, 60, 0.28);
+}
+
+.lab-dir-b3:disabled,
+.lab-dir-b3[data-force="disabled"] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* C1 — runiczna oprawa: pergaminowy rdzeń w metalowej ramce z runicznym pierścieniem */
+
+.lab-dir-c1 {
+  border: 2px solid var(--hue-accent);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fffbf0, #f4ead6);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.85),
+    0 0 10px rgba(var(--hue-rgb), 0.22),
+    0 2px 6px rgba(70, 50, 28, 0.18);
+}
+
+.lab-dir-c1::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px dashed rgba(var(--hue-rgb), 0.5);
+  border-radius: 8px;
+}
+
+.lab-dir-c1:hover:not(:disabled),
+.lab-dir-c1[data-force="hover"] {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.9),
+    0 0 16px 2px rgba(var(--hue-rgb), 0.4),
+    0 6px 16px rgba(70, 50, 28, 0.2);
+}
+
+.lab-dir-c1:hover:not(:disabled)::after,
+.lab-dir-c1[data-force="hover"]::after {
+  border-color: rgba(var(--hue-rgb), 0.85);
+}
+
+.lab-dir-c1:active:not(:disabled),
+.lab-dir-c1[data-force="active"] {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 3px 6px rgba(110, 88, 56, 0.26),
+    0 0 8px rgba(var(--hue-rgb), 0.24);
+}
+
+.lab-dir-c1:disabled,
+.lab-dir-c1[data-force="disabled"] {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+/* C2 — zaklęty kamień: wklęsła kostna powierzchnia z kryształem przy ikonie */
+
+.lab-dir-c2 {
+  border: 1px solid color-mix(in srgb, var(--hue-accent) 52%, #d9cdb6);
+  border-radius: 11px;
+  background: linear-gradient(180deg, #f6f1e4, #fdfbf4);
+  box-shadow:
+    inset 0 3px 6px rgba(120, 96, 60, 0.2),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.9),
+    0 0 12px rgba(var(--hue-rgb), 0.18);
+}
+
+.lab-dir-c2 .lab-btn-label::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  background: linear-gradient(135deg, #ffffff, var(--hue-accent));
+  box-shadow: 0 0 6px rgba(var(--hue-rgb), 0.75);
+}
+
+.lab-dir-c2:hover:not(:disabled),
+.lab-dir-c2[data-force="hover"] {
+  transform: translateY(-1px);
+  border-color: var(--hue-accent);
+  box-shadow:
+    inset 0 3px 6px rgba(120, 96, 60, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.95),
+    0 0 18px 2px rgba(var(--hue-rgb), 0.34);
+}
+
+.lab-dir-c2:active:not(:disabled),
+.lab-dir-c2[data-force="active"] {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 5px 9px rgba(120, 96, 60, 0.32),
+    0 0 8px rgba(var(--hue-rgb), 0.2);
+}
+
+.lab-dir-c2:disabled,
+.lab-dir-c2[data-force="disabled"] {
+  box-shadow: inset 0 3px 6px rgba(120, 96, 60, 0.14);
+}
+
+/* C3 — gildyjna pieczęć: emaliowana plakietka w ozdobnej ramce ze złotym włosem */
+
+.lab-dir-c3 {
+  border: 2px solid var(--hue-accent);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fffdf5, #f4ecd8);
+  box-shadow:
+    inset 0 0 0 2px rgba(214, 160, 68, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 2px 8px rgba(var(--hue-rgb), 0.2);
+}
+
+.lab-dir-c3::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 40%,
+    rgba(255, 241, 212, 0.55) 50%,
+    transparent 60%
+  );
+}
+
+.lab-dir-c3::after {
+  content: "";
+  position: absolute;
+  inset: 6px 5px;
+  background-image:
+    radial-gradient(circle, var(--hue-accent) 45%, transparent 47%),
+    radial-gradient(circle, var(--hue-accent) 45%, transparent 47%);
+  background-position:
+    left center,
+    right center;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  opacity: 0.75;
+}
+
+.lab-dir-c3:hover:not(:disabled),
+.lab-dir-c3[data-force="hover"] {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 2px rgba(214, 160, 68, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 0 14px rgba(var(--hue-rgb), 0.32),
+    0 6px 16px rgba(133, 96, 34, 0.2);
+}
+
+.lab-dir-c3:active:not(:disabled),
+.lab-dir-c3[data-force="active"] {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 0 0 2px rgba(214, 160, 68, 0.45),
+    inset 0 3px 6px rgba(120, 92, 56, 0.28);
+}
+
+.lab-dir-c3:disabled,
+.lab-dir-c3[data-force="disabled"] {
+  box-shadow: inset 0 0 0 2px rgba(214, 160, 68, 0.35);
+}
+
+/* Ikona */
+
+.lab-btn-icon {
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
+}
+
+.lab-size-hero .lab-btn-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/*
+ * Zgodnie z konwencją globals.css: redukcja ruchu zdejmuje przejścia
+ * i przesunięcia, ale zachowuje zmianę koloru/cienia, żeby hover nadal
+ * dawał informację zwrotną. Spinner zwalnia, ale się nie zatrzymuje —
+ * to wskaźnik stanu, nie dekoracja.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .lab-btn {
+    transition: none;
+  }
+
+  .lab-btn:hover,
+  .lab-btn[data-force="hover"],
+  .lab-btn:active,
+  .lab-btn[data-force="active"] {
+    transform: none;
+  }
+
+  .lab-btn-spinner::after {
+    animation-duration: 2s;
+  }
+}

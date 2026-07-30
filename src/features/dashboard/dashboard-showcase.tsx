@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ActionLink } from "@/components/ui/action-button";
 import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import {
@@ -13,6 +14,36 @@ import { formatPlayShortDate } from "@/features/plays/formatting";
 import { QuestCard } from "./action-card";
 import { getDashboardData } from "./queries";
 import type { DashboardLeaderboardEntry } from "./types";
+
+/*
+ * Trzy główne wejścia w akcje, wspólne dla mobilnego i desktopowego
+ * układu hero. Każdy kafel jest własnym kontenerem zapytań (action-fit),
+ * więc przy wąskiej kolumnie chowa symbol zamiast zwijać etykietę do
+ * trzeciej linii.
+ */
+const HERO_ACTIONS = [
+  {
+    action: "meeting",
+    href: "/kalendarium/nowe",
+    label: "Zorganizuj spotkanie",
+  },
+  { action: "shelf", href: "/gry/nowa", label: "Dodaj grę do Półki" },
+  { action: "chronicle", href: "/kronika/nowa", label: "Zapisz wynik gry" },
+] as const;
+
+function HeroActionTiles() {
+  return (
+    <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+      {HERO_ACTIONS.map((tile) => (
+        <div key={tile.action} className="action-fit min-w-0">
+          <ActionLink action={tile.action} size="hero" href={tile.href}>
+            {tile.label}
+          </ActionLink>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function MeetingStatusBadge({
   label,
@@ -239,12 +270,15 @@ export async function DashboardShowcase() {
               Ranking drużyny
             </h2>
           </div>
-          <Link
+          <ActionLink
+            action="neutral"
+            size="compact"
+            emphasis="ghost"
+            withIcon={false}
             href="/legendarium"
-            className="text-xs font-bold text-[#ffe0b8] underline decoration-white/25 underline-offset-4"
           >
-            Otwórz →
-          </Link>
+            Otwórz
+          </ActionLink>
         </div>
 
         <ol className="space-y-2">
@@ -386,12 +420,14 @@ export async function DashboardShowcase() {
             <p className="text-sm text-[#5f4738]">
               Nie ma jeszcze kolejnego wieczoru.
             </p>
-            <Link
+            <ActionLink
+              action="meeting"
+              size="compact"
+              emphasis="secondary"
               href="/kalendarium/nowe"
-              className="cta-glow text-accent inline-flex text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
             >
-              Zorganizuj spotkanie →
-            </Link>
+              Zorganizuj spotkanie
+            </ActionLink>
           </div>
         )}
       </div>
@@ -416,26 +452,7 @@ export async function DashboardShowcase() {
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-1.5">
-              <Link
-                href="/kalendarium/nowe"
-                className="cta-glow min-w-0 rounded-lg border border-[#efbf82]/30 bg-[#9b5538]/92 px-1 py-1.5 text-center text-[0.56rem] leading-tight font-bold text-[#fff0db]"
-              >
-                Zorganizuj spotkanie
-              </Link>
-              <Link
-                href="/gry/nowa"
-                className="cta-glow min-w-0 rounded-lg border border-white/14 bg-black/20 px-1 py-1.5 text-center text-[0.56rem] leading-tight font-bold text-[#f2e4d3]"
-              >
-                Dodaj grę do Półki
-              </Link>
-              <Link
-                href="/kronika/nowa"
-                className="cta-glow min-w-0 rounded-lg border border-white/14 bg-black/20 px-1 py-1.5 text-center text-[0.56rem] leading-tight font-bold text-[#f2e4d3]"
-              >
-                Zapisz wynik gry
-              </Link>
-            </div>
+            <HeroActionTiles />
           </div>
         </Panel>
 
@@ -554,12 +571,14 @@ export async function DashboardShowcase() {
                 <p className="text-[0.68rem] text-[#5f4738]">
                   Nie ma jeszcze kolejnego wieczoru.
                 </p>
-                <Link
+                <ActionLink
+                  action="meeting"
+                  size="compact"
+                  emphasis="secondary"
                   href="/kalendarium/nowe"
-                  className="cta-glow text-accent inline-flex text-[0.64rem] font-bold underline decoration-[#b37a46]/40 underline-offset-4"
                 >
-                  Zorganizuj spotkanie →
-                </Link>
+                  Zorganizuj spotkanie
+                </ActionLink>
               </div>
             )}
           </Panel>
@@ -610,26 +629,7 @@ export async function DashboardShowcase() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-                    <Link
-                      href="/kalendarium/nowe"
-                      className="cta-glow min-w-0 rounded-xl border border-[#efbf82]/30 bg-[#9b5538]/92 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#fff0db] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
-                    >
-                      Zorganizuj spotkanie
-                    </Link>
-                    <Link
-                      href="/gry/nowa"
-                      className="cta-glow min-w-0 rounded-xl border border-white/14 bg-black/20 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#f2e4d3] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
-                    >
-                      Dodaj grę do Półki
-                    </Link>
-                    <Link
-                      href="/kronika/nowa"
-                      className="cta-glow min-w-0 rounded-xl border border-white/14 bg-black/20 px-2 py-1.5 text-center text-[0.62rem] leading-tight font-bold text-[#f2e4d3] sm:px-2.5 sm:py-2 sm:text-[0.68rem] lg:whitespace-nowrap"
-                    >
-                      Zapisz wynik gry
-                    </Link>
-                  </div>
+                  <HeroActionTiles />
                 </div>
 
                 <div className="hidden w-fit shrink-0 self-stretch rounded-[1.2rem] border border-white/12 bg-[linear-gradient(145deg,rgba(19,10,7,0.32),rgba(31,17,11,0.18))] px-3.5 py-3 text-center shadow-[0_18px_36px_rgba(17,8,5,0.22)] lg:ml-auto lg:flex lg:min-h-full lg:flex-col lg:items-center lg:justify-center">
@@ -722,12 +722,14 @@ export async function DashboardShowcase() {
                 <p className="text-sm text-[#5f4738]">
                   Jeszcze nic nie zapisano w Kronice.
                 </p>
-                <Link
+                <ActionLink
+                  action="chronicle"
+                  size="compact"
+                  emphasis="secondary"
                   href="/kronika/nowa"
-                  className="cta-glow text-accent inline-flex text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
                 >
-                  Zapisz wynik gry →
-                </Link>
+                  Zapisz wynik gry
+                </ActionLink>
               </div>
             ) : (
               <div className="mt-2.5 space-y-1.5">

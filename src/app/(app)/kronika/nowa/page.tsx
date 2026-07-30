@@ -1,6 +1,6 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { ActionLink } from "@/components/ui/action-button";
 import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
@@ -23,13 +23,6 @@ export default async function NewPlayPage({
 
   return (
     <div className="space-y-4">
-      <Link
-        href="/kronika"
-        className="paper-wash inline-flex rounded-full px-4 py-2 text-xs font-bold text-[#6a4d36]"
-      >
-        ← Wróć do Kroniki
-      </Link>
-
       <header
         style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
         className="anim-rise-in-fast"
@@ -41,6 +34,18 @@ export default async function NewPlayPage({
           Zapisz partię
         </h1>
       </header>
+
+      {/* Powrót pod tytułem i przy prawej krawędzi, żeby nie wyprzedzał nagłówka. */}
+      <div className="flex justify-end">
+        <ActionLink
+          action="neutral"
+          size="compact"
+          emphasis="secondary"
+          href="/kronika"
+        >
+          Wróć do Kroniki
+        </ActionLink>
+      </div>
 
       <Panel
         style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}

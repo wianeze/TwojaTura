@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { ActionButton, ActionLink } from "@/components/ui/action-button";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { GameCover } from "@/components/ui/game-cover";
@@ -476,19 +476,17 @@ export function ShelfShowcase({ games }: ShelfShowcaseProps) {
                   </div>
 
                   <div className="sticky bottom-0 -mx-5 mt-5 flex flex-wrap gap-2 border-t border-[#b99d72]/45 bg-[#f8edda]/95 px-5 pt-3 pb-1 backdrop-blur lg:static lg:mx-0 lg:mt-6 lg:border-0 lg:bg-transparent lg:px-0 lg:pt-0 lg:pb-0">
-                    <Link
-                      href={`/gry/${selectedGame.id}`}
-                      className="bg-brand hover:bg-brand-strong rounded-xl px-4 py-3 text-sm font-semibold text-white transition-colors"
-                    >
+                    <ActionLink action="shelf" href={`/gry/${selectedGame.id}`}>
                       Otwórz pełną kartę gry
-                    </Link>
-                    <button
+                    </ActionLink>
+                    <ActionButton
                       type="button"
+                      action="neutral"
+                      emphasis="secondary"
                       onClick={() => setSelectedGame(null)}
-                      className="paper-wash rounded-xl px-4 py-3 text-sm font-semibold text-[#6d5037]"
                     >
                       Wróć do Półki
-                    </button>
+                    </ActionButton>
                   </div>
                 </div>
               </div>

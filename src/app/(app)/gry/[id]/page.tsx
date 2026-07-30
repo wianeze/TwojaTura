@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ActionLink } from "@/components/ui/action-button";
 import { ArchiveGameButton } from "@/features/games/archive-game-button";
 import { GameCover } from "@/components/ui/game-cover";
 import { Panel } from "@/components/ui/panel";
@@ -150,19 +151,23 @@ export default async function GameDetailsPage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex flex-wrap items-center gap-2.5">
-          <Link
+          <ActionLink
+            action="neutral"
+            size="compact"
+            emphasis="secondary"
             href="/gry"
-            className="paper-wash rounded-full px-4 py-2 text-xs font-bold text-[#6a4d36]"
           >
-            ← Wróć do Półki
-          </Link>
+            Wróć do Półki
+          </ActionLink>
           {canEdit ? (
-            <Link
+            <ActionLink
+              action="shelf"
+              size="compact"
+              emphasis="secondary"
               href={`/gry/${game.id}/edytuj`}
-              className="bg-brand hover:bg-brand-strong rounded-full px-4 py-2 text-xs font-bold text-white transition-colors"
             >
               Edytuj grę
-            </Link>
+            </ActionLink>
           ) : null}
         </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { ActionButton } from "@/components/ui/action-button";
 import { useCanWrite } from "@/features/auth/member-role-context";
 import type { GameFormState } from "./types";
 import { INITIAL_GAME_FORM_STATE } from "./form-state";
@@ -31,13 +32,15 @@ export function ArchiveGameButton({
       }}
       className="space-y-2"
     >
-      <button
+      <ActionButton
         type="submit"
+        action="danger"
         disabled={pending}
-        className="rounded-xl bg-[#8f3528] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#74271d] disabled:cursor-wait disabled:opacity-70"
+        loading={pending}
+        loadingLabel="Archiwizujemy…"
       >
-        {pending ? "Archiwizujemy…" : "Archiwizuj egzemplarz"}
-      </button>
+        Archiwizuj egzemplarz
+      </ActionButton>
       {state.message && (
         <p
           role="alert"

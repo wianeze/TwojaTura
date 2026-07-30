@@ -852,3 +852,361 @@ a {
     0 0 0 1px rgba(205, 149, 100, 0.42),
     0 0 18px 4px rgba(193, 125, 74, 0.2);
 }
+
+/*
+ * Semantyczne przyciski akcji — wspólny system dla całej aplikacji.
+ * Barwa kategorii jest stała i taka sama wszędzie, gdzie akcja występuje,
+ * ale niesie ją stonowane tło, obramowanie, tekst i ikona — nie poświata.
+ * W spoczynku przycisk nie świeci; delikatny blask pojawia się dopiero
+ * na hover/focus. Przyciski mają wtapiać się w drewno i pergamin, a nie
+ * konkurować z kartami questów i rankingiem.
+ */
+
+@property --action-glow {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+.act-meeting {
+  --act-rgb: 197, 122, 58;
+  --act-deep: #6f3f14;
+  --act-bright: #e9bd86;
+  --act-ink: #7a4712;
+}
+
+.act-vote {
+  --act-rgb: 106, 150, 184;
+  --act-deep: #234a66;
+  --act-bright: #a6c9e0;
+  --act-ink: #235a80;
+}
+
+.act-chronicle {
+  --act-rgb: 150, 124, 178;
+  --act-deep: #453361;
+  --act-bright: #c6b2dc;
+  --act-ink: #59407f;
+}
+
+.act-rating {
+  --act-rgb: 130, 160, 128;
+  --act-deep: #2f4a30;
+  --act-bright: #b3cdac;
+  --act-ink: #3c6039;
+}
+
+.act-shelf {
+  --act-rgb: 190, 158, 104;
+  --act-deep: #5e4620;
+  --act-bright: #eddcbc;
+  --act-ink: #5c3d21;
+}
+
+.act-neutral {
+  --act-rgb: 148, 130, 108;
+  --act-deep: #493c2d;
+  --act-bright: #dbcdb9;
+  --act-ink: #524029;
+}
+
+.act-danger {
+  --act-rgb: 178, 82, 64;
+  --act-deep: #8a3021;
+  --act-bright: #e5ac9b;
+  --act-ink: #7d2c1f;
+}
+
+/*
+ * Poziom prezentacji, niezależny od barwy domenowej:
+ *   primary   — wypełnienie, główna akcja na danej powierzchni,
+ *   secondary — jasna pergaminowa płytka, akcja drugorzędna,
+ *   ghost     — sam tekst, do lekkich kontrolek na ciemnym tle.
+ */
+
+.action-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 1px solid rgba(var(--act-rgb), calc(0.42 + 0.24 * var(--action-glow)));
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  text-decoration: none;
+  color: var(--act-bright);
+  cursor: pointer;
+  --action-glow: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(
+      in srgb,
+      var(--act-deep) calc(34% + 18% * var(--action-glow)),
+      #2a1f19
+    ),
+    color-mix(
+      in srgb,
+      var(--act-deep) calc(22% + 14% * var(--action-glow)),
+      #201713
+    )
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.28),
+    0 0 calc(10px * var(--action-glow))
+      rgba(var(--act-rgb), calc(0.2 * var(--action-glow)));
+  transition:
+    box-shadow 150ms ease,
+    transform 150ms ease,
+    color 180ms ease,
+    border-color 150ms ease,
+    --action-glow 200ms ease;
+}
+
+.action-btn-label {
+  display: inline-flex;
+  align-items: center;
+  gap: inherit;
+  min-width: 0;
+}
+
+.action-btn-label-hidden {
+  visibility: hidden;
+}
+
+.action-btn-spinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.action-btn-spinner::after {
+  content: "";
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: action-btn-spin 700ms linear infinite;
+}
+
+@keyframes action-btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.action-btn:hover:not(:disabled) {
+  --action-glow: 1;
+  transform: translateY(-1px);
+}
+
+.action-btn:not(:disabled):active {
+  --action-glow: 0.7;
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.4),
+    0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+.action-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.action-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  filter: grayscale(0.4);
+  transform: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.action-btn-icon {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+  opacity: 0.9;
+}
+
+/* Jasna płytka — akcja drugorzędna, czyta się na drewnie i na pergaminie */
+
+.action-emph-secondary {
+  border-color: rgba(var(--act-rgb), calc(0.45 + 0.3 * var(--action-glow)));
+  color: var(--act-ink);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #ffffff calc(8% * var(--action-glow)), #f5eddc),
+    color-mix(in srgb, #ffffff calc(8% * var(--action-glow)), #e9dcc4)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 1px 2px rgba(66, 45, 24, 0.16),
+    0 0 calc(9px * var(--action-glow))
+      rgba(var(--act-rgb), calc(0.22 * var(--action-glow)));
+}
+
+.action-emph-secondary:not(:disabled):active {
+  box-shadow: inset 0 2px 4px rgba(96, 72, 42, 0.24);
+}
+
+.action-emph-secondary:disabled {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* Duch — sam tekst, do lekkich kontrolek na ciemnym tle */
+
+.action-emph-ghost {
+  border-color: rgba(var(--act-rgb), calc(0.28 * var(--action-glow)));
+  color: var(--act-bright);
+  background: rgba(var(--act-rgb), calc(0.12 * var(--action-glow)));
+  box-shadow: none;
+}
+
+.action-emph-ghost:not(:disabled):active {
+  background: rgba(var(--act-rgb), 0.16);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+.action-emph-ghost:disabled {
+  box-shadow: none;
+}
+
+/*
+ * Wyjątek od wyciszenia: akcja destrukcyjna ma się rzucać w oczy, więc
+ * dostaje pełne czerwone wypełnienie i mocniejsze obramowanie. Dotyczy
+ * wyłącznie poziomu primary — secondary i ghost zostają spokojne.
+ */
+.action-btn.act-danger:not(.action-emph-secondary):not(.action-emph-ghost) {
+  border-color: rgba(var(--act-rgb), calc(0.72 + 0.28 * var(--action-glow)));
+  color: #ffeae3;
+  background: linear-gradient(
+    180deg,
+    color-mix(
+      in srgb,
+      var(--act-deep) calc(88% + 12% * var(--action-glow)),
+      #2a1f19
+    ),
+    color-mix(
+      in srgb,
+      var(--act-deep) calc(70% + 14% * var(--action-glow)),
+      #201713
+    )
+  );
+}
+
+/* Rozmiary — mobile najpierw, sm: to desktop */
+
+.action-size-compact {
+  min-height: 40px;
+  padding: 0 14px;
+  gap: 8px;
+  border-radius: 15px;
+  font-size: 0.8125rem;
+}
+
+.action-size-default {
+  min-height: 44px;
+  padding: 0 18px;
+  gap: 10px;
+  border-radius: 18px;
+  font-size: 0.875rem;
+}
+
+.action-size-large {
+  min-height: 50px;
+  padding: 0 24px;
+  gap: 10px;
+  border-radius: 20px;
+  font-size: 0.9375rem;
+}
+
+/*
+ * Kafel hero Stołu: etykieta ma prawo do dwóch linii, ikona stoi w rzędzie
+ * obok tekstu. Kafel jest celowo słabszy od kart questów poniżej — cieńsze
+ * obramowanie i brak cienia rzucanego.
+ */
+.action-size-hero {
+  min-height: 42px;
+  padding: 6px 8px;
+  gap: 6px;
+  width: 100%;
+  border-radius: 16px;
+  border-color: rgba(var(--act-rgb), calc(0.3 + 0.2 * var(--action-glow)));
+  font-size: 0.7rem;
+  font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 calc(8px * var(--action-glow))
+      rgba(var(--act-rgb), calc(0.16 * var(--action-glow)));
+}
+
+.action-size-hero .action-btn-icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* Kapsułka — tylko dla małych kontrolek nawigacyjnych i filtrów */
+
+.action-pill {
+  border-radius: 999px;
+}
+
+@media (min-width: 640px) {
+  .action-size-compact {
+    min-height: 36px;
+    padding: 0 12px;
+  }
+
+  .action-size-default {
+    min-height: 42px;
+    padding: 0 16px;
+    font-size: 0.84rem;
+  }
+
+  .action-size-large {
+    min-height: 46px;
+    padding: 0 20px;
+    font-size: 0.9rem;
+  }
+}
+
+/*
+ * Wąski przycisk chowa symbol zamiast zwijać etykietę do trzeciej linii
+ * albo zmniejszać font — pełna czytelność nazwy akcji jest ważniejsza niż
+ * ikona. Wysokość zostaje ta sama, bo pilnuje jej min-height rozmiaru.
+ */
+.action-fit {
+  container-type: inline-size;
+}
+
+@container (max-width: 160px) {
+  .action-btn-icon {
+    display: none;
+  }
+}
+
+/*
+ * Redukcja ruchu: bez przejść i przesunięć, ale zmiana koloru na hover
+ * zostaje — spójnie z .cta-glow i .quest-glow wyżej. Spinner zwalnia,
+ * ale się nie zatrzymuje, bo jest wskaźnikiem stanu, nie dekoracją.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .action-btn {
+    transition: none;
+  }
+
+  .action-btn:hover:not(:disabled),
+  .action-btn:not(:disabled):active {
+    transform: none;
+  }
+
+  .action-btn-spinner::after {
+    animation-duration: 2s;
+  }
+}

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ActionLink } from "@/components/ui/action-button";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { ChronicleFeed } from "@/features/plays/chronicle-feed";
 import { listChroniclePlays } from "@/features/plays/queries";
@@ -21,12 +21,17 @@ export default async function ChroniclePage() {
           </h1>
         </div>
 
-        <Link
+        {/*
+          Nagłówek jest kolumną na smartfonie — self-end dosuwa akcję do
+          prawej krawędzi bez rozciągania jej na całą szerokość.
+        */}
+        <ActionLink
+          action="chronicle"
           href="/kronika/nowa"
-          className="self-start rounded-full bg-[#7d2f3d] px-4 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747] sm:self-auto"
+          className="self-end sm:self-auto"
         >
           Zapisz partię
-        </Link>
+        </ActionLink>
       </header>
 
       <ChronicleFeed items={plays} />

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ActionLink } from "@/components/ui/action-button";
 import { GameCover } from "@/components/ui/game-cover";
 import { Panel } from "@/components/ui/panel";
 import { deletePlayAction } from "./actions";
@@ -80,22 +81,25 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <Link
-          href="/kronika"
-          className="paper-wash rounded-full px-4 py-2 text-xs font-bold text-[#6a4d36]"
-        >
-          {"\u2190 Wr\u00F3\u0107 do Kroniki"}
-        </Link>
+        <ActionLink
+              action="neutral"
+              size="compact"
+              emphasis="secondary"
+              href="/kronika">
+          {"Wróć do Kroniki"}
+        </ActionLink>
 
         {play.canEdit ? (
           <div className="flex flex-wrap items-center gap-2">
             <DeletePlayButton action={deletePlayAction.bind(null, play.id)} />
-            <Link
+            <ActionLink
+              action="chronicle"
+              size="compact"
+              emphasis="secondary"
               href={`/kronika/${play.id}/edytuj`}
-              className="rounded-full bg-[#7d2f3d] px-4 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
             >
               {play.status === "in_progress" ? "Wznów grę" : "Edytuj"}
-            </Link>
+            </ActionLink>
           </div>
         ) : null}
       </div>

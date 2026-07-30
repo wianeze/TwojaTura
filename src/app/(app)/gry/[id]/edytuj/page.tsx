@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ActionLink } from "@/components/ui/action-button";
 import { Panel } from "@/components/ui/panel";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
@@ -44,12 +44,14 @@ export default async function EditGamePage({
           title={game.title}
           description="Zmieniasz dane fizycznego egzemplarza we wspólnej Półce. Uprawnienia właściciela i administratora nadal pilnuje baza danych."
           action={
-            <Link
+            <ActionLink
+              action="neutral"
+              size="compact"
+              emphasis="secondary"
               href={`/gry/${id}`}
-              className="paper-wash rounded-full px-4 py-2 text-xs font-bold text-[#6a4d36]"
             >
               Wróć do karty gry
-            </Link>
+            </ActionLink>
           }
         />
       </div>

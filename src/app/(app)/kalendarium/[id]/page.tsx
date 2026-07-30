@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ActionButton, ActionLink } from "@/components/ui/action-button";
 import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
@@ -80,24 +80,29 @@ export default async function MeetingDetailsPage({
 
         {meeting.canEdit ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Link
+            <ActionLink
+              action="neutral"
+              size="compact"
+              emphasis="secondary"
               href="/kalendarium"
-              className="paper-wash rounded-full px-4 py-2 text-xs font-bold text-[#6a4d36]"
             >
-              ← Wróć
-            </Link>
-            <Link
+              Wróć
+            </ActionLink>
+            <ActionLink
+              action="chronicle"
+              size="compact"
               href={`/kronika/nowa?meeting=${meeting.id}`}
-              className="rounded-full bg-[#7d2f3d] px-4 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
             >
               Zapisz partię
-            </Link>
-            <Link
+            </ActionLink>
+            <ActionLink
+              action="meeting"
+              size="compact"
+              emphasis="secondary"
               href={`/kalendarium/${meeting.id}/edytuj`}
-              className="paper-wash self-start rounded-full px-4 py-2 text-xs font-bold text-[#6a4d36]"
             >
               Edytuj
-            </Link>
+            </ActionLink>
             {meeting.canDelete ? (
               <DeleteMeetingButton
                 action={deleteMeetingAction.bind(null, meeting.id)}
@@ -107,18 +112,21 @@ export default async function MeetingDetailsPage({
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
-            <Link
+            <ActionLink
+              action="neutral"
+              size="compact"
+              emphasis="secondary"
               href="/kalendarium"
-              className="paper-wash rounded-full px-4 py-2 text-xs font-bold text-[#6a4d36]"
             >
-              ← Wróć
-            </Link>
-            <Link
+              Wróć
+            </ActionLink>
+            <ActionLink
+              action="chronicle"
+              size="compact"
               href={`/kronika/nowa?meeting=${meeting.id}`}
-              className="rounded-full bg-[#7d2f3d] px-4 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
             >
               Zapisz partię
-            </Link>
+            </ActionLink>
           </div>
         )}
       </header>
@@ -127,6 +135,24 @@ export default async function MeetingDetailsPage({
         style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
         className="anim-rise-in-fast parchment-card space-y-4 p-4 sm:p-5"
       >
+        {/*
+          Stan potwierdzenia czytelny od razu przy terminie: czerwony,
+          dopóki organizator nie potwierdzi, zielony po potwierdzeniu.
+        */}
+        <div className="flex justify-end">
+          <span
+            className={`inline-flex rounded-full px-3 py-1 text-[0.68rem] font-bold ${
+              meeting.status === "confirmed"
+                ? "bg-[#e3efe0] text-[#3d6340] ring-1 ring-[#8fb08c]/60"
+                : "bg-[#f7e2df] text-[#8f3528] ring-1 ring-[#d09a90]/60"
+            }`}
+          >
+            {meeting.status === "confirmed"
+              ? "Spotkanie potwierdzone"
+              : "Spotkanie jeszcze niepotwierdzone"}
+          </span>
+        </div>
+
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="space-y-2">
             <div className="space-y-0.5">
@@ -156,22 +182,23 @@ export default async function MeetingDetailsPage({
           confirmationActionLabel &&
           confirmationStatus ? (
             <form
+              className="self-end xl:self-auto"
               action={confirmMeetingAction.bind(
                 null,
                 meeting.id,
                 confirmationStatus,
               )}
             >
-              <button
+              <ActionButton
                 type="submit"
-                className={
-                  meeting.status === "planned"
-                    ? "cta-glow rounded-full bg-[#7d2f3d] px-3.5 py-2 text-xs font-bold text-[#fff3ec] transition-colors hover:bg-[#8d3747]"
-                    : "paper-wash rounded-full px-3.5 py-2 text-xs font-bold text-[#6a4d36] transition-colors hover:bg-[#f1e4d0]"
+                size="compact"
+                action={meeting.status === "planned" ? "meeting" : "neutral"}
+                emphasis={
+                  meeting.status === "planned" ? "primary" : "secondary"
                 }
               >
                 {confirmationActionLabel}
-              </button>
+              </ActionButton>
             </form>
           ) : null}
         </div>

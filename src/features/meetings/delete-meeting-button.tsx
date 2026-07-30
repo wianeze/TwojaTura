@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
+import { ActionButton } from "@/components/ui/action-button";
 import { useCanWrite } from "@/features/auth/member-role-context";
 import { MEETING_WITH_CHRONICLE_DELETE_ERROR } from "./meeting-deletion";
 import type { MeetingDeleteState } from "./types";
@@ -12,13 +13,16 @@ function DeleteMeetingSubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
 
   return (
-    <button
+    <ActionButton
       type="submit"
+      action="danger"
+      size="compact"
       disabled={disabled || pending}
-      className="rounded-full border border-[#b9876a]/45 bg-white/70 px-4 py-2 text-xs font-bold text-[#8a433a] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-55"
+      loading={pending}
+      loadingLabel="Usuwanie..."
     >
-      {pending ? "Usuwanie..." : "Usuń spotkanie"}
-    </button>
+      Usuń spotkanie
+    </ActionButton>
   );
 }
 
@@ -35,7 +39,10 @@ export function DeleteMeetingButton({
   if (!canWrite) return null;
 
   return (
-    <div className="max-w-sm">
+    // Na smartfonie usuwanie zajmuje własny wiersz nad pozostałymi akcjami
+    // (order-first + w-full) i trzyma się prawej krawędzi. Od sm: wraca do
+    // wspólnego rzędu, wciąż dosunięte do prawej.
+    <div className="order-first flex w-full flex-col items-end sm:order-none sm:ml-auto sm:w-auto sm:max-w-sm">
       <form
         action={formAction}
         onSubmit={(event) => {

@@ -152,7 +152,7 @@ export function RatingForm({ ownRating, action }: RatingFormProps) {
         </p>
       )}
 
-      <GameSubmitButton pendingLabel="Zapisujemy ocenę…">
+      <GameSubmitButton action="rating" pendingLabel="Zapisujemy ocenę…">
         {ownRating ? "Zapisz zmiany oceny" : "Oceń tę grę"}
       </GameSubmitButton>
     </form>

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ActionLink } from "@/components/ui/action-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
@@ -160,24 +161,33 @@ export default async function CalendarPage({
       >
         <div className="mb-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-            <Link
+            <ActionLink
+              action="neutral"
+              size="compact"
+              emphasis="secondary"
+              pill
+              withIcon={false}
               href={formatCalendarMonthLink(calendar.previousMonthParam)}
-              className="paper-wash rounded-full px-2.5 py-1.5 text-xs font-semibold text-[#6d5037]"
             >
               Poprzedni
-            </Link>
-            <Link
+            </ActionLink>
+            <ActionLink
+              action="neutral"
+              size="compact"
+              emphasis="secondary"
+              pill
+              withIcon={false}
               href={formatCalendarMonthLink(calendar.nextMonthParam)}
-              className="paper-wash rounded-full px-2.5 py-1.5 text-xs font-semibold text-[#6d5037]"
             >
               Następny
-            </Link>
-            <Link
+            </ActionLink>
+            <ActionLink
+              action="meeting"
+              size="compact"
               href="/kalendarium/nowe"
-              className="inline-flex rounded-full bg-[#7d2f3d] px-3.5 py-1.5 text-xs font-bold text-[#fff3ec] shadow-[0_10px_24px_rgba(73,21,31,0.22)] transition-colors hover:bg-[#8d3747]"
             >
               Dodaj spotkanie
-            </Link>
+            </ActionLink>
           </div>
         </div>
 

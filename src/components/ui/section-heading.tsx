@@ -26,7 +26,12 @@ export function SectionHeading({
           {description}
         </p>
       </div>
-      {action}
+      {/*
+        Na mobile nagłówek jest kolumną, więc domyślne align-items: stretch
+        rozciągałoby akcję na całą szerokość. self-end trzyma ją przy prawej
+        krawędzi bez rozciągania, a od sm: wraca zachowanie z items-end.
+      */}
+      {action ? <div className="self-end sm:self-auto">{action}</div> : null}
     </header>
   );
 }

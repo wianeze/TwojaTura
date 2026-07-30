@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { ActionButton } from "@/components/ui/action-button";
 import { useCanWrite } from "@/features/auth/member-role-context";
 import { toggleMeetingVoteAction } from "./actions";
 
@@ -20,9 +21,18 @@ export function MeetingVoteToggle({
 
   return (
     <div className="space-y-2">
-      <button
+      {/*
+        Oddany głos nosi barwę akcji głosowania (niebieski); brak głosu
+        zostaje neutralny. Zieleń jest zarezerwowana dla oceniania gry.
+      */}
+      <ActionButton
         type="button"
+        action={hasOwnVote ? "vote" : "neutral"}
+        size="compact"
+        emphasis={hasOwnVote ? "primary" : "secondary"}
         disabled={pending}
+        loading={pending}
+        loadingLabel="Zapisuję…"
         onClick={() =>
           startTransition(async () => {
             const result = await toggleMeetingVoteAction(
@@ -35,12 +45,9 @@ export function MeetingVoteToggle({
             );
           })
         }
-        className={`cta-glow rounded-full px-3.5 py-2 text-xs font-bold transition-colors ${
-          hasOwnVote ? "bg-moss text-white" : "paper-wash text-[#6a4f38]"
-        } disabled:cursor-not-allowed disabled:opacity-70`}
       >
-        {pending ? "Zapisuję…" : hasOwnVote ? "Głosuję" : "Głosuj"}
-      </button>
+        {hasOwnVote ? "Głosuję" : "Głosuj"}
+      </ActionButton>
       {message ? (
         <p className="text-xs font-semibold text-[#8f3528]">{message}</p>
       ) : null}

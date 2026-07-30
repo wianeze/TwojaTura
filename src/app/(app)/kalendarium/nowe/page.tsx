@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ActionLink } from "@/components/ui/action-button";
 import { Panel } from "@/components/ui/panel";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
@@ -43,12 +43,14 @@ export default async function NewMeetingPage({
           title="Dodaj spotkanie"
           description="Tworzysz jedno wydarzenie w Kalendarium z konkretną datą, godziną i miejscem."
           action={
-            <Link
+            <ActionLink
+              action="neutral"
+              size="compact"
+              emphasis="secondary"
               href="/kalendarium"
-              className="paper-wash rounded-full px-4 py-2 text-xs font-bold text-[#6a4d36]"
             >
               Wróć do Kalendarium
-            </Link>
+            </ActionLink>
           }
         />
       </div>
