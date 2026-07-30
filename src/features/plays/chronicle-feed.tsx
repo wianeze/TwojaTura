@@ -255,7 +255,15 @@ function MobileParticipantsList({ item }: { item: PlayListItem }) {
               <img
                 src={badgeAsset.src}
                 alt={badgeAsset.alt}
-                className={`${isCooperative ? "size-[3.25rem] -my-2" : medal ? "size-7" : "size-14"} shrink-0 object-contain`}
+                className={`${
+                  isCooperative
+                    ? "size-[3.25rem] -my-2"
+                    : medal
+                      ? "size-14"
+                      : placement === 4 || placement === 5
+                        ? "size-7"
+                        : "size-14"
+                } shrink-0 object-contain`}
               />
             ) : (
               <span className="bg-brand text-cream grid size-5 shrink-0 place-items-center rounded-full text-[0.58rem] font-bold">
