@@ -35,7 +35,10 @@ type AvailabilityRow = Pick<
   Tables<"meeting_availability">,
   "meeting_id" | "user_id" | "is_available"
 >;
-type VoteRow = Pick<Tables<"meeting_game_votes">, "meeting_id" | "user_id">;
+type ResponseRow = Pick<
+  Tables<"meeting_game_responses">,
+  "meeting_id" | "user_id"
+>;
 type RankingRow = Tables<"meeting_game_rankings">;
 type GameRow = Pick<Tables<"games">, "id" | "title" | "cover_url">;
 type RatingRow = Pick<Tables<"ratings">, "game_id">;
@@ -80,7 +83,7 @@ function countConfirmed(rows: AvailabilityRow[], meetingId: string) {
 function mapUpcomingMeetings(input: {
   meetings: MeetingRow[];
   availabilityRows: AvailabilityRow[];
-  voteRows: VoteRow[];
+  responseRows: ResponseRow[];
   rankingRows: RankingRow[];
   gamesMap: Map<string, GameRow>;
   currentUserId: string;
@@ -97,7 +100,8 @@ function mapUpcomingMeetings(input: {
         .map((row) => ({
           gameId: row.game_id!,
           title: input.gamesMap.get(row.game_id!)?.title ?? "Nieznana gra",
-          votesCount: Number(row.votes_count ?? 0),
+          yesCount: Number(row.yes_count ?? 0),
+          noCount: Number(row.no_count ?? 0),
         })),
     )[0];
 
@@ -131,7 +135,7 @@ function mapUpcomingMeetings(input: {
             gameId: ranking.gameId,
             title: ranking.title,
             coverUrl: input.gamesMap.get(ranking.gameId)?.cover_url ?? null,
-            votesCount: ranking.votesCount,
+            yesCount: ranking.yesCount,
           }
         : null,
     };
@@ -317,7 +321,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       : Promise.resolve({ data: [], error: null }),
     futureMeetingIds.length > 0
       ? supabase
-          .from("meeting_game_votes")
+          .from("meeting_game_responses")
           .select("meeting_id, user_id")
           .in("meeting_id", futureMeetingIds)
           .eq("user_id", member.id)
@@ -325,7 +329,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     futureMeetingIds.length > 0
       ? supabase
           .from("meeting_game_rankings")
-          .select("meeting_id, game_id, votes_count")
+          .select("meeting_id, game_id, yes_count, no_count")
           .in("meeting_id", futureMeetingIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
@@ -358,7 +362,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const upcomingMeetings = mapUpcomingMeetings({
     meetings: futureMeetings,
     availabilityRows: (availabilityResult.data ?? []) as AvailabilityRow[],
-    voteRows: (votesResult.data ?? []) as VoteRow[],
+    responseRows: (votesResult.data ?? []) as ResponseRow[],
     rankingRows,
     gamesMap: new Map(
       ((gamesForRankingsResult.data ?? []) as GameRow[]).map((game) => [
@@ -431,8 +435,9 @@ export async function getDashboardData(): Promise<DashboardData> {
       endsAt: meeting.endsAt,
       status: meeting.status,
       ownResponse: meeting.ownResponse,
-      hasOwnVote: ((votesResult.data ?? []) as VoteRow[]).some(
-        (vote) => vote.meeting_id === meeting.id,
+      // Quest zaliczony przy dowolnej odpowiedzi — także odmownej.
+      hasOwnVote: ((votesResult.data ?? []) as ResponseRow[]).some(
+        (response) => response.meeting_id === meeting.id,
       ),
     })),
     unratedGames,

@@ -376,7 +376,7 @@ export async function DashboardShowcase() {
                   className={`truncate text-[0.82rem] font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
                 >
                   {upcoming.leadingGame
-                    ? `${upcoming.leadingGame.title} · ${upcoming.leadingGame.votesCount} gł.`
+                    ? `${upcoming.leadingGame.title} · ${upcoming.leadingGame.yesCount} chce grać`
                     : "Jeszcze bez lidera"}
                 </span>
                 <Link href={upcoming.href} className="hidden">

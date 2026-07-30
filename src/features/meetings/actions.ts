@@ -251,50 +251,57 @@ export async function confirmMeetingAction(
   revalidatePath(`/kalendarium/${meetingId}`);
 }
 
-export async function toggleMeetingVoteAction(
+/*
+ * Zapisy do propozycji i odpowiedzi idą wyłącznie przez transakcyjne RPC —
+ * klient nie ma na tych tabelach grantów INSERT/UPDATE/DELETE. Punkty za
+ * udział w głosowaniu przyznaje samo RPC, więc tutaj zostaje tylko
+ * normalizacja odpowiedzi i odświeżenie ścieżek.
+ */
+export async function proposeMeetingGameAction(
   meetingId: string,
   gameId: string,
-  shouldVote: boolean,
 ): Promise<MeetingVoteState> {
   const access = await requireWriteAccess();
   if (!access.ok) {
     return { status: "error", message: access.message };
   }
 
-  if (shouldVote) {
-    const { error } = await access.supabase.from("meeting_game_votes").insert({
-      meeting_id: meetingId,
-      game_id: gameId,
-      user_id: access.member.id,
-    });
+  const pointAward = await awardMeetingVotePointsAfterSave(() =>
+    access.supabase.rpc("propose_meeting_game", {
+      p_meeting_id: meetingId,
+      p_game_id: gameId,
+    }),
+  );
 
-    if (error && error.code !== "23505") {
-      return { status: "error", message: "Nie udało się dodać głosu." };
-    }
+  if (!pointAward.ok) {
+    return { status: "error", message: "Nie udało się zgłosić gry." };
+  }
 
-    const pointAward = await awardMeetingVotePointsAfterSave(() =>
-      access.supabase.rpc("award_meeting_vote_points", {
-        p_meeting_id: meetingId,
-      }),
-    );
+  revalidatePath("/kalendarium");
+  revalidatePath(`/kalendarium/${meetingId}`);
+  return { status: "success" };
+}
 
-    if (!pointAward.ok) {
-      return {
-        status: "error",
-        message: "Głos został zapisany, ale nie udało się naliczyć punktów.",
-      };
-    }
-  } else {
-    const { error } = await access.supabase
-      .from("meeting_game_votes")
-      .delete()
-      .eq("meeting_id", meetingId)
-      .eq("game_id", gameId)
-      .eq("user_id", access.member.id);
+export async function setMeetingGameResponseAction(
+  meetingId: string,
+  gameId: string,
+  wantsToPlay: boolean,
+): Promise<MeetingVoteState> {
+  const access = await requireWriteAccess();
+  if (!access.ok) {
+    return { status: "error", message: access.message };
+  }
 
-    if (error) {
-      return { status: "error", message: "Nie udało się wycofać głosu." };
-    }
+  const pointAward = await awardMeetingVotePointsAfterSave(() =>
+    access.supabase.rpc("set_meeting_game_response", {
+      p_meeting_id: meetingId,
+      p_game_id: gameId,
+      p_wants_to_play: wantsToPlay,
+    }),
+  );
+
+  if (!pointAward.ok) {
+    return { status: "error", message: "Nie udało się zapisać odpowiedzi." };
   }
 
   revalidatePath("/kalendarium");

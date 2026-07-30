@@ -963,7 +963,7 @@ async function resetQaFixtures(service: SupabaseClient) {
       ["play_participants", "user_id"],
       ["ratings", "user_id"],
       ["meeting_availability", "user_id"],
-      ["meeting_game_votes", "user_id"],
+      ["meeting_game_responses", "user_id"],
       ["plays", "created_by"],
       ["meetings", "created_by"],
       ["games", "owner_id"],

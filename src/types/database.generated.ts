@@ -562,42 +562,102 @@ export type Database = {
           },
         ]
       }
-      meeting_game_votes: {
+      meeting_game_proposals: {
         Row: {
           created_at: string
           game_id: string
           meeting_id: string
-          user_id: string
+          proposed_by: string
         }
         Insert: {
           created_at?: string
           game_id: string
           meeting_id: string
-          user_id: string
+          proposed_by: string
         }
         Update: {
           created_at?: string
           game_id?: string
           meeting_id?: string
-          user_id?: string
+          proposed_by?: string
         }
         Relationships: [
           {
-            foreignKeyName: "meeting_game_votes_game_id_fkey"
+            foreignKeyName: "meeting_game_proposals_game_id_fkey"
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "meeting_game_votes_meeting_id_fkey"
+            foreignKeyName: "meeting_game_proposals_meeting_id_fkey"
             columns: ["meeting_id"]
             isOneToOne: false
             referencedRelation: "meetings"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "meeting_game_votes_user_id_fkey"
+            foreignKeyName: "meeting_game_proposals_proposed_by_fkey"
+            columns: ["proposed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_game_responses: {
+        Row: {
+          created_at: string
+          game_id: string
+          meeting_id: string
+          user_id: string
+          wants_to_play: boolean
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          meeting_id: string
+          user_id: string
+          wants_to_play: boolean
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          meeting_id?: string
+          user_id?: string
+          wants_to_play?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_game_responses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_game_responses_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_game_responses_proposal_fkey"
+            columns: ["meeting_id", "game_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_game_proposals"
+            referencedColumns: ["meeting_id", "game_id"]
+          },
+          {
+            foreignKeyName: "meeting_game_responses_proposal_fkey"
+            columns: ["meeting_id", "game_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_game_rankings"
+            referencedColumns: ["meeting_id", "game_id"]
+          },
+          {
+            foreignKeyName: "meeting_game_responses_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1102,18 +1162,19 @@ export type Database = {
         Row: {
           game_id: string | null
           meeting_id: string | null
-          votes_count: number | null
+          no_count: number | null
+          yes_count: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "meeting_game_votes_game_id_fkey"
+            foreignKeyName: "meeting_game_proposals_game_id_fkey"
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "meeting_game_votes_meeting_id_fkey"
+            foreignKeyName: "meeting_game_proposals_meeting_id_fkey"
             columns: ["meeting_id"]
             isOneToOne: false
             referencedRelation: "meetings"
@@ -1333,11 +1394,31 @@ export type Database = {
           id: string
         }[]
       }
+      propose_meeting_game: {
+        Args: { p_game_id: string; p_meeting_id: string }
+        Returns: {
+          awarded: boolean
+          point_event_id: string
+          points: number
+        }[]
+      }
       reorder_play_photos: {
         Args: { p_photo_ids: string[]; p_play_id: string }
         Returns: undefined
       }
       set_active_class: { Args: { p_class_key: string }; Returns: string }
+      set_meeting_game_response: {
+        Args: {
+          p_game_id: string
+          p_meeting_id: string
+          p_wants_to_play: boolean
+        }
+        Returns: {
+          awarded: boolean
+          point_event_id: string
+          points: number
+        }[]
+      }
       update_game_with_expansions: {
         Args: {
           p_bgg_rank: number

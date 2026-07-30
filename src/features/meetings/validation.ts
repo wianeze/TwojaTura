@@ -165,12 +165,18 @@ export function countConfirmedResponses(
   );
 }
 
+// Kolejność kandydatów: najpierw najwięcej chętnych, przy remisie wygrywa gra
+// z mniejszym oporem, a dopiero na końcu decyduje alfabet.
 export function sortMeetingRanking<
-  T extends { votesCount: number; title: string },
+  T extends { yesCount: number; noCount: number; title: string },
 >(games: T[]) {
   return [...games].sort((left, right) => {
-    if (right.votesCount !== left.votesCount) {
-      return right.votesCount - left.votesCount;
+    if (right.yesCount !== left.yesCount) {
+      return right.yesCount - left.yesCount;
+    }
+
+    if (left.noCount !== right.noCount) {
+      return left.noCount - right.noCount;
     }
 
     return left.title.localeCompare(right.title, "pl", {

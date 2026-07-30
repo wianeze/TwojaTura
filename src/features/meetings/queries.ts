@@ -22,7 +22,7 @@ import {
 
 type MeetingRow = Tables<"meetings">;
 type MeetingAvailabilityRow = Tables<"meeting_availability">;
-type MeetingVoteRow = Tables<"meeting_game_votes">;
+type MeetingResponseRow = Tables<"meeting_game_responses">;
 type GameRow = Tables<"games">;
 type ProfileRow = Pick<
   Tables<"profiles">,
@@ -151,7 +151,7 @@ function buildAttendanceRows(
 function buildCandidateGames(
   games: GameRow[],
   rankings: RankingRow[],
-  votedGameIds: Set<string>,
+  ownResponses: Map<string, boolean>,
   gameOwners: Map<string, MeetingMember>,
 ) {
   const gamesById = new Map(games.map((game) => [game.id, game]));
@@ -168,8 +168,9 @@ function buildCandidateGames(
           title: game.title,
           coverUrl: game.cover_url,
           owner: gameOwners.get(game.owner_id) ?? memberFallback(game.owner_id),
-          votesCount: Number(ranking.votes_count ?? 0),
-          hasOwnVote: votedGameIds.has(game.id),
+          yesCount: Number(ranking.yes_count ?? 0),
+          noCount: Number(ranking.no_count ?? 0),
+          ownResponse: ownResponses.get(game.id) ?? null,
         } satisfies MeetingGameVoteItem;
       })
       .filter((game): game is MeetingGameVoteItem => game !== null),
@@ -179,7 +180,7 @@ function buildCandidateGames(
 function buildAvailableGames(
   games: GameRow[],
   rankings: RankingRow[],
-  votedGameIds: Set<string>,
+  ownResponses: Map<string, boolean>,
   gameOwners: Map<string, MeetingMember>,
 ) {
   const rankedGameIds = new Set(rankings.map((row) => row.game_id));
@@ -193,7 +194,7 @@ function buildAvailableGames(
           coverUrl: game.cover_url,
           owner: gameOwners.get(game.owner_id) ?? memberFallback(game.owner_id),
           alreadyProposed: rankedGameIds.has(game.id),
-          hasOwnVote: votedGameIds.has(game.id),
+          ownResponse: ownResponses.get(game.id) ?? null,
         }) satisfies MeetingGameCandidateOption,
     )
     .sort((left, right) =>
@@ -313,12 +314,12 @@ export async function getMeetingDetails(
       .select("meeting_id, user_id, is_available, updated_at")
       .eq("meeting_id", meetingId),
     supabase
-      .from("meeting_game_votes")
-      .select("meeting_id, game_id, user_id, created_at")
+      .from("meeting_game_responses")
+      .select("meeting_id, game_id, user_id, wants_to_play")
       .eq("meeting_id", meetingId),
     supabase
       .from("meeting_game_rankings")
-      .select("meeting_id, game_id, votes_count")
+      .select("meeting_id, game_id, yes_count, no_count")
       .eq("meeting_id", meetingId),
     supabase
       .from("games")
@@ -360,22 +361,22 @@ export async function getMeetingDetails(
     ),
   ];
   const gameOwners = await getProfilesMap(supabase, ownerIds);
-  const votedGameIds = new Set(
-    ((votesResult.data ?? []) as MeetingVoteRow[])
+  const ownResponses = new Map(
+    ((votesResult.data ?? []) as MeetingResponseRow[])
       .filter((row) => row.user_id === actor?.id)
-      .map((row) => row.game_id),
+      .map((row) => [row.game_id, row.wants_to_play] as const),
   );
 
   const gameVotes = buildCandidateGames(
     (gamesResult.data ?? []) as GameRow[],
     (rankingResult.data ?? []) as RankingRow[],
-    votedGameIds,
+    ownResponses,
     gameOwners,
   );
   const availableGames = buildAvailableGames(
     (gamesResult.data ?? []) as GameRow[],
     (rankingResult.data ?? []) as RankingRow[],
-    votedGameIds,
+    ownResponses,
     gameOwners,
   );
 

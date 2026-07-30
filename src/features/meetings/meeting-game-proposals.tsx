@@ -4,8 +4,9 @@ import { useMemo, useState, useTransition } from "react";
 import { ActionButton } from "@/components/ui/action-button";
 import { GameCover } from "@/components/ui/game-cover";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
-import { toggleMeetingVoteAction } from "./actions";
-import { MeetingVoteToggle } from "./meeting-vote-toggle";
+import { proposeMeetingGameAction } from "./actions";
+import { formatMeetingGameResponseCounts } from "./formatting";
+import { MeetingGameResponseToggle } from "./meeting-game-response-toggle";
 import type { MeetingGameCandidateOption, MeetingGameVoteItem } from "./types";
 
 type MeetingGameProposalsProps = {
@@ -35,7 +36,7 @@ export function MeetingGameProposals({
 
   const handlePropose = (gameId: string) => {
     startTransition(async () => {
-      const result = await toggleMeetingVoteAction(meetingId, gameId, true);
+      const result = await proposeMeetingGameAction(meetingId, gameId);
       setMessage(result.status === "error" ? (result.message ?? null) : null);
 
       if (result.status === "success") {
@@ -49,8 +50,9 @@ export function MeetingGameProposals({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-[#6f5845]">
-          Gdy ktoś zagłosuje na grę po raz pierwszy, trafia ona od razu do puli
-          kandydatów na ten wieczór.
+          Zgłoś grę na ten wieczór, a potem powiedz, w co chcesz zagrać.
+          Zgłoszona gra zostaje na liście, nawet gdy nikt jeszcze nie
+          odpowiedział.
         </p>
 
         {/*
@@ -76,37 +78,44 @@ export function MeetingGameProposals({
               style={{
                 animationDelay: `${getEntranceStaggerDelayMs(index)}ms`,
               }}
-              className="anim-rise-in-fast paper-wash flex items-center gap-3 rounded-[1.15rem] px-3.5 py-3"
+              className={`anim-rise-in-fast flex flex-col gap-3 rounded-[1.15rem] px-3.5 py-3 sm:flex-row sm:items-center ${
+                game.ownResponse === true
+                  ? "bg-[#eaf2f8] ring-1 ring-[#9cc2dd]/55"
+                  : "paper-wash"
+              }`}
             >
-              <GameCover
-                title={game.title}
-                coverUrl={game.coverUrl}
-                size="mini"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-[#4e3528]">
-                  {game.title}
-                </p>
-                <p className="text-muted mt-0.5 text-[0.68rem]">
-                  Właściciel: {game.owner.displayName}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="rounded-full bg-[#f3e6cf] px-2.5 py-1 text-[0.64rem] font-bold text-[#75552e]">
-                  {game.votesCount} głosy
-                </span>
-                <MeetingVoteToggle
-                  meetingId={meetingId}
-                  gameId={game.gameId}
-                  hasOwnVote={game.hasOwnVote}
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <GameCover
+                  title={game.title}
+                  coverUrl={game.coverUrl}
+                  size="mini"
                 />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-[#4e3528]">
+                    {game.title}
+                  </p>
+                  <p className="text-muted mt-0.5 text-[0.68rem]">
+                    Właściciel: {game.owner.displayName}
+                  </p>
+                  <p className="mt-1 text-[0.66rem] font-semibold text-[#75552e]">
+                    {formatMeetingGameResponseCounts(
+                      game.yesCount,
+                      game.noCount,
+                    )}
+                  </p>
+                </div>
               </div>
+              <MeetingGameResponseToggle
+                meetingId={meetingId}
+                gameId={game.gameId}
+                ownResponse={game.ownResponse}
+              />
             </div>
           ))}
         </div>
       ) : (
         <div className="paper-wash rounded-[1.15rem] px-4 py-4 text-sm text-[#6f5845]">
-          Na razie żadna gra nie ma jeszcze głosu. Dodaj pierwszą propozycję i
+          Na razie nikt nie zgłosił żadnej gry. Dodaj pierwszą propozycję i
           zacznij ranking spotkania.
         </div>
       )}
@@ -164,23 +173,21 @@ export function MeetingGameProposals({
                     </p>
                   </div>
 
-                  {game.hasOwnVote ? (
-                    <span className="bg-moss/12 text-moss rounded-full px-2.5 py-1 text-[0.64rem] font-bold">
-                      Twój głos
+                  {game.alreadyProposed ? (
+                    <span className="rounded-full bg-[#f3e6cf] px-2.5 py-1 text-[0.64rem] font-bold text-[#75552e]">
+                      Już zgłoszona
                     </span>
                   ) : (
-                    // Obie ścieżki wołają tę samą akcję głosowania, więc
-                    // noszą ten sam wariant — różni je tylko etykieta.
                     <ActionButton
                       type="button"
                       action="vote"
                       size="compact"
                       disabled={pending}
                       loading={pending}
-                      loadingLabel="Dodaję…"
+                      loadingLabel="Zgłaszam…"
                       onClick={() => handlePropose(game.gameId)}
                     >
-                      {game.alreadyProposed ? "Głosuj" : "Proponuj"}
+                      Zgłoś na wieczór
                     </ActionButton>
                   )}
                 </div>

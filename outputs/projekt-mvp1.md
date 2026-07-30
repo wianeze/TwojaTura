@@ -256,16 +256,49 @@ Jedno spotkanie oznacza dokładnie jedno wydarzenie kalendarzowe od `starts_at` 
 
 Klucz główny: `(meeting_id, user_id)`. Każdy aktywny członek zapisuje wyłącznie własną odpowiedź `true` lub `false`. Brak rekordu oznacza `Brak odpowiedzi`. To jest prosty model RSVP dla jednego wydarzenia.
 
-#### `meeting_game_votes`
+#### `meeting_game_proposals`
 
-| Kolumna      | Typ           | Uwagi            |
-| ------------ | ------------- | ---------------- |
-| `meeting_id` | `uuid`        | FK do `meetings` |
-| `game_id`    | `uuid`        | FK do `games`    |
-| `user_id`    | `uuid`        | FK do `profiles` |
-| `created_at` | `timestamptz` | automatycznie    |
+| Kolumna       | Typ           | Uwagi                     |
+| ------------- | ------------- | ------------------------- |
+| `meeting_id`  | `uuid`        | FK do `meetings`          |
+| `game_id`     | `uuid`        | FK do `games`             |
+| `proposed_by` | `uuid`        | FK do `profiles`          |
+| `created_at`  | `timestamptz` | automatycznie             |
 
-Klucz główny: `(meeting_id, game_id, user_id)`. Jeden użytkownik może zagłosować na wiele gier, ale tylko raz na każdą. Pierwszy głos jednocześnie dodaje grę do puli kandydatów spotkania. Widok `meeting_game_rankings` grupuje głosy według spotkania i gry.
+Klucz główny: `(meeting_id, game_id)` — ta sama gra nie może zostać zgłoszona dwa razy na to samo spotkanie. Tabela trzyma trwałą pulę kandydatów wieczoru: raz zgłoszona gra zostaje na liście niezależnie od tego, jak zmieniają się odpowiedzi graczy.
+
+#### `meeting_game_responses`
+
+| Kolumna         | Typ           | Uwagi                            |
+| --------------- | ------------- | -------------------------------- |
+| `meeting_id`    | `uuid`        | FK do `meetings`                 |
+| `game_id`       | `uuid`        | FK do `games`                    |
+| `user_id`       | `uuid`        | FK do `profiles`                 |
+| `wants_to_play` | `boolean`     | decyzja gracza                   |
+| `created_at`    | `timestamptz` | automatycznie                    |
+
+Klucz główny: `(meeting_id, game_id, user_id)`. Dodatkowy złożony klucz obcy `(meeting_id, game_id)` wskazuje na `meeting_game_proposals` z `on delete cascade` — odpowiedź nie może istnieć dla gry, która nie jest kandydatem tego spotkania.
+
+Model jest trójstanowy:
+
+- brak rekordu — gracz jeszcze nie zdecydował,
+- `wants_to_play = true` — chce zagrać,
+- `wants_to_play = false` — nie chce zagrać.
+
+Zmiana decyzji nadpisuje wiersz i **nigdy nie usuwa propozycji**. Kandydat pozostaje widoczny nawet wtedy, gdy wszystkie odpowiedzi są odmowne albo gdy nikt jeszcze nie odpowiedział.
+
+Widok `meeting_game_rankings` bierze kandydatów z `meeting_game_proposals` i dokłada przez `left join` liczniki z `meeting_game_responses`: `yes_count` i `no_count`. Dzięki `left join` gra bez żadnej odpowiedzi nadal ma wiersz w rankingu.
+
+#### RPC głosowania
+
+Zapisy nie idą wprost do tabel — rola `authenticated` ma na obu wyłącznie `select`, a modyfikacje przechodzą przez dwa transakcyjne RPC `security definer`:
+
+- `propose_meeting_game(p_meeting_id, p_game_id)` — atomowo tworzy propozycję i zapisuje autorowi pierwszą odpowiedź `wants_to_play = true`, a następnie przyznaje punkty za udział;
+- `set_meeting_game_response(p_meeting_id, p_game_id, p_wants_to_play)` — zapisuje kolejne decyzje gracza.
+
+Obie funkcje sprawdzają aktywne członkostwo z prawem zapisu, istnienie spotkania z `deleted_at is null` i zapisują wyłącznie dla `auth.uid()`, więc zapis w cudzym imieniu jest niemożliwy z definicji sygnatury.
+
+Punkty `meeting_vote` przyznawane są za **pierwszą odpowiedź w danym spotkaniu, niezależnie od tego, czy jest to „tak”, czy „nie”**. Jednokrotność zapewnia unikalny indeks `point_events_once_per_related_idx` na `(user_id, action_type, related_entity_type, related_entity_id)`, czyli przy `('meeting', meeting_id)` dokładnie raz na gracza i spotkanie. Zmiana decyzji `tak ↔ nie` nie przyznaje kolejnych punktów ani nie odbiera już przyznanych.
 
 ### Historia rozgrywek
 
@@ -381,7 +414,7 @@ erDiagram
 - `ratings(game_id)`.
 - `meetings(status)` i `meetings(starts_at)`.
 - `meeting_availability(user_id)`.
-- `meeting_game_votes(meeting_id, game_id)`.
+- `meeting_game_proposals(meeting_id)` oraz `meeting_game_responses(meeting_id, game_id)`.
 - `plays(played_at desc)`, `plays(game_id)`, `plays(meeting_id)`.
 - `play_participants(user_id)`.
 - `app_content(updated_at desc)`.
@@ -520,7 +553,7 @@ Questy na Stole nie są osobnymi rekordami w MVP 1. Aplikacja wylicza je podczas
 Planowane źródła akcji:
 
 - `meeting_availability`: brak własnej odpowiedzi RSVP dla przyszłego spotkania daje pytanie „Będziesz na spotkaniu?”;
-- `meeting_game_votes`: brak własnego głosu dla aktywnego spotkania daje pytanie „W co chcesz zagrać?”;
+- `meeting_game_responses`: brak jakiejkolwiek własnej odpowiedzi dla aktywnego spotkania daje pytanie „W co chcesz zagrać?”. Quest jest zaliczony po pierwszej odpowiedzi — również odmownej. Jego podgląd nagrody pokazuje wyłącznie realne +10 pkt za udział w głosowaniu; zapowiedź bonusu „jeśli gra trafi na stół” została usunięta, ponieważ `voted_game_played` nie istnieje jeszcze w bazie i quest obiecywałby punkty, których nikt by nie dostał;
 - `ratings` razem z uczestnictwem w `plays`: brak oceny rozegranej gry daje pytanie „Oceń ostatnio rozegraną grę”;
 - zakończone `meetings` bez wpisu w `plays`: brak zapisu partii po spotkaniu daje akcję „Uzupełnij wynik spotkania”;
 - onboarding Półki: przy 0 własnych aktywnych egzemplarzy pojawia się „Dodaj pierwszą grę do Półki” (+40 preview); przy 1–4 — „Dodaj 5 gier do wspólnej Półki” (+30 preview i progres); przy 5–9 — „Dodaj 10 gier do wspólnej Półki” (+20 preview i progres); przy 10–14 — „Dodaj 15 gier do wspólnej Półki” (+15 preview i progres); od 15 gier nie ma punktowego questa Półki. Wyświetlany jest najwyżej jeden aktywny quest Półki, a wszystkie jego punkty są wyłącznie preview — bez automatycznego zapisu `point_events`;
@@ -638,9 +671,9 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 - Kalendarium korzysta z centralnej logiki user-specific presentation state: brak własnego RSVP ma najwyższy priorytet i daje `Do decyzji`, żółto-złoty stan oraz `exclamation-nobg`; po własnym RSVP `confirmed` jest zielone `Potwierdzone`, a `planned` bordowe `Do ustalenia`.
 - Górny timeline i dolny monthly calendar korzystają z tej samej logiki wizualnej. Timeline pokazuje attendee count liczony wyłącznie z `is_available = true`.
 - Multi-day events renderują się we wszystkich dniach zakresu, a kliknięcie pustego dnia otwiera tworzenie spotkania z prefill `date`.
-- Propozycje gier działają przez `meeting_game_votes`, a pierwszy głos jednocześnie proponuje grę. Ranking pochodzi z `meeting_game_rankings`.
+- Propozycje gier są oddzielone od odpowiedzi graczy: `meeting_game_proposals` trzyma trwałą pulę kandydatów, a `meeting_game_responses` decyzję każdego gracza. Zgłoszenie gry i pierwszą odpowiedź autora zapisuje atomowo `propose_meeting_game`, kolejne decyzje — `set_meeting_game_response`. Zmiana odpowiedzi nigdy nie usuwa propozycji, więc kandydat zostaje na liście także przy zerze chętnych. Ranking pochodzi z `meeting_game_rankings` i sortuje po `yes_count` malejąco, następnie `no_count` rosnąco, a na końcu alfabetycznie po tytule.
 - Twórca spotkania lub admin może wykonać `planned → confirmed`, a także `confirmed → planned` przez akcję `Cofnij potwierdzenie`; cofnięcie nie zmienia RSVP ani głosów.
-- Bezpieczne „Usuń spotkanie” jest technicznie soft delete przez RPC `delete_meeting`: creator może anulować własne spotkanie, admin dowolne, a hard delete nie jest używany. Spotkania z wpisem Kroniki są chronione przed usunięciem. RSVP i głosy pozostają w bazie, dodatnie `meeting_created` / `meeting_rsvp` / `meeting_vote` są kompensowane idempotentnymi ujemnymi `reversal:*` w `point_events`, a usunięte spotkania są ukryte w Kalendarium, Stole, Questach, głosowaniach oraz listach formularzy.
+- Bezpieczne „Usuń spotkanie” jest technicznie soft delete przez RPC `delete_meeting`: creator może anulować własne spotkanie, admin dowolne, a hard delete nie jest używany. Spotkania z wpisem Kroniki są chronione przed usunięciem. RSVP, propozycje i odpowiedzi pozostają w bazie, dodatnie `meeting_created` / `meeting_rsvp` / `meeting_vote` są kompensowane idempotentnymi ujemnymi `reversal:*` w `point_events`, a usunięte spotkania są ukryte w Kalendarium, Stole, Questach, głosowaniach oraz listach formularzy.
 - Weryfikacja zamykająca Etap 5: lokalne `pnpm db:verify` PASS po migracji uproszczonego modelu spotkań, `pnpm test` PASS 96/96, `pnpm check` PASS, `pnpm build` PASS oraz finalny manualny odbiór Kalendarium.
 
 ### Etap 6 — Kronika
@@ -659,7 +692,7 @@ Panel importu nie powstaje w MVP 1. Skrypt, przykładowy CSV i krótka instrukcj
 ### Etap 7 — Stół
 
 - Etap 7 jest zamknięty. Stół jest quest boardem / ekranem motywacyjnym, a nie dashboardem SaaS, i działa na prawdziwych danych Supabase.
-- Questy są derived actions z istniejących danych (`meeting_availability`, `meeting_game_votes`, `ratings`, `meetings`, `plays`), bez tabeli `quests`. Obejmują RSVP, głosowanie, Kronikę, oceny gier, organizację spotkań i onboarding Półki.
+- Questy są derived actions z istniejących danych (`meeting_availability`, `meeting_game_responses`, `ratings`, `meetings`, `plays`), bez tabeli `quests`. Obejmują RSVP, głosowanie, Kronikę, oceny gier, organizację spotkań i onboarding Półki.
 - Questy spotkaniowe działają dla wszystkich przyszłych spotkań `planned` i `confirmed`, także poza bieżącym miesiącem. Mają osobne identyfikatory po `meeting_id` (`missing-rsvp:${meetingId}`, `missing-vote:${meetingId}`) i nie są scalane ani ukrywane przez limit.
 - Rewardy są wyłącznie preview UI: „pkt teraz” i „pkt później”. Etap 7 nie nalicza automatycznie `point_events`; własne saldo pochodzi z `user_point_balances`.
 - Wszystkie questy używają wykrzykników: `meeting` jest pomarańczowy, `chronicle` fioletowy, `vote` niebieski, `rating` zielony, a `shelf` biały/kremowy. Layout questów został zaakceptowany po poprawkach.
@@ -718,7 +751,7 @@ Etap 10 nie obejmuje powiadomień, wielu grup, płatności, publicznego dostępu
 
 - **10C-1 — milestone’y Półki — zamknięty.** Po udanym utworzeniu gry Server Action wywołuje wąskie RPC `award_shelf_onboarding_points()`. RPC samodzielnie korzysta z `auth.uid()`, liczy aktywne, niearchiwizowane gry użytkownika i idempotentnie przyznaje wyłącznie osiągnięte progi `shelf_first_game`, `shelf_5_games`, `shelf_10_games` i `shelf_15_games`.
 - 10C-1 nie wykonuje historycznego backfillu. Nagroda jest sprawdzana dopiero przy kontrolowanym wywołaniu po dodaniu nowej gry; archiwalne gry nie liczą się do progów.
-- **10C-2 — RSVP i głosowanie — zamknięty.** Po udanym zapisie odpowiedzi Server Action wywołuje `award_meeting_rsvp_points(meeting_id)`, a po dodaniu głosu — `award_meeting_vote_points(meeting_id)`. Oba wąskie RPC korzystają wyłącznie z `auth.uid()`, wymagają zapisanego rekordu źródłowego i przyznają nagrodę najwyżej raz na użytkownika i spotkanie.
+- **10C-2 — RSVP i głosowanie — zamknięty.** Po udanym zapisie odpowiedzi Server Action wywołuje `award_meeting_rsvp_points(meeting_id)`. Punkty za głosowanie przyznają transakcyjnie `propose_meeting_game` i `set_meeting_game_response`, wołając wewnętrznie `award_meeting_vote_points(meeting_id)`; helper nie jest dostępny dla roli `authenticated`. Wszystkie te RPC korzystają wyłącznie z `auth.uid()`, wymagają zapisanego rekordu źródłowego i przyznają nagrodę najwyżej raz na użytkownika i spotkanie.
 - Odpowiedzi TAK i NIE są nagradzane jednakowo jako reakcja na spotkanie. Zmiana RSVP ani kolejne głosy na inne gry w tym samym spotkaniu nie tworzą drugiej nagrody.
 - **10C-3 — oceny i Kronika — zamknięty.** Po utworzeniu pierwszej własnej oceny gry Server Action wywołuje `award_rating_created_points(game_id)`, a po atomowym utworzeniu wpisu Kroniki — `award_play_logged_points(play_id)`. Edycja istniejącej oceny ani wpisu Kroniki nie uruchamia naliczania, a idempotencja blokuje ponowną nagrodę dla tej samej encji.
 - **10C-4 — utworzenie spotkania — zamknięty.** Po utworzeniu spotkania Server Action wywołuje `award_meeting_created_points(meeting_id)`. Wąskie RPC korzysta wyłącznie z `auth.uid()`, wymaga aktywnego autora istniejącego spotkania i przyznaje `meeting_created` najwyżej raz dla danego spotkania. Edycja spotkania nie uruchamia naliczania.
@@ -752,7 +785,7 @@ Etap 10 nie obejmuje powiadomień, wielu grup, płatności, publicznego dostępu
 | `shelf_10_games`       |    +20 | raz na użytkownika; `profile / user_id`, przy pierwszym osiągnięciu 10 aktywnych własnych gier       |
 | `shelf_15_games`       |    +15 | raz na użytkownika; `profile / user_id`, przy pierwszym osiągnięciu 15 aktywnych własnych gier       |
 | `meeting_rsvp`         |    +10 | raz na użytkownika i spotkanie; `meeting / meeting_id`, niezależnie od późniejszej zmiany odpowiedzi |
-| `meeting_vote`         |    +10 | raz na użytkownika i spotkanie; `meeting / meeting_id`, niezależnie od usunięcia lub zmiany głosu    |
+| `meeting_vote`         |    +10 | raz na użytkownika i spotkanie; `meeting / meeting_id`, za pierwszą odpowiedź — twierdzącą lub odmowną — niezależnie od późniejszej zmiany decyzji |
 | `meeting_created`      |    +25 | raz dla twórcy spotkania; `meeting / meeting_id`                                                     |
 | `rating_created`       |    +30 | raz na użytkownika i grę; `game / game_id`, aby usunięcie i ponowne dodanie oceny nie dawało punktów |
 | `play_logged`          |    +40 | raz dla autora wpisu Kroniki; `play / play_id`                                                       |

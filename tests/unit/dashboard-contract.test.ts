@@ -119,8 +119,10 @@ test("vote quest gets +10 now and +10 if the voted game reaches the table", () =
   const quest = quests.find((item) => item.id === "missing-vote:meeting-1");
   assert.ok(quest);
   assert.equal(quest.reward.immediatePoints, 10);
-  assert.equal(quest.reward.followUpPoints, 10);
-  assert.equal(quest.reward.followUpLabel, "jeśli trafi na stół");
+  // Bonus "jeśli trafi na stół" nie istnieje w bazie — podgląd nie może go
+  // obiecywać.
+  assert.equal(quest.reward.followUpPoints, undefined);
+  assert.equal(quest.reward.totalPreviewPoints, 10);
   assert.equal(quest.optionalPoints, 10);
 });
 
@@ -835,7 +837,7 @@ test("confirmed meeting exposes a readable organizer confirmation status", () =>
         gameId: "game-1",
         title: "Nemesis",
         coverUrl: null,
-        votesCount: 3,
+        yesCount: 3,
       },
     }),
   );

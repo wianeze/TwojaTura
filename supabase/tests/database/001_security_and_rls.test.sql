@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(309);
+select plan(319);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -265,14 +265,56 @@ select set_config(
 set local role authenticated;
 select lives_ok(
   $$
-    insert into public.meeting_game_votes (meeting_id, game_id, user_id)
+    select * from public.set_meeting_game_response(
+      '40000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000001',
+      true
+    )
+  $$,
+  '16. user records their own game response through the RPC'
+);
+
+select throws_ok(
+  $$
+    insert into public.meeting_game_responses (
+      meeting_id, game_id, user_id, wants_to_play
+    )
     values (
       '40000000-0000-0000-0000-000000000001',
       '30000000-0000-0000-0000-000000000001',
+      '10000000-0000-0000-0000-000000000004',
+      true
+    )
+  $$,
+  '42501',
+  null,
+  '16b. direct insert into responses is denied - writes go through RPC only'
+);
+
+select throws_ok(
+  $$
+    insert into public.meeting_game_proposals (meeting_id, game_id, proposed_by)
+    values (
+      '40000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000003',
       '10000000-0000-0000-0000-000000000004'
     )
   $$,
-  '16. user inserts their own game vote'
+  '42501',
+  null,
+  '16c. direct insert into proposals is denied - writes go through RPC only'
+);
+
+select is(
+  (
+    select count(*)::bigint
+    from public.point_events
+    where user_id = '10000000-0000-0000-0000-000000000004'
+      and action_type = 'meeting_vote'
+      and related_entity_id = '40000000-0000-0000-0000-000000000001'
+  ),
+  1::bigint,
+  '16d. the RPC in test 16 also granted the participation reward once'
 );
 reset role;
 
@@ -284,16 +326,44 @@ select set_config(
 set local role authenticated;
 select throws_ok(
   $$
-    insert into public.meeting_game_votes (meeting_id, game_id, user_id)
+    insert into public.meeting_game_responses (
+      meeting_id, game_id, user_id, wants_to_play
+    )
     values (
       '40000000-0000-0000-0000-000000000001',
       '30000000-0000-0000-0000-000000000002',
-      '10000000-0000-0000-0000-000000000005'
+      '10000000-0000-0000-0000-000000000005',
+      true
     )
   $$,
   '42501',
   null,
-  '17. admin cannot impersonate another game vote'
+  '17. admin cannot write a game response for another member'
+);
+
+select throws_ok(
+  $$
+    select * from public.set_meeting_game_response(
+      '40000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000003',
+      true
+    )
+  $$,
+  '23503',
+  null,
+  '17b. response for a game without a proposal is rejected'
+);
+
+select is(
+  (
+    select count(*)::bigint
+    from public.point_events
+    where user_id = '10000000-0000-0000-0000-000000000001'
+      and action_type = 'meeting_vote'
+      and related_entity_id = '40000000-0000-0000-0000-000000000001'
+  ),
+  0::bigint,
+  '17c. rejected response awards no participation points'
 );
 reset role;
 
@@ -1744,7 +1814,7 @@ select results_eq(
 
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (915::bigint)$$,
+  $$values (925::bigint)$$,
   '100. user point balance includes all four shelf milestones exactly once'
 );
 reset role;
@@ -1838,6 +1908,7 @@ values (
   '10000000-0000-0000-0000-000000000004',
   true
 );
+set local role authenticated;
 
 select results_eq(
   $$
@@ -1893,29 +1964,60 @@ select results_eq(
   '108. first unavailable RSVP also qualifies for meeting_rsvp points'
 );
 
-insert into public.meeting_game_votes (meeting_id, game_id, user_id)
-values (
-  '75000000-0000-0000-0000-000000000001',
-  '30000000-0000-0000-0000-000000000001',
-  '10000000-0000-0000-0000-000000000004'
+select results_eq(
+  $$
+    select awarded, points, point_event_id is not null
+    from public.propose_meeting_game(
+      '75000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000001'
+    )
+  $$,
+  $$values (true, 10, true)$$,
+  '109. proposing a game awards the participation points once'
 );
 
 select results_eq(
   $$
-    select awarded, points, point_event_id is not null
-    from public.award_meeting_vote_points(
-      '75000000-0000-0000-0000-000000000001'
-    )
+    select
+      award.awarded,
+      (
+        select count(*)::bigint
+        from public.point_events
+        where user_id = '10000000-0000-0000-0000-000000000004'
+          and action_type = 'meeting_vote'
+          and related_entity_id = '75000000-0000-0000-0000-000000000001'
+      )
+    from public.set_meeting_game_response(
+      '75000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000001',
+      false
+    ) as award
   $$,
-  $$values (true, 10, true)$$,
-  '109. first saved game vote awards meeting_vote points once'
+  $$values (false, 1::bigint)$$,
+  '109b. flipping the answer to no neither grants nor removes participation points'
 );
 
-insert into public.meeting_game_votes (meeting_id, game_id, user_id)
-values (
-  '75000000-0000-0000-0000-000000000001',
-  '30000000-0000-0000-0000-000000000002',
-  '10000000-0000-0000-0000-000000000004'
+select results_eq(
+  $$
+    select wants_to_play
+    from public.meeting_game_responses
+    where meeting_id = '75000000-0000-0000-0000-000000000001'
+      and game_id = '30000000-0000-0000-0000-000000000001'
+      and user_id = '10000000-0000-0000-0000-000000000004'
+  $$,
+  $$values (false)$$,
+  '109c. the negative answer is persisted instead of deleting the row'
+);
+
+select results_eq(
+  $$
+    select yes_count, no_count
+    from public.meeting_game_rankings
+    where meeting_id = '75000000-0000-0000-0000-000000000001'
+      and game_id = '30000000-0000-0000-0000-000000000001'
+  $$,
+  $$values (0::bigint, 1::bigint)$$,
+  '109d. a candidate with zero yes answers stays in the ranking'
 );
 
 select results_eq(
@@ -1930,26 +2032,22 @@ select results_eq(
           and action_type = 'meeting_vote'
           and related_entity_id = '75000000-0000-0000-0000-000000000001'
       )
-    from public.award_meeting_vote_points(
-      '75000000-0000-0000-0000-000000000001'
+    from public.propose_meeting_game(
+      '75000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000002'
     ) as award
   $$,
   $$values (false, 10, 1)$$,
-  '110. several votes in one meeting do not duplicate meeting_vote points'
+  '110. several responses in one meeting do not duplicate meeting_vote points'
 );
 
-insert into public.meeting_game_votes (meeting_id, game_id, user_id)
-values (
-  '75000000-0000-0000-0000-000000000002',
-  '30000000-0000-0000-0000-000000000001',
-  '10000000-0000-0000-0000-000000000004'
-);
 
 select results_eq(
   $$
     select awarded, points
-    from public.award_meeting_vote_points(
-      '75000000-0000-0000-0000-000000000002'
+    from public.propose_meeting_game(
+      '75000000-0000-0000-0000-000000000002',
+      '30000000-0000-0000-0000-000000000001'
     )
   $$,
   $$values (true, 10)$$,
@@ -1958,7 +2056,7 @@ select results_eq(
 
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (955::bigint)$$,
+  $$values (965::bigint)$$,
   '112. user point balance includes RSVP and vote rewards exactly once'
 );
 
@@ -2170,7 +2268,7 @@ select throws_ok(
 
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (1055::bigint)$$,
+  $$values (1065::bigint)$$,
   '126. user point balance includes rating and play rewards exactly once'
 );
 
@@ -2267,7 +2365,7 @@ select throws_ok(
 
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (1080::bigint)$$,
+  $$values (1090::bigint)$$,
   '134. user point balance includes meeting created reward exactly once'
 );
 
@@ -4650,7 +4748,7 @@ values
     true
   );
 
-insert into public.meeting_game_votes (meeting_id, game_id, user_id)
+insert into public.meeting_game_proposals (meeting_id, game_id, proposed_by)
 values
   (
     '8d000000-0000-0000-0000-000000000001',
@@ -4661,6 +4759,23 @@ values
     '8d000000-0000-0000-0000-000000000001',
     '30000000-0000-0000-0000-000000000002',
     '10000000-0000-0000-0000-000000000003'
+  );
+
+insert into public.meeting_game_responses (
+  meeting_id, game_id, user_id, wants_to_play
+)
+values
+  (
+    '8d000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002',
+    true
+  ),
+  (
+    '8d000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000003',
+    true
   );
 
 insert into public.plays (
@@ -4871,11 +4986,21 @@ select results_eq(
 select results_eq(
   $$
     select count(*)::bigint
-    from public.meeting_game_votes
+    from public.meeting_game_responses
     where meeting_id = '8d000000-0000-0000-0000-000000000001'
   $$,
   $$values (2::bigint)$$,
-  '294. soft delete physically retains vote rows'
+  '294. soft delete physically retains response rows'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.meeting_game_proposals
+    where meeting_id = '8d000000-0000-0000-0000-000000000001'
+  $$,
+  $$values (2::bigint)$$,
+  '294b. soft delete physically retains proposal rows'
 );
 
 select results_eq(
@@ -5018,16 +5143,27 @@ select throws_ok(
 
 select throws_ok(
   $$
-    insert into public.meeting_game_votes (meeting_id, game_id, user_id)
-    values (
+    select * from public.propose_meeting_game(
       '8d000000-0000-0000-0000-000000000001',
-      '30000000-0000-0000-0000-000000000003',
-      '10000000-0000-0000-0000-000000000002'
+      '30000000-0000-0000-0000-000000000003'
     )
   $$,
-  '42501',
+  '23503',
   null,
-  '304. deleted meeting cannot accept new votes'
+  '304. deleted meeting cannot accept new proposals'
+);
+
+select throws_ok(
+  $$
+    select * from public.set_meeting_game_response(
+      '8d000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000001',
+      false
+    )
+  $$,
+  '23503',
+  null,
+  '304b. deleted meeting cannot accept new responses'
 );
 reset role;
 

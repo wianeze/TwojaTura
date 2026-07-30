@@ -72,13 +72,17 @@ export type MeetingAttendanceRow = {
   response: boolean | null;
 };
 
+// null oznacza brak odpowiedzi — gracz jeszcze nie zdecydował.
+export type MeetingGameResponse = boolean | null;
+
 export type MeetingGameVoteItem = {
   gameId: string;
   title: string;
   coverUrl: string | null;
   owner: MeetingMember;
-  votesCount: number;
-  hasOwnVote: boolean;
+  yesCount: number;
+  noCount: number;
+  ownResponse: MeetingGameResponse;
 };
 
 export type MeetingGameCandidateOption = {
@@ -87,7 +91,7 @@ export type MeetingGameCandidateOption = {
   coverUrl: string | null;
   owner: MeetingMember;
   alreadyProposed: boolean;
-  hasOwnVote: boolean;
+  ownResponse: MeetingGameResponse;
 };
 
 export type MeetingDetails = MeetingCardItem & {

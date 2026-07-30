@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(78);
+select plan(79);
 
 -- Fixture roles going into this file (see supabase/seed.sql):
 --   10000000-...-000001 Przemek  admin,  active
@@ -218,12 +218,27 @@ select throws_ok(
 
 select throws_ok(
   $$
-    insert into public.meeting_game_votes (meeting_id, game_id, user_id)
-    values ('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000005')
+    select * from public.set_meeting_game_response(
+      '40000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000001',
+      true
+    )
   $$,
   '42501',
   null,
-  '25. observer cannot vote for a game'
+  '25. observer cannot answer a game poll'
+);
+
+select throws_ok(
+  $$
+    select * from public.propose_meeting_game(
+      '40000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000003'
+    )
+  $$,
+  '42501',
+  null,
+  '25b. observer cannot propose a game'
 );
 
 select throws_ok(
@@ -278,7 +293,7 @@ reset role;
 
 -- ---------------------------------------------------------------------
 -- 31-36. admin bypass extends to ratings / meeting_availability /
--- meeting_game_votes, which were previously self-only
+-- meeting_game_responses, which are now written only through RPC
 -- ---------------------------------------------------------------------
 
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
@@ -311,19 +326,16 @@ select results_eq(
   '32. admin edits another member''s RSVP'
 );
 
-select results_eq(
+select throws_ok(
   $$
-    with changed as (
-      delete from public.meeting_game_votes
-      where meeting_id = '40000000-0000-0000-0000-000000000001'
-        and game_id = '30000000-0000-0000-0000-000000000001'
-        and user_id = '10000000-0000-0000-0000-000000000002'
-      returning 1
-    )
-    select count(*)::bigint from changed
+    delete from public.meeting_game_responses
+    where meeting_id = '40000000-0000-0000-0000-000000000001'
+      and game_id = '30000000-0000-0000-0000-000000000001'
+      and user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$values (1::bigint)$$,
-  '33. admin deletes another member''s vote'
+  '42501',
+  null,
+  '33. not even an admin deletes a response directly - writes go through RPC'
 );
 reset role;
 
@@ -345,19 +357,16 @@ reset role;
 
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-0000-0000-000000000004","role":"authenticated"}', true);
 set local role authenticated;
-select results_eq(
+select throws_ok(
   $$
-    with changed as (
-      delete from public.meeting_game_votes
-      where meeting_id = '40000000-0000-0000-0000-000000000001'
-        and game_id = '30000000-0000-0000-0000-000000000002'
-        and user_id = '10000000-0000-0000-0000-000000000002'
-      returning 1
-    )
-    select count(*)::bigint from changed
+    delete from public.meeting_game_responses
+    where meeting_id = '40000000-0000-0000-0000-000000000001'
+      and game_id = '30000000-0000-0000-0000-000000000002'
+      and user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$values (0::bigint)$$,
-  '35. an ordinary member still cannot delete someone else''s vote directly (regression guard)'
+  '42501',
+  null,
+  '35. an ordinary member still cannot delete someone else''s response directly (regression guard)'
 );
 select results_eq(
   $$

@@ -178,3 +178,19 @@ export function getMeetingPrefillDateValue(dateKey?: string | null) {
 }
 
 export { DEFAULT_MEETING_STATUS };
+
+/*
+ * Kandydat bez żadnej odpowiedzi to nie „0 chce grać” — to stan, w którym
+ * grupa jeszcze się nie wypowiedziała. Dopiero pierwsza odpowiedź, także
+ * odmowna, uruchamia zwykłe liczniki.
+ */
+export function formatMeetingGameResponseCounts(
+  yesCount: number,
+  noCount: number,
+) {
+  if (yesCount === 0 && noCount === 0) {
+    return "Nikt jeszcze nie odpowiedział";
+  }
+
+  return `${yesCount} chce grać · ${noCount} nie chce grać`;
+}

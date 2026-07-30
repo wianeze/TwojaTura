@@ -58,15 +58,15 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
       title: "W co chcesz zagrać?",
       description: `${meeting.title} · ${formatDashboardDateTime(meeting.startsAt)}`,
       href: `/kalendarium/${meeting.id}`,
-      ctaLabel: "Zagłosuj",
+      ctaLabel: "Odpowiedz",
       optionalPoints: 10,
+      // Bonus „jeśli trafi na stół” nie istnieje w bazie — podgląd pokazuje
+      // wyłącznie realną nagrodę za pierwszą odpowiedź w głosowaniu.
       reward: {
         immediatePoints: 10,
         immediateLabel: "teraz",
-        followUpPoints: 10,
-        followUpLabel: "jeśli trafi na stół",
-        totalPreviewPoints: 20,
-        rewardTone: "split",
+        totalPreviewPoints: 10,
+        rewardTone: "immediate",
       },
       priority: QUEST_PRIORITY.missingVote,
       createdAt: meeting.startsAt,

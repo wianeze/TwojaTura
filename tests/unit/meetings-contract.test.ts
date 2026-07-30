@@ -29,6 +29,7 @@ import {
 import {
   DEFAULT_MEETING_STATUS,
   formatDateKeyForDisplay,
+  formatMeetingGameResponseCounts,
   getMeetingFormValues,
   getMeetingPrefillDateValue,
   normalizeMeetingLocationSuggestions,
@@ -364,16 +365,28 @@ test("timeline attendee count is 0 when nobody confirmed", () => {
   assert.equal(countConfirmedResponses([false, null, undefined]), 0);
 });
 
-test("ranking sort contract uses votes desc and title asc on ties", () => {
+test("ranking sort contract uses yes desc, then fewer no, then title", () => {
   const sorted = sortMeetingRanking([
-    { title: "XCOM", votesCount: 2 },
-    { title: "Frostpunk", votesCount: 4 },
-    { title: "Anachrony", votesCount: 2 },
+    { title: "XCOM", yesCount: 2, noCount: 0 },
+    { title: "Frostpunk", yesCount: 4, noCount: 3 },
+    { title: "Anachrony", yesCount: 2, noCount: 2 },
   ]);
 
   assert.deepEqual(
     sorted.map((game) => game.title),
-    ["Frostpunk", "Anachrony", "XCOM"],
+    ["Frostpunk", "XCOM", "Anachrony"],
+  );
+});
+
+test("ranking sort falls back to title only when yes and no both tie", () => {
+  const sorted = sortMeetingRanking([
+    { title: "XCOM", yesCount: 2, noCount: 1 },
+    { title: "Anachrony", yesCount: 2, noCount: 1 },
+  ]);
+
+  assert.deepEqual(
+    sorted.map((game) => game.title),
+    ["Anachrony", "XCOM"],
   );
 });
 
@@ -676,4 +689,32 @@ test("form values use the clicked day as both start and end date by default", ()
     startTime: "18:00",
     endTime: "23:00",
   });
+});
+
+test("response counts distinguish silence from a rejected candidate", () => {
+  assert.equal(
+    formatMeetingGameResponseCounts(0, 0),
+    "Nikt jeszcze nie odpowiedział",
+  );
+  assert.equal(
+    formatMeetingGameResponseCounts(0, 2),
+    "0 chce grać · 2 nie chce grać",
+  );
+  assert.equal(
+    formatMeetingGameResponseCounts(3, 1),
+    "3 chce grać · 1 nie chce grać",
+  );
+});
+
+test("a proposed game stays a candidate with no responses at all", () => {
+  const sorted = sortMeetingRanking([
+    { title: "Bez odpowiedzi", yesCount: 0, noCount: 0 },
+    { title: "Odrzucona", yesCount: 0, noCount: 2 },
+    { title: "Chciana", yesCount: 1, noCount: 0 },
+  ]);
+
+  assert.deepEqual(
+    sorted.map((game) => game.title),
+    ["Chciana", "Bez odpowiedzi", "Odrzucona"],
+  );
 });

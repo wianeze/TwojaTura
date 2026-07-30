@@ -95,7 +95,7 @@ export type DashboardUpcomingMeeting = {
     gameId: string;
     title: string;
     coverUrl: string | null;
-    votesCount: number;
+    yesCount: number;
   } | null;
 };
 
