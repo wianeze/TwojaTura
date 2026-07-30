@@ -1155,8 +1155,7 @@ a {
 
 /*
  * Kafel hero Stołu: etykieta ma prawo do dwóch linii, ikona stoi w rzędzie
- * obok tekstu. Kafel jest celowo słabszy od kart questów poniżej — cieńsze
- * obramowanie i brak cienia rzucanego.
+ * obok tekstu. Zachowuje zwarty rozmiar i dziedziczy wspólną poświatę hover.
  */
 .action-size-hero {
   min-height: 42px;
@@ -1167,10 +1166,6 @@ a {
   border-color: rgba(var(--act-rgb), calc(0.3 + 0.2 * var(--action-glow)));
   font-size: 0.7rem;
   font-weight: 700;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 0 calc(8px * var(--action-glow))
-      rgba(var(--act-rgb), calc(0.16 * var(--action-glow)));
 }
 
 .action-size-hero .action-btn-icon {

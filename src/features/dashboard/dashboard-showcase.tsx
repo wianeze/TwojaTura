@@ -143,7 +143,7 @@ function CompactLeaderboardEntry({
   return (
     <li
       style={{ animationDelay: `${getEntranceStaggerDelayMs(index)}ms` }}
-      className={`anim-rise-in-fast relative isolate flex items-center gap-3 overflow-hidden rounded-[1.05rem] px-3 py-2 ${
+      className={`anim-rise-in-fast relative isolate flex items-center gap-3 overflow-visible rounded-[1.05rem] px-3 py-2.5 ${
         isPodium
           ? `border border-white/12 bg-[rgba(33,18,14,0.5)] ${rankGlow}`
           : "border border-white/8 bg-[rgba(33,18,14,0.36)]"
@@ -152,7 +152,7 @@ function CompactLeaderboardEntry({
       {entry.activeClass?.iconPath ? (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 -z-10 rounded-[inherit]"
+          className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-[inherit]"
         >
           <span
             className="absolute top-1/2 right-[-1.6rem] h-[170%] w-24 -translate-y-1/2 rounded-full blur-2xl"
@@ -176,29 +176,29 @@ function CompactLeaderboardEntry({
           alt={getLeaderboardRankLabel(entry.rank)}
           width={36}
           height={36}
-          className="size-8 shrink-0 object-contain"
+          className="-ml-4 size-12 shrink-0 object-contain"
         />
       ) : (
-        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-black/24 text-xs font-bold text-[#ffe2ad]">
+        <span className="-ml-4 grid size-12 shrink-0 place-items-center rounded-full bg-black/24 text-xs font-bold text-[#ffe2ad]">
           {entry.rank}
         </span>
       )}
 
       <div className="min-w-0 flex-1">
         {entry.activeClass ? (
-          <p className="truncate text-[0.58rem] font-bold tracking-[0.1em] text-[#f0c978] uppercase">
+          <p className="truncate text-[0.65rem] font-bold tracking-[0.1em] text-[#f0c978] uppercase">
             {entry.activeClass.name}
           </p>
         ) : null}
-        <p className="truncate text-sm font-semibold text-[#fff2dc]">
+        <p className="truncate text-base font-semibold text-[#fff2dc]">
           {entry.displayName}
         </p>
-        <p className="text-xs text-[#f2d8b8]">
+        <p className="text-sm text-[#f2d8b8]">
           {entry.totalPoints.toLocaleString("pl-PL")} pkt
         </p>
       </div>
 
-      <span className="shrink-0 text-xs text-[#f0cf9f]">
+      <span className="shrink-0 text-sm text-[#f0cf9f]">
         {entry.rank}. miejsce
       </span>
     </li>
@@ -208,12 +208,12 @@ function CompactLeaderboardEntry({
 function MobileLeaderboardRow({ entry }: { entry: DashboardLeaderboardEntry }) {
   const rankAsset = getLeaderboardRankAsset(entry.rank);
   const isPodium = entry.rank <= 3;
-  const iconSizeClass = isPodium ? "size-10" : "size-8";
+  const iconSizeClass = isPodium ? "size-12" : "size-10";
   const rankGlow = getRankGlowClass(entry.rank);
 
   return (
     <li
-      className={`relative flex items-center gap-1.5 rounded-[0.65rem] py-1 pr-1.5 ${isPodium ? `border border-white/12 bg-[rgba(33,18,14,0.5)] pl-10 ${rankGlow}` : "border border-white/8 bg-[rgba(33,18,14,0.36)] pl-8"}`}
+      className={`relative flex min-h-[2.7rem] items-center gap-1.5 overflow-visible rounded-[0.65rem] py-1.5 pr-1.5 ${isPodium ? `border border-white/12 bg-[rgba(33,18,14,0.5)] pl-10 ${rankGlow}` : "border border-white/8 bg-[rgba(33,18,14,0.36)] pl-8"}`}
     >
       {rankAsset ? (
         <Image
@@ -221,20 +221,20 @@ function MobileLeaderboardRow({ entry }: { entry: DashboardLeaderboardEntry }) {
           alt={getLeaderboardRankLabel(entry.rank)}
           width={40}
           height={40}
-          className={`absolute top-1/2 left-0 ${iconSizeClass} shrink-0 -translate-y-1/2 object-contain`}
+          className={`absolute top-1/2 left-[-0.6rem] ${iconSizeClass} shrink-0 -translate-y-1/2 object-contain`}
         />
       ) : (
         <span
-          className={`absolute top-1/2 left-0 ${iconSizeClass} grid shrink-0 -translate-y-1/2 place-items-center rounded-full bg-black/24 text-[0.6rem] font-bold text-[#ffe2ad]`}
+          className={`absolute top-1/2 left-[-0.6rem] ${iconSizeClass} grid shrink-0 -translate-y-1/2 place-items-center rounded-full bg-black/24 text-[0.6rem] font-bold text-[#ffe2ad]`}
         >
           {entry.rank}
         </span>
       )}
       <div className="min-w-0 flex-1 text-left">
-        <p className="truncate text-[0.68rem] leading-tight font-semibold text-[#fff2dc]">
+        <p className="truncate text-[0.76rem] leading-tight font-semibold text-[#fff2dc]">
           {entry.displayName}
         </p>
-        <p className="text-[0.58rem] leading-tight font-bold text-[#f2d8b8]">
+        <p className="text-[0.66rem] leading-tight font-bold text-[#f2d8b8]">
           {entry.totalPoints.toLocaleString("pl-PL")} pkt
         </p>
       </div>
@@ -263,7 +263,7 @@ export async function DashboardShowcase() {
       <div className="space-y-3">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="text-[0.58rem] font-bold tracking-[0.18em] text-[#f1ca8f] uppercase">
+            <p className="text-[0.68rem] font-bold tracking-[0.18em] text-[#f1ca8f] uppercase">
               Legendy przy Stole
             </p>
             <h2 className="font-display mt-1 text-[1.3rem] font-semibold text-[#fff3e0]">
@@ -308,7 +308,7 @@ export async function DashboardShowcase() {
       <div className="flex h-full flex-col gap-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
+            <p className="text-accent text-[0.68rem] font-bold tracking-[0.18em] uppercase">
               Najbliższe spotkanie
             </p>
             <h2 className="font-display mt-1 truncate text-[1.25rem] font-semibold text-[#4c3528]">
@@ -443,10 +443,10 @@ export async function DashboardShowcase() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,198,105,0.18),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.08),transparent_18%)]" />
           <div className="relative space-y-2">
             <div className="text-center">
-              <h1 className="font-display truncate text-[1.05rem] leading-tight font-semibold text-[#fff1dc]">
+              <h1 className="font-display truncate text-[1.32rem] leading-tight font-semibold text-[#fff1dc]">
                 {data.summary.title}
               </h1>
-              <p className="mt-0.5 truncate text-[0.66rem] font-semibold text-[#e6c79f]">
+              <p className="mt-0.5 truncate text-[0.86rem] font-semibold text-[#e6c79f]">
                 {data.summary.subtitle}
               </p>
             </div>
@@ -460,7 +460,7 @@ export async function DashboardShowcase() {
             style={{ animationDelay: `${getEntranceStaggerDelayMs(3)}ms` }}
             className={`anim-rise-in-fast ${upcomingVisual?.panel ?? "paper-wash shadow-[0_12px_26px_rgba(32,16,8,0.14)]"} min-w-0 overflow-hidden p-2.5`}
           >
-            <p className="text-accent text-center text-[0.58rem] font-bold tracking-[0.12em] uppercase">
+            <p className="text-accent text-center text-[0.66rem] font-bold tracking-[0.12em] uppercase">
               Najbliższe spotkanie
             </p>
 
@@ -586,7 +586,7 @@ export async function DashboardShowcase() {
             style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
             className="anim-rise-in-fast leaderboard-rug-panel flex h-full min-w-0 flex-col p-2.5 text-[#fff6ea] shadow-[inset_0_0_0_1px_rgba(255,230,184,0.08),0_12px_26px_rgba(22,9,5,0.22)]"
           >
-            <h2 className="font-display truncate text-center text-[0.78rem] font-semibold text-[#fff3e0]">
+            <h2 className="font-display truncate text-center text-[0.9rem] font-semibold text-[#fff3e0]">
               Legendy przy Stole
             </h2>
 
@@ -624,10 +624,10 @@ export async function DashboardShowcase() {
                     <p className="text-[0.58rem] font-bold tracking-[0.18em] text-[#e2b578] uppercase">
                       Stół
                     </p>
-                    <h1 className="font-display text-[1.75rem] leading-tight font-semibold text-[#fff1dc] sm:text-[1.95rem]">
+                    <h1 className="font-display text-[2.1rem] leading-tight font-semibold text-[#fff1dc] sm:text-[2.3rem]">
                       {data.summary.title}
                     </h1>
-                    <p className="text-[0.7rem] font-semibold text-[#e6c79f] sm:text-[0.78rem]">
+                    <p className="text-[0.95rem] font-semibold text-[#e6c79f] sm:text-[1.05rem]">
                       {data.summary.subtitle}
                     </p>
                   </div>
