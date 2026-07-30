@@ -6,6 +6,7 @@ import { DeletePlayButton } from "./delete-play-button";
 import {
   formatPlayDuration,
   formatPlayScore,
+  getChronicleParticipantBadgeAsset,
   getPlayDateBadgeParts,
   PLAY_STATUS_LABELS,
 } from "./formatting";
@@ -184,7 +185,13 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
         </h2>
 
         <div className="mt-3 space-y-2">
-          {play.participants.map((participant) => (
+          {play.participants.map((participant) => {
+            const badgeAsset = getChronicleParticipantBadgeAsset(
+              participant,
+              play.mode,
+            );
+
+            return (
             <div
               key={participant.member.id}
               className={`flex items-center justify-between gap-3 rounded-[1rem] px-3 py-2 text-sm ${
@@ -192,12 +199,25 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
               }`}
             >
               <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                <span className="bg-brand text-cream grid size-8 shrink-0 place-items-center rounded-full text-[0.72rem] font-bold">
-                  {participant.member.displayName
-                    .trim()
-                    .charAt(0)
-                    .toLocaleUpperCase("pl-PL")}
-                </span>
+                {badgeAsset ? (
+                  <span
+                    className={`grid shrink-0 place-items-center rounded-full bg-[#f3e6d0] shadow-[0_8px_18px_rgba(110,72,36,0.18)] ring-1 ring-[#cfaf7d]/55 ${play.mode === "cooperative" ? "size-14" : participant.placement && participant.placement >= 4 ? "size-16" : "size-8"}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- local decorative asset from public/brand */}
+                    <img
+                      src={badgeAsset.src}
+                      alt={badgeAsset.alt}
+                      className={`${play.mode === "cooperative" ? "size-[3.25rem]" : participant.placement && participant.placement >= 4 ? "size-14" : "size-7"} shrink-0 object-contain`}
+                    />
+                  </span>
+                ) : (
+                  <span className="bg-brand text-cream grid size-8 shrink-0 place-items-center rounded-full text-[0.72rem] font-bold">
+                    {participant.member.displayName
+                      .trim()
+                      .charAt(0)
+                      .toLocaleUpperCase("pl-PL")}
+                  </span>
+                )}
 
                 <div className="flex min-w-0 items-center gap-2">
                   <span className="truncate font-semibold text-[#4d3528]">
@@ -224,7 +244,8 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
                 </span>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </Panel>
 

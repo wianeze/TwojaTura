@@ -9,7 +9,17 @@ export default function AuthLayout({
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_45%,rgba(223,106,53,0.18),transparent_24rem)]" />
       <div className="relative flex items-center justify-center py-10 lg:py-0">
         <div className="text-center">
-          <div className="mx-auto max-w-xs drop-shadow-[0_30px_60px_rgba(18,8,5,0.58)] sm:max-w-sm">
+          <div className="mx-auto max-w-xs drop-shadow-[0_30px_60px_rgba(18,8,5,0.58)] sm:hidden">
+            <Image
+              src="/icons/Loggin.png"
+              alt="Logowanie"
+              width={560}
+              height={560}
+              priority
+              className="h-auto w-full object-contain"
+            />
+          </div>
+          <div className="mx-auto hidden max-w-xs drop-shadow-[0_30px_60px_rgba(18,8,5,0.58)] sm:block sm:max-w-sm">
             <Image
               src="/brand/logo-tt-transparent.png"
               alt="Twoja Tura!"

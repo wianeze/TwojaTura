@@ -273,6 +273,39 @@ export function getChronicleParticipantChips(
   }));
 }
 
+export function getChronicleParticipantBadgeAsset(
+  participant: PlayParticipantResult,
+  mode: PlayMode = "competitive",
+  medalRank: 1 | 2 | 3 | null = null,
+): { src: string; alt: string } | null {
+  if (mode === "cooperative") {
+    return participant.isWinner
+      ? { src: "/brand/Win.png", alt: "Wygrana" }
+      : { src: "/brand/Lost.png", alt: "Przegrana" };
+  }
+
+  const placement = participant.placement ?? medalRank;
+  if (!placement) return null;
+
+  if (placement === 1) {
+    return { src: "/brand/Gamewin1.png", alt: "1 miejsce" };
+  }
+
+  if (placement === 2) {
+    return { src: "/brand/Gamewin2.png", alt: "2 miejsce" };
+  }
+
+  if (placement === 3) {
+    return { src: "/brand/Gamewin3.png", alt: "3 miejsce" };
+  }
+
+  if (placement >= 4 && placement <= 20) {
+    return { src: `/brand/player${placement}.png`, alt: `${placement} miejsce` };
+  }
+
+  return null;
+}
+
 export function groupPlaysByMonth(
   items: PlayListItem[],
 ): ChronicleMonthGroup[] {

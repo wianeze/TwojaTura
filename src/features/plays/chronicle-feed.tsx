@@ -5,13 +5,19 @@ import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import {
   formatChronicleChipScore,
   formatPlayDuration,
+  getChronicleParticipantBadgeAsset,
   getChronicleParticipantChips,
   getPlayDateBadgeParts,
   groupPlaysByMonth,
   PLAY_STATUS_LABELS,
   sortPlayParticipants,
 } from "./formatting";
-import type { PlayListItem, PlayParticipantResult, PlayStatus } from "./types";
+import type {
+  PlayListItem,
+  PlayMode,
+  PlayParticipantResult,
+  PlayStatus,
+} from "./types";
 
 const medalConfig = {
   1: {
@@ -108,11 +114,18 @@ function DateTile({
 function ParticipantChip({
   participant,
   medalRank,
+  mode,
 }: {
   participant: PlayParticipantResult;
   medalRank: 1 | 2 | 3 | null;
+  mode: PlayMode;
 }) {
   const scoreLabel = formatChronicleChipScore(participant.score);
+  const badgeAsset = getChronicleParticipantBadgeAsset(
+    participant,
+    mode,
+    medalRank,
+  );
 
   if (medalRank) {
     const config = medalConfig[medalRank];
@@ -121,12 +134,21 @@ function ParticipantChip({
       <span
         className={`inline-flex max-w-full items-center gap-1.5 rounded-2xl pr-2.5 pl-1.5 ${config.chipClass}`}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- local decorative asset from public/brand */}
-        <img
-          src={config.src}
-          alt={config.alt}
-          className={`${config.sizeClass} shrink-0 object-contain`}
-        />
+        {badgeAsset ? (
+          // eslint-disable-next-line @next/next/no-img-element -- local decorative asset from public/brand
+          <img
+            src={badgeAsset.src}
+            alt={badgeAsset.alt}
+            className={`${mode === "cooperative" ? "size-[3.25rem] -my-2" : config.sizeClass} shrink-0 object-contain`}
+          />
+        ) : (
+          <span className="bg-brand text-cream grid size-5 shrink-0 place-items-center rounded-full text-[0.58rem] font-bold">
+            {participant.member.displayName
+              .trim()
+              .charAt(0)
+              .toLocaleUpperCase("pl-PL")}
+          </span>
+        )}
         <span className="min-w-0 py-1">
           <span
             className={`inline min-w-0 leading-4 break-words ${config.labelClass}`}
@@ -145,12 +167,21 @@ function ParticipantChip({
 
   return (
     <span className="inline-flex max-w-full items-center gap-1.5 rounded-2xl bg-white/76 px-2.5 py-1 text-[0.68rem] leading-4 text-[#5f4738]">
-      <span className="bg-brand text-cream grid size-5 shrink-0 place-items-center rounded-full text-[0.58rem] font-bold">
-        {participant.member.displayName
-          .trim()
-          .charAt(0)
-          .toLocaleUpperCase("pl-PL")}
-      </span>
+      {badgeAsset ? (
+        // eslint-disable-next-line @next/next/no-img-element -- local decorative asset from public/brand
+        <img
+          src={badgeAsset.src}
+          alt={badgeAsset.alt}
+          className={`${mode === "cooperative" ? "size-[3.25rem] -my-2" : "size-10"} shrink-0 object-contain`}
+        />
+      ) : (
+        <span className="bg-brand text-cream grid size-5 shrink-0 place-items-center rounded-full text-[0.58rem] font-bold">
+          {participant.member.displayName
+            .trim()
+            .charAt(0)
+            .toLocaleUpperCase("pl-PL")}
+        </span>
+      )}
       <span className="min-w-0 py-0.5">
         <span className="inline min-w-0 font-semibold break-words">
           {participant.member.displayName}
@@ -179,6 +210,7 @@ function ParticipantsRow({ item }: { item: PlayListItem }) {
             key={`${chip.participant.member.id}-${chip.medalRank ?? "plain"}`}
             participant={chip.participant}
             medalRank={chip.medalRank}
+            mode={item.mode}
           />
         ))}
       </div>
@@ -205,6 +237,11 @@ function MobileParticipantsList({ item }: { item: PlayListItem }) {
             ? placement
             : null;
         const medal = medalRank ? medalConfig[medalRank] : null;
+        const badgeAsset = getChronicleParticipantBadgeAsset(
+          participant,
+          item.mode,
+          medalRank,
+        );
 
         return (
           <div
@@ -213,12 +250,12 @@ function MobileParticipantsList({ item }: { item: PlayListItem }) {
               medal ? medal.chipClass : "bg-white/78 text-[#5f4738]"
             }`}
           >
-            {medal ? (
+            {badgeAsset ? (
               // eslint-disable-next-line @next/next/no-img-element -- local decorative asset from public/brand
               <img
-                src={medal.src}
-                alt={medal.alt}
-                className="size-7 shrink-0 object-contain"
+                src={badgeAsset.src}
+                alt={badgeAsset.alt}
+                className={`${isCooperative ? "size-[3.25rem] -my-2" : medal ? "size-7" : "size-14"} shrink-0 object-contain`}
               />
             ) : (
               <span className="bg-brand text-cream grid size-5 shrink-0 place-items-center rounded-full text-[0.58rem] font-bold">
