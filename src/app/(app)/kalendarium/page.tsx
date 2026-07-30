@@ -185,6 +185,7 @@ export default async function CalendarPage({
               action="meeting"
               size="compact"
               href="/kalendarium/nowe"
+              className="ml-auto sm:ml-0"
             >
               Dodaj spotkanie
             </ActionLink>

@@ -272,12 +272,11 @@ export async function DashboardShowcase() {
           </div>
           <ActionLink
             action="neutral"
-            size="compact"
-            emphasis="ghost"
+            size="default"
             withIcon={false}
             href="/legendarium"
           >
-            Otwórz
+            Otwórz →
           </ActionLink>
         </div>
 
@@ -567,7 +566,7 @@ export async function DashboardShowcase() {
                 </Link>
               </div>
             ) : (
-              <div className="mt-1 space-y-1.5">
+              <div className="mt-1 flex flex-col items-center gap-1.5 text-center">
                 <p className="text-[0.68rem] text-[#5f4738]">
                   Nie ma jeszcze kolejnego wieczoru.
                 </p>
@@ -597,12 +596,16 @@ export async function DashboardShowcase() {
               ))}
             </ol>
 
-            <Link
+            <ActionLink
+              action="neutral"
+              size="compact"
+              withIcon={false}
+              fullWidth
               href="/legendarium"
-              className="mt-1.5 flex w-full items-center justify-center rounded-[0.6rem] border border-white/15 bg-black/20 px-2 py-1.5 text-[0.62rem] font-bold text-[#ffe0b8]"
+              className="mt-1.5"
             >
-              Otwórz {"→"}
-            </Link>
+              Otwórz →
+            </ActionLink>
           </Panel>
         </div>
       </div>

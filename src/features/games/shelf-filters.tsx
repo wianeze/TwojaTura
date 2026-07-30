@@ -63,7 +63,7 @@ function FilterChip({
         form={form}
         className="peer sr-only"
       />
-      <span className="paper-wash peer-checked:bg-brand peer-checked:text-cream inline-flex rounded-full px-3 py-2 text-xs font-semibold text-[#6d5037] transition-colors">
+      <span className="inline-flex rounded-full border border-[#d9c7aa] bg-[#f7ead3] px-3 py-2 text-xs font-semibold text-[#6d5037] shadow-[0_2px_5px_rgba(83,51,35,0.08)] transition-[background-color,border-color,color,box-shadow] peer-checked:border-[#e4b95f] peer-checked:bg-[#56382b] peer-checked:text-[#fff5df] peer-checked:shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_4px_10px_rgba(72,39,24,0.28)]">
         {label}
       </span>
     </label>

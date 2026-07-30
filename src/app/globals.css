@@ -938,6 +938,7 @@ a {
   text-decoration: none;
   color: var(--act-bright);
   cursor: pointer;
+  overflow: hidden;
   --action-glow: 0;
   background: linear-gradient(
     180deg,
@@ -955,8 +956,10 @@ a {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 1px 2px rgba(0, 0, 0, 0.28),
-    0 0 calc(10px * var(--action-glow))
-      rgba(var(--act-rgb), calc(0.2 * var(--action-glow)));
+    0 0 calc(26px * var(--action-glow))
+      rgba(var(--act-rgb), calc(0.58 * var(--action-glow))),
+    0 0 calc(52px * var(--action-glow))
+      rgba(var(--act-rgb), calc(0.26 * var(--action-glow)));
   transition:
     box-shadow 150ms ease,
     transform 150ms ease,
@@ -965,7 +968,26 @@ a {
     --action-glow 200ms ease;
 }
 
+.action-btn::before {
+  position: absolute;
+  inset: 1px;
+  z-index: 0;
+  border-radius: inherit;
+  background: url("/textures/wood-dark-texture.png") center / 180px auto;
+  pointer-events: none;
+  content: "";
+  filter: brightness(1.3) contrast(1.35);
+  opacity: 0.46;
+  transition: opacity 180ms ease;
+}
+
+.action-btn:hover:not(:disabled)::before {
+  opacity: 0.56;
+}
+
 .action-btn-label {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: inherit;
@@ -979,6 +1001,7 @@ a {
 .action-btn-spinner {
   position: absolute;
   inset: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1049,6 +1072,10 @@ a {
     0 1px 2px rgba(66, 45, 24, 0.16),
     0 0 calc(9px * var(--action-glow))
       rgba(var(--act-rgb), calc(0.22 * var(--action-glow)));
+}
+
+.action-emph-secondary::before {
+  display: none;
 }
 
 .action-emph-secondary:not(:disabled):active {
