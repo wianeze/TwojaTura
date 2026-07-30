@@ -23,7 +23,7 @@ import {
 import { validatePasswordChange } from "./validation";
 
 const inputClass =
-  "bg-background/80 focus:border-gold focus:ring-gold/20 mt-1.5 h-12 w-full rounded-xl border border-[#9a7657]/35 px-4 outline-none transition focus:ring-4";
+  "bg-background/80 focus:border-gold focus:ring-gold/20 mt-1 h-11 w-full rounded-xl border border-[#9a7657]/35 px-4 outline-none transition focus:ring-4 sm:mt-1.5 sm:h-12";
 
 type SessionViewMode = "idle" | "loading" | "ready" | "error";
 type SessionHashKind = Exclude<AuthHashSessionKind, null | "error">;
@@ -358,7 +358,7 @@ export function LoginForm({
     <>
       <form
         action={recoveryMode ? recoveryFormAction : loginFormAction}
-        className="mt-7 space-y-4"
+        className="mt-4 space-y-3 sm:mt-7 sm:space-y-4"
       >
         <label className="block text-sm font-semibold">
           Email
@@ -399,7 +399,7 @@ export function LoginForm({
       <button
         type="button"
         onClick={() => setRecoveryMode((current) => !current)}
-        className="text-accent focus-visible:outline-gold mx-auto mt-5 block text-sm font-semibold underline-offset-4 hover:underline focus-visible:outline-2"
+        className="text-accent focus-visible:outline-gold mx-auto mt-3 block text-sm font-semibold underline-offset-4 hover:underline focus-visible:outline-2 sm:mt-5"
       >
         {recoveryMode ? "Wróć do logowania" : "Nie pamiętasz hasła?"}
       </button>

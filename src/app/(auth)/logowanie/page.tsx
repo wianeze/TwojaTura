@@ -11,14 +11,14 @@ export default async function LoginPage({
 }) {
   const { authError, passwordUpdated } = await searchParams;
   return (
-    <Panel className="paper-wash p-6 sm:p-8">
+    <Panel className="paper-wash p-4 sm:p-8">
       <p className="text-accent text-xs font-bold tracking-[0.16em] uppercase">
         Tylko dla zaproszonych
       </p>
-      <h1 className="font-display mt-3 text-3xl font-semibold">
+      <h1 className="font-display mt-2 text-3xl font-semibold sm:mt-3">
         Wejście do Chaty
       </h1>
-      <p className="text-muted mt-3 text-sm leading-6">
+      <p className="text-muted mt-2 text-sm leading-5 sm:mt-3 sm:leading-6">
         Dostęp do klubu jest możliwy wyłącznie z zaproszenia.
       </p>
       <LoginForm
