@@ -205,13 +205,13 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
               <div className="flex min-w-0 flex-1 items-center gap-2.5">
                 {badgeAsset ? (
                   <span
-                    className={`grid shrink-0 place-items-center rounded-full bg-[#f3e6d0] shadow-[0_8px_18px_rgba(110,72,36,0.18)] ring-1 ring-[#cfaf7d]/55 ${play.mode === "cooperative" ? "size-14" : participant.placement && participant.placement >= 4 ? "size-16" : "size-8"}`}
+                    className={`grid shrink-0 place-items-center rounded-full bg-[#f3e6d0] shadow-[0_8px_18px_rgba(110,72,36,0.18)] ring-1 ring-[#cfaf7d]/55 ${play.mode === "cooperative" ? "size-14" : participant.placement && participant.placement >= 4 ? "size-11 md:size-16" : "size-16 md:size-8"}`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element -- local decorative asset from public/brand */}
                     <img
                       src={badgeAsset.src}
                       alt={badgeAsset.alt}
-                      className={`${play.mode === "cooperative" ? "size-[3.25rem]" : participant.placement && participant.placement >= 4 ? "size-14" : "size-7"} shrink-0 object-contain`}
+                      className={`${play.mode === "cooperative" ? "size-[3.25rem]" : participant.placement && participant.placement >= 4 ? "size-9 md:size-14" : "size-14 md:size-7"} shrink-0 object-contain`}
                     />
                   </span>
                 ) : (

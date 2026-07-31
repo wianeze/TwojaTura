@@ -260,8 +260,8 @@ function MobileParticipantsList({ item }: { item: PlayListItem }) {
                     ? "size-[3.25rem] -my-2"
                     : medal
                       ? "size-14"
-                      : placement === 4 || placement === 5
-                        ? "size-7"
+                      : placement && placement >= 4
+                        ? "size-11"
                         : "size-14"
                 } shrink-0 object-contain`}
               />

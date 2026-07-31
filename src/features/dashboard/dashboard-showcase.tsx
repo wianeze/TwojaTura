@@ -171,15 +171,17 @@ function CompactLeaderboardEntry({
       ) : null}
 
       {rankAsset ? (
-        <Image
-          src={rankAsset}
-          alt={getLeaderboardRankLabel(entry.rank)}
-          width={36}
-          height={36}
-          className="-ml-4 size-12 shrink-0 object-contain"
-        />
+        <span className="ml-2 flex size-12 shrink-0 items-center justify-center">
+          <Image
+            src={rankAsset}
+            alt={getLeaderboardRankLabel(entry.rank)}
+            width={36}
+            height={36}
+            className="size-16 max-w-none object-contain"
+          />
+        </span>
       ) : (
-        <span className="-ml-4 grid size-12 shrink-0 place-items-center rounded-full bg-black/24 text-xs font-bold text-[#ffe2ad]">
+        <span className="ml-2 grid size-12 shrink-0 place-items-center rounded-full bg-black/24 text-xs font-bold text-[#ffe2ad]">
           {entry.rank}
         </span>
       )}
@@ -213,7 +215,7 @@ function MobileLeaderboardRow({ entry }: { entry: DashboardLeaderboardEntry }) {
 
   return (
     <li
-      className={`relative flex min-h-[2.7rem] items-center gap-1.5 overflow-visible rounded-[0.65rem] py-1.5 pr-1.5 ${isPodium ? `border border-white/12 bg-[rgba(33,18,14,0.5)] pl-10 ${rankGlow}` : "border border-white/8 bg-[rgba(33,18,14,0.36)] pl-8"}`}
+      className={`relative flex min-h-[2.7rem] items-center gap-1.5 overflow-visible rounded-[0.65rem] py-1.5 pr-1.5 ${isPodium ? `border border-white/12 bg-[rgba(33,18,14,0.5)] pl-14 ${rankGlow}` : "border border-white/8 bg-[rgba(33,18,14,0.36)] pl-14"}`}
     >
       {rankAsset ? (
         <Image
@@ -221,20 +223,20 @@ function MobileLeaderboardRow({ entry }: { entry: DashboardLeaderboardEntry }) {
           alt={getLeaderboardRankLabel(entry.rank)}
           width={40}
           height={40}
-          className={`absolute top-1/2 left-[-0.6rem] ${iconSizeClass} shrink-0 -translate-y-1/2 object-contain`}
+          className={`absolute top-1/2 left-7 ${iconSizeClass} shrink-0 -translate-x-1/2 -translate-y-1/2 object-contain`}
         />
       ) : (
         <span
-          className={`absolute top-1/2 left-[-0.6rem] ${iconSizeClass} grid shrink-0 -translate-y-1/2 place-items-center rounded-full bg-black/24 text-[0.6rem] font-bold text-[#ffe2ad]`}
+          className={`absolute top-1/2 left-7 ${iconSizeClass} grid shrink-0 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/24 text-[0.6rem] font-bold text-[#ffe2ad]`}
         >
           {entry.rank}
         </span>
       )}
-      <div className="min-w-0 flex-1 text-left">
-        <p className="truncate text-[0.76rem] leading-tight font-semibold text-[#fff2dc]">
+      <div className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left">
+        <p className="min-w-0 line-clamp-2 text-[0.9rem] leading-tight font-semibold text-[#fff2dc]">
           {entry.displayName}
         </p>
-        <p className="text-[0.66rem] leading-tight font-bold text-[#f2d8b8]">
+        <p className="shrink-0 text-[0.78rem] leading-tight font-bold text-[#f2d8b8]">
           {entry.totalPoints.toLocaleString("pl-PL")} pkt
         </p>
       </div>
