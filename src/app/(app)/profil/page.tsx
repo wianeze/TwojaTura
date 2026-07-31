@@ -11,6 +11,7 @@ import { ProfileAchievementsPanel } from "@/features/legendarium/profile-achieve
 import { ActiveClassEmblem } from "@/features/legendarium/active-class-emblem";
 import { listRecentMemberPlays } from "@/features/plays/queries";
 import { RecentMemberPlaysPanel } from "@/features/plays/recent-plays-list";
+import { PushSettingsPanel } from "@/features/push/push-settings-panel";
 
 export const metadata: Metadata = { title: "Karta Gracza" };
 
@@ -67,6 +68,13 @@ export default async function ProfilePage() {
             Wyloguj się
           </button>
         </form>
+      </Panel>
+
+      <Panel
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
+        className="anim-rise-in-fast paper-wash p-6 sm:p-8"
+      >
+        <PushSettingsPanel />
       </Panel>
 
       <ProfileAchievementsPanel

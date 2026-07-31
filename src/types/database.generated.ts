@@ -1031,6 +1031,176 @@ export type Database = {
           },
         ]
       }
+      push_campaigns: {
+        Row: {
+          action_url: string | null
+          body: string
+          created_at: string
+          created_by: string | null
+          dedupe_key: string
+          id: string
+          kind: Database["public"]["Enums"]["push_campaign_kind"]
+          source_entity_id: string | null
+          source_entity_type: string | null
+          template_key: string | null
+          title: string
+        }
+        Insert: {
+          action_url?: string | null
+          body: string
+          created_at?: string
+          created_by?: string | null
+          dedupe_key: string
+          id?: string
+          kind: Database["public"]["Enums"]["push_campaign_kind"]
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          template_key?: string | null
+          title: string
+        }
+        Update: {
+          action_url?: string | null
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          dedupe_key?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["push_campaign_kind"]
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          template_key?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_deliveries: {
+        Row: {
+          attempt_count: number
+          campaign_id: string
+          claimed_at: string | null
+          created_at: string
+          failed_at: string | null
+          id: string
+          last_error_code: string | null
+          next_attempt_at: string
+          recipient_user_id: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["push_delivery_status"]
+          subscription_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          campaign_id: string
+          claimed_at?: string | null
+          created_at?: string
+          failed_at?: string | null
+          id?: string
+          last_error_code?: string | null
+          next_attempt_at?: string
+          recipient_user_id: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["push_delivery_status"]
+          subscription_id: string
+        }
+        Update: {
+          attempt_count?: number
+          campaign_id?: string
+          claimed_at?: string | null
+          created_at?: string
+          failed_at?: string | null
+          id?: string
+          last_error_code?: string | null
+          next_attempt_at?: string
+          recipient_user_id?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["push_delivery_status"]
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_deliveries_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "push_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_deliveries_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "push_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          disabled_at: string | null
+          endpoint: string
+          failure_count: number
+          id: string
+          last_failure_at: string | null
+          last_success_at: string | null
+          p256dh: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          disabled_at?: string | null
+          endpoint: string
+          failure_count?: number
+          id?: string
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          p256dh: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          disabled_at?: string | null
+          endpoint?: string
+          failure_count?: number
+          id?: string
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          p256dh?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ratings: {
         Row: {
           comment: string | null
@@ -1207,6 +1377,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_create_push_campaign: {
+        Args: {
+          p_action_url?: string
+          p_body: string
+          p_idempotency_key: string
+          p_recipient_user_ids?: string[]
+          p_template_key?: string
+          p_title: string
+        }
+        Returns: {
+          campaign_id: string
+          subscription_count: number
+          user_count: number
+        }[]
+      }
       admin_deactivate_and_anonymize_account: {
         Args: { p_reason?: string; p_target_user_id: string }
         Returns: undefined
@@ -1239,6 +1424,34 @@ export type Database = {
           status: Database["public"]["Enums"]["feedback_status"]
         }[]
       }
+      admin_list_push_audience: {
+        Args: never
+        Returns: {
+          active_subscription_count: number
+          display_name: string
+          role: Database["public"]["Enums"]["membership_role"]
+          user_id: string
+        }[]
+      }
+      admin_list_push_campaigns: {
+        Args: { p_limit?: number }
+        Returns: {
+          action_url: string
+          body: string
+          created_at: string
+          created_by_name: string
+          device_count: number
+          failed_count: number
+          id: string
+          kind: Database["public"]["Enums"]["push_campaign_kind"]
+          queued_count: number
+          recipient_user_count: number
+          sent_count: number
+          skipped_count: number
+          template_key: string
+          title: string
+        }[]
+      }
       admin_provision_existing_user: {
         Args: {
           p_role?: Database["public"]["Enums"]["membership_role"]
@@ -1246,6 +1459,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_push_audience_summary: {
+        Args: { p_recipient_user_ids?: string[] }
+        Returns: {
+          subscription_count: number
+          user_count: number
+          users_without_subscription: number
+        }[]
+      }
+      admin_reschedule_pending_push_deliveries: { Args: never; Returns: number }
       admin_update_feedback_submission: {
         Args: {
           p_admin_note: string
@@ -1325,6 +1547,28 @@ export type Database = {
           awarded_points: number
         }[]
       }
+      claim_push_deliveries: {
+        Args: { p_limit?: number }
+        Returns: {
+          action_url: string
+          attempt_count: number
+          auth_secret: string
+          body: string
+          delivery_id: string
+          endpoint: string
+          p256dh: string
+          subscription_id: string
+          title: string
+        }[]
+      }
+      complete_push_delivery: {
+        Args: {
+          p_delivery_id: string
+          p_error_code?: string
+          p_outcome: string
+        }
+        Returns: undefined
+      }
       create_game_with_expansions: {
         Args: {
           p_archived_at?: string
@@ -1369,6 +1613,10 @@ export type Database = {
       current_user_is_admin: { Args: never; Returns: boolean }
       delete_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
       delete_play: { Args: { p_play_id: string }; Returns: string }
+      disable_push_subscription: {
+        Args: { p_endpoint: string }
+        Returns: boolean
+      }
       get_leaderboard: {
         Args: never
         Returns: {
@@ -1384,6 +1632,13 @@ export type Database = {
         Returns: {
           is_active: boolean
           role: Database["public"]["Enums"]["membership_role"]
+        }[]
+      }
+      get_own_push_subscription: {
+        Args: { p_endpoint: string }
+        Returns: {
+          is_enabled: boolean
+          subscription_id: string
         }[]
       }
       get_play_profiles: {
@@ -1405,6 +1660,15 @@ export type Database = {
       reorder_play_photos: {
         Args: { p_photo_ids: string[]; p_play_id: string }
         Returns: undefined
+      }
+      save_push_subscription: {
+        Args: {
+          p_auth: string
+          p_endpoint: string
+          p_p256dh: string
+          p_user_agent?: string
+        }
+        Returns: string
       }
       set_active_class: { Args: { p_class_key: string }; Returns: string }
       set_meeting_game_response: {
@@ -1471,6 +1735,13 @@ export type Database = {
       play_mode: "competitive" | "cooperative"
       play_status: "in_progress" | "completed"
       play_team_result: "win" | "loss"
+      push_campaign_kind: "meeting_created" | "admin_manual"
+      push_delivery_status:
+        | "queued"
+        | "processing"
+        | "sent"
+        | "failed"
+        | "skipped"
       reward_domain:
         | "play"
         | "meeting"
@@ -1614,6 +1885,14 @@ export const Constants = {
       play_mode: ["competitive", "cooperative"],
       play_status: ["in_progress", "completed"],
       play_team_result: ["win", "loss"],
+      push_campaign_kind: ["meeting_created", "admin_manual"],
+      push_delivery_status: [
+        "queued",
+        "processing",
+        "sent",
+        "failed",
+        "skipped",
+      ],
       reward_domain: [
         "play",
         "meeting",

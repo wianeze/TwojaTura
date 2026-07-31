@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ActionLink } from "@/components/ui/action-button";
 import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
@@ -33,6 +34,14 @@ export default async function AdminPage() {
         <h1 className="font-display text-cream mt-1.5 text-4xl font-semibold tracking-tight drop-shadow-[0_2px_12px_rgba(20,10,7,0.32)] sm:text-[2.8rem]">
           Admin
         </h1>
+        <ActionLink
+          action="meeting"
+          size="compact"
+          href="/admin/powiadomienia"
+          className="mt-3"
+        >
+          Wyślij powiadomienie push
+        </ActionLink>
       </header>
 
       <Panel
