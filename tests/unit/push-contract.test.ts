@@ -1,6 +1,19 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { createClaimDeliveries } from "../../src/features/push/claim.ts";
+import type { ClaimedDeliveryRow } from "../../src/features/push/claim.ts";
+import { createCompleteDelivery } from "../../src/features/push/complete.ts";
+import {
+  describeSupabaseTarget,
+  isPushDispatchError,
+  PUSH_INTERNAL_FAILURE_WARNING,
+  PushDispatchError,
+  pushDispatchErrorMessage,
+  pushDispatchErrorResponse,
+  toSafeErrorCode,
+  toSafeErrorMessage,
+} from "../../src/features/push/dispatch-errors.ts";
 import { classifyWebPushError } from "../../src/features/push/error-classification.ts";
 import {
   runPushDispatchLoop,
@@ -462,7 +475,13 @@ test("pusty claim kończy się bez ani jednej wysyłki", async () => {
   });
 
   assert.equal(sendCalls, 0);
-  assert.deepEqual(summary, { claimed: 0, sent: 0, retrying: 0, failed: 0 });
+  assert.deepEqual(summary, {
+    claimed: 0,
+    sent: 0,
+    retrying: 0,
+    failed: 0,
+    internalFailed: 0,
+  });
 });
 
 test("błąd jednego urządzenia nie przerywa pozostałych dostaw", async () => {
@@ -593,4 +612,506 @@ test("nieudany zapis wyniku nie wywraca całej partii", async () => {
   // więc świadomie nie liczymy go jako wysłanego.
   assert.equal(summary.claimed, 2);
   assert.equal(summary.sent, 1);
+  assert.equal(summary.internalFailed, 1);
+});
+
+// --- awaria claimu ----------------------------------------------------------
+//
+// Regresja produkcyjna: `claim_push_deliveries` zwracał błąd, dispatcher
+// zamieniał go na pustą partię i cały bieg kończył się sumarium samych zer —
+// nieodróżnialnym od poprawnie pustej kolejki.
+
+const PRODUCTION_URL = "https://abcdefghijklmnopqrst.supabase.co";
+
+function makeClaimedRow(index: number): ClaimedDeliveryRow {
+  return {
+    delivery_id: `delivery-${index}`,
+    subscription_id: `subscription-${index}`,
+    endpoint: `https://fcm.example/${index}`,
+    p256dh: "klucz-p256",
+    auth_secret: "klucz-auth",
+    title: "Nowe spotkanie!",
+    body: "Powstało spotkanie.",
+    action_url: "/kalendarium/abc",
+    attempt_count: 0,
+  };
+}
+
+test("błąd RPC claimu kończy się kontrolowanym push_dispatch_claim_failed", async () => {
+  const claimDeliveries = createClaimDeliveries({
+    supabaseUrl: PRODUCTION_URL,
+    callClaimRpc: async () => ({
+      data: null,
+      error: { code: "42501", message: "permission denied for function" },
+    }),
+    logError: () => {},
+  });
+
+  await assert.rejects(
+    () => claimDeliveries(50),
+    (error: unknown) => {
+      assert.ok(isPushDispatchError(error));
+      assert.equal(
+        (error as PushDispatchError).code,
+        "push_dispatch_claim_failed",
+      );
+      return true;
+    },
+  );
+});
+
+test("null bez błędu też jest awarią, a nie pustą kolejką", async () => {
+  const claimDeliveries = createClaimDeliveries({
+    supabaseUrl: PRODUCTION_URL,
+    callClaimRpc: async () => ({ data: null, error: null }),
+    logError: () => {},
+  });
+
+  await assert.rejects(() => claimDeliveries(50), PushDispatchError);
+});
+
+test("dispatcher NIE zwraca pustego podsumowania, gdy claim padnie", async () => {
+  let sendCalls = 0;
+
+  const claimDeliveries = createClaimDeliveries({
+    supabaseUrl: PRODUCTION_URL,
+    callClaimRpc: async () => ({
+      data: null,
+      error: {
+        code: "PGRST202",
+        message: "function not found in schema cache",
+      },
+    }),
+    logError: () => {},
+  });
+
+  const run = runPushDispatchLoop({
+    claimDeliveries,
+    sendDelivery: async () => {
+      sendCalls += 1;
+      return { kind: "sent" };
+    },
+    completeDelivery: async () => {},
+  });
+
+  // Kluczowa asercja regresji: pętla ma się wywrócić, a nie rozwiązać się
+  // sumarium z samymi zerami.
+  await assert.rejects(() => run, PushDispatchError);
+  assert.equal(sendCalls, 0);
+});
+
+test("pusta tablica z claimu nadal oznacza pustą kolejkę i sukces", async () => {
+  const summary = await runPushDispatchLoop({
+    claimDeliveries: createClaimDeliveries({
+      supabaseUrl: PRODUCTION_URL,
+      callClaimRpc: async () => ({ data: [], error: null }),
+      logError: () => {},
+    }),
+    sendDelivery: async () => ({ kind: "sent" }),
+    completeDelivery: async () => {},
+  });
+
+  assert.deepEqual(summary, {
+    claimed: 0,
+    sent: 0,
+    retrying: 0,
+    failed: 0,
+    internalFailed: 0,
+  });
+});
+
+test("poprawny claim mapuje auth_secret na auth i zachowuje resztę pól", async () => {
+  const claimDeliveries = createClaimDeliveries({
+    supabaseUrl: PRODUCTION_URL,
+    callClaimRpc: async () => ({ data: [makeClaimedRow(7)], error: null }),
+    logError: () => {},
+  });
+
+  assert.deepEqual(await claimDeliveries(50), [
+    {
+      deliveryId: "delivery-7",
+      subscriptionId: "subscription-7",
+      endpoint: "https://fcm.example/7",
+      p256dh: "klucz-p256",
+      auth: "klucz-auth",
+      title: "Nowe spotkanie!",
+      body: "Powstało spotkanie.",
+      actionUrl: "/kalendarium/abc",
+      attemptCount: 0,
+    },
+  ]);
+});
+
+// --- diagnostyka bez wycieku ------------------------------------------------
+
+test("log awarii claimu niesie kod, host i ref projektu", async () => {
+  const logs: string[] = [];
+
+  const claimDeliveries = createClaimDeliveries({
+    supabaseUrl: PRODUCTION_URL,
+    callClaimRpc: async () => ({
+      data: null,
+      error: { code: "42883", message: "function does not exist" },
+    }),
+    logError: (message) => logs.push(message),
+  });
+
+  await assert.rejects(() => claimDeliveries(50));
+
+  assert.equal(logs.length, 1);
+  assert.match(logs[0], /push_dispatch_claim_failed/);
+  assert.match(logs[0], /code=42883/);
+  assert.match(logs[0], /host=abcdefghijklmnopqrst\.supabase\.co/);
+  assert.match(logs[0], /projectRef=abcdefghijklmnopqrst/);
+});
+
+test("log awarii claimu nigdy nie niesie klucza ani materiału subskrypcji", async () => {
+  const logs: string[] = [];
+
+  const secret =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sluzbowyKluczServiceRole.podpis";
+
+  const claimDeliveries = createClaimDeliveries({
+    supabaseUrl: PRODUCTION_URL,
+    callClaimRpc: async () => ({
+      data: null,
+      error: {
+        code: "PGRST301",
+        message: `JWT ${secret} rejected for https://fcm.googleapis.com/fcm/send/abc p256dh=BOtoken`,
+      },
+    }),
+    logError: (message) => logs.push(message),
+  });
+
+  await assert.rejects(() => claimDeliveries(50));
+
+  assert.ok(!logs[0].includes(secret));
+  assert.ok(!logs[0].includes("fcm.googleapis.com"));
+  assert.ok(!logs[0].includes("https://"));
+  assert.match(logs[0], /\[usunięto\]/);
+});
+
+test("toSafeErrorMessage wycina URL-e, długie tokeny i przycina długość", () => {
+  assert.equal(
+    toSafeErrorMessage(new Error("blad przy https://fcm.example/abc")),
+    "blad przy [usunięto]",
+  );
+  assert.equal(toSafeErrorMessage({ message: "a".repeat(41) }), "[usunięto]");
+  assert.equal(toSafeErrorMessage(null), "brak treści błędu");
+  assert.ok(toSafeErrorMessage("krotkie ".repeat(100)).length <= 200);
+});
+
+test("toSafeErrorCode przepuszcza kody Postgresa i odrzuca resztę", () => {
+  assert.equal(toSafeErrorCode("42501"), "42501");
+  assert.equal(toSafeErrorCode("PGRST202"), "PGRST202");
+  assert.equal(toSafeErrorCode("kod <script>"), "kodscript");
+  assert.equal(toSafeErrorCode(undefined), "brak_kodu");
+});
+
+test("describeSupabaseTarget rozpoznaje projekt zdalny i adres lokalny", () => {
+  assert.deepEqual(describeSupabaseTarget(PRODUCTION_URL), {
+    hostname: "abcdefghijklmnopqrst.supabase.co",
+    projectRef: "abcdefghijklmnopqrst",
+  });
+
+  // Najgroźniejszy wariant pomyłki konfiguracyjnej: produkcyjny dispatcher
+  // wskazany na localhost. Ma być widoczny w logu jako „lokalny”.
+  assert.deepEqual(describeSupabaseTarget("http://127.0.0.1:54321"), {
+    hostname: "127.0.0.1",
+    projectRef: "lokalny",
+  });
+
+  assert.equal(describeSupabaseTarget("nie-url").projectRef, "nieznany");
+});
+
+// --- kontrakt HTTP Route Handlera -------------------------------------------
+
+test("Route Handler odpowiada 500 push_dispatch_claim_failed na awarię claimu", () => {
+  const response = pushDispatchErrorResponse(
+    new PushDispatchError("push_dispatch_claim_failed", "claim padł"),
+  );
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(response.body, { error: "push_dispatch_claim_failed" });
+});
+
+test("Route Handler odpowiada 503 na brak konfiguracji", () => {
+  const response = pushDispatchErrorResponse(
+    new PushDispatchError("push_dispatch_not_configured", "brak zmiennych"),
+  );
+
+  assert.equal(response.status, 503);
+  assert.deepEqual(response.body, { error: "push_dispatch_not_configured" });
+});
+
+test("nieznany wyjątek też kończy się 500, nigdy 200 z zerami", () => {
+  const response = pushDispatchErrorResponse(new Error("cokolwiek"));
+
+  assert.equal(response.status, 500);
+  assert.equal(response.body.error, "push_dispatch_claim_failed");
+});
+
+test("panel administratora dostaje komunikat błędu, a nie „przetworzono 0”", () => {
+  const claimMessage = pushDispatchErrorMessage(
+    new PushDispatchError("push_dispatch_claim_failed", "claim padł"),
+  );
+  const configMessage = pushDispatchErrorMessage(
+    new PushDispatchError("push_dispatch_not_configured", "brak zmiennych"),
+  );
+
+  assert.match(claimMessage, /push_dispatch_claim_failed/);
+  assert.match(configMessage, /push_dispatch_not_configured/);
+  assert.ok(!claimMessage.includes("przetworzono 0"));
+});
+
+// --- awaria finalizacji (complete_push_delivery) -----------------------------
+//
+// Druga regresja: wynik RPC był ignorowany, więc nieudany zapis statusu `sent`
+// przechodził bezszelestnie, dostawa lądowała w liczniku `sent`, a w bazie
+// wisiała w `processing` i po 10 minutach wracała do kolejki jako duplikat.
+
+function makeCompleteDelivery(
+  error: { code?: string | null; message?: string | null } | null,
+  logs: string[] = [],
+  failingDeliveryIds?: ReadonlySet<string>,
+) {
+  return createCompleteDelivery({
+    supabaseUrl: PRODUCTION_URL,
+    logError: (message) => logs.push(message),
+    callCompleteRpc: async (deliveryId) => ({
+      error:
+        !failingDeliveryIds || failingDeliveryIds.has(deliveryId)
+          ? error
+          : null,
+    }),
+  });
+}
+
+test("błąd finalizacji rzuca kontrolowany push_dispatch_complete_failed", async () => {
+  const completeDelivery = makeCompleteDelivery({
+    code: "40001",
+    message: "could not serialize access",
+  });
+
+  await assert.rejects(
+    () => completeDelivery("delivery-1", { kind: "sent" }),
+    (error: unknown) => {
+      assert.ok(isPushDispatchError(error));
+      assert.equal(
+        (error as PushDispatchError).code,
+        "push_dispatch_complete_failed",
+      );
+      return true;
+    },
+  );
+});
+
+test("brak błędu z finalizacji kończy się cicho", async () => {
+  const logs: string[] = [];
+  const completeDelivery = makeCompleteDelivery(null, logs);
+
+  await completeDelivery("delivery-1", { kind: "sent" });
+
+  assert.equal(logs.length, 0);
+});
+
+test("nieudana finalizacja po udanym sendNotification NIE zwiększa sent", async () => {
+  const logs: string[] = [];
+
+  const summary = await runPushDispatchLoop(
+    {
+      claimDeliveries: async () => [makeTask(1), makeTask(2), makeTask(3)],
+      // Wszystkie trzy urządzenia przyjmują push bez zastrzeżeń.
+      sendDelivery: async () => ({ kind: "sent" }),
+      completeDelivery: makeCompleteDelivery(
+        { code: "40001", message: "could not serialize access" },
+        logs,
+        new Set(["delivery-2"]),
+      ),
+    },
+    { batchSize: 3, concurrency: 2, maxBatches: 1 },
+  );
+
+  // Kluczowa asercja: delivery-2 dotarło do dostawcy, ale baza o tym nie wie,
+  // więc nie wolno go zaliczyć do `sent`.
+  assert.equal(summary.claimed, 3);
+  assert.equal(summary.sent, 2);
+  assert.equal(summary.internalFailed, 1);
+  assert.equal(summary.failed, 0);
+  assert.equal(summary.retrying, 0);
+
+  // Pozostałe dostawy przeszły mimo awarii jednej z nich.
+  assert.equal(
+    summary.sent + summary.retrying + summary.failed + summary.internalFailed,
+    summary.claimed,
+  );
+  assert.equal(logs.length, 1);
+});
+
+test("nieudana finalizacja po expired/retryable/permanent też jest raportowana", async () => {
+  const outcomes: PushSendOutcome[] = [
+    { kind: "expired_subscription", errorCode: "http_410" },
+    { kind: "retryable_failure", errorCode: "http_503" },
+    { kind: "permanent_failure", errorCode: "http_403" },
+  ];
+
+  for (const outcome of outcomes) {
+    const logs: string[] = [];
+
+    const summary = await runPushDispatchLoop(
+      {
+        claimDeliveries: async () => [makeTask(1), makeTask(2)],
+        sendDelivery: async (task) =>
+          task.deliveryId === "delivery-1" ? outcome : { kind: "sent" },
+        completeDelivery: makeCompleteDelivery(
+          { code: "42501", message: "permission denied" },
+          logs,
+          new Set(["delivery-1"]),
+        ),
+      },
+      { batchSize: 2, concurrency: 2, maxBatches: 1 },
+    );
+
+    // Wynik dostawcy był znany, ale i tak nie został zapisany — liczy się jako
+    // awaria wewnętrzna, a nie jako `failed`/`retrying`.
+    assert.equal(summary.internalFailed, 1, `outcome=${outcome.kind}`);
+    assert.equal(summary.failed, 0, `outcome=${outcome.kind}`);
+    assert.equal(summary.retrying, 0, `outcome=${outcome.kind}`);
+
+    // Drugie urządzenie przeszło do końca — pętla nie została przerwana.
+    assert.equal(summary.sent, 1, `outcome=${outcome.kind}`);
+    assert.match(logs[0], new RegExp(`outcome=${outcome.kind}`));
+  }
+});
+
+test("awaria finalizacji WSZYSTKICH dostaw nie udaje sukcesu", async () => {
+  const summary = await runPushDispatchLoop(
+    {
+      claimDeliveries: async () => [makeTask(1), makeTask(2)],
+      sendDelivery: async () => ({ kind: "sent" }),
+      completeDelivery: makeCompleteDelivery(
+        { code: "40001", message: "could not serialize access" },
+        [],
+      ),
+    },
+    { batchSize: 2, concurrency: 2, maxBatches: 1 },
+  );
+
+  assert.equal(summary.sent, 0);
+  assert.equal(summary.internalFailed, 2);
+});
+
+test("log awarii finalizacji niesie delivery_id, outcome, kod i ref projektu", async () => {
+  const logs: string[] = [];
+  const completeDelivery = makeCompleteDelivery(
+    { code: "42501", message: "permission denied for function" },
+    logs,
+  );
+
+  await assert.rejects(() =>
+    completeDelivery("2f1e19aa-0000-4000-8000-000000000001", { kind: "sent" }),
+  );
+
+  assert.equal(logs.length, 1);
+  assert.match(logs[0], /push_dispatch_complete_failed/);
+  assert.match(logs[0], /code=42501/);
+  assert.match(logs[0], /deliveryId=2f1e19aa-0000-4000-8000-000000000001/);
+  assert.match(logs[0], /outcome=sent/);
+  assert.match(logs[0], /host=abcdefghijklmnopqrst\.supabase\.co/);
+  assert.match(logs[0], /projectRef=abcdefghijklmnopqrst/);
+});
+
+test("log awarii finalizacji nie niesie endpointu, p256dh, auth ani sekretów", async () => {
+  const logs: string[] = [];
+
+  const serviceRoleKey =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sluzbowyKluczServiceRole.podpis";
+  const vapidPrivateKey = "UUxIIkc1NGpUUnNjc2FaeFZfV0xLZk1nUlRLd0pyMlk";
+
+  const completeDelivery = makeCompleteDelivery(
+    {
+      code: "PGRST301",
+      message: `JWT ${serviceRoleKey} vapid ${vapidPrivateKey} endpoint https://fcm.googleapis.com/fcm/send/abc p256dh=BOtokenBOtokenBOtokenBOtokenBOtokenBOtoken auth=sekretAuth`,
+    },
+    logs,
+  );
+
+  await assert.rejects(() => completeDelivery("delivery-1", { kind: "sent" }));
+
+  for (const secret of [
+    serviceRoleKey,
+    vapidPrivateKey,
+    "fcm.googleapis.com",
+    "https://",
+    "BOtokenBOtokenBOtokenBOtokenBOtokenBOtoken",
+  ]) {
+    assert.ok(!logs[0].includes(secret), `log nie może zawierać: ${secret}`);
+  }
+
+  assert.match(logs[0], /\[usunięto\]/);
+});
+
+test("panel administratora dostaje ostrzeżenie o niezapisanych wynikach", () => {
+  const message = pushDispatchErrorMessage(
+    new PushDispatchError("push_dispatch_complete_failed", "zapis padł"),
+  );
+
+  assert.match(message, /push_dispatch_complete_failed/);
+  assert.ok(message.includes(PUSH_INTERNAL_FAILURE_WARNING));
+});
+
+test("ostrzeżenie panelu mówi o ponowieniu, a nie o utracie powiadomienia", () => {
+  assert.match(PUSH_INTERNAL_FAILURE_WARNING, /nie została poprawnie zapisana/);
+  assert.match(PUSH_INTERNAL_FAILURE_WARNING, /odzyskać je ponownie/);
+});
+
+test("panel administratora dokleja ostrzeżenie tylko przy internalFailed > 0", () => {
+  // Lustro logiki z admin-push-history.tsx: liczniki same w sobie wyglądają
+  // poprawnie także wtedy, gdy część wyników nie została zapisana.
+  const render = (internalFailed: number) =>
+    internalFailed > 0
+      ? `liczniki ${PUSH_INTERNAL_FAILURE_WARNING}`
+      : "liczniki";
+
+  assert.ok(render(1).includes(PUSH_INTERNAL_FAILURE_WARNING));
+  assert.ok(!render(0).includes(PUSH_INTERNAL_FAILURE_WARNING));
+});
+
+test("Route Handler zwraca 200 z jawnym internalFailed przy częściowej awarii", async () => {
+  // Częściowa awaria finalizacji NIE jest awarią biegu: reszta urządzeń
+  // została obsłużona, więc handler oddaje podsumowanie, a nie kod błędu.
+  // Warunkiem jest to, że `internalFailed` jest widoczne w treści odpowiedzi.
+  const summary = await runPushDispatchLoop(
+    {
+      claimDeliveries: async () => [makeTask(1), makeTask(2)],
+      sendDelivery: async () => ({ kind: "sent" }),
+      completeDelivery: makeCompleteDelivery(
+        { code: "40001", message: "could not serialize access" },
+        [],
+        new Set(["delivery-1"]),
+      ),
+    },
+    { batchSize: 2, concurrency: 2, maxBatches: 1 },
+  );
+
+  assert.deepEqual(summary, {
+    claimed: 2,
+    sent: 1,
+    retrying: 0,
+    failed: 0,
+    internalFailed: 1,
+  });
+
+  // Sukces nigdy nie jest pozorny: pole jest obecne w każdym podsumowaniu,
+  // więc monitoring ma czego pilnować bez zgadywania.
+  assert.ok(Object.hasOwn(summary, "internalFailed"));
+});
+
+test("push_dispatch_complete_failed poza pętlą kończy się 500, nie 200", () => {
+  const response = pushDispatchErrorResponse(
+    new PushDispatchError("push_dispatch_complete_failed", "zapis padł"),
+  );
+
+  assert.equal(response.status, 500);
+  assert.deepEqual(response.body, { error: "push_dispatch_complete_failed" });
 });

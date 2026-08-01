@@ -3,8 +3,22 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { adminRunPushQueueAction } from "./admin-actions";
+import { PUSH_INTERNAL_FAILURE_WARNING } from "./dispatch-errors";
 import { formatPushDate, PUSH_CAMPAIGN_KIND_LABELS } from "./formatting";
 import type { AdminPushCampaignRow } from "./types";
+
+/**
+ * Trzy stany komunikatu, nie dwa. „Ostrzeżenie” istnieje wyłącznie po to, żeby
+ * bieg z niezapisanymi wynikami nie wyglądał jak zwykły sukces: liczby się
+ * zgadzają, ale część dostaw wróci do kolejki i może dojść po raz drugi.
+ */
+type RunMessageTone = "success" | "warning" | "error";
+
+const MESSAGE_TONE_CLASSES: Record<RunMessageTone, string> = {
+  success: "bg-moss/12 text-moss",
+  warning: "bg-ember/12 text-ember",
+  error: "bg-[#8f3528]/10 text-[#8f3528]",
+};
 
 export function AdminPushHistory({
   campaigns,
@@ -15,12 +29,12 @@ export function AdminPushHistory({
   const [isPending, startTransition] = useTransition();
   const [isRunning, setIsRunning] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [isError, setIsError] = useState(false);
+  const [tone, setTone] = useState<RunMessageTone>("success");
 
   async function handleRunQueue() {
     setIsRunning(true);
     setMessage(null);
-    setIsError(false);
+    setTone("success");
 
     const outcome = await adminRunPushQueueAction();
 
@@ -28,15 +42,24 @@ export function AdminPushHistory({
 
     if (!outcome.ok) {
       setMessage(outcome.message);
-      setIsError(true);
+      setTone("error");
       return;
     }
 
-    const { rescheduled, claimed, sent, retrying, failed } = outcome.result;
+    const { rescheduled, claimed, sent, retrying, failed, internalFailed } =
+      outcome.result;
 
+    const counters = `Przesunięto ${rescheduled}, przetworzono ${claimed}: wysłano ${sent}, do ponowienia ${retrying}, nieudanych ${failed}.`;
+
+    // Liczby same w sobie wyglądają poprawnie także wtedy, gdy część wyników
+    // nie została zapisana — dlatego ostrzeżenie jest doklejane zawsze, gdy
+    // `internalFailed > 0`, a komunikat zmienia ton.
     setMessage(
-      `Przesunięto ${rescheduled}, przetworzono ${claimed}: wysłano ${sent}, do ponowienia ${retrying}, nieudanych ${failed}.`,
+      internalFailed > 0
+        ? `${counters} Niezapisanych wyników: ${internalFailed}. ${PUSH_INTERNAL_FAILURE_WARNING}`
+        : counters,
     );
+    setTone(internalFailed > 0 ? "warning" : "success");
 
     startTransition(() => router.refresh());
   }
@@ -82,10 +105,8 @@ export function AdminPushHistory({
 
       {message ? (
         <p
-          role={isError ? "alert" : "status"}
-          className={`mt-3 rounded-xl px-4 py-3 text-sm ${
-            isError ? "bg-[#8f3528]/10 text-[#8f3528]" : "bg-moss/12 text-moss"
-          }`}
+          role={tone === "success" ? "status" : "alert"}
+          className={`mt-3 rounded-xl px-4 py-3 text-sm ${MESSAGE_TONE_CLASSES[tone]}`}
         >
           {message}
         </p>

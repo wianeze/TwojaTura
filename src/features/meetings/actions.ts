@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { requireWriteAccess } from "@/features/auth/require-write-access";
-import { dispatchPendingPushDeliveries } from "@/features/push/server/dispatch";
+import { dispatchPendingPushDeliveriesInBackground } from "@/features/push/server/dispatch";
 import {
   awardSimpleAchievementsAfterMeetingCreate,
   awardSimpleAchievementsAfterRsvpSave,
@@ -107,10 +107,11 @@ export async function createMeetingAction(
   // Kampania „Nowe spotkanie!” jest już w outboxie — zapisał ją trigger
   // z_meetings_enqueue_push w tej samej transakcji co spotkanie. Tu zostaje
   // tylko pierwsza próba wysyłki, uruchamiana po odesłaniu odpowiedzi:
-  // dispatcher nie rzuca, więc jego niepowodzenie nie może zmienić wyniku tej
-  // akcji ani cofnąć spotkania. Nieudane dostawy czekają w kolejce na crona
-  // albo na przycisk w panelu administratora.
-  after(() => dispatchPendingPushDeliveries());
+  // wariant „in background” nie rzuca, więc jego niepowodzenie nie może zmienić
+  // wyniku tej akcji ani cofnąć spotkania — zostawia za to kod błędu w logu.
+  // Nieudane dostawy czekają w kolejce na crona albo na przycisk w panelu
+  // administratora.
+  after(() => dispatchPendingPushDeliveriesInBackground());
 
   redirect(`/kalendarium/${data.id}`);
 }

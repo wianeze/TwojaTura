@@ -4,7 +4,11 @@ import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
-import { dispatchPendingPushDeliveries } from "./server/dispatch";
+import {
+  dispatchPendingPushDeliveries,
+  dispatchPendingPushDeliveriesInBackground,
+} from "./server/dispatch";
+import { pushDispatchErrorMessage } from "./dispatch-errors";
 import { getAdminPushAudienceSummary } from "./queries";
 import { validatePushCampaignInput } from "./validation";
 import type {
@@ -78,7 +82,7 @@ export async function adminSendPushCampaignAction(
 
   // Pierwsza próba wysyłki startuje po odesłaniu odpowiedzi. Jej wynik nie ma
   // prawa zmienić rezultatu tej akcji — kampania jest już zacommitowana.
-  after(() => dispatchPendingPushDeliveries());
+  after(() => dispatchPendingPushDeliveriesInBackground());
 
   revalidatePath("/admin/powiadomienia");
 
@@ -115,6 +119,10 @@ export type PushQueueActionResult =
  *
  * Świadomie nie wznawia `failed`: to stan końcowy (wygasła subskrypcja, błąd
  * trwały albo wyczerpany limit prób).
+ *
+ * Awaria dispatchera kończy się tu `ok: false`, a nie sukcesem z zerami.
+ * „Przetworzono 0” ma znaczyć wyłącznie „kolejka była pusta” — inaczej panel
+ * meldowałby poprawne wykonanie akurat wtedy, gdy nic się nie wysłało.
  */
 export async function adminRunPushQueueAction(): Promise<PushQueueActionResult> {
   const access = await requireAdminAccess();
@@ -133,7 +141,17 @@ export async function adminRunPushQueueAction(): Promise<PushQueueActionResult> 
     };
   }
 
-  const summary = await dispatchPendingPushDeliveries();
+  let summary;
+
+  try {
+    summary = await dispatchPendingPushDeliveries();
+  } catch (dispatchError) {
+    // Przesunięcie terminów już się zapisało, więc odświeżamy widok mimo
+    // awarii — administrator ma zobaczyć aktualne liczniki i komunikat błędu.
+    revalidatePath("/admin/powiadomienia");
+
+    return { ok: false, message: pushDispatchErrorMessage(dispatchError) };
+  }
 
   revalidatePath("/admin/powiadomienia");
 

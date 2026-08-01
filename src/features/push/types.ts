@@ -24,11 +24,26 @@ export type PushSendOutcome =
 
 export type PushFailureOutcome = Exclude<PushSendOutcome, { kind: "sent" }>;
 
+/**
+ * Wynik jednego biegu dispatchera.
+ *
+ * `claimed` = `sent` + `retrying` + `failed` + `internalFailed` dla każdej
+ * partii, która doszła do końca — cztery ostatnie pola są rozłączne i każda
+ * przejęta dostawa trafia do dokładnie jednego z nich.
+ *
+ * `internalFailed` to dostawy, których WYNIK nie został zapisany w bazie:
+ * `complete_push_delivery` odmówiło. Świadomie nie mieszamy ich z `failed`
+ * (tam trafiają realne odmowy dostawcy) ani tym bardziej z `sent`: push mógł
+ * zostać przyjęty przez dostawcę, ale z punktu widzenia bazy dostawa dalej
+ * wisi w `processing` i po 10 minutach wróci do kolejki. To jedyne pole,
+ * które oznacza błąd po NASZEJ stronie.
+ */
 export type PushDispatchSummary = {
   claimed: number;
   sent: number;
   retrying: number;
   failed: number;
+  internalFailed: number;
 };
 
 export type PushQueueRunResult = {

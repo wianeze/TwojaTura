@@ -73,6 +73,26 @@ export async function runWorkerPool<T>(
  * Przetwarza wyłącznie to, co zwróci `claimDeliveries` (czyli rekordy
  * `queued` z `next_attempt_at <= now()`), i jest idempotentna: przejęcie
  * rekordu odbywa się po stronie bazy przez `for update skip locked`.
+ *
+ * SEMANTYKA DOSTAWY: at-least-once, nie exactly-once.
+ *
+ * Między „dostawca przyjął push” a „baza zapisała `sent`” jest okno, którego
+ * nie da się zamknąć bez transakcji rozpiętej na cudzy serwer. Jeśli
+ * `complete_push_delivery` padnie w tym oknie, dostawa zostaje w `processing`,
+ * po 10 minutach wraca do `queued` (`recover_stale_push_deliveries`) i ten sam
+ * push zostanie wysłany ponownie. Świadomie wybieramy duplikat zamiast cichej
+ * utraty powiadomienia — i świadomie NIE oznaczamy dostawy jako `sent` bez
+ * potwierdzenia z bazy, bo to zamieniłoby rzadki duplikat na równie rzadką,
+ * ale nierozpoznawalną utratę.
+ *
+ * Widoczny skutek duplikatu jest ograniczony, choć nie wyeliminowany: `tag`
+ * powiadomienia to `delivery_id`, a odzysk aktualizuje TEN SAM wiersz
+ * `push_deliveries` (UPDATE, nie INSERT), więc ponowiona dostawa niesie ten sam
+ * tag. Service worker przekazuje go do `showNotification`, a system operacyjny
+ * zastępuje wtedy poprzednie powiadomienie zamiast układać drugie obok. To
+ * wyłącznie deduplikacja PREZENTACJI na jednym urządzeniu — nie gwarancja
+ * jednokrotnej dostawy: użytkownik, który zdążył zamknąć pierwsze
+ * powiadomienie, zobaczy drugie, a urządzenie może wydać drugi dźwięk.
  */
 export async function runPushDispatchLoop(
   deps: PushDispatchDeps,
@@ -87,6 +107,7 @@ export async function runPushDispatchLoop(
     sent: 0,
     retrying: 0,
     failed: 0,
+    internalFailed: 0,
   };
 
   for (let batch = 0; batch < maxBatches; batch += 1) {
@@ -110,8 +131,18 @@ export async function runPushDispatchLoop(
       try {
         await deps.completeDelivery(task.deliveryId, outcome);
       } catch {
-        // Zapis wyniku padł: dostawa zostaje w `processing` i wróci do
-        // kolejki przez odzysk rekordów starszych niż 10 minut.
+        // Zapis wyniku padł: dostawa zostaje w `processing` i wróci do kolejki
+        // przez odzysk rekordów starszych niż 10 minut.
+        //
+        // Kluczowe: `return` PRZED licznikami `sent`/`retrying`/`failed`. Push
+        // mógł zostać przyjęty przez dostawcę, ale skoro baza o tym nie wie, to
+        // nie jest wynik, tylko awaria po naszej stronie — i tak ma zostać
+        // zaraportowana. Zaliczenie tego do `sent` byłoby podwójnym kłamstwem:
+        // ukrywałoby błąd i obiecywało jednokrotną dostawę, której nie ma.
+        //
+        // Awaria jednej dostawy nie przerywa pozostałych: worker kończy tylko
+        // swoje zadanie, pula jedzie dalej.
+        summary.internalFailed += 1;
         return;
       }
 
