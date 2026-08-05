@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-type GameCoverSize = "shelf" | "preview" | "card" | "mini";
+type GameCoverSize = "shelf" | "preview" | "card" | "mini" | "micro";
 
 type GameCoverProps = {
   title: string;
@@ -17,6 +17,7 @@ const sizeClasses: Record<GameCoverSize, string> = {
   preview: "aspect-square w-52 sm:w-60 lg:w-64",
   card: "aspect-square w-44 sm:w-52 lg:w-60",
   mini: "aspect-square w-22 sm:w-24",
+  micro: "aspect-square w-13",
 };
 
 const frameClasses: Record<GameCoverSize, string> = {
@@ -26,6 +27,8 @@ const frameClasses: Record<GameCoverSize, string> = {
     "border-[#d8c2a0]/55 bg-[radial-gradient(circle_at_top,rgba(255,252,247,0.96),rgba(247,239,227,0.98)_62%,rgba(238,226,205,0.98))] shadow-[0_18px_32px_rgba(75,49,27,0.14)]",
   card: "border-[#d8c2a0]/55 bg-[radial-gradient(circle_at_top,rgba(255,252,247,0.96),rgba(247,239,227,0.98)_62%,rgba(238,226,205,0.98))] shadow-[0_18px_32px_rgba(75,49,27,0.14)]",
   mini: "border-[#dbc7a7]/58 bg-[linear-gradient(180deg,rgba(255,252,247,0.98),rgba(244,235,221,0.98))] shadow-[0_10px_22px_rgba(75,49,27,0.12)]",
+  micro:
+    "border-[#a5825c]/55 bg-[linear-gradient(180deg,rgba(255,250,240,0.98),rgba(238,224,202,0.98))]",
 };
 
 const imagePaddingClasses: Record<GameCoverSize, string> = {
@@ -33,6 +36,7 @@ const imagePaddingClasses: Record<GameCoverSize, string> = {
   preview: "p-3 sm:p-3.5",
   card: "p-2.5 sm:p-3",
   mini: "p-2",
+  micro: "p-1",
 };
 
 const overlayClasses: Partial<Record<GameCoverSize, string>> = {
@@ -85,6 +89,14 @@ export function GameCover({
           className={`size-full object-contain ${imagePaddingClasses[size]}`}
           onError={() => setHasError(true)}
         />
+      ) : size === "micro" ? (
+        // Na kafelku 52px etykieta „Półka” i tytuł byłyby nieczytelną plamą —
+        // zostaje sam monogram gry.
+        <div className="grid size-full place-items-center bg-transparent">
+          <span className="font-display text-[0.9rem] leading-none font-semibold text-[#6a4a2d]">
+            {initials || "TT"}
+          </span>
+        </div>
       ) : (
         <div
           className={`flex size-full flex-col justify-between p-3 ${

@@ -44,6 +44,7 @@ next-env.d.ts
 
 # local Codex workspace files
 /.agents/
+/.claude/
 /.codex/
 /work/
 /supabase/.branches/

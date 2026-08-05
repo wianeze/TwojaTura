@@ -179,6 +179,165 @@ body {
   background-blend-mode: normal, normal, multiply;
 }
 
+/*
+  Karta wpisu Kroniki — ten sam komponent od 320px do desktopu.
+
+  Tłem jest gotowy asset pergaminowej strony (produkcyjna kopia przycięta do
+  samej ramy), cięty jako 9-slice, więc drewniana rama, oprawa księgi i narożne
+  ornamenty nigdy się nie rozciągają — niezależnie od szerokości karty ani od
+  tego, jak wysoka zrobi się treść wpisu. Slice 101 (na obrazie 1024x300) jest
+  dobrany tak, aby każdy narożnik obejmował cały ornament ORAZ okucie grzbietu,
+  a rozciągany pas środkowy był jednolitym drewnem i pergaminem.
+
+  Wnętrze karty skaluje się względem JEJ WŁASNEJ szerokości (container query),
+  a nie viewportu — na desktopie kolumna treści jest zwężona przez boczną
+  nawigację, więc jednostki vw dawałyby tu złe wyniki.
+*/
+
+/*
+  Szerokość kolumny wpisów — jedno źródło prawdy dla kart i nagłówka miesiąca.
+  Rośnie płynnie z viewportem i zatrzymuje się na 68rem, żeby na szerokim
+  ekranie zostały eleganckie marginesy zamiast karty na całą stronę księgi.
+*/
+.chronicle-feed {
+  container-type: inline-size;
+}
+
+.chronicle-column {
+  width: 100%;
+  /* cqw = szerokość kolumny Kroniki, nie viewportu ani DPR — dzięki temu karta
+     reaguje na realnie dostępne miejsce (boczna nawigacja, paddingi <main>). */
+  max-width: clamp(40rem, 82cqw, 68rem);
+  margin-inline: auto;
+}
+
+.chronicle-page-shell {
+  container-type: inline-size;
+  width: 100%;
+}
+
+.chronicle-page {
+  /*
+    Jedna zmienna steruje i rysowaniem ramy, i layoutem, więc drewno, ornamenty
+    oraz oddech treści rosną razem — bez skoków między breakpointami.
+    border-image-width jest JEDNAKOWE na wszystkich bokach: przy slice 101
+    narożnik zawsze trafia z kwadratu 101x101 w kwadrat N x N, czyli skaluje się
+    równomiernie i nigdy nie może się zdeformować.
+
+    border-width odpowiada wyłącznie za layout (gdzie zaczyna się treść) i jest
+    celowo mniejsze od ramy na górze, dole i prawej — treść wchodzi wtedy na
+    pergamin wewnątrz rysowanego obramowania (dzieci malują się nad borderem,
+    więc nic nie jest zasłaniane). Po lewej zostaje pełna szerokość, bo tam
+    znajduje się grzbiet księgi.
+  */
+  /*
+    Stała + współczynnik cqw to równanie prostej przez oba końce zakresu
+    szerokości karty, więc wzrost jest płynny na całej drodze zamiast dobijać do
+    sufitu w połowie.
+
+    Typografia startuje od 272px (telefon) i dochodzi do 26px przy karcie
+    1088px. Rama celowo rusza dopiero od ~383px: na telefonie trzyma ją dolny
+    clamp, żeby nie zjadała i tak wąskiej kolumny treści.
+  */
+  --frame: clamp(32px, calc(10.27px + 5.674cqw), 72px);
+  /* Wspólna skala typografii i odstępów — dzieci używają em, więc rosną razem. */
+  font-size: clamp(0.94rem, calc(11.39px + 1.343cqw), 1.625rem);
+
+  border-style: solid;
+  /*
+    Cała karta to jeden PNG, więc gdyby asset się nie wczytał, zostałby sam
+    border-style: solid — bez border-color oznacza to currentColor, czyli
+    kilkudziesięciopikselową kremową obwódkę, a ciemny tekst wpisu wylądowałby
+    wprost na ciemnym drewnie tła. Przezroczysta ramka i pergaminowe tło cięte
+    do padding-boxa (czyli tylko pod treść, nie pod rysowaną ramę) trzymają
+    wpis czytelnym także zanim obraz dojedzie.
+  */
+  border-color: transparent;
+  background-color: #f1e4cb;
+  background-clip: padding-box;
+  border-width: calc(var(--frame) * 0.59) calc(var(--frame) * 0.74)
+    calc(var(--frame) * 0.71) var(--frame);
+  border-image-source: url("/assets/chronicle-page-frame.png");
+  border-image-slice: 101 fill;
+  border-image-width: var(--frame);
+  border-image-repeat: stretch;
+  /*
+    Oddech od grzbietu księgi. Składnik 0.6em to dodatkowe odsunięcie treści za
+    wewnętrzną linię pergaminu — na desktopie wychodzi równo +12px, a na
+    telefonie skaluje się w dół, żeby nie zjadać i tak wąskiej kolumny.
+    Przesuwa WYŁĄCZNIE treść: rysowanie ramy siedzi w border-image-width.
+  */
+  padding-left: calc(var(--frame) * 0.85 + 0.6em);
+  /*
+    Dwa drop-shadow zamiast jednego już w stanie spoczynku: druga warstwa jest
+    tu przezroczysta i służy wyłącznie za punkt zaczepienia dla przejścia na
+    hover. Przy różnej liczbie funkcji filter przeglądarka nie interpoluje
+    płynnie, tylko przeskakuje.
+  */
+  filter: drop-shadow(0 10px 22px rgba(12, 6, 3, 0.45))
+    drop-shadow(0 0 0 rgba(214, 160, 68, 0));
+  transition:
+    transform 150ms ease,
+    filter 150ms ease;
+}
+
+/*
+  Karta jest linkiem do wpisu, a po wymianie <Panel> na pergaminową stronę
+  straciła jakąkolwiek reakcję na kursor. Efekt siedzi w drop-shadow, nie w
+  box-shadow ani w podświetlanym tle: karta ma kształt alfy border-image
+  (zaokrąglone drewno, ornamenty), więc prostokątne box-shadow/::before
+  wystawałyby poza ramę. Skala i kierunek jak w .game-card-glow.
+*/
+.chronicle-page-shell:hover .chronicle-page,
+.chronicle-page-shell:focus-visible .chronicle-page {
+  transform: translateY(-1px);
+  filter: drop-shadow(0 15px 28px rgba(12, 6, 3, 0.55))
+    drop-shadow(0 0 9px rgba(214, 160, 68, 0.35));
+}
+
+.chronicle-page-shell:active .chronicle-page {
+  transform: translateY(0);
+  filter: drop-shadow(0 8px 18px rgba(12, 6, 3, 0.5))
+    drop-shadow(0 0 0 rgba(214, 160, 68, 0));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chronicle-page {
+    transition: none;
+  }
+
+  .chronicle-page-shell:hover .chronicle-page,
+  .chronicle-page-shell:focus-visible .chronicle-page {
+    transform: none;
+  }
+}
+
+/*
+  Szeroka karta: kolumna gry (tytuł + duża okładka) jest sporo wyższa od bloku
+  daty, więc wyśrodkowanie spychało metadane na środek pergaminu. Od 600px
+  szerokości karty blok wraca pod górną krawędź — odstęp od ramy pilnuje już
+  samo border-width. Poniżej tego progu (telefon) zostaje wyśrodkowanie.
+
+  Kontenerem jest .chronicle-page-shell (.chronicle-page nie ma container-type),
+  więc próg 600px dotyczy pełnej szerokości karty razem z ramą.
+*/
+@container (min-width: 600px) {
+  .chronicle-head {
+    align-items: flex-start;
+  }
+}
+
+/*
+  Kapsułki graczy: tyle kolumn, ile faktycznie się mieści. Minimum w em, więc
+  próg zawija się razem z typografią, a 1fr rozciąga kapsułki na pełną
+  dostępną szerokość zamiast zostawiać poszarpany prawy brzeg.
+*/
+.chronicle-players {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 5.25em), 1fr));
+  gap: 0.25em;
+}
+
 .material-panel {
   background-image:
     radial-gradient(
