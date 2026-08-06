@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "@/components/ui/logo-mark";
+import { ClassTextureLayer } from "@/components/layout/class-texture-layer";
 import {
   NavigationIcon,
   type NavigationIconName,
@@ -56,7 +57,13 @@ export function DesktopNavigation({
   const items = useNavigationItems();
 
   return (
-    <aside className="wood-grain text-cream sticky top-0 hidden h-screen border-r border-white/8 px-5 py-7 lg:flex lg:flex-col">
+    // isolate: zamyka ujemny z-index warstwy tekstury w obrębie sidebara.
+    // Bez overflow-hidden świadomie — tekstura jest dokładnie na inset-0, więc
+    // nie ma czego przycinać, a przycięcie zabrałoby poświatę aktywnej klasy,
+    // która celowo wychodzi poza swój kontener (overflow-visible niżej).
+    <aside className="wood-grain text-cream sticky top-0 isolate hidden h-screen border-r border-white/8 px-5 py-7 lg:flex lg:flex-col">
+      <ClassTextureLayer classKey={activeClass?.key ?? null} />
+
       <div className="flex min-h-40 items-center justify-center px-2">
         <LogoMark tone="light" />
       </div>

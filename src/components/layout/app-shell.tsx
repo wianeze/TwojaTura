@@ -4,6 +4,7 @@ import {
   DesktopNavigation,
   MobileNavigation,
 } from "@/components/layout/app-navigation";
+import { ClassTextureLayer } from "@/components/layout/class-texture-layer";
 import { SectionBackground } from "@/components/layout/section-background";
 import { LogoMark } from "@/components/ui/logo-mark";
 import { getMemberInitial } from "@/features/auth/current-member";
@@ -31,7 +32,13 @@ export function AppShell({
         <DesktopNavigation member={member} activeClass={activeClass} />
         <div className="cabin-ambient min-w-0">
           <SectionBackground />
-          <header className="wood-grain relative z-10 flex h-17 items-center justify-between gap-2 border-b border-white/8 px-3 sm:px-4 lg:hidden">
+          {/* `relative z-10` już tworzy kontekst układania, więc ujemny z-index
+              tekstury zostaje wewnątrz paska. overflow-hidden domyka temat na
+              wypadek zaokrągleń w przyszłości — emblemat klasy z poświatą
+              mieści się w 68px wysokości paska, więc nic nie przycina. */}
+          <header className="wood-grain relative z-10 flex h-17 items-center justify-between gap-2 overflow-hidden border-b border-white/8 px-3 sm:px-4 lg:hidden">
+            <ClassTextureLayer classKey={activeClass?.key ?? null} />
+
             <LogoMark compact tone="light" />
             {activeClass ? (
               <Link
