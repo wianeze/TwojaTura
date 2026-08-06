@@ -41,11 +41,11 @@ export function NavigationIcon({
   }
 
   if (name === "games") {
+    // Puchar — Legendarium to ranking i osiągnięcia, nie plansza gry.
     return (
       <svg {...commonProps}>
-        <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" />
-        <path d="m4.3 7.7 7.7 4.2 7.7-4.2M12 12v9" />
-        <circle cx="12" cy="7" r="1" fill="currentColor" stroke="none" />
+        <path d="M8 4h8v4a4 4 0 0 1-8 0V4Z" />
+        <path d="M8 6H5a2 2 0 0 0 2 4h1M16 6h3a2 2 0 0 1-2 4h-1M12 12v5M8 21h8M9 17h6" />
       </svg>
     );
   }
@@ -61,10 +61,11 @@ export function NavigationIcon({
   }
 
   if (name === "plays") {
+    // Otwarta księga — Kronika to historia rozgrywek.
     return (
       <svg {...commonProps}>
-        <path d="M8 4h8v4a4 4 0 0 1-8 0V4Z" />
-        <path d="M8 6H5a2 2 0 0 0 2 4h1M16 6h3a2 2 0 0 1-2 4h-1M12 12v5M8 21h8M9 17h6" />
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2Z" />
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7Z" />
       </svg>
     );
   }

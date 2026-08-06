@@ -18,6 +18,12 @@ import { getActiveClassBackdropGradient } from "@/features/legendarium/leaderboa
 
 type NavigationItem = { href: string; label: string; icon: NavigationIconName };
 
+// Produkcyjne kopie menu-light-button.png / menu-dark-button.png: przycięte do
+// treści, wyśrodkowane na wspólnym płótnie 826x756 (patrz .nav-tile w
+// globals.css). Jeden kafelek dla obu stanów — różni je wyłącznie ten adres.
+const NAV_TILE_ACTIVE_SRC = "/assets/menu-tile-active.png";
+const NAV_TILE_INACTIVE_SRC = "/assets/menu-tile-inactive.png";
+
 const navigationItems: NavigationItem[] = [
   { href: "/", label: "Stół", icon: "dashboard" },
   { href: "/gry", label: "Półka", icon: "shelf" },
@@ -46,6 +52,40 @@ function isCurrentPath(pathname: string, href: string) {
   return href === "/" ? pathname === href : pathname.startsWith(href);
 }
 
+/*
+  Pozioma wersja .nav-tile — ten sam kafel co mobile (te same dwa assety, ta
+  sama geometria 9-slice), tylko border-image-width nadpisane przez
+  .nav-tile-desktop (patrz globals.css) i layout w rzędzie zamiast w kolumnie.
+  Fallback bg-gold/text-wood-dark (active) i text-[#cdbfae] (inactive) to celowo
+  te same klasy co w MobileNavItem — jeśli asset się nie wczyta, oba menu mają
+  identyczny, sprawdzony kontrast zamiast dwóch osobnych awaryjnych palet.
+*/
+function DesktopNavItem({
+  item,
+  active,
+}: {
+  item: NavigationItem;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      style={{
+        borderImageSource: `url(${active ? NAV_TILE_ACTIVE_SRC : NAV_TILE_INACTIVE_SRC})`,
+      }}
+      className={`nav-tile nav-tile-desktop flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold transition-colors ${
+        active
+          ? "bg-gold text-wood-dark shadow-[0_10px_30px_rgba(214,160,68,0.18)]"
+          : "hover:text-cream text-[#cdbfae]"
+      }`}
+    >
+      <NavigationIcon name={item.icon} />
+      {item.label}
+    </Link>
+  );
+}
+
 export function DesktopNavigation({
   member,
   activeClass,
@@ -68,20 +108,13 @@ export function DesktopNavigation({
         <LogoMark tone="light" />
       </div>
       <nav className="mt-5 flex flex-col gap-1.5" aria-label="Główna nawigacja">
-        {items.map((item) => {
-          const active = isCurrentPath(pathname, item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={`flex items-center gap-3 rounded-2xl px-3.5 py-3 text-sm font-semibold transition-colors ${active ? "bg-gold text-wood-dark shadow-[0_10px_30px_rgba(214,160,68,0.18)]" : "hover:text-cream text-[#cdbfae] hover:bg-white/7"}`}
-            >
-              <NavigationIcon name={item.icon} />
-              {item.label}
-            </Link>
-          );
-        })}
+        {items.map((item) => (
+          <DesktopNavItem
+            key={item.href}
+            item={item}
+            active={isCurrentPath(pathname, item.href)}
+          />
+        ))}
       </nav>
       <div className="mt-auto">
         {activeClass ? (
@@ -147,30 +180,54 @@ export function DesktopNavigation({
   );
 }
 
+/*
+  Jeden kafel dla obu stanów: geometria (border-width, slice, kształt) siedzi w
+  .nav-tile w globals.css i jest identyczna niezależnie od `active` — zmienia
+  się wyłącznie border-image-source. bg-gold/text-wood-dark (active) i
+  text-[#cdbfae] (inactive) to ten sam fallback co przed zmianą: kolor tła
+  maluje się POD border-image, więc jeśli asset się nie wczyta, aktywna
+  zakładka wciąż ma jasne tło pod ciemnym tekstem zamiast zlać się z ciemnym
+  paskiem nawigacji.
+*/
+function MobileNavItem({
+  item,
+  active,
+}: {
+  item: NavigationItem;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      style={{
+        borderImageSource: `url(${active ? NAV_TILE_ACTIVE_SRC : NAV_TILE_INACTIVE_SRC})`,
+      }}
+      className={`nav-tile flex min-w-0 flex-col items-center gap-1 rounded-xl px-0.5 py-2 text-[clamp(0.5rem,2.45vw,0.65rem)] leading-none font-semibold transition-colors ${active ? "bg-gold text-wood-dark" : "text-[#cdbfae]"}`}
+    >
+      <NavigationIcon name={item.icon} className="size-[1.15rem]" />
+      <span className="whitespace-nowrap">{item.label}</span>
+    </Link>
+  );
+}
+
 export function MobileNavigation() {
   const pathname = usePathname();
   const items = useNavigationItems();
   return (
     <nav
-      className={`wood-grain shadow-warm fixed inset-x-3 bottom-3 z-40 grid rounded-2xl border border-white/10 p-1.5 backdrop-blur lg:hidden ${
+      className={`wood-grain shadow-warm fixed inset-x-3 bottom-3 z-40 grid gap-1.5 rounded-2xl border border-white/10 p-1.5 backdrop-blur lg:hidden ${
         items.length > 5 ? "grid-cols-6" : "grid-cols-5"
       }`}
       aria-label="Główna nawigacja"
     >
-      {items.map((item) => {
-        const active = isCurrentPath(pathname, item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-            className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-0.5 py-2 text-[clamp(0.5rem,2.45vw,0.65rem)] leading-none font-semibold transition-colors ${active ? "bg-gold text-wood-dark" : "text-[#cdbfae]"}`}
-          >
-            <NavigationIcon name={item.icon} className="size-[1.15rem]" />
-            <span className="whitespace-nowrap">{item.label}</span>
-          </Link>
-        );
-      })}
+      {items.map((item) => (
+        <MobileNavItem
+          key={item.href}
+          item={item}
+          active={isCurrentPath(pathname, item.href)}
+        />
+      ))}
     </nav>
   );
 }

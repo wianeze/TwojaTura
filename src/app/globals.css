@@ -419,6 +419,63 @@ body {
   filter: drop-shadow(0 9px 18px rgba(12, 6, 3, 0.36));
 }
 
+/*
+  Kafelek dolnej nawigacji mobilnej — ten sam 9-slice co .chronicle-sheet, ale
+  z DWOMA źródłami zamiast jednego: aktywna i nieaktywna zakładka różnią się
+  wyłącznie border-image-source (ustawianym inline przez komponent na podstawie
+  stanu), cała reszta geometrii jest tu wspólna. Dzięki temu przełączenie stanu
+  nigdy nie zmienia rozmiaru ani kształtu kafelka — jedyne, co się zmienia, to
+  obraz w tle.
+
+  Oba pliki produkcyjne (menu-tile-active.png / menu-tile-inactive.png) mają
+  wspólne płótno 826x756 i każdy kafel wyśrodkowany osobno na tym płótnie (różne
+  proporcje oryginalnych plakietek — mosiądz i skóra — nie są deformowane do
+  wspólnego kształtu). border-image-slice: 120 fill jest dobrane pomiarem tak,
+  by w OBU plikach mieściło się w całości ścięcie narożnika z zapasem: różnica
+  w tym, ile z tego zapasu jest w praktyce potrzebne (mosiądz wymaga ~82-88px,
+  skóra ~90-143px, patrz commit) jest nieszkodliwa — nadmiarowy fragment slice'a
+  to po prostu więcej płaskiej faktury przed właściwym narożnikiem, niewidoczne
+  po przeskalowaniu do border-image-width. `fill` wypełnia też wnętrze kafla
+  środkową częścią źródła, więc ikona i etykieta siedzą na fakturze płytki, nie
+  na pustym tle.
+
+  Przezroczyste narożniki obu plików (plakietka ma ścięte rogi) przebijają do
+  tła <nav>, więc każdy kafel wygląda jak osobna płytka, a nie jeden ciągły pasek
+  — stąd gap między kafelkami we `.mobile-nav-grid` jest częścią tego samego
+  efektu, nie kosmetyką.
+*/
+.nav-tile {
+  --nav-tile-frame: clamp(6px, 2.2vw, 10px);
+
+  border-style: solid;
+  border-color: transparent;
+  border-width: var(--nav-tile-frame);
+  border-image-slice: 120 fill;
+  border-image-width: var(--nav-tile-frame);
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  background-clip: padding-box;
+}
+
+/*
+  Wariant dla lewego sidebara desktopowego — ten sam mechanizm 9-slice, ten sam
+  border-image-slice/outset/repeat (dziedziczone z .nav-tile), zmienia się
+  wyłącznie grubość ramki. `2.2vw` z .nav-tile było kalibrowane pod pasek
+  rozciągnięty na całą szerokość telefonu; sidebar ma STAŁĄ szerokość 17rem
+  niezależnie od viewportu (grid lg:grid-cols-[17rem_...]), więc vw dałoby przy
+  szerokim ekranie kilkudziesięciopikselową ramkę. Stała wartość jest tu
+  poprawna, nie prowizorką.
+
+  Osobna klasa, nie Tailwindowe `[--nav-tile-frame:9px]`: reguły w tym pliku są
+  NIELAYEROWANE (patrz komentarz przy .chronicle-sheet-stack-wide) — utility
+  Tailwinda siedzą w @layer utilities i przegrywają z nielayerowanym stylem
+  niezależnie od specyficzności, więc arbitralne utility po cichu by nie
+  zadziałało.
+*/
+.nav-tile-desktop {
+  --nav-tile-frame: 9px;
+}
+
 .material-panel {
   background-image:
     radial-gradient(
