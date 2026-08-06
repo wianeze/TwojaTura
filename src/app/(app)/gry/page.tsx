@@ -3,7 +3,11 @@ import { ActionLink } from "@/components/ui/action-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
-import { hasActiveFilters, parseGameFilters } from "@/features/games/filters";
+import {
+  hasActiveFilters,
+  parseGameFilters,
+  parseShelfOwnerVisibility,
+} from "@/features/games/filters";
 import { ShelfFilters } from "@/features/games/shelf-filters";
 import { ShelfShowcase } from "@/features/games/shelf-showcase";
 import {
@@ -32,6 +36,7 @@ export default async function GamesPage({
 }) {
   const params = await searchParams;
   const filters = parseGameFilters(params);
+  const showOwners = parseShelfOwnerVisibility(params);
   const [filterOptions, shelf] = await Promise.all([
     listGameFilterOptions(),
     listShelfGames(filters),
@@ -77,10 +82,11 @@ export default async function GamesPage({
         filters={filters}
         options={filterOptions}
         resultCount={shelf.totalCount}
+        showOwners={showOwners}
       />
 
       {shelf.items.length > 0 ? (
-        <ShelfShowcase games={shelf.items} />
+        <ShelfShowcase games={shelf.items} showOwners={showOwners} />
       ) : filtered ? (
         <Panel className="anim-rise-in-fast paper-wash space-y-4 p-6 sm:p-8">
           <p className="text-accent text-[0.65rem] font-bold tracking-[0.18em] uppercase">

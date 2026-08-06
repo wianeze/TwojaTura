@@ -57,14 +57,37 @@ type ShelfSegmentProps = {
   startIndex: number;
   animateEntrance: boolean;
   label: string;
+  showOwners: boolean;
   onSelect: (game: GameShelfItem) => void;
 };
+
+function getOwnerInitial(displayName: string) {
+  return displayName.trim().charAt(0).toLocaleUpperCase("pl-PL") || "?";
+}
+
+function ShelfOwnerAvatar({ owner }: { owner: GameShelfItem["owner"] }) {
+  return (
+    <span
+      className="absolute top-1 right-1 z-10 grid size-7 place-items-center overflow-hidden rounded-full border-2 border-[#f4d8a4] bg-[#3f281f] text-[0.68rem] font-bold text-[#fff6e5] shadow-[0_3px_9px_rgba(13,6,3,0.62),0_0_0_1px_rgba(63,35,22,0.42)] sm:size-8 sm:text-xs"
+      aria-label={`Owner: ${owner.displayName}`}
+      title={owner.displayName}
+    >
+      {owner.avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- profile avatars can use external URLs
+        <img src={owner.avatarUrl} alt="" className="size-full object-cover" />
+      ) : (
+        getOwnerInitial(owner.displayName)
+      )}
+    </span>
+  );
+}
 
 function ShelfSegment({
   games,
   startIndex,
   animateEntrance,
   label,
+  showOwners,
   onSelect,
 }: ShelfSegmentProps) {
   const router = useRouter();
@@ -122,12 +145,15 @@ function ShelfSegment({
                       : undefined
                   }
                 >
-                  <GameCover
-                    title={game.title}
-                    coverUrl={game.coverUrl}
-                    size="shelf"
-                    className="mx-auto transition-transform duration-300 group-hover:-translate-y-2 group-focus-visible:-translate-y-2"
-                  />
+                  <div className="relative mx-auto w-full max-w-24 transition-transform duration-300 group-hover:-translate-y-2 group-focus-visible:-translate-y-2 sm:max-w-28 xl:max-w-30 2xl:max-w-32">
+                    <GameCover
+                      title={game.title}
+                      coverUrl={game.coverUrl}
+                      size="shelf"
+                      className="mx-auto"
+                    />
+                    {showOwners && <ShelfOwnerAvatar owner={game.owner} />}
+                  </div>
                 </div>
 
                 <div
@@ -221,9 +247,13 @@ function groupGames(games: GameShelfItem[], groupSize: number) {
 
 type ShelfShowcaseProps = {
   games: GameShelfItem[];
+  showOwners?: boolean;
 };
 
-export function ShelfShowcase({ games }: ShelfShowcaseProps) {
+export function ShelfShowcase({
+  games,
+  showOwners = false,
+}: ShelfShowcaseProps) {
   const [selectedGame, setSelectedGame] = useState<GameShelfItem | null>(null);
   const [groupSize, setGroupSize] = useState(3);
   // Startuje identycznie na serwerze i przy hydracji (false) — brak
@@ -328,6 +358,7 @@ export function ShelfShowcase({ games }: ShelfShowcaseProps) {
               games={group}
               startIndex={startIndex}
               animateEntrance={isViewportReady}
+              showOwners={showOwners}
               label={`Segment półki ${index + 1} — ${group.length} gier`}
               onSelect={setSelectedGame}
             />

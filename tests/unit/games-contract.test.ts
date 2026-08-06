@@ -5,6 +5,7 @@ import {
   hasAnySelectedTag,
   matchesPlayerCount,
   parseGameFilters,
+  parseShelfOwnerVisibility,
 } from "../../src/features/games/filters.ts";
 import {
   mapGameExpansionRecord,
@@ -331,6 +332,12 @@ test("filter parser returns defaults for empty params", () => {
     mechanics: [],
     categories: [],
   });
+});
+
+test("owner avatar visibility is an opt-in display toggle", () => {
+  assert.equal(parseShelfOwnerVisibility({}), false);
+  assert.equal(parseShelfOwnerVisibility({ showOwner: "1" }), true);
+  assert.equal(parseShelfOwnerVisibility({ showOwner: "0" }), false);
 });
 
 test("filter parser ignores invalid status safely", () => {

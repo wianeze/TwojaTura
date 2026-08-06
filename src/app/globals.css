@@ -221,33 +221,69 @@ body {
 
   GÓRNY PAS JEST WYJĄTKIEM od powyższego. border-image-repeat: stretch
   rozciąga edge-slice niezależnie w poziomie i pionie — poziomy współczynnik
-  skalowania (szerokość panelu / 724px źródła) i pionowy (border-top-width /
-  260px źródła) różnią się, więc okrągłe dziurki wychodzą jako elipsy.
+  skalowania i pionowy się różnią, więc okrągłe dziurki wychodzą jako elipsy.
   border-image nie ma trybu "zachowaj proporcje" dla pojedynczego slice'a.
+  Dlatego góra NIE jest renderowana przez border-image (border-image-width/
+  -slice/-outset dla góry zostają nietknięte tylko po to, żeby nie zaburzyć
+  geometrii narożników/boków, które z nich korzystają — i tak są w całości
+  zasłonięte przez warstwę opisaną niżej). Zamiast tego osobny
+  public/assets/calendar-page-top.png renderuje się jako ::before z
+  background-size: 100% 100% — CAŁY przycięty obraz rozciąga się jednorodnie
+  w obu wymiarach naraz, więc dziurki skalują się proporcjonalnie do
+  szerokości panelu i zostają kołami.
 
-  Dlatego góra NIE jest już renderowana przez border-image (border-image-
-  width/-slice/-outset dla góry zostają bez zmian tylko po to, żeby nie
-  zaburzyć geometrii narożników i krawędzi bocznych, które z nich korzystają
-  — i tak są w całości zasłonięte przez warstwę opisaną niżej). Zamiast tego
-  public/assets/calendar-page-top.png (przycięty 1:1 z tego samego assetu,
-  x:[54,967) y:[68,260) — czyli dokładnie ten sam, już zmierzony obszar
-  nieprzezroczystej treści co reszta karty) renderuje się jako ::before z
-  background-size: 100% 100% — CAŁY przycięty obraz jest rozciągany
-  jednorodnie w obu wymiarach naraz (nie osobno na krawędziach i środku), więc
-  dziurki skalują się proporcjonalnie do szerokości panelu i zostają kołami.
-  --calendar-top ma stałe proporcje (192/913, wysokość/szerokość przycięcia)
-  względem szerokości kontenera (cqi) — nie zależy od wysokości treści
-  formularza, dokładnie jak --sheet-band. ::before jest offsetowany o
-  -border-top-width/-border-left-width/-border-right-width, bo top/left/right
-  pozycjonowania absolute liczą się od padding-boxa (za bordery), nie od
-  border-boxa — bez tego warstwa wylądowałaby pod górną ramą, a nie na niej.
+  DOKŁADNA ZAWARTOŚĆ GÓRNEGO PASA (zmierzone piksel po pikselu, ponownie,
+  po tym jak pierwsza wersja przycięcia ucinała pergamin tuż przy linii):
+  na oryginalnym 1024x1536 obrazie są DWIE osobne pary linijek, nie jedna —
+  pierwsza kończy się na y≈153 (tuż pod dziurkami), druga, niepowiązana,
+  zaczyna się dopiero na y≈236. Pierwsza wersja tego pliku brała slice-top=260
+  (obejmując OBIE pary + pustą przestrzeń między nimi), więc (a) próg
+  "koniec nagłówka" wypadał 90px źródła NIŻEJ niż realna druga linijka, co
+  dawało widoczną, zbyt dużą pustą przestrzeń nad "Nazwa spotkania", i
+  (b) cięcie na y=260 kończyło się 9px za DRUGĄ parą linijek — za blisko,
+  stąd widoczne poziome obcięcie.
+
+  Nowe przycięcie: x:[54,967) y:[68,233), 913x165px.
+    - y:68..153 (85px) = --calendar-header: dziurki + PIERWSZA (właściwa)
+      para linijek, w całości nieprzezroczysta, bez maski.
+    - y:153..233 (80px) = --calendar-overlap: czysty, jednolity pergamin
+      (sprawdzone: brak jakichkolwiek linii aż do y=236 na źródle), zapas
+      NA ZAKŁADKĘ z warstwą fill border-image poniżej, żeby cięcie nie
+      wypadało bezpośrednio przy krawędzi żadnego rysunku.
+  ::before renderuje CAŁY 165px crop (header+overlap) w jednym, spójnym
+  skalowaniu (stąd okrągłe dziurki), ale mask-image ucina go do
+  przezroczystości zaraz po zakończeniu --calendar-header + mały bufor
+  (--calendar-content-gap) — czyli realnie WIDAĆ tylko dziurki+linijkę,
+  a "zakładka" na fill jest częścią tego samego, jednorodnie skalowanego
+  obrazu (żeby nie psuć proporcji dziurek), tylko wygaszoną do niewidoczności
+  zanim dotrze do treści formularza. border-top-width/border-image-width
+  (top) = --calendar-header + --calendar-content-gap: DOKŁADNIE tyle samo,
+  ile realnie widać (linijka + mały odstęp), więc "Nazwa spotkania" zaczyna
+  się tuż pod drugą linijką, nie pod całym 165px pasem. ::before jest
+  offsetowany o -border-top-width/-border-left-width/-border-right-width, bo
+  top/left/right pozycjonowania absolute liczą się od padding-boxa (za
+  borderami), nie od border-boxa.
 */
 .meeting-form-sheet {
   position: relative;
   --sheet-band: clamp(1.4rem, 5cqi, 2.25rem);
   --sheet-unit: calc(var(--sheet-band) / 150);
   --calendar-side: calc(150 * var(--sheet-unit));
-  --calendar-top: calc(100cqi * 0.2102968237); /* 192 / 913 */
+  --calendar-header: calc(100cqi * 0.0930998905); /* 85 / 913 */
+  --calendar-overlap: calc(100cqi * 0.0876232202); /* 80 / 913 */
+  --calendar-content-gap: clamp(0.75rem, 2vw, 1.25rem);
+  /* Dodatkowy oddech między drugą linijką a pierwszym rzędem pól (Nazwa
+     spotkania / Lokalizacja), na życzenie — sam --calendar-content-gap już
+     kończy maskę dokładnie na granicy treści, więc to osobny, jawnie
+     nazwany dodatek (12-16px), nie kolejna zmiana w assecie ani w slice'ach.
+     Podnosi --calendar-top, więc przesuwa się CAŁA treść formularza razem
+     (odstępy między dalszymi sekcjami formularza zostają identyczne, bo to
+     jeden wspólny offset, nie margines per pole). */
+  --calendar-first-row-gap: clamp(0.75rem, 1.5vw, 1rem);
+  --calendar-top: calc(
+    var(--calendar-header) + var(--calendar-content-gap) +
+      var(--calendar-first-row-gap)
+  );
 
   border-style: solid;
   border-color: transparent;
@@ -276,13 +312,25 @@ body {
   top: calc(-1 * var(--calendar-top));
   left: calc(-1 * var(--calendar-side));
   right: calc(-1 * var(--calendar-side));
-  height: var(--calendar-top);
+  height: calc(var(--calendar-header) + var(--calendar-overlap));
   background-image: url("/assets/calendar-page-top.png");
   background-size: 100% 100%;
   background-position: top center;
   background-repeat: no-repeat;
   pointer-events: none;
   z-index: 0;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0,
+    #000 var(--calendar-header),
+    transparent var(--calendar-top)
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0,
+    #000 var(--calendar-header),
+    transparent var(--calendar-top)
+  );
 }
 
 /*

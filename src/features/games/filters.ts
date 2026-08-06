@@ -74,6 +74,10 @@ export function parseGameFilters(searchParams: SearchParamsInput): GameFilters {
   };
 }
 
+export function parseShelfOwnerVisibility(searchParams: SearchParamsInput) {
+  return getFirst(searchParams, "showOwner") === "1";
+}
+
 export function hasActiveFilters(filters: GameFilters) {
   return Boolean(
     filters.q ||

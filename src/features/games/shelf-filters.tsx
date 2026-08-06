@@ -12,6 +12,7 @@ type ShelfFiltersProps = {
   filters: GameFilters;
   options: GameFilterOptions;
   resultCount: number;
+  showOwners: boolean;
 };
 
 const timeOptions = [30, 45, 60, 90, 120, 150, 180, 240];
@@ -66,6 +67,32 @@ function FilterChip({
       <span className="inline-flex rounded-full border border-[#d9c7aa] bg-[#f7ead3] px-3 py-2 text-xs font-semibold text-[#6d5037] shadow-[0_2px_5px_rgba(83,51,35,0.08)] transition-[background-color,border-color,color,box-shadow] peer-checked:border-[#e4b95f] peer-checked:bg-[#56382b] peer-checked:text-[#fff5df] peer-checked:shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_4px_10px_rgba(72,39,24,0.28)]">
         {label}
       </span>
+    </label>
+  );
+}
+
+function OwnerDisplayToggle({
+  defaultChecked,
+  form,
+}: {
+  defaultChecked: boolean;
+  form?: string;
+}) {
+  return (
+    <label className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-[#9a7657]/28 bg-[#f7ead3]/72 px-3 text-xs font-semibold text-[#5b4332] shadow-sm transition hover:border-[#b98b55]/55">
+      <input
+        type="checkbox"
+        name="showOwner"
+        value="1"
+        defaultChecked={defaultChecked}
+        form={form}
+        onChange={(event) => event.currentTarget.form?.requestSubmit()}
+        className="peer sr-only"
+      />
+      <span className="grid size-4 shrink-0 place-items-center rounded border border-[#9a7657]/55 bg-[#fffaf0] text-[0.65rem] leading-none text-transparent transition peer-checked:border-[#714735] peer-checked:bg-[#56382b] peer-checked:text-[#fff5df] peer-focus-visible:ring-2 peer-focus-visible:ring-[#d8a74d]/55">
+        ✓
+      </span>
+      <span>Owner</span>
     </label>
   );
 }
@@ -223,6 +250,7 @@ export function ShelfFilters({
   filters,
   options,
   resultCount,
+  showOwners,
 }: ShelfFiltersProps) {
   const [isDesktopAdvancedOpen, setIsDesktopAdvancedOpen] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -332,6 +360,8 @@ export function ShelfFilters({
           </FilterSelect>
 
           <div className="mt-[1.55rem] flex flex-wrap items-center justify-end gap-2 md:col-span-2 xl:col-span-1 xl:justify-start">
+            <OwnerDisplayToggle defaultChecked={showOwners} />
+
             <ActionButton
               type="button"
               action="neutral"
@@ -395,6 +425,7 @@ export function ShelfFilters({
         </label>
 
         <div className="flex flex-wrap gap-2">
+          <OwnerDisplayToggle defaultChecked={showOwners} />
           <ActionButton
             type="button"
             action="neutral"
