@@ -665,6 +665,49 @@ export type Database = {
           },
         ]
       }
+      meeting_invitations: {
+        Row: {
+          created_at: string
+          invited_by: string
+          meeting_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          invited_by: string
+          meeting_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          invited_by?: string
+          meeting_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_invitations_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_invitations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meetings: {
         Row: {
           created_at: string
@@ -1595,6 +1638,17 @@ export type Database = {
         }
         Returns: string
       }
+      create_meeting_with_invitations: {
+        Args: {
+          p_description?: string
+          p_ends_at: string
+          p_invited_user_ids: string[]
+          p_location?: string
+          p_starts_at: string
+          p_title: string
+        }
+        Returns: string
+      }
       create_play_with_participants: {
         Args: {
           p_comment?: string
@@ -1705,6 +1759,18 @@ export type Database = {
           p_publisher: string
           p_release_year: number
           p_status: Database["public"]["Enums"]["game_status"]
+          p_title: string
+        }
+        Returns: string
+      }
+      update_meeting_with_invitations: {
+        Args: {
+          p_description?: string
+          p_ends_at: string
+          p_invited_user_ids: string[]
+          p_location?: string
+          p_meeting_id: string
+          p_starts_at: string
           p_title: string
         }
         Returns: string

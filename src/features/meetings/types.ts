@@ -18,6 +18,7 @@ export type MeetingFormValues = {
   endDate: string;
   startTime: string;
   endTime: string;
+  invitedUserIds: string[];
 };
 
 export type MeetingFormFieldName =
@@ -27,7 +28,8 @@ export type MeetingFormFieldName =
   | "startDate"
   | "endDate"
   | "startTime"
-  | "endTime";
+  | "endTime"
+  | "invitedUserIds";
 
 export type MeetingFormState = {
   status: "idle" | "error" | "success";
@@ -100,7 +102,10 @@ export type MeetingDetails = MeetingCardItem & {
   hasChroniclePlay: boolean;
   canConfirm: boolean;
   hasResponded: boolean;
+  // Organizator + zaproszeni — nie "wszyscy aktywni członkowie". Kto trafia
+  // na tę listę kontroluje meeting_invitations, patrz buildAttendanceRows.
   attendanceRows: MeetingAttendanceRow[];
+  invitedUserIds: string[];
   gameVotes: MeetingGameVoteItem[];
   availableGames: MeetingGameCandidateOption[];
 };

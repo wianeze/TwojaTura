@@ -1,10 +1,13 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(44);
+select plan(46);
 
--- Pokrywa 20260731120000_push_subscriptions_foundation.sql
--- oraz 20260731120100_push_campaigns_and_dispatch.sql.
+-- Pokrywa 20260731120000_push_subscriptions_foundation.sql,
+-- 20260731120100_push_campaigns_and_dispatch.sql oraz usunięcie triggera
+-- z_meetings_enqueue_push przez 20260806090000_meeting_invitations.sql
+-- (sekcja 5 poniżej). Zaproszenia same w sobie (RPC, RLS, filtrowanie ID)
+-- pokrywa 008_meeting_invitations.test.sql.
 --
 -- Konwencja tego pliku: MUTACJE użytkownika wykonujemy jako zalogowany
 -- członek (żeby przechodziły przez realne RPC i kontrolę uprawnień),
@@ -318,8 +321,16 @@ select ok(
 );
 
 -- ---------------------------------------------------------------------------
--- 5. Automatyczna kampania po utworzeniu spotkania
+-- 5. Kampania po utworzeniu spotkania z zaproszeniami
 -- ---------------------------------------------------------------------------
+--
+-- Od 20260806090000_meeting_invitations.sql zwykły insert do meetings NIE
+-- kolejkuje już żadnego push-a — trigger z_meetings_enqueue_push (i jego
+-- audience "wszyscy aktywni member/admin") został usunięty. Realną ścieżkę
+-- produkcyjną (public.create_meeting_with_invitations) pokrywa osobny plik
+-- supabase/tests/database/008_meeting_invitations.test.sql; tutaj zostaje
+-- weryfikacja samego mechanizmu outboxa (kampania + dostawy + dedupe) na
+-- zaproszeniach wpisanych tak, jak robi to ta RPC.
 
 -- Komplet urządzeń: admin, member, observer oraz subskrypcja wyłączona.
 insert into public.push_subscriptions (user_id, endpoint, p256dh, auth, disabled_at)
@@ -347,9 +358,54 @@ select lives_ok(
             now() + interval '7 days',
             now() + interval '7 days 4 hours')
   $$,
-  '28. utworzenie spotkania przechodzi razem z zapisem do outboxa'
+  '28. utworzenie wiersza spotkania przechodzi'
 );
 reset role;
+
+select results_eq(
+  $$
+    select count(*)::bigint from public.push_campaigns
+    where dedupe_key = 'meeting_created:80000000-0000-4000-8000-000000000001'
+  $$,
+  $$values (0::bigint)$$,
+  '29. sam insert do meetings nie tworzy już żadnej kampanii — trigger usunięty'
+);
+
+-- Symulacja tego, co robi create_meeting_with_invitations dla zaproszonych
+-- Michała i Ani: wiersze zaproszeń (service_role, tabela nie ma insert dla
+-- authenticated) + jedna kampania z audience = wyłącznie zaproszeni.
+select lives_ok(
+  $$
+    do $body$
+    begin
+      insert into public.meeting_invitations (meeting_id, user_id, invited_by)
+      values
+        ('80000000-0000-4000-8000-000000000001',
+         '10000000-0000-0000-0000-000000000003',
+         '10000000-0000-0000-0000-000000000002'),
+        ('80000000-0000-4000-8000-000000000001',
+         '10000000-0000-0000-0000-000000000004',
+         '10000000-0000-0000-0000-000000000002');
+
+      perform private.enqueue_push_campaign(
+        'meeting_created'::public.push_campaign_kind,
+        'Nowe spotkanie!',
+        'Powstało spotkanie „Wieczór z Gloomhaven”. Wybierz gry, w które chcesz zagrać.',
+        '/kalendarium/80000000-0000-4000-8000-000000000001',
+        'meeting',
+        '80000000-0000-4000-8000-000000000001',
+        'meeting_created',
+        '10000000-0000-0000-0000-000000000002',
+        'meeting_created:80000000-0000-4000-8000-000000000001',
+        array[
+          '10000000-0000-0000-0000-000000000003'::uuid,
+          '10000000-0000-0000-0000-000000000004'::uuid
+        ]);
+    end;
+    $body$
+  $$,
+  '30. zapis zaproszeń + kampania dla wybranych osób przechodzi'
+);
 
 select results_eq(
   $$
@@ -359,7 +415,7 @@ select results_eq(
   $$,
   $$values (1::bigint, 'meeting_created', 'Nowe spotkanie!',
             '/kalendarium/80000000-0000-4000-8000-000000000001')$$,
-  '29. powstaje dokładnie jedna kampania z poprawnym linkiem'
+  '31. powstaje dokładnie jedna kampania z poprawnym linkiem'
 );
 
 select results_eq(
@@ -368,11 +424,14 @@ select results_eq(
     where dedupe_key = 'meeting_created:80000000-0000-4000-8000-000000000001'
   $$,
   $$values ('Powstało spotkanie „Wieczór z Gloomhaven”. Wybierz gry, w które chcesz zagrać.')$$,
-  '30. treść kampanii zawiera nazwę spotkania'
+  '32. treść kampanii zawiera nazwę spotkania'
 );
 
--- Audiencja: aktywni member i admin z aktywną subskrypcją. Observer, wyłączona
--- subskrypcja i nieaktywny członek są pomijani. Autor spotkania jest objęty.
+-- Audiencja to WYŁĄCZNIE zaproszeni (Michał, Ania) — organizator (Marta) nie
+-- jest w audience mimo aktywnej subskrypcji. Ania jest zaproszona, ale jej
+-- jedyne urządzenie ma disabled_at ustawione, więc nie dostaje dostawy —
+-- "zaproszony bez aktywnej subskrypcji" to inny, poprawny przypadek niż
+-- "niezaproszony", widoczny tu jako brak wiersza, nie błąd.
 select results_eq(
   $$
     select delivery.recipient_user_id
@@ -381,10 +440,8 @@ select results_eq(
     where campaign.dedupe_key = 'meeting_created:80000000-0000-4000-8000-000000000001'
     order by delivery.recipient_user_id
   $$,
-  $$values ('10000000-0000-0000-0000-000000000001'::uuid),
-           ('10000000-0000-0000-0000-000000000002'::uuid),
-           ('10000000-0000-0000-0000-000000000003'::uuid)$$,
-  '31. kampania obejmuje member i admin, pomija observera i wyłączone urządzenia'
+  $$values ('10000000-0000-0000-0000-000000000003'::uuid)$$,
+  '33. kampania trafia wyłącznie do zaproszonego z aktywną subskrypcją, pomija organizatora'
 );
 
 select results_eq(
@@ -395,8 +452,8 @@ select results_eq(
     where campaign.dedupe_key = 'meeting_created:80000000-0000-4000-8000-000000000001'
       and delivery.status = 'queued'::public.push_delivery_status
   $$,
-  $$values (3::bigint)$$,
-  '32. wszystkie dostawy startują w kolejce'
+  $$values (1::bigint)$$,
+  '34. jedyna dostawa startuje w kolejce'
 );
 
 -- Powtórne zakolejkowanie tego samego zdarzenia nie tworzy drugiej kampanii
@@ -411,7 +468,7 @@ select lives_ok(
       'meeting_created:80000000-0000-4000-8000-000000000001',
       null)
   $$,
-  '33. ponowne zakolejkowanie tego samego dedupe_key nie rzuca'
+  '35. ponowne zakolejkowanie tego samego dedupe_key nie rzuca'
 );
 
 select results_eq(
@@ -420,7 +477,7 @@ select results_eq(
     where dedupe_key = 'meeting_created:80000000-0000-4000-8000-000000000001'
   $$,
   $$values (1::bigint)$$,
-  '34. dedupe_key nadal daje dokładnie jedną kampanię'
+  '36. dedupe_key nadal daje dokładnie jedną kampanię'
 );
 
 select throws_ok(
@@ -432,7 +489,7 @@ select throws_ok(
   $$,
   '23505',
   null,
-  '35. duplikat campaign_id + subscription_id jest niemożliwy'
+  '37. duplikat campaign_id + subscription_id jest niemożliwy'
 );
 
 -- ---------------------------------------------------------------------------
@@ -446,7 +503,7 @@ select throws_ok(
   $$,
   '23514',
   null,
-  '36. adres bezwzględny jako action_url jest odrzucany'
+  '38. adres bezwzględny jako action_url jest odrzucany'
 );
 
 select throws_ok(
@@ -456,7 +513,7 @@ select throws_ok(
   $$,
   '23514',
   null,
-  '37. adres protocol-relative jako action_url jest odrzucany'
+  '39. adres protocol-relative jako action_url jest odrzucany'
 );
 
 select lives_ok(
@@ -464,7 +521,7 @@ select lives_ok(
     insert into public.push_campaigns (kind, title, body, action_url, dedupe_key)
     values ('admin_manual', 'T', 'B', '/kalendarium', 'dobry-url-1')
   $$,
-  '38. ścieżka wewnętrzna jako action_url przechodzi'
+  '40. ścieżka wewnętrzna jako action_url przechodzi'
 );
 
 -- ---------------------------------------------------------------------------
@@ -487,7 +544,7 @@ select results_eq(
       p_template_key => 'meeting_vote_reminder')
   $$,
   $$values (4, 4)$$,
-  '39. admin tworzy kampanię ręczną obejmującą także observera'
+  '41. admin tworzy kampanię ręczną obejmującą także observera'
 );
 reset role;
 
@@ -511,7 +568,7 @@ where id = (select delivery_id from t_push_delivery);
 select lives_ok(
   $$select public.complete_push_delivery(
       (select delivery_id from t_push_delivery), 'retryable_failure', 'http_503')$$,
-  '40. retryable_failure jest przyjmowany'
+  '42. retryable_failure jest przyjmowany'
 );
 
 select results_eq(
@@ -521,7 +578,7 @@ select results_eq(
     where id = (select delivery_id from t_push_delivery)
   $$,
   $$values ('queued', true, 'http_503')$$,
-  '41. retryable_failure wraca do kolejki z odsuniętym terminem'
+  '43. retryable_failure wraca do kolejki z odsuniętym terminem'
 );
 
 -- Po wyczerpaniu limitu prób ta sama ścieżka kończy się stanem końcowym.
@@ -538,7 +595,7 @@ select results_eq(
     where id = (select delivery_id from t_push_delivery)
   $$,
   $$values ('failed')$$,
-  '42. po piątej próbie dostawa kończy jako failed'
+  '44. po piątej próbie dostawa kończy jako failed'
 );
 
 -- 403 (permanent_failure) NIE wyłącza subskrypcji; 404/410 wyłączają.
@@ -551,7 +608,7 @@ select results_eq(
     where id = (select subscription_id from t_push_delivery)
   $$,
   $$values (true)$$,
-  '43. permanent_failure (403) nie wyłącza subskrypcji'
+  '45. permanent_failure (403) nie wyłącza subskrypcji'
 );
 
 select public.complete_push_delivery(
@@ -563,7 +620,7 @@ select results_eq(
     where id = (select subscription_id from t_push_delivery)
   $$,
   $$values (true)$$,
-  '44. expired_subscription (410) wyłącza subskrypcję'
+  '46. expired_subscription (410) wyłącza subskrypcję'
 );
 
 select * from finish();

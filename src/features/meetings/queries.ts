@@ -109,7 +109,7 @@ function sortMeetings(items: MeetingCardItem[]) {
   });
 }
 
-async function listActiveMeetingMembers(
+async function listActiveMemberProfiles(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ) {
   const { data, error } = await supabase
@@ -132,6 +132,19 @@ async function listActiveMeetingMembers(
         sensitivity: "base",
       }),
     );
+}
+
+/**
+ * Pula osób, które organizator może zaprosić: aktywni member, bez niego
+ * samego (organizator nie jest "zwykłą" osobą do zaproszenia — patrz
+ * meeting-invited-field.tsx).
+ */
+export async function getInvitableMembers(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  organizerId: string,
+) {
+  const members = await listActiveMemberProfiles(supabase);
+  return members.filter((member) => member.id !== organizerId);
 }
 
 function buildAttendanceRows(
@@ -299,16 +312,17 @@ export async function getMeetingDetails(
   if (!meeting) return null;
 
   const [
-    activeMembers,
-    profilesMap,
+    invitationsResult,
     availabilityResult,
     votesResult,
     rankingResult,
     gamesResult,
     relatedPlaysResult,
   ] = await Promise.all([
-    listActiveMeetingMembers(supabase),
-    getProfilesMap(supabase, [meeting.created_by]),
+    supabase
+      .from("meeting_invitations")
+      .select("meeting_id, user_id")
+      .eq("meeting_id", meetingId),
     supabase
       .from("meeting_availability")
       .select("meeting_id, user_id, is_available, updated_at")
@@ -333,6 +347,7 @@ export async function getMeetingDetails(
   ]);
 
   if (
+    invitationsResult.error ||
     availabilityResult.error ||
     votesResult.error ||
     rankingResult.error ||
@@ -342,9 +357,33 @@ export async function getMeetingDetails(
     throw new Error("Nie udało się pobrać szczegółów spotkania.");
   }
 
+  const invitedUserIds = (invitationsResult.data ?? []).map(
+    (row) => row.user_id,
+  );
+  // "Kto będzie?" pokazuje organizatora + zaproszonych — nie każdego aktywnego
+  // członka. Organizator jest zawsze na liście, nawet jeśli sam siebie
+  // (poprawnie) nie zaprasza.
+  const attendanceMemberIds = [
+    ...new Set([meeting.created_by, ...invitedUserIds]),
+  ];
+  const [attendanceProfilesMap, profilesMap] = await Promise.all([
+    getProfilesMap(supabase, attendanceMemberIds),
+    getProfilesMap(supabase, [meeting.created_by]),
+  ]);
+  const attendanceMembers = attendanceMemberIds
+    .map((id) => attendanceProfilesMap.get(id) ?? memberFallback(id))
+    .sort((left, right) =>
+      left.displayName.localeCompare(right.displayName, "pl", {
+        sensitivity: "base",
+      }),
+    );
+
   const availabilityRows = (availabilityResult.data ??
     []) as MeetingAvailabilityRow[];
-  const attendanceRows = buildAttendanceRows(activeMembers, availabilityRows);
+  const attendanceRows = buildAttendanceRows(
+    attendanceMembers,
+    availabilityRows,
+  );
   const actor =
     memberState.status === "active-member" ? memberState.member : null;
   const ownResponse = actor
@@ -397,6 +436,7 @@ export async function getMeetingDetails(
     canConfirm: canEdit && meeting.status === "planned",
     hasResponded: typeof ownResponse === "boolean",
     attendanceRows,
+    invitedUserIds,
     gameVotes,
     availableGames,
   };
@@ -406,9 +446,32 @@ export async function getMeetingFormData(meetingId: string) {
   const details = await getMeetingDetails(meetingId);
   if (!details) return null;
 
+  const supabase = await createClient();
+  const invitableMembers = await getInvitableMembers(
+    supabase,
+    details.createdBy.id,
+  );
+
   return {
     meeting: details,
     values: getMeetingFormValues(details),
+    invitableMembers,
+  };
+}
+
+export async function getMeetingCreateFormData() {
+  const supabase = await createClient();
+  const memberState = await getCurrentMember();
+
+  if (memberState.status !== "active-member") {
+    return { invitableMembers: [] as MeetingMember[] };
+  }
+
+  return {
+    invitableMembers: await getInvitableMembers(
+      supabase,
+      memberState.member.id,
+    ),
   };
 }
 

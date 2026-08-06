@@ -688,6 +688,7 @@ test("form values use the clicked day as both start and end date by default", ()
     endDate: "17/07/2026",
     startTime: "18:00",
     endTime: "23:00",
+    invitedUserIds: [],
   });
 });
 

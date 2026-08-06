@@ -3,8 +3,13 @@
 import { useActionState } from "react";
 import { INITIAL_MEETING_FORM_STATE } from "./form-state";
 import { MeetingDateField } from "./meeting-date-field";
+import { MeetingInvitedField } from "./meeting-invited-field";
 import { MeetingSubmitButton } from "./meeting-submit-button";
-import type { MeetingFormState, MeetingFormValues } from "./types";
+import type {
+  MeetingFormState,
+  MeetingFormValues,
+  MeetingMember,
+} from "./types";
 
 type MeetingFormProps = {
   action: (
@@ -13,6 +18,7 @@ type MeetingFormProps = {
   ) => Promise<MeetingFormState>;
   initialValues: MeetingFormValues;
   locationSuggestions: string[];
+  invitableMembers: MeetingMember[];
   submitLabel: string;
   pendingLabel: string;
 };
@@ -26,6 +32,7 @@ export function MeetingForm({
   action,
   initialValues,
   locationSuggestions,
+  invitableMembers,
   submitLabel,
   pendingLabel,
 }: MeetingFormProps) {
@@ -36,11 +43,11 @@ export function MeetingForm({
   const values = state.submittedValues ?? initialValues;
   const inputClass =
     "paper-wash focus:border-gold focus:ring-gold/20 mt-1.5 h-11 w-full rounded-xl border border-[#9a7657]/35 px-3.5 text-sm text-[#503828] outline-none transition focus:ring-4";
-  const textareaClass = `${inputClass} h-auto min-h-28 py-3`;
+  const textareaClass = `${inputClass} h-auto min-h-20 py-2.5 sm:min-h-28 sm:py-3`;
 
   return (
-    <form action={formAction} className="space-y-5">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+    <form action={formAction} className="flex flex-col gap-4 sm:gap-5">
+      <div className="order-1 grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <label className="block text-sm font-semibold text-[#503828]">
           Nazwa spotkania
           <input
@@ -71,51 +78,55 @@ export function MeetingForm({
         </label>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MeetingDateField
-          key={`start-${values.startDate}`}
-          name="startDate"
-          label="Data od"
-          defaultValue={values.startDate}
-          error={state.fieldErrors?.startDate}
-          inputClassName={inputClass}
-        />
-
-        <MeetingDateField
-          key={`end-${values.endDate}`}
-          name="endDate"
-          label="Data do"
-          defaultValue={values.endDate}
-          error={state.fieldErrors?.endDate}
-          inputClassName={inputClass}
-        />
-
-        <label className="block text-sm font-semibold text-[#503828]">
-          Od
-          <input
-            className={inputClass}
-            name="startTime"
-            defaultValue={values.startTime}
-            placeholder="HH:mm"
-            inputMode="numeric"
+      <div className="order-2 grid gap-3 lg:grid-cols-2 lg:gap-4">
+        <div className="grid min-w-0 grid-cols-2 gap-2.5 sm:gap-4">
+          <MeetingDateField
+            key={`start-${values.startDate}`}
+            name="startDate"
+            label="Data od"
+            defaultValue={values.startDate}
+            error={state.fieldErrors?.startDate}
+            inputClassName={inputClass}
           />
-          <FieldError error={state.fieldErrors?.startTime} />
-        </label>
 
-        <label className="block text-sm font-semibold text-[#503828]">
-          Do
-          <input
-            className={inputClass}
-            name="endTime"
-            defaultValue={values.endTime}
-            placeholder="HH:mm"
-            inputMode="numeric"
+          <MeetingDateField
+            key={`end-${values.endDate}`}
+            name="endDate"
+            label="Data do"
+            defaultValue={values.endDate}
+            error={state.fieldErrors?.endDate}
+            inputClassName={inputClass}
           />
-          <FieldError error={state.fieldErrors?.endTime} />
-        </label>
+        </div>
+
+        <div className="grid min-w-0 grid-cols-2 gap-2.5 sm:gap-4">
+          <label className="block min-w-0 text-sm font-semibold text-[#503828]">
+            Od
+            <input
+              className={inputClass}
+              name="startTime"
+              defaultValue={values.startTime}
+              placeholder="HH:mm"
+              inputMode="numeric"
+            />
+            <FieldError error={state.fieldErrors?.startTime} />
+          </label>
+
+          <label className="block min-w-0 text-sm font-semibold text-[#503828]">
+            Do
+            <input
+              className={inputClass}
+              name="endTime"
+              defaultValue={values.endTime}
+              placeholder="HH:mm"
+              inputMode="numeric"
+            />
+            <FieldError error={state.fieldErrors?.endTime} />
+          </label>
+        </div>
       </div>
 
-      <label className="block text-sm font-semibold text-[#503828]">
+      <label className="order-4 block text-sm font-semibold text-[#503828]">
         Opis
         <textarea
           className={textareaClass}
@@ -126,13 +137,22 @@ export function MeetingForm({
         <FieldError error={state.fieldErrors?.description} />
       </label>
 
+      <div className="order-3">
+        <MeetingInvitedField
+          key={`invited-${JSON.stringify(values.invitedUserIds)}`}
+          members={invitableMembers}
+          defaultValue={values.invitedUserIds}
+          error={state.fieldErrors?.invitedUserIds}
+        />
+      </div>
+
       {state.message && state.status === "error" ? (
-        <div className="rounded-xl border border-[#8f3528]/18 bg-[#fff2ef] px-4 py-3 text-sm text-[#7b3428]">
+        <div className="order-5 rounded-xl border border-[#8f3528]/18 bg-[#fff2ef] px-4 py-3 text-sm text-[#7b3428]">
           {state.message}
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-end gap-3">
+      <div className="order-6 flex flex-wrap items-center justify-end gap-3">
         <MeetingSubmitButton label={submitLabel} pendingLabel={pendingLabel} />
       </div>
     </form>

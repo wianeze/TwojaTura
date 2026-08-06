@@ -16,7 +16,6 @@ import {
   awardMeetingVotePointsAfterSave,
 } from "./meeting-points";
 import { mapMeetingDeleteError } from "./meeting-deletion";
-import { DEFAULT_MEETING_STATUS } from "./types";
 import type {
   MeetingAvailabilityFormState,
   MeetingDeleteState,
@@ -34,6 +33,11 @@ function mapMeetingDatabaseError(error: DatabaseErrorLike) {
   switch (error.code) {
     case "42501":
       return "Nie masz uprawnień do tej operacji.";
+    case "23503":
+      // RPC-owe "spotkanie nie istnieje" — z perspektywy formularza
+      // nieodróżnialne od braku uprawnień (RLS dawało dawniej ten sam
+      // efekt: zero wierszy), więc zostaje ten sam komunikat co 42501.
+      return "Nie udało się zapisać tego spotkania. Być może nie masz do niego uprawnień.";
     case "23514":
       return "Koniec spotkania musi być późniejszy niż początek.";
     default:
@@ -55,21 +59,24 @@ export async function createMeetingAction(
     return toMeetingFormErrorState(validation);
   }
 
-  const { data, error } = await access.supabase
-    .from("meetings")
-    .insert({
-      created_by: access.member.id,
-      title: validation.data.title,
-      description: validation.data.description,
-      location: validation.data.location,
-      status: DEFAULT_MEETING_STATUS,
-      starts_at: validation.data.startsAt,
-      ends_at: validation.data.endsAt,
-    })
-    .select("id")
-    .maybeSingle();
+  const { data: meetingId, error } = await access.supabase.rpc(
+    "create_meeting_with_invitations",
+    {
+      p_title: validation.data.title,
+      // Kolumny są nullable, ale RPC (jak każda funkcja Postgresa) nie ma
+      // sposobu wyrazić "opcjonalny, ale przyjmuje null" w wygenerowanych
+      // typach — parametr jest tam `string?`, czyli `string | undefined`, nie
+      // `string | null`. ?? undefined nie zmienia zachowania (RPC ma
+      // `default null`), tylko dogaduje się z tym typem.
+      p_description: validation.data.description ?? undefined,
+      p_location: validation.data.location ?? undefined,
+      p_starts_at: validation.data.startsAt,
+      p_ends_at: validation.data.endsAt,
+      p_invited_user_ids: validation.data.invitedUserIds,
+    },
+  );
 
-  if (error || !data) {
+  if (error || !meetingId) {
     return {
       status: "error",
       message: mapMeetingDatabaseError(error ?? {}),
@@ -78,7 +85,7 @@ export async function createMeetingAction(
 
   const pointAward = await awardMeetingCreatedPointsAfterSave(true, () =>
     access.supabase.rpc("award_meeting_created_points", {
-      p_meeting_id: data.id,
+      p_meeting_id: meetingId,
     }),
   );
 
@@ -104,16 +111,16 @@ export async function createMeetingAction(
 
   revalidatePath("/kalendarium");
 
-  // Kampania „Nowe spotkanie!” jest już w outboxie — zapisał ją trigger
-  // z_meetings_enqueue_push w tej samej transakcji co spotkanie. Tu zostaje
-  // tylko pierwsza próba wysyłki, uruchamiana po odesłaniu odpowiedzi:
-  // wariant „in background” nie rzuca, więc jego niepowodzenie nie może zmienić
-  // wyniku tej akcji ani cofnąć spotkania — zostawia za to kod błędu w logu.
-  // Nieudane dostawy czekają w kolejce na crona albo na przycisk w panelu
-  // administratora.
+  // Kampania dla zaproszonych (jeśli ktoś został zaproszony) jest już
+  // w outboxie — zapisało ją RPC create_meeting_with_invitations w tej samej
+  // transakcji co spotkanie i zaproszenia. Tu zostaje tylko pierwsza próba
+  // wysyłki, uruchamiana po odesłaniu odpowiedzi: wariant „in background” nie
+  // rzuca, więc jego niepowodzenie nie może zmienić wyniku tej akcji ani
+  // cofnąć spotkania — zostawia za to kod błędu w logu. Nieudane dostawy
+  // czekają w kolejce na crona albo na przycisk w panelu administratora.
   after(() => dispatchPendingPushDeliveriesInBackground());
 
-  redirect(`/kalendarium/${data.id}`);
+  redirect(`/kalendarium/${meetingId}`);
 }
 
 export async function updateMeetingAction(
@@ -131,29 +138,21 @@ export async function updateMeetingAction(
     return toMeetingFormErrorState(validation);
   }
 
-  const { data, error } = await access.supabase
-    .from("meetings")
-    .update({
-      title: validation.data.title,
-      description: validation.data.description,
-      location: validation.data.location,
-      starts_at: validation.data.startsAt,
-      ends_at: validation.data.endsAt,
-    })
-    .eq("id", meetingId)
-    .select("id")
-    .maybeSingle();
+  const { data, error } = await access.supabase.rpc(
+    "update_meeting_with_invitations",
+    {
+      p_meeting_id: meetingId,
+      p_title: validation.data.title,
+      p_description: validation.data.description ?? undefined,
+      p_location: validation.data.location ?? undefined,
+      p_starts_at: validation.data.startsAt,
+      p_ends_at: validation.data.endsAt,
+      p_invited_user_ids: validation.data.invitedUserIds,
+    },
+  );
 
-  if (error) {
-    return { status: "error", message: mapMeetingDatabaseError(error) };
-  }
-
-  if (!data) {
-    return {
-      status: "error",
-      message:
-        "Nie udało się zapisać tego spotkania. Być może nie masz do niego uprawnień.",
-    };
+  if (error || !data) {
+    return { status: "error", message: mapMeetingDatabaseError(error ?? {}) };
   }
 
   revalidatePath("/kalendarium");

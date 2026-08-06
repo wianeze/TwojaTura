@@ -180,6 +180,112 @@ body {
 }
 
 /*
+  Arkusz formularza „Dodaj/Edytuj spotkanie” — DOKŁADNIE ta sama architektura
+  co .chronicle-sheet (widok szczegółów partii / formularz Kroniki): prawdziwy
+  asset jako 9-slice border-image, nie background-size: 100% 100%.
+
+  Poprzednia wersja rozciągała CAŁY obraz (razem z dziurkami dziurkacza i
+  linijkami u góry) przez background-size: 100% 100%, więc te elementy rosły
+  proporcjonalnie do wysokości panelu — im więcej pól w formularzu, tym większy
+  pas "niebezpiecznej" strefy u góry. Próba naprawy przez padding-top jako
+  ułamek wysokości panelu (poprzedni commit) była błędnym kierunkiem z tego
+  samego powodu: wysokość panelu rośnie z treścią, więc pogoń za % wysokości
+  nigdy się nie kończy.
+
+  9-slice usuwa ten problem u źródła: border-image-slice tnie ŹRÓDŁOWY obraz
+  na strefy (góra z dziurkami/linijkami, boki, dół, środek), a border-image-
+  width skaluje je względem WŁASNEJ SZEROKOŚCI arkusza (--sheet-band, cqi) —
+  wielkości NIEZALEŻNEJ od wysokości treści. Dziurki mają więc zawsze stały,
+  ograniczony rozmiar na ekranie, niezależnie od tego, ile pól ma formularz.
+  Środek (plain pergamin, fill) rozciąga się w obu wymiarach bez żadnych
+  artefaktów, bo to jednolita tekstura papieru bez rysunku.
+
+  Slice/outset zmierzone piksel po pikselu na public/assets/calendar-page-bg.png
+  (1024x1536, RGBA):
+    - przezroczysty margines (właściwy początek pergaminu): top 68, right 56,
+      bottom 70, left 54 — to idzie do border-image-outset, żeby WIDOCZNY
+      pergamin (nie margines) pokrywał się z border-boxem arkusza.
+    - dziurki + podwójna linijka kończą się na y≈248 (16% wysokości obrazu) —
+      slice-top = 260 z małym zapasem.
+    - postrzępiona krawędź boczna jest wąska i prawie prosta (55-62px od
+      lewej, 58-60px od prawej w środkowym pasie wysokości) — slice-left/
+      right = 150 z zapasem na zawinięty róg u dołu (patrz niżej).
+    - zawinięty róg w dolnych rogach sięga do ok. 150-160px od dołu przy samej
+      krawędzi — slice-bottom = 180, a slice-left/right = 150 obejmuje też
+      poziomy zasięg tego zawinięcia.
+  Border-width = border-image-width (te same wartości) na każdym boku: layout
+  (gdzie zaczyna się treść) i to, co faktycznie widać jako rama, są tu celowo
+  identyczne — żadnego intencjonalnego nachodzenia treści na deko, jak w
+  .chronicle-sheet, bo dziurki muszą być NAPRAWDĘ ominięte, nie tylko
+  dekoracyjnie przykryte.
+
+  GÓRNY PAS JEST WYJĄTKIEM od powyższego. border-image-repeat: stretch
+  rozciąga edge-slice niezależnie w poziomie i pionie — poziomy współczynnik
+  skalowania (szerokość panelu / 724px źródła) i pionowy (border-top-width /
+  260px źródła) różnią się, więc okrągłe dziurki wychodzą jako elipsy.
+  border-image nie ma trybu "zachowaj proporcje" dla pojedynczego slice'a.
+
+  Dlatego góra NIE jest już renderowana przez border-image (border-image-
+  width/-slice/-outset dla góry zostają bez zmian tylko po to, żeby nie
+  zaburzyć geometrii narożników i krawędzi bocznych, które z nich korzystają
+  — i tak są w całości zasłonięte przez warstwę opisaną niżej). Zamiast tego
+  public/assets/calendar-page-top.png (przycięty 1:1 z tego samego assetu,
+  x:[54,967) y:[68,260) — czyli dokładnie ten sam, już zmierzony obszar
+  nieprzezroczystej treści co reszta karty) renderuje się jako ::before z
+  background-size: 100% 100% — CAŁY przycięty obraz jest rozciągany
+  jednorodnie w obu wymiarach naraz (nie osobno na krawędziach i środku), więc
+  dziurki skalują się proporcjonalnie do szerokości panelu i zostają kołami.
+  --calendar-top ma stałe proporcje (192/913, wysokość/szerokość przycięcia)
+  względem szerokości kontenera (cqi) — nie zależy od wysokości treści
+  formularza, dokładnie jak --sheet-band. ::before jest offsetowany o
+  -border-top-width/-border-left-width/-border-right-width, bo top/left/right
+  pozycjonowania absolute liczą się od padding-boxa (za bordery), nie od
+  border-boxa — bez tego warstwa wylądowałaby pod górną ramą, a nie na niej.
+*/
+.meeting-form-sheet {
+  position: relative;
+  --sheet-band: clamp(1.4rem, 5cqi, 2.25rem);
+  --sheet-unit: calc(var(--sheet-band) / 150);
+  --calendar-side: calc(150 * var(--sheet-unit));
+  --calendar-top: calc(100cqi * 0.2102968237); /* 192 / 913 */
+
+  border-style: solid;
+  border-color: transparent;
+  border-width: var(--calendar-top) var(--calendar-side)
+    calc(180 * var(--sheet-unit)) var(--calendar-side);
+  border-image-source: url("/assets/calendar-page-bg.png");
+  border-image-slice: 260 150 180 150 fill;
+  border-image-width: var(--calendar-top) var(--calendar-side)
+    calc(180 * var(--sheet-unit)) var(--calendar-side);
+  border-image-outset: calc(68 * var(--sheet-unit)) calc(56 * var(--sheet-unit))
+    calc(70 * var(--sheet-unit)) calc(54 * var(--sheet-unit));
+  border-image-repeat: stretch;
+
+  /* Fallback jak w .chronicle-sheet: gdyby asset się nie wczytał, przezroczysta
+     ramka + ciepłe tło cięte do padding-boxa nie zostawiają ciemnego tekstu na
+     ciemnym tle strony. */
+  background-color: #f6ecd2;
+  background-clip: padding-box;
+  border-radius: 0.75rem;
+  filter: drop-shadow(0 9px 18px rgba(12, 6, 3, 0.32));
+}
+
+.meeting-form-sheet::before {
+  content: "";
+  position: absolute;
+  top: calc(-1 * var(--calendar-top));
+  left: calc(-1 * var(--calendar-side));
+  right: calc(-1 * var(--calendar-side));
+  height: var(--calendar-top);
+  background-image: url("/assets/calendar-page-top.png");
+  background-size: 100% 100%;
+  background-position: top center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/*
   Karta wpisu Kroniki — ten sam komponent od 320px do desktopu.
 
   Tłem jest gotowy asset pergaminowej strony (produkcyjna kopia przycięta do

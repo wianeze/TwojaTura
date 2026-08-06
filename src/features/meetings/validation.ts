@@ -15,6 +15,7 @@ type MeetingValidationResult =
         location: string | null;
         startsAt: string;
         endsAt: string;
+        invitedUserIds: string[];
       };
     }
   | {
@@ -133,6 +134,30 @@ function toWarsawIso(date: ParsedDateParts, time: ParsedTimeParts) {
   return new Date(utcMs).toISOString();
 }
 
+// Ten parser jest tylko wygodą dla Server Action — prawdziwa granica
+// bezpieczeństwa to RPC (private.filter_invitable_user_ids w migracji),
+// które i tak odrzuca wszystko poza aktywnymi member różnymi od organizatora.
+// Tu wystarczy nie wywrócić się na złym JSON-ie i odsiać duplikaty przed
+// wysłaniem, żeby liczbę „Zaproszeni: N” po stronie klienta i faktyczny zapis
+// nie rozjechały się o nic więcej niż walidację serwera.
+export function parseInvitedUserIds(formData: FormData): string[] {
+  const raw = value(formData, "invitedUserIds");
+  if (!raw) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    const ids = parsed.filter(
+      (id): id is string => typeof id === "string" && id.trim().length > 0,
+    );
+
+    return [...new Set(ids)];
+  } catch {
+    return [];
+  }
+}
+
 export function buildMeetingSubmittedValues(
   formData: FormData,
 ): MeetingFormValues {
@@ -144,6 +169,7 @@ export function buildMeetingSubmittedValues(
     endDate: value(formData, "endDate"),
     startTime: value(formData, "startTime"),
     endTime: value(formData, "endTime"),
+    invitedUserIds: parseInvitedUserIds(formData),
   };
 }
 
@@ -252,6 +278,7 @@ export function validateMeetingFormData(
           location,
           startsAt,
           endsAt,
+          invitedUserIds: submittedValues.invitedUserIds,
         },
       };
     }

@@ -1,5 +1,5 @@
 import { DEFAULT_MEETING_STATUS } from "./types.ts";
-import type { MeetingCardItem, MeetingFormValues } from "./types.ts";
+import type { MeetingDetails, MeetingFormValues } from "./types.ts";
 
 const dateFormatter = new Intl.DateTimeFormat("pl-PL", {
   day: "2-digit",
@@ -114,7 +114,7 @@ export function formatMeetingListBadge(meeting: {
 }
 
 export function getMeetingFormValues(
-  meeting?: MeetingCardItem,
+  meeting?: MeetingDetails,
   prefilledDateKey?: string,
 ): MeetingFormValues {
   if (!meeting) {
@@ -128,6 +128,7 @@ export function getMeetingFormValues(
       endDate: prefilledDate,
       startTime: "18:00",
       endTime: "23:00",
+      invitedUserIds: [],
     };
   }
 
@@ -142,6 +143,7 @@ export function getMeetingFormValues(
     endDate: `${endParts.day}/${endParts.month}/${endParts.year}`,
     startTime: `${startParts.hour}:${startParts.minute}`,
     endTime: `${endParts.hour}:${endParts.minute}`,
+    invitedUserIds: meeting.invitedUserIds,
   };
 }
 

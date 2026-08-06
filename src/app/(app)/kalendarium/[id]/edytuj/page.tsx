@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ActionLink } from "@/components/ui/action-button";
-import { Panel } from "@/components/ui/panel";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
@@ -37,7 +36,9 @@ export default async function EditMeetingPage({
   }
 
   return (
-    <div className="space-y-7">
+    // Ta sama kolumna co formularz Kroniki (chronicle-sheet-stack-wide) i co
+    // ekran tworzenia spotkania — oba formularze mają wyglądać identycznie.
+    <div className="chronicle-sheet-stack chronicle-sheet-stack-wide space-y-7">
       <div
         style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
         className="anim-rise-in-fast"
@@ -59,18 +60,22 @@ export default async function EditMeetingPage({
         />
       </div>
 
-      <Panel
+      {/* Border arkusza (9-slice) sam trzyma treść z dala od dziurek i
+          postrzępionych brzegów — formularz nie potrzebuje własnego paddingu,
+          dokładnie jak .chronicle-sheet w Kronice. */}
+      <section
         style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
-        className="anim-rise-in-fast paper-wash p-5 sm:p-7"
+        className="meeting-form-sheet anim-rise-in-fast"
       >
         <MeetingForm
           action={updateMeetingAction.bind(null, id)}
           initialValues={formData.values}
           locationSuggestions={locationSuggestions}
+          invitableMembers={formData.invitableMembers}
           submitLabel="Zapisz zmiany"
           pendingLabel="Zapisujemy spotkanie…"
         />
-      </Panel>
+      </section>
     </div>
   );
 }
