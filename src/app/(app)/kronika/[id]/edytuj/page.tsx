@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ActionLink } from "@/components/ui/action-button";
-import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { updatePlayAction } from "@/features/plays/actions";
@@ -23,16 +22,9 @@ export default async function EditPlayPage({
   if (!formData?.play || !formData.play.canEdit) notFound();
 
   return (
-    <div className="space-y-4">
-      <ActionLink
-        action="neutral"
-        size="compact"
-        emphasis="secondary"
-        href={`/kronika/${id}`}
-      >
-        Wróć do partii
-      </ActionLink>
-
+    // Ta sama kolumna i ta sama szerokość co w „Zapisz partię” — oba formularze
+    // muszą wyglądać identycznie.
+    <div className="chronicle-sheet-stack chronicle-sheet-stack-wide space-y-4">
       <header
         style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
         className="anim-rise-in-fast"
@@ -45,9 +37,23 @@ export default async function EditPlayPage({
         </h1>
       </header>
 
-      <Panel
+      {/* Powrót pod tytułem i przy prawej krawędzi, żeby nie wyprzedzał nagłówka. */}
+      <div className="flex justify-end">
+        <ActionLink
+          action="neutral"
+          size="compact"
+          emphasis="secondary"
+          href={`/kronika/${id}`}
+        >
+          Wróć do partii
+        </ActionLink>
+      </div>
+
+      {/* Border arkusza sam trzyma treść z dala od postrzępionych brzegów,
+          więc formularz nie potrzebuje własnego paddingu. */}
+      <section
         style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
-        className="anim-rise-in-fast paper-wash p-4 sm:p-5"
+        className="chronicle-sheet anim-rise-in-fast"
       >
         <PlayForm
           mode="edit"
@@ -61,7 +67,7 @@ export default async function EditPlayPage({
           playId={id}
           initialPhotos={formData.play.photos}
         />
-      </Panel>
+      </section>
     </div>
   );
 }

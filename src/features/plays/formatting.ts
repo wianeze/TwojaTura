@@ -273,6 +273,24 @@ export function getChronicleParticipantChips(
   }));
 }
 
+/**
+ * Miejsce użyte WYŁĄCZNIE do doboru odznaki. Gdy partia nie ma zapisanych
+ * miejsc, kolejność po `sortPlayParticipants` jest jedyną informacją o
+ * hierarchii, więc zwycięzca dostaje jedynkę, a reszta numery z listy. W
+ * kooperacji miejsc nie ma wcale — odznakę rozstrzyga wtedy wynik drużyny.
+ *
+ * Nie używaj tego do WYŚWIETLANIA miejsca: `index + 1` jest domysłem, nie
+ * danymi z bazy.
+ */
+export function resolveChronicleParticipantPlacement(
+  participant: PlayParticipantResult,
+  index: number,
+  mode: PlayMode = "competitive",
+): number | null {
+  if (mode === "cooperative") return null;
+  return participant.placement ?? (participant.isWinner ? 1 : index + 1);
+}
+
 export function getChronicleParticipantBadgeAsset(
   participant: PlayParticipantResult,
   mode: PlayMode = "competitive",
@@ -300,7 +318,10 @@ export function getChronicleParticipantBadgeAsset(
   }
 
   if (placement >= 4 && placement <= 20) {
-    return { src: `/brand/player${placement}.png`, alt: `${placement} miejsce` };
+    return {
+      src: `/brand/player${placement}.png`,
+      alt: `${placement} miejsce`,
+    };
   }
 
   return null;

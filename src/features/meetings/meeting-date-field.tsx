@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useId, useMemo, useRef, useState } from "react";
+import { AnchoredPopover } from "@/components/ui/anchored-popover";
 import {
   formatDateKeyForDisplay,
   parseMeetingDisplayDateToDateKey,
@@ -129,27 +130,8 @@ export function MeetingDateField({
 
   const month = useMemo(() => buildPickerDays(visibleMonth), [visibleMonth]);
 
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (!wrapperRef.current?.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, []);
+  // Klik poza panelem i Escape obsługuje AnchoredPopover.
+  const close = useCallback(() => setIsOpen(false), []);
 
   const triggerPicker = () => {
     setVisibleMonth(createMonthToken(selectedDateKey));
@@ -189,13 +171,18 @@ export function MeetingDateField({
           <CalendarIcon />
         </button>
 
-        {isOpen ? (
-          <div
-            id={dialogId}
-            role="dialog"
-            aria-label={`Wybór daty dla pola ${label}`}
-            className="paper-wash premium-edge absolute top-[calc(100%+0.55rem)] left-0 z-40 w-[18rem] rounded-[1.1rem] p-3 shadow-[0_24px_52px_rgba(18,8,6,0.22)]"
-          >
+        <AnchoredPopover
+          anchorRef={wrapperRef}
+          isOpen={isOpen}
+          onClose={close}
+          id={dialogId}
+          ariaLabel={`Wybór daty dla pola ${label}`}
+          /* Siatka 7 kolumn potrzebuje swojego minimum niezależnie od tego, jak
+             wąskie jest samo pole daty w rzędzie formularza. */
+          minWidth={288}
+          maxWidth={336}
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="mb-3 flex items-center justify-between gap-2">
               <button
                 type="button"
@@ -243,7 +230,7 @@ export function MeetingDateField({
                     onClick={() => {
                       setValue(formatDateKeyForDisplay(day.dateKey));
                       setVisibleMonth(createMonthToken(day.dateKey));
-                      setIsOpen(false);
+                      close();
                     }}
                     className={`flex h-9 items-center justify-center rounded-xl text-sm font-semibold transition ${
                       isSelected
@@ -259,7 +246,7 @@ export function MeetingDateField({
               })}
             </div>
           </div>
-        ) : null}
+        </AnchoredPopover>
       </div>
 
       {error ? (

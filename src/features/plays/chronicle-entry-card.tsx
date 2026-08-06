@@ -5,6 +5,7 @@ import {
   getChronicleParticipantBadgeAsset,
   getPlayDateBadgeParts,
   PLAY_STATUS_LABELS,
+  resolveChronicleParticipantPlacement,
   sortPlayParticipants,
 } from "./formatting";
 import type { PlayListItem, PlayParticipantResult } from "./types";
@@ -120,14 +121,6 @@ export function ChronicleEntryCard({ item }: { item: PlayListItem }) {
 
   const participants = sortPlayParticipants(item.participants);
 
-  const resolvePlacement = (
-    participant: PlayParticipantResult,
-    index: number,
-  ) =>
-    isCooperative
-      ? null
-      : (participant.placement ?? (participant.isWinner ? 1 : index + 1));
-
   const teamResultLabel = isCooperative
     ? item.teamResult === "win"
       ? "Wygrana drużyny"
@@ -208,7 +201,11 @@ export function ChronicleEntryCard({ item }: { item: PlayListItem }) {
       {participants.length > 0 ? (
         <div className="chronicle-players mt-[0.25em]">
           {participants.map((participant, index) => {
-            const placement = resolvePlacement(participant, index);
+            const placement = resolveChronicleParticipantPlacement(
+              participant,
+              index,
+              item.mode,
+            );
             return (
               <PlayerCapsule
                 key={participant.member.id}

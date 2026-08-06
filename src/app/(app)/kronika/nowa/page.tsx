@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ActionLink } from "@/components/ui/action-button";
-import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { createPlayAction } from "@/features/plays/actions";
@@ -22,7 +21,9 @@ export default async function NewPlayPage({
   const formData = await getPlayCreateFormData(meeting);
 
   return (
-    <div className="space-y-4">
+    // Ta sama kolumna co w szczegółach partii, ale szersza: formularz ma rząd
+    // dwóch pól wyboru, którym 44rem odbierało miejsce na nazwy spotkań.
+    <div className="chronicle-sheet-stack chronicle-sheet-stack-wide space-y-4">
       <header
         style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
         className="anim-rise-in-fast"
@@ -47,9 +48,11 @@ export default async function NewPlayPage({
         </ActionLink>
       </div>
 
-      <Panel
+      {/* Border arkusza sam trzyma treść z dala od postrzępionych brzegów,
+          więc formularz nie potrzebuje własnego paddingu. */}
+      <section
         style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
-        className="anim-rise-in-fast paper-wash p-4 sm:p-5"
+        className="chronicle-sheet anim-rise-in-fast"
       >
         <PlayForm
           mode="create"
@@ -61,7 +64,7 @@ export default async function NewPlayPage({
           submitLabel="Zapisz partię"
           pendingLabel="Zapisywanie..."
         />
-      </Panel>
+      </section>
     </div>
   );
 }

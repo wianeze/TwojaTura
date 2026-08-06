@@ -338,6 +338,87 @@ body {
   gap: 0.25em;
 }
 
+/*
+  Kolumna widoku szczegółów partii. Kontener dla `cqi` w .chronicle-sheet —
+  dzięki temu ramka arkusza reaguje na realnie dostępną szerokość (paddingi
+  <main>, boczna nawigacja), a nie na viewport.
+
+  Wszystkie arkusze są bezpośrednimi dziećmi tej kolumny i mają domyślną
+  szerokość bloku, więc żaden nie może urosnąć szerzej od pozostałych — jedno
+  pokrętło (--sheet-column) trzyma kartę główną, wyniki, notatkę i galerię w
+  jednej linii. Na telefonie wygrywa 100%, więc mobile zostaje bez zmian; od
+  tabletu w górę kolumna zatrzymuje się na czytelnej szerokości, a nadmiar
+  ekranu zamienia się w marginesy zamiast w rozciągnięty pergamin.
+*/
+.chronicle-sheet-stack {
+  --sheet-column: 44rem;
+  container-type: inline-size;
+  width: min(100%, var(--sheet-column));
+  margin-inline: auto;
+}
+
+/*
+  Szersza kolumna dla formularzy partii — rząd „Gra” + „Wybór spotkania”
+  potrzebuje miejsca na nazwy spotkań razem z datą i godziną.
+
+  Świadomie osobna klasa, a nie Tailwindowe `[--sheet-column:56rem]`: reguły z
+  tego pliku są NIELAYEROWANE, a utility Tailwinda siedzą w `@layer utilities`.
+  Styl spoza warstwy bije layerowany niezależnie od specyficzności, więc
+  `--sheet-column: 44rem` powyżej wygrałoby z utility i nadpisanie po cichu nie
+  zadziałałoby. Tutaj wygrywa kolejność w pliku, co jest przewidywalne.
+*/
+.chronicle-sheet-stack-wide {
+  --sheet-column: 56rem;
+}
+
+/*
+  Arkusz pergaminu (widok szczegółów partii). Rysujemy prawdziwy asset
+  9-slice'em, tak samo jak ramę wpisu Kroniki: narożniki nigdy się nie
+  deformują, rozciągają się wyłącznie płaskie środki krawędzi i wnętrze kartki.
+
+  Plik ma szeroki przezroczysty margines wokół pergaminu (kartka zajmuje
+  x 112..1419, y 235..771 w obrazie 1536x1024). Zamiast doliczać ten margines do
+  layoutu wypycha go `border-image-outset`: obszar rysowania rośnie dokładnie o
+  przezroczystą obwódkę, więc widoczna kartka pokrywa się co do piksela z
+  border-boxem elementu. Wysunięta część jest w całości przezroczysta, nie
+  zajmuje miejsca i niczego nie zasłania.
+
+  Warunek braku deformacji: border-image-width jest wprost proporcjonalne do
+  border-image-slice, czyli każda krawędź skaluje się tym samym
+  współczynnikiem --sheet-unit (długość przypadająca na 1 px źródła).
+*/
+.chronicle-sheet {
+  /* Widoczna szerokość przypalonego brzegu — jedno pokrętło całej ramki. */
+  --sheet-band: clamp(1.05rem, 5.2cqi, 1.85rem);
+  --sheet-unit: calc(var(--sheet-band) / 90);
+
+  border-style: solid;
+  border-color: transparent;
+  /* Layout: treść zaczyna się za przypalonym brzegiem, z dodatkowym oddechem. */
+  border-width: calc(var(--sheet-band) + 0.3rem);
+  border-image-source: url("/assets/chronicle-blank-paper.png");
+  border-image-slice: 325 206 342 202 fill;
+  border-image-width: calc(325 * var(--sheet-unit))
+    calc(206 * var(--sheet-unit)) calc(342 * var(--sheet-unit))
+    calc(202 * var(--sheet-unit));
+  border-image-outset: calc(235 * var(--sheet-unit))
+    calc(116 * var(--sheet-unit)) calc(252 * var(--sheet-unit))
+    calc(112 * var(--sheet-unit));
+  border-image-repeat: stretch;
+
+  /*
+    Gdyby asset się nie wczytał, zostałby sam border-style: solid — bez
+    border-color byłaby to gruba obwódka w currentColor, a ciemny tekst
+    wylądowałby na ciemnym drewnie tła. Przezroczysta ramka plus ciepłe tło
+    cięte do padding-boxa (czyli tylko pod treść) trzymają arkusz czytelnym.
+  */
+  background-color: #f6e9d0;
+  background-clip: padding-box;
+  border-radius: 0.75rem;
+  /* Cień idzie za alfą pergaminu, więc obrys jest postrzępiony, nie prostokątny. */
+  filter: drop-shadow(0 9px 18px rgba(12, 6, 3, 0.36));
+}
+
 .material-panel {
   background-image:
     radial-gradient(

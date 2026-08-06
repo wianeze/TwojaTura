@@ -60,100 +60,42 @@ function FieldError({ error }: { error?: string }) {
   return <p className="mt-1.5 text-xs font-semibold text-[#8f3528]">{error}</p>;
 }
 
-function PlayStatusToggle({
-  status,
+/*
+  Wspólny segmented control dla trzech przełączników formularza. Odkąd „Zapisz
+  jako” i „Wynik partii” stoją obok siebie, każdy z nich dostaje tylko połowę
+  szerokości karty — na telefonie to ok. 118px, w czym dwa poziome segmenty z
+  etykietą „Zakończona” nie mieszczą się w żadnym rozsądnym stopniu pisma.
+  Dlatego kontrolka układa segmenty w pionie i przechodzi na klasyczny poziomy
+  pasek dopiero od 30rem, gdy kolumna ma na to miejsce. Segmenty są pełnej
+  szerokości kolumny, więc cel dotknięcia rośnie zamiast maleć.
+*/
+function SegmentedControl<Value extends string>({
+  name,
+  value,
+  options,
   onChange,
+  disabled = false,
 }: {
-  status: PlayStatus;
-  onChange: (status: PlayStatus) => void;
+  name: string;
+  value: Value | "";
+  options: ReadonlyArray<{ value: Value; label: string }>;
+  onChange: (value: Value) => void;
+  disabled?: boolean;
 }) {
   return (
-    <div className="inline-flex rounded-full border border-[#9a7657]/35 bg-white/60 p-1">
-      <input type="hidden" name="status" value={status} />
-      {(
-        [
-          { value: "completed" as const, label: "Zakończona" },
-          { value: "in_progress" as const, label: "W toku" },
-        ] satisfies Array<{ value: PlayStatus; label: string }>
-      ).map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          aria-pressed={status === option.value}
-          className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-            status === option.value
-              ? "bg-[#7d2f3d] text-[#fff3ec]"
-              : "text-[#6b5140] hover:bg-[#f4e5cf]"
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function PlayModeToggle({
-  mode,
-  onChange,
-}: {
-  mode: PlayMode;
-  onChange: (mode: PlayMode) => void;
-}) {
-  return (
-    <div className="inline-flex rounded-full border border-[#9a7657]/35 bg-white/60 p-1">
-      <input type="hidden" name="mode" value={mode} />
-      {(
-        [
-          { value: "competitive" as const, label: "Rywalizacja" },
-          { value: "cooperative" as const, label: "Kooperacja" },
-        ] satisfies Array<{ value: PlayMode; label: string }>
-      ).map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          aria-pressed={mode === option.value}
-          className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-            mode === option.value
-              ? "bg-[#7d2f3d] text-[#fff3ec]"
-              : "text-[#6b5140] hover:bg-[#f4e5cf]"
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function TeamResultToggle({
-  teamResult,
-  onChange,
-  disabled,
-}: {
-  teamResult: PlayTeamResult | "";
-  onChange: (teamResult: PlayTeamResult) => void;
-  disabled: boolean;
-}) {
-  return (
-    <div className="inline-flex rounded-full border border-[#9a7657]/35 bg-white/60 p-1">
-      <input type="hidden" name="teamResult" value={teamResult} />
-      {(
-        [
-          { value: "win" as const, label: "Drużyna wygrała" },
-          { value: "loss" as const, label: "Drużyna przegrała" },
-        ] satisfies Array<{ value: PlayTeamResult; label: string }>
-      ).map((option) => (
+    // auto-rows-fr wyrównuje segmenty, gdy dłuższa etykieta łamie się na dwie
+    // linie — bez tego jeden segment jest wyraźnie wyższy od drugiego.
+    <div className="grid auto-rows-fr grid-cols-1 gap-1 rounded-[1.1rem] border border-[#9a7657]/35 bg-white/60 p-1 min-[30rem]:grid-cols-2 min-[30rem]:rounded-full">
+      <input type="hidden" name={name} value={value} />
+      {options.map((option) => (
         <button
           key={option.value}
           type="button"
           disabled={disabled}
           onClick={() => onChange(option.value)}
-          aria-pressed={teamResult === option.value}
-          className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition disabled:opacity-45 ${
-            teamResult === option.value
+          aria-pressed={value === option.value}
+          className={`min-w-0 rounded-full px-2 py-1.5 text-center text-[0.7rem] leading-4 font-bold text-balance transition disabled:opacity-45 sm:px-3.5 sm:text-xs ${
+            value === option.value
               ? "bg-[#7d2f3d] text-[#fff3ec]"
               : "text-[#6b5140] hover:bg-[#f4e5cf]"
           }`}
@@ -161,6 +103,42 @@ function TeamResultToggle({
           {option.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+const PLAY_STATUS_OPTIONS = [
+  { value: "completed", label: "Zakończona" },
+  { value: "in_progress", label: "W toku" },
+] as const satisfies ReadonlyArray<{ value: PlayStatus; label: string }>;
+
+const PLAY_MODE_OPTIONS = [
+  { value: "competitive", label: "Rywalizacja" },
+  { value: "cooperative", label: "Kooperacja" },
+] as const satisfies ReadonlyArray<{ value: PlayMode; label: string }>;
+
+// Kontekst drużynowy niesie już wybrany tryb „Kooperacja” obok, więc etykiety
+// zostają krótkie — dzięki temu mieszczą się w jednej linii nawet na 320px.
+const TEAM_RESULT_OPTIONS = [
+  { value: "win", label: "Wygrana" },
+  { value: "loss", label: "Porażka" },
+] as const satisfies ReadonlyArray<{ value: PlayTeamResult; label: string }>;
+
+function FormColumnHeading({
+  eyebrow,
+  title,
+}: {
+  eyebrow: string;
+  title: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-accent text-[0.55rem] font-bold tracking-[0.16em] uppercase sm:text-[0.58rem] sm:tracking-[0.18em]">
+        {eyebrow}
+      </p>
+      <h2 className="font-display mt-0.5 text-[1.05rem] leading-tight font-semibold text-[#4c3528] sm:mt-1 sm:text-[1.3rem]">
+        {title}
+      </h2>
     </div>
   );
 }
@@ -390,7 +368,11 @@ export function PlayForm(props: PlayFormProps) {
   const formFields = (
     <>
       <fieldset disabled={nonPhotoFieldsDisabled} className="space-y-5">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
+        {/* Szersza kolumna należy się spotkaniu, nie grze: tytuł gry to jeden
+            człon, a spotkanie niesie nazwę razem z datą i godziną. Rząd schodzi
+            w pion poniżej lg, gdzie na dwie kolumny po prostu nie ma
+            szerokości. */}
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
           <PlayPicker
             key={`game-${values.gameId || "empty"}`}
             name="gameId"
@@ -417,12 +399,14 @@ export function PlayForm(props: PlayFormProps) {
         </div>
 
         {/*
-         * grid-cols-[55fr_45fr] (mobile only — sm:grid-cols-3 for
-         * tablet/desktop is untouched) gives Data ~55% and Godzina ~45%
-         * of the row, matching the requested ratio without affecting
-         * desktop's 3-column layout.
-         */}
-        <div className="grid grid-cols-[55fr_45fr] gap-3 sm:grid-cols-3 sm:gap-4">
+          Data i Godzina dzielą jeden wiersz na każdej szerokości — jawna liczba
+          kolumn sprawia, że Godzina nie ma jak zjechać pod Datę. Data dostaje
+          więcej miejsca, bo „dd/MM/rrrr” jest dłuższe od „HH:mm”. Czas gry
+          dołącza do rzędu od sm, a poniżej idzie pełną szerokością pod spodem.
+
+          items-start: błąd walidacji pod jednym polem nie rozciąga sąsiadów.
+        */}
+        <div className="grid grid-cols-[55fr_45fr] items-start gap-3 sm:grid-cols-3 sm:gap-4">
           <MeetingDateField
             key={`played-${values.playedOnDate}`}
             name="playedOnDate"
@@ -433,30 +417,18 @@ export function PlayForm(props: PlayFormProps) {
           />
 
           {/*
-           * Godzina's <input> sits directly next to the "Godzina" text
-           * node inside the <label>, unlike Data's (wrapped in its own
-           * block div by MeetingDateField). Measured with Playwright:
-           * both inputs are h-11 (44px) but were offset by 6px top/
-           * bottom — and forcing `display:block` on the input alone
-           * did NOT fix it (still exactly -6px), so the gap isn't just
-           * inline-vs-block display, it's the text/input arrangement
-           * itself. Mirroring Data's own block-div wrapper exactly is
-           * what actually fixes it (verified below).
-           *
-           * Kept mobile-only via `sm:contents` on the wrapper: at sm:+
-           * a `display:contents` element generates no box of its own
-           * (its margin is void) and its child renders as if it were a
-           * direct child of the <label> again — i.e. pixel-identical to
-           * the original structure, so this field stays exactly where
-           * it was next to "Czas gry" on tablet/desktop. `sm:mt-1.5` on
-           * the input restores its own original margin for that case
-           * (the div's mt-1.5 does nothing once it's `contents`).
-           */}
+            Ten sam szkielet co w MeetingDateField: etykieta, potem input
+            zamknięty we WŁASNYM blokowym divie. To nie jest kosmetyka — input
+            postawiony wprost obok tekstowego węzła etykiety jest pudełkiem
+            liniowym i siada na linii bazowej tekstu, przez co był przesunięty
+            o 6px względem Daty. Wyrównanie bierze się z identycznej struktury,
+            nie z korekt per breakpoint, więc trzyma się na każdej szerokości.
+          */}
           <label className="block text-sm font-semibold text-[#503828]">
             Godzina
-            <div className="relative mt-1.5 sm:contents">
+            <div className="relative mt-1.5">
               <input
-                className={`${inputClass} mt-0 sm:mt-1.5`}
+                className={`${inputClass} mt-0`}
                 name="playedOnTime"
                 defaultValue={values.playedOnTime}
                 placeholder="HH:mm"
@@ -468,29 +440,65 @@ export function PlayForm(props: PlayFormProps) {
 
           <label className="col-span-2 block text-sm font-semibold text-[#503828] sm:col-span-1">
             Czas gry
-            <input
-              className={inputClass}
-              name="durationMinutes"
-              defaultValue={values.durationMinutes}
-              placeholder="np. 90"
-              inputMode="numeric"
-            />
+            <div className="relative mt-1.5">
+              <input
+                className={`${inputClass} mt-0`}
+                name="durationMinutes"
+                defaultValue={values.durationMinutes}
+                placeholder="np. 90"
+                inputMode="numeric"
+              />
+            </div>
             <FieldError error={formState.fieldErrors?.durationMinutes} />
           </label>
         </div>
 
         <section className="space-y-2.5">
-          <div>
-            <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
-              Stan gry
-            </p>
-            <h2 className="font-display mt-1 text-[1.3rem] font-semibold text-[#4c3528]">
-              Zapisz jako
-            </h2>
+          {/*
+            Dwie decyzje o charakterze partii stoją obok siebie w jednym rzędzie
+            — także na telefonie. 1fr 1fr plus min-w-0 na kolumnach gwarantuje,
+            że żadna nie rozepchnie siatki, a węższy gap na mobile odzyskuje
+            miejsce dla samych kontrolek.
+          */}
+          <div className="grid grid-cols-2 items-start gap-x-2.5 gap-y-3 sm:gap-x-4">
+            <div className="min-w-0 space-y-2">
+              <FormColumnHeading eyebrow="Stan gry" title="Zapisz jako" />
+              <SegmentedControl
+                name="status"
+                value={status}
+                options={PLAY_STATUS_OPTIONS}
+                onChange={setStatus}
+              />
+            </div>
+
+            <div className="min-w-0 space-y-2">
+              <FormColumnHeading eyebrow="Gracze" title="Wynik partii" />
+              <SegmentedControl
+                name="mode"
+                value={mode}
+                options={PLAY_MODE_OPTIONS}
+                onChange={(nextMode) => {
+                  setMode(nextMode);
+                  // Wynik drużyny istnieje tylko w kooperacji — przy powrocie do
+                  // rywalizacji musi zniknąć, inaczej zapis zostałby odrzucony.
+                  if (nextMode === "competitive") setTeamResult("");
+                }}
+              />
+
+              {mode === "cooperative" ? (
+                <SegmentedControl
+                  name="teamResult"
+                  value={teamResult}
+                  options={TEAM_RESULT_OPTIONS}
+                  onChange={setTeamResult}
+                  disabled={status !== "completed"}
+                />
+              ) : null}
+            </div>
           </div>
 
-          <PlayStatusToggle status={status} onChange={setStatus} />
-
+          {/* Treść zależna od wyborów wraca na pełną szerokość — w połówce
+              kolumny textarea i lista graczy byłyby nie do użycia. */}
           {status === "in_progress" ? (
             <label className="block text-sm font-semibold text-[#503828]">
               Notatka o stanie gry
@@ -504,37 +512,6 @@ export function PlayForm(props: PlayFormProps) {
               <FieldError error={formState.fieldErrors?.stateNote} />
             </label>
           ) : null}
-        </section>
-
-        <section className="space-y-2.5">
-          <div>
-            <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
-              Gracze
-            </p>
-            <h2 className="font-display mt-1 text-[1.3rem] font-semibold text-[#4c3528]">
-              Wynik partii
-            </h2>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <PlayModeToggle
-              mode={mode}
-              onChange={(nextMode) => {
-                setMode(nextMode);
-                // Wynik drużyny istnieje tylko w kooperacji — przy powrocie do
-                // rywalizacji musi zniknąć, inaczej zapis zostałby odrzucony.
-                if (nextMode === "competitive") setTeamResult("");
-              }}
-            />
-
-            {mode === "cooperative" ? (
-              <TeamResultToggle
-                teamResult={teamResult}
-                onChange={setTeamResult}
-                disabled={status !== "completed"}
-              />
-            ) : null}
-          </div>
 
           {mode === "cooperative" ? (
             <p className="text-xs text-[#6b5140]">
