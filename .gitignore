@@ -14,6 +14,10 @@
 # testing
 /coverage
 
+# local visual QA captures
+/*.png
+/db-test.log
+
 # next.js
 /.next/
 /out/
@@ -49,7 +53,5 @@ next-env.d.ts
 /work/
 /supabase/.branches/
 /supabase/.temp/
-
-.playwright-mcp/
 
 .playwright-mcp/
