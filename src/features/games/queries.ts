@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database.generated";
 import { mapGameExpansionRecord } from "./expansions";
 import { filterShelfItemsByActiveLoan } from "./filters";
+import { mapGameRatingOpinions } from "./rating-opinions";
 import type {
   ActiveGameLoan,
   GameExpansion,
@@ -560,27 +561,11 @@ export async function getGameDetails(
       }
     : null;
 
-  const ratingComments: GameRatingComment[] = (ratings ?? [])
-    .filter((rating) => rating.comment?.trim())
-    .map((rating) => {
-      const author = profiles.get(rating.user_id) ?? {
-        id: rating.user_id,
-        displayName: getProfileLabelFallback(rating.user_id),
-        avatarUrl: null,
-      };
-
-      return {
-        id: rating.id,
-        author,
-        overall: rating.overall,
-        replayability: rating.replayability,
-        theme: rating.theme,
-        wantsToPlayAgain: rating.wants_to_play_again,
-        comment: rating.comment!.trim(),
-        createdAt: rating.created_at,
-        updatedAt: rating.updated_at,
-      };
-    });
+  const ratingComments: GameRatingComment[] = mapGameRatingOpinions(
+    ratings ?? [],
+    profiles,
+    getProfileLabelFallback,
+  );
 
   return {
     ...base,

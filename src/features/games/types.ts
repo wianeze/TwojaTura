@@ -33,7 +33,7 @@ export type GameRatingComment = {
   replayability: number;
   theme: number;
   wantsToPlayAgain: boolean;
-  comment: string;
+  comment: string | null;
   createdAt: string;
   updatedAt: string;
 };

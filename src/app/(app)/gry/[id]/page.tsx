@@ -351,7 +351,7 @@ export default async function GameDetailsPage({
           className="anim-rise-in-fast paper-wash p-3.5 sm:p-4"
         >
           <p className="text-accent text-[0.56rem] font-bold tracking-[0.18em] uppercase">
-            Komentarze grupy
+            Oceny grupy
           </p>
           <h2 className="font-display mt-1 text-[1.5rem] font-semibold text-[#4c3528]">
             Opinie o tej grze
@@ -376,9 +376,15 @@ export default async function GameDetailsPage({
                       regrywalność {comment.replayability}/10
                     </p>
                   </div>
-                  <p className="mt-2 text-sm leading-5.5 text-[#5d4737]">
-                    {comment.comment}
-                  </p>
+                  {comment.comment ? (
+                    <p className="mt-2 text-sm leading-5.5 text-[#5d4737]">
+                      {comment.comment}
+                    </p>
+                  ) : (
+                    <p className="text-muted mt-2 text-sm italic">
+                      Bez komentarza
+                    </p>
+                  )}
                   <p className="text-muted mt-2 text-xs">
                     Chęć zagrania ponownie:{" "}
                     {comment.wantsToPlayAgain ? "tak" : "nie"}
@@ -388,7 +394,7 @@ export default async function GameDetailsPage({
             </div>
           ) : (
             <p className="text-muted mt-3 text-sm leading-5.5">
-              Nikt nie zostawił jeszcze komentarza do tej gry.
+              Nikt nie ocenił jeszcze tej gry.
             </p>
           )}
         </Panel>

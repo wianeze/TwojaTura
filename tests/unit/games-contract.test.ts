@@ -22,6 +22,7 @@ import {
 } from "../../src/features/games/validation.ts";
 import { awardShelfOnboardingPointsAfterGameCreate } from "../../src/features/games/shelf-points.ts";
 import { awardRatingPointsAfterSave } from "../../src/features/games/rating-points.ts";
+import { mapGameRatingOpinions } from "../../src/features/games/rating-opinions.ts";
 
 const actor = {
   id: "10000000-0000-0000-0000-000000000002",
@@ -541,4 +542,49 @@ test("existing own rating maps to edit state", () => {
 
 test("missing own rating maps to create state", () => {
   assert.equal(getRatingEditorMode(null), "create");
+});
+
+test("game opinions include ratings with and without a comment", () => {
+  const opinions = mapGameRatingOpinions(
+    [
+      {
+        id: "rating-with-comment",
+        user_id: "player-1",
+        overall: 9,
+        replayability: 8,
+        theme: 10,
+        wants_to_play_again: true,
+        comment: "  Świetna gra.  ",
+        created_at: "2026-08-01T10:00:00.000Z",
+        updated_at: "2026-08-01T10:00:00.000Z",
+      },
+      {
+        id: "rating-without-comment",
+        user_id: "player-2",
+        overall: 7,
+        replayability: 6,
+        theme: 7,
+        wants_to_play_again: false,
+        comment: null,
+        created_at: "2026-08-02T10:00:00.000Z",
+        updated_at: "2026-08-02T10:00:00.000Z",
+      },
+    ],
+    new Map([
+      [
+        "player-1",
+        { id: "player-1", displayName: "Marta", avatarUrl: null },
+      ],
+      [
+        "player-2",
+        { id: "player-2", displayName: "Przemek", avatarUrl: null },
+      ],
+    ]),
+    (userId) => `Gracz ${userId}`,
+  );
+
+  assert.equal(opinions.length, 2);
+  assert.equal(opinions[0]?.comment, "Świetna gra.");
+  assert.equal(opinions[1]?.author.displayName, "Przemek");
+  assert.equal(opinions[1]?.comment, null);
 });
