@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { ActionButton, ActionLink } from "@/components/ui/action-button";
-import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import {
@@ -10,9 +9,9 @@ import {
 } from "@/features/meetings/actions";
 import { DeleteMeetingButton } from "@/features/meetings/delete-meeting-button";
 import {
+  formatConfirmedAttendeesLabel,
   formatMeetingDateRange,
-  getMeetingStatusClass,
-  MEETING_STATUS_LABELS,
+  getMeetingDateBadgeParts,
 } from "@/features/meetings/formatting";
 import { MeetingAvailabilityForm } from "@/features/meetings/meeting-availability-form";
 import { MeetingGameProposals } from "@/features/meetings/meeting-game-proposals";
@@ -21,6 +20,31 @@ import {
   getMeetingConfirmationActionLabel,
 } from "@/features/meetings/meeting-status";
 import { getMeetingDetails } from "@/features/meetings/queries";
+
+/*
+  Cienka linia działowa na pergaminie — ciemniejszy włos + jasny refleks pod
+  spodem (wytłoczenie w papierze), ten sam wzorzec co w szczegółach partii
+  Kroniki, żeby oba widoki „jednej strony" mówiły tym samym językiem.
+*/
+function SheetRule() {
+  return (
+    <span
+      aria-hidden="true"
+      className="block h-px bg-[#8b6743]/30 shadow-[0_1px_0_rgba(255,255,255,0.5)]"
+    />
+  );
+}
+
+/*
+  Status potwierdzenia spotkania ma dwa miejsca na kartce: tekst "N osób
+  potwierdziło" u góry i słowo "Niepotwierdzone"/"Potwierdzone" przy
+  przycisku — oba współdzielą te same dwa odcienie (bordo dla "planned",
+  zielony dla reszty), żeby nie duplikować palety w dwóch miejscach.
+*/
+const CONFIRMATION_TONE_CLASS = {
+  unconfirmed: "text-[#7a2418]",
+  confirmed: "text-[#255429]",
+} as const;
 
 export default async function MeetingDetailsPage({
   params,
@@ -38,6 +62,7 @@ export default async function MeetingDetailsPage({
     startsAt: meeting.startsAt,
     endsAt: meeting.endsAt,
   });
+  const dateBadge = getMeetingDateBadgeParts(meeting.startsAt);
   const canManageConfirmation = canManageMeetingConfirmation(
     {
       id: memberState.member.id,
@@ -55,46 +80,53 @@ export default async function MeetingDetailsPage({
     meeting.status === "planned" || meeting.status === "confirmed"
       ? meeting.status
       : null;
+  // "Zapisz partię" ma sens dopiero, gdy wieczór faktycznie się odbył —
+  // przed zakończeniem spotkania nie ma jeszcze czego zapisywać w Kronice.
+  const canLogPlay = meeting.status === "completed";
+  // Ile osób realnie odpowiedziało "Będę" — niezależnie od statusu
+  // potwierdzenia terminu przez organizatora/admina.
+  const confirmedAttendeesCount = meeting.attendanceRows.filter(
+    (row) => row.response === true,
+  ).length;
+  // Bordo tylko dla spotkania jeszcze nie potwierdzonego przez organizatora;
+  // potwierdzone i zakończone mówią tym samym zielonym tonem.
+  const confirmationTone =
+    meeting.status === "planned" ? "unconfirmed" : "confirmed";
 
   return (
-    <div className="space-y-4 sm:space-y-5">
-      <header
-        style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
-        className="anim-rise-in-fast flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
-      >
-        <div className="max-w-3xl">
-          <p className="text-[0.62rem] font-bold tracking-[0.18em] text-[#e3ae67] uppercase">
-            Kalendarium
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-cream text-[1.85rem] font-semibold tracking-tight sm:text-[2.2rem]">
-              {meeting.title}
-            </h1>
-            <span
-              className={`rounded-full px-3 py-1 text-[0.68rem] font-bold ${getMeetingStatusClass(meeting.status)}`}
-            >
-              {MEETING_STATUS_LABELS[meeting.status]}
-            </span>
-          </div>
+    <div className="chronicle-sheet-stack chronicle-sheet-stack-wide">
+      {canLogPlay ? (
+        <div
+          style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+          className="anim-rise-in-fast mb-2 flex justify-end"
+        >
+          <ActionLink
+            action="chronicle"
+            size="compact"
+            href={`/kronika/nowa?meeting=${meeting.id}`}
+          >
+            Zapisz partię
+          </ActionLink>
         </div>
+      ) : null}
 
-        {meeting.canEdit ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <ActionLink
-              action="neutral"
-              size="compact"
-              emphasis="secondary"
-              href="/kalendarium"
-            >
-              Wróć
-            </ActionLink>
-            <ActionLink
-              action="chronicle"
-              size="compact"
-              href={`/kronika/nowa?meeting=${meeting.id}`}
-            >
-              Zapisz partię
-            </ActionLink>
+      {/* Pasek akcji NAD kartką — Wróć po lewej, Edytuj + Usuń spotkanie
+          zgrupowane po prawej (Edytuj pierwsze, Usuń drugie). */}
+      <div
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
+        className="anim-rise-in-fast mb-3 flex items-center justify-between gap-2 sm:mb-4"
+      >
+        <ActionLink
+          action="neutral"
+          size="compact"
+          emphasis="secondary"
+          href="/kalendarium"
+        >
+          Wróć
+        </ActionLink>
+
+        <div className="flex items-center gap-2">
+          {meeting.canEdit ? (
             <ActionLink
               action="meeting"
               size="compact"
@@ -103,126 +135,142 @@ export default async function MeetingDetailsPage({
             >
               Edytuj
             </ActionLink>
-            {meeting.canDelete ? (
-              <DeleteMeetingButton
-                action={deleteMeetingAction.bind(null, meeting.id)}
-                hasChroniclePlay={meeting.hasChroniclePlay}
-              />
-            ) : null}
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            <ActionLink
-              action="neutral"
-              size="compact"
-              emphasis="secondary"
-              href="/kalendarium"
-            >
-              Wróć
-            </ActionLink>
-            <ActionLink
-              action="chronicle"
-              size="compact"
-              href={`/kronika/nowa?meeting=${meeting.id}`}
-            >
-              Zapisz partię
-            </ActionLink>
-          </div>
-        )}
-      </header>
-
-      <Panel
-        style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
-        className="anim-rise-in-fast parchment-card space-y-4 p-4 sm:p-5"
-      >
-        {/*
-          Stan potwierdzenia czytelny od razu przy terminie: czerwony,
-          dopóki organizator nie potwierdzi, zielony po potwierdzeniu.
-        */}
-        <div className="flex justify-end">
-          <span
-            className={`inline-flex rounded-full px-3 py-1 text-[0.68rem] font-bold ${
-              meeting.status === "confirmed"
-                ? "bg-[#e3efe0] text-[#3d6340] ring-1 ring-[#8fb08c]/60"
-                : "bg-[#f7e2df] text-[#8f3528] ring-1 ring-[#d09a90]/60"
-            }`}
-          >
-            {meeting.status === "confirmed"
-              ? "Spotkanie potwierdzone"
-              : "Spotkanie jeszcze niepotwierdzone"}
-          </span>
-        </div>
-
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="space-y-2">
-            <div className="space-y-0.5">
-              <p className="font-display text-[1.55rem] font-semibold text-[#4d3528] sm:text-[1.75rem]">
-                {schedule.startDate}
-                {!schedule.sameDay ? ` – ${schedule.endDate}` : ""}
-              </p>
-              <p className="text-sm font-semibold text-[#7a5937] sm:text-[0.95rem]">
-                {schedule.startTime}–{schedule.endTime}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-[#5f4738]">
-              {meeting.location ? <span>{meeting.location}</span> : null}
-              <span>Organizuje {meeting.createdBy.displayName}</span>
-              <span>{schedule.weekday}</span>
-            </div>
-
-            {meeting.description ? (
-              <p className="max-w-3xl text-sm leading-6 text-[#6c5644]">
-                {meeting.description}
-              </p>
-            ) : null}
-          </div>
-
-          {canManageConfirmation &&
-          confirmationActionLabel &&
-          confirmationStatus ? (
-            <form
-              className="self-end xl:self-auto"
-              action={confirmMeetingAction.bind(
-                null,
-                meeting.id,
-                confirmationStatus,
-              )}
-            >
-              <ActionButton
-                type="submit"
-                size="compact"
-                action={meeting.status === "planned" ? "meeting" : "neutral"}
-                emphasis={
-                  meeting.status === "planned" ? "primary" : "secondary"
-                }
-              >
-                {confirmationActionLabel}
-              </ActionButton>
-            </form>
+          ) : null}
+          {meeting.canEdit && meeting.canDelete ? (
+            <DeleteMeetingButton
+              action={deleteMeetingAction.bind(null, meeting.id)}
+              hasChroniclePlay={meeting.hasChroniclePlay}
+            />
           ) : null}
         </div>
-      </Panel>
+      </div>
 
-      <Panel
+      <section
         style={{ animationDelay: `${getEntranceStaggerDelayMs(2)}ms` }}
-        className="anim-rise-in-fast paper-wash overflow-hidden p-4 sm:p-5"
+        className="meeting-form-sheet anim-rise-in-fast space-y-5 sm:space-y-6"
       >
-        <div className="flex flex-col gap-2 border-b border-white/50 pb-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-accent text-[0.62rem] font-bold tracking-[0.18em] uppercase">
-              RSVP grupy
-            </p>
-            <h2 className="font-display mt-1 text-[1.45rem] font-semibold text-[#4d3528]">
-              KTO BĘDZIE?
-            </h2>
+        {/* SEKCJA 1 — Nagłówek spotkania: duży typograficzny blok daty po
+            lewej (część papieru, nie osobna kartka), treść wydarzenia po
+            prawej w wierszach rozdzielonych cienką linią jak wpis w
+            papierowym kalendarzu. */}
+        <div className="space-y-3">
+          {/* Sam tekst, bez kapsułki/tła/obramowania — status potwierdzenia
+              wyraża tu wyłącznie kolor i liczba, słowna etykieta
+              "Niepotwierdzone"/"Potwierdzone" jest niżej, przy przycisku. */}
+          <p
+            className={`text-left text-[0.85rem] font-semibold sm:text-base ${CONFIRMATION_TONE_CLASS[confirmationTone]}`}
+          >
+            {formatConfirmedAttendeesLabel(confirmedAttendeesCount)}
+          </p>
+
+          <div className="flex gap-4 sm:gap-6">
+            <div className="w-[7rem] shrink-0 text-center sm:w-[8rem]">
+              <p className="text-[0.8rem] font-semibold text-[#8a6a3d]">
+                {dateBadge.year}
+              </p>
+              <p className="text-[0.82rem] leading-tight font-bold tracking-[0.08em] text-[#6b4a2e] uppercase sm:text-[0.92rem]">
+                {dateBadge.month}
+              </p>
+              <p className="font-display text-[3.4rem] leading-[0.85] font-bold text-[#8f3528] sm:text-[4rem]">
+                {dateBadge.day}
+              </p>
+              <p className="mt-1.5 text-[0.94rem] text-[#8a6a3d]">
+                {schedule.weekday}
+              </p>
+
+              <p className="mt-3 text-[0.85rem] font-bold text-[#7a5937]">
+                {schedule.startTime}–{schedule.endTime}
+              </p>
+              {!schedule.sameDay ? (
+                <p className="mt-0.5 text-[0.62rem] text-[#8a6a3d]">
+                  do {schedule.endDate}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="min-w-0 flex-1 divide-y divide-[#c9aa7f]/30">
+              <div className="pb-2">
+                <h1 className="font-display text-[1.25rem] leading-tight font-semibold text-[#3f2a1a] sm:text-[1.55rem]">
+                  {meeting.title}
+                </h1>
+              </div>
+
+              {meeting.location ? (
+                <p className="py-2 text-[0.85rem] text-[#6c5644]">
+                  {meeting.location}
+                </p>
+              ) : null}
+
+              <p className="py-2 text-[0.85rem] text-[#6c5644]">
+                Organizuje{" "}
+                <span className="font-semibold text-[#4e3528]">
+                  {meeting.createdBy.displayName}
+                </span>
+              </p>
+
+              {meeting.description ? (
+                <p className="pt-2 text-[0.85rem] leading-6 text-[#6c5644]">
+                  {meeting.description}
+                </p>
+              ) : null}
+            </div>
           </div>
-          <span className="paper-wash rounded-full px-3 py-1 text-[0.68rem] font-bold text-[#6a4f38]">
-            {meeting.attendanceRows.length} osób
-          </span>
+
+          {/* Etykieta statusu zawsze po lewej stronie przycisku (widoczna
+              dla wszystkich, nie tylko dla osób mogących potwierdzać) —
+              przycisk dokłada się obok wyłącznie dla organizatora/admina. */}
+          {confirmationStatus ? (
+            <div className="flex items-center justify-end gap-3">
+              <span
+                className={`text-[0.85rem] font-bold ${CONFIRMATION_TONE_CLASS[confirmationTone]}`}
+              >
+                {confirmationStatus === "confirmed"
+                  ? "Potwierdzone"
+                  : "Niepotwierdzone"}
+              </span>
+
+              {canManageConfirmation && confirmationActionLabel ? (
+                <form
+                  action={confirmMeetingAction.bind(
+                    null,
+                    meeting.id,
+                    confirmationStatus,
+                  )}
+                >
+                  <ActionButton
+                    type="submit"
+                    size="compact"
+                    action={
+                      meeting.status === "planned" ? "meeting" : "neutral"
+                    }
+                    emphasis={
+                      meeting.status === "planned" ? "primary" : "secondary"
+                    }
+                  >
+                    {confirmationActionLabel}
+                  </ActionButton>
+                </form>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
-        <div className="mt-3">
+        {/* SEKCJA 2 — RSVP: zwarty nagłówek bez dużego eyebrow-a, żeby nie
+            konkurował z nagłówkiem spotkania powyżej. */}
+        <div
+          style={{ animationDelay: `${getEntranceStaggerDelayMs(3)}ms` }}
+          className="anim-rise-in-fast space-y-2.5"
+        >
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="font-display text-[1.2rem] font-semibold text-[#4a3018] sm:text-[1.35rem]">
+              Kto będzie?
+            </h2>
+            <span className="text-[0.72rem] font-bold text-[#8a6a3d]">
+              {meeting.attendanceRows.length} osób
+            </span>
+          </div>
+          <SheetRule />
+
           <MeetingAvailabilityForm
             action={saveMeetingAvailabilityAction.bind(null, meeting.id)}
             rows={meeting.attendanceRows}
@@ -230,27 +278,20 @@ export default async function MeetingDetailsPage({
             ownResponse={meeting.ownResponse}
           />
         </div>
-      </Panel>
 
-      <Panel
-        style={{ animationDelay: `${getEntranceStaggerDelayMs(3)}ms` }}
-        className="anim-rise-in-fast space-y-4 p-4 sm:p-5"
-      >
-        <div>
-          <p className="text-accent text-[0.62rem] font-bold tracking-[0.18em] uppercase">
-            Wieczór przy stole
-          </p>
-          <h2 className="font-display mt-1 text-[1.45rem] font-semibold text-[#4d3528]">
-            PROPOZYCJE GIER
-          </h2>
+        {/* SEKCJA 3 — Propozycje gier: nagłówek + przycisk „Proponuj grę"
+            renderuje MeetingGameProposals we własnym, jednym wierszu. */}
+        <div
+          style={{ animationDelay: `${getEntranceStaggerDelayMs(4)}ms` }}
+          className="anim-rise-in-fast"
+        >
+          <MeetingGameProposals
+            meetingId={meeting.id}
+            games={meeting.gameVotes}
+            availableGames={meeting.availableGames}
+          />
         </div>
-
-        <MeetingGameProposals
-          meetingId={meeting.id}
-          games={meeting.gameVotes}
-          availableGames={meeting.availableGames}
-        />
-      </Panel>
+      </section>
     </div>
   );
 }

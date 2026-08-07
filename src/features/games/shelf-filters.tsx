@@ -97,6 +97,32 @@ function OwnerDisplayToggle({
   );
 }
 
+function LoanedOnlyToggle({
+  defaultChecked,
+  form,
+}: {
+  defaultChecked: boolean;
+  form?: string;
+}) {
+  return (
+    <label className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-[#9a7657]/28 bg-[#f7ead3]/72 px-3 text-xs font-semibold text-[#5b4332] shadow-sm transition hover:border-[#b98b55]/55">
+      <input
+        type="checkbox"
+        name="loaned"
+        value="1"
+        defaultChecked={defaultChecked}
+        form={form}
+        onChange={(event) => event.currentTarget.form?.requestSubmit()}
+        className="peer sr-only"
+      />
+      <span className="grid size-4 shrink-0 place-items-center rounded border border-[#9a7657]/55 bg-[#fffaf0] text-[0.65rem] leading-none text-transparent transition peer-checked:border-[#714735] peer-checked:bg-[#56382b] peer-checked:text-[#fff5df] peer-focus-visible:ring-2 peer-focus-visible:ring-[#d8a74d]/55">
+        ✓
+      </span>
+      <span>Pożyczone</span>
+    </label>
+  );
+}
+
 function FilterSelect({
   label,
   name,
@@ -361,6 +387,7 @@ export function ShelfFilters({
 
           <div className="mt-[1.55rem] flex flex-wrap items-center justify-end gap-2 md:col-span-2 xl:col-span-1 xl:justify-start">
             <OwnerDisplayToggle defaultChecked={showOwners} />
+            <LoanedOnlyToggle defaultChecked={filters.loanedOnly} />
 
             <ActionButton
               type="button"
@@ -426,6 +453,10 @@ export function ShelfFilters({
 
         <div className="flex flex-wrap gap-2">
           <OwnerDisplayToggle defaultChecked={showOwners} />
+          <LoanedOnlyToggle
+            defaultChecked={filters.loanedOnly}
+            form={MOBILE_FORM_ID}
+          />
           <ActionButton
             type="button"
             action="neutral"

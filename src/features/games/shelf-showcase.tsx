@@ -82,6 +82,19 @@ function ShelfOwnerAvatar({ owner }: { owner: GameShelfItem["owner"] }) {
   );
 }
 
+function ShelfLoanStatus({ game }: { game: GameShelfItem }) {
+  if (!game.activeLoan) return null;
+
+  return (
+    <span
+      className="absolute right-1 bottom-1 left-1 z-10 truncate rounded-full border border-[#f2d8a8]/80 bg-[#2f1b15]/90 px-1.5 py-1 text-center text-[0.52rem] font-bold text-[#fff1d2] shadow-[0_3px_10px_rgba(13,6,3,0.65)] backdrop-blur-[2px] sm:text-[0.6rem]"
+      title={`Aktywnie wypożyczona — u ${game.activeLoan.borrower.displayName}`}
+    >
+      u {game.activeLoan.borrower.displayName}
+    </span>
+  );
+}
+
 function ShelfSegment({
   games,
   startIndex,
@@ -153,6 +166,7 @@ function ShelfSegment({
                       className="mx-auto"
                     />
                     {showOwners && <ShelfOwnerAvatar owner={game.owner} />}
+                    <ShelfLoanStatus game={game} />
                   </div>
                 </div>
 
@@ -186,6 +200,14 @@ function ShelfSegment({
                         {game.gameType ?? "bez typu"}
                       </p>
                       <dl className="text-muted mt-2 space-y-1 text-[0.65rem]">
+                        {game.activeLoan ? (
+                          <div className="flex justify-between gap-2 text-[#8f4b31]">
+                            <dt>Wypożyczona</dt>
+                            <dd className="text-right font-bold">
+                              u {game.activeLoan.borrower.displayName}
+                            </dd>
+                          </div>
+                        ) : null}
                         <div className="flex justify-between gap-2">
                           <dt>Właściciel / u kogo</dt>
                           <dd className="text-right font-semibold">

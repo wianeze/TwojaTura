@@ -19,6 +19,21 @@ const weekdayFormatter = new Intl.DateTimeFormat("pl-PL", {
   timeZone: "Europe/Warsaw",
 });
 
+const longMonthFormatter = new Intl.DateTimeFormat("pl-PL", {
+  month: "long",
+  timeZone: "Europe/Warsaw",
+});
+
+const yearFormatter = new Intl.DateTimeFormat("pl-PL", {
+  year: "numeric",
+  timeZone: "Europe/Warsaw",
+});
+
+const dayNumberFormatter = new Intl.DateTimeFormat("pl-PL", {
+  day: "numeric",
+  timeZone: "Europe/Warsaw",
+});
+
 const partsFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
   month: "2-digit",
@@ -97,6 +112,21 @@ export function formatMeetingDateRange(option: {
     startTime: `${startParts.hour}:${startParts.minute}`,
     endTime: `${endParts.hour}:${endParts.minute}`,
     sameDay,
+  };
+}
+
+/*
+ * Części dużego, typograficznego bloku daty w nagłówku szczegółów spotkania
+ * (rok / MIESIĄC / DZIEŃ) — dzień tygodnia pełną nazwą bierzemy osobno z
+ * formatMeetingDateRange, żeby nie liczyć go drugi raz tym samym Intl.
+ */
+export function getMeetingDateBadgeParts(startsAt: string) {
+  const start = new Date(startsAt);
+
+  return {
+    year: yearFormatter.format(start),
+    month: longMonthFormatter.format(start).toLocaleUpperCase("pl-PL"),
+    day: dayNumberFormatter.format(start),
   };
 }
 
@@ -195,4 +225,24 @@ export function formatMeetingGameResponseCounts(
   }
 
   return `${yesCount} chce grać · ${noCount} nie chce grać`;
+}
+
+/*
+ * Poprawna polska odmiana liczby osób, które odpowiedziały „Będę":
+ * 1 → osoba/potwierdziła, 2–4 poza 12–14 → osoby/potwierdziły,
+ * reszta (w tym 0 i 5+, oraz 12–14) → osób/potwierdziło.
+ */
+export function formatConfirmedAttendeesLabel(count: number) {
+  if (count === 1) return "1 osoba potwierdziła";
+
+  const lastDigit = count % 10;
+  const lastTwoDigits = count % 100;
+  const isFewForm =
+    lastDigit >= 2 &&
+    lastDigit <= 4 &&
+    !(lastTwoDigits >= 12 && lastTwoDigits <= 14);
+
+  return isFewForm
+    ? `${count} osoby potwierdziły`
+    : `${count} osób potwierdziło`;
 }

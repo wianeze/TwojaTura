@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database.generated";
 import { mapGameExpansionRecord } from "./expansions";
+import { filterShelfItemsByActiveLoan } from "./filters";
 import type {
+  ActiveGameLoan,
   GameExpansion,
   GameDetails,
   GameFilterOptions,
@@ -16,6 +18,7 @@ import type {
 
 type GameRow = Tables<"games">;
 type ExpansionRow = Tables<"game_expansions">;
+type GameLoanRow = Tables<"game_loans">;
 type ProfileRow = Pick<
   Tables<"profiles">,
   "id" | "display_name" | "avatar_url"
@@ -69,6 +72,7 @@ function mapShelfItem(
   profiles: Map<string, MemberOption>,
   summaries: Map<string, GameRatingSummary>,
   expansionsByGame: Map<string, GameExpansion[]>,
+  activeLoans: Map<string, ActiveGameLoan>,
 ): GameShelfItem {
   const owner = profiles.get(game.owner_id) ?? {
     id: game.owner_id,
@@ -107,7 +111,60 @@ function mapShelfItem(
     expansions: expansionsByGame.get(game.id) ?? [],
     bggUrl: game.bgg_url,
     ratingSummary: summaries.get(game.id) ?? defaultSummary(),
+    activeLoan: activeLoans.get(game.id) ?? null,
   };
+}
+
+async function getActiveGameLoanRowsFromClient(
+  gameIds: string[],
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  if (gameIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("game_loans")
+    .select(
+      "id, game_id, lender_user_id, borrower_user_id, loaned_at, returned_at, note",
+    )
+    .in("game_id", gameIds)
+    .is("returned_at", null);
+
+  if (error) {
+    throw new Error("Nie udało się pobrać aktywnych wypożyczeń.");
+  }
+
+  return (data ?? []) as GameLoanRow[];
+}
+
+function buildActiveGameLoansMap(
+  rows: GameLoanRow[],
+  profiles: Map<string, MemberOption>,
+) {
+  return new Map<string, ActiveGameLoan>(
+    rows.map((loan) => {
+      const lender = profiles.get(loan.lender_user_id) ?? {
+        id: loan.lender_user_id,
+        displayName: getProfileLabelFallback(loan.lender_user_id),
+        avatarUrl: null,
+      };
+      const borrower = profiles.get(loan.borrower_user_id) ?? {
+        id: loan.borrower_user_id,
+        displayName: getProfileLabelFallback(loan.borrower_user_id),
+        avatarUrl: null,
+      };
+
+      return [
+        loan.game_id,
+        {
+          id: loan.id,
+          lender,
+          borrower,
+          loanedAt: loan.loaned_at,
+          note: loan.note,
+        },
+      ];
+    }),
+  );
 }
 
 function buildGameExpansionsMap(rows: ExpansionRow[]) {
@@ -398,13 +455,21 @@ export async function listShelfGames(filters: GameFilters) {
   }
 
   const gameRows = (games ?? []) as GameRow[];
+  const loanRows = await getActiveGameLoanRowsFromClient(
+    gameRows.map((game) => game.id),
+    supabase,
+  );
   const profileIds = [
-    ...new Set(
-      gameRows.flatMap(
+    ...new Set([
+      ...gameRows.flatMap(
         (game) =>
           [game.owner_id, game.current_holder_id].filter(Boolean) as string[],
       ),
-    ),
+      ...loanRows.flatMap((loan) => [
+        loan.lender_user_id,
+        loan.borrower_user_id,
+      ]),
+    ]),
   ];
   const [profiles, summaries, expansionsByGame] = await Promise.all([
     getProfilesMap(profileIds),
@@ -412,9 +477,11 @@ export async function listShelfGames(filters: GameFilters) {
     getGameExpansionsMap(gameRows.map((game) => game.id)),
   ]);
 
-  const items = gameRows.map((game) =>
-    mapShelfItem(game, profiles, summaries, expansionsByGame),
+  const activeLoans = buildActiveGameLoansMap(loanRows, profiles);
+  const allItems = gameRows.map((game) =>
+    mapShelfItem(game, profiles, summaries, expansionsByGame, activeLoans),
   );
+  const items = filterShelfItemsByActiveLoan(allItems, filters.loanedOnly);
   return { items, totalCount: items.length };
 }
 
@@ -437,6 +504,8 @@ export async function getGameDetails(
 
   if (!game) return null;
 
+  const loanRows = await getActiveGameLoanRowsFromClient([gameId], supabase);
+
   const { data: ratings, error: ratingsError } = await supabase
     .from("ratings")
     .select(
@@ -457,6 +526,10 @@ export async function getGameDetails(
             game.owner_id,
             game.current_holder_id,
             ...(ratings ?? []).map((rating) => rating.user_id),
+            ...loanRows.flatMap((loan) => [
+              loan.lender_user_id,
+              loan.borrower_user_id,
+            ]),
           ].filter(Boolean) as string[],
         ),
       ],
@@ -466,7 +539,14 @@ export async function getGameDetails(
     getGameExpansionsMapFromClient([gameId], supabase),
   ]);
 
-  const base = mapShelfItem(game, profiles, summaries, expansionsByGame);
+  const activeLoans = buildActiveGameLoansMap(loanRows, profiles);
+  const base = mapShelfItem(
+    game,
+    profiles,
+    summaries,
+    expansionsByGame,
+    activeLoans,
+  );
   const ownRatingRow =
     (ratings ?? []).find((rating) => rating.user_id === viewerId) ?? null;
   const ownRating: OwnGameRating | null = ownRatingRow

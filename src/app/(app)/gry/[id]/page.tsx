@@ -9,10 +9,13 @@ import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import {
   archiveGameAction,
+  loanGameAction,
+  returnGameAction,
   saveRatingAction,
   toggleGameExpansionOwnedAction,
 } from "@/features/games/actions";
 import { GameExpansionsChecklist } from "@/features/games/game-expansions-checklist";
+import { GameLoanControls } from "@/features/games/game-loan-controls";
 import {
   formatDecimal,
   formatPlayTime,
@@ -20,7 +23,7 @@ import {
   GAME_STATUS_LABELS,
   getRatingEditorMode,
 } from "@/features/games/formatting";
-import { getGameDetails } from "@/features/games/queries";
+import { getGameDetails, listActiveMembers } from "@/features/games/queries";
 import { RatingForm } from "@/features/games/rating-form";
 import { listRecentGamePlays } from "@/features/plays/queries";
 import { GameRecentPlaysList } from "@/features/plays/recent-plays-list";
@@ -140,12 +143,20 @@ export default async function GameDetailsPage({
 
   const game = await getGameDetails(id, memberState.member.id);
   if (!game) notFound();
-  const recentPlays = await listRecentGamePlays(game.id);
+  const [recentPlays, activeMembers] = await Promise.all([
+    listRecentGamePlays(game.id),
+    listActiveMembers(),
+  ]);
 
   const canEdit =
     memberState.member.role === "admin" ||
     game.owner.id === memberState.member.id;
   const ratingMode = getRatingEditorMode(game.ownRating);
+  const canManageLoan =
+    !game.archivedAt && game.owner.id === memberState.member.id;
+  const loanCandidates = activeMembers.filter(
+    (member) => member.id !== game.owner.id,
+  );
 
   return (
     <div className="space-y-4">
@@ -291,6 +302,14 @@ export default async function GameDetailsPage({
               <MetaItem label="Projektant" value={game.designer} subtle />
               <MetaItem label="Wydawca" value={game.publisher} subtle />
             </div>
+
+            <GameLoanControls
+              activeLoan={game.activeLoan}
+              canManage={canManageLoan}
+              members={loanCandidates}
+              loanAction={loanGameAction.bind(null, game.id)}
+              returnAction={returnGameAction.bind(null, game.id)}
+            />
 
             {(game.mechanics.length > 0 || game.categories.length > 0) && (
               <div className="grid gap-2 min-[440px]:grid-cols-2 xl:grid-cols-2">

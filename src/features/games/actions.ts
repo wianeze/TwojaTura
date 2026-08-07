@@ -12,6 +12,7 @@ import {
 import type {
   BggAutofillActionState,
   GameFormState,
+  GameLoanActionState,
   RatingFormState,
   ToggleGameExpansionState,
 } from "./types";
@@ -129,6 +130,21 @@ function mapRatingDatabaseError(error: DatabaseErrorLike) {
       return "Ocena jest nieprawidłowa. Popraw pola formularza.";
     default:
       return "Nie udało się zapisać oceny. Spróbuj ponownie.";
+  }
+}
+
+function mapGameLoanDatabaseError(error: DatabaseErrorLike) {
+  switch (error.code) {
+    case "42501":
+      return "Tylko właściciel egzemplarza może zarządzać jego wypożyczeniem.";
+    case "23503":
+      return "Ta gra albo wybrana osoba nie są już dostępne.";
+    case "23505":
+      return "Ta gra ma już aktywne wypożyczenie.";
+    case "22023":
+      return "Nie można wykonać tej operacji. Sprawdź osobę i stan wypożyczenia.";
+    default:
+      return "Nie udało się zapisać wypożyczenia. Spróbuj ponownie.";
   }
 }
 
@@ -319,6 +335,71 @@ export async function archiveGameAction(
   revalidatePath("/gry");
   revalidatePath(`/gry/${gameId}`);
   redirect("/gry");
+}
+
+export async function loanGameAction(
+  gameId: string,
+  _state: GameLoanActionState,
+  formData: FormData,
+): Promise<GameLoanActionState> {
+  void _state;
+  const access = await requireWriteAccess();
+  if (!access.ok) {
+    return { status: "error", message: access.message };
+  }
+
+  const borrowerUserId = String(formData.get("borrowerUserId") ?? "").trim();
+  const noteValue = String(formData.get("note") ?? "").trim();
+
+  if (!borrowerUserId) {
+    return { status: "error", message: "Wybierz osobę, której pożyczasz grę." };
+  }
+
+  if (noteValue.length > 500) {
+    return {
+      status: "error",
+      message: "Notatka może mieć maksymalnie 500 znaków.",
+    };
+  }
+
+  const { error } = await access.supabase.rpc("loan_game", {
+    p_game_id: gameId,
+    p_borrower_user_id: borrowerUserId,
+    p_note: noteValue || undefined,
+  });
+
+  if (error) {
+    return { status: "error", message: mapGameLoanDatabaseError(error) };
+  }
+
+  revalidatePath("/gry");
+  revalidatePath(`/gry/${gameId}`);
+
+  return { status: "success", message: "Wypożyczenie zostało zapisane." };
+}
+
+export async function returnGameAction(
+  gameId: string,
+  _state: GameLoanActionState,
+): Promise<GameLoanActionState> {
+  void _state;
+  const access = await requireWriteAccess();
+  if (!access.ok) {
+    return { status: "error", message: access.message };
+  }
+
+  const { error } = await access.supabase.rpc("return_game", {
+    p_game_id: gameId,
+  });
+
+  if (error) {
+    return { status: "error", message: mapGameLoanDatabaseError(error) };
+  }
+
+  revalidatePath("/gry");
+  revalidatePath(`/gry/${gameId}`);
+
+  return { status: "success", message: "Zwrot gry został zapisany." };
 }
 
 export async function toggleGameExpansionOwnedAction(

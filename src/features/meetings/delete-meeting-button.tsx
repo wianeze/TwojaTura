@@ -39,10 +39,10 @@ export function DeleteMeetingButton({
   if (!canWrite) return null;
 
   return (
-    // Na smartfonie usuwanie zajmuje własny wiersz nad pozostałymi akcjami
-    // (order-first + w-full) i trzyma się prawej krawędzi. Od sm: wraca do
-    // wspólnego rzędu, wciąż dosunięte do prawej.
-    <div className="order-first flex w-full flex-col items-end sm:order-none sm:ml-auto sm:w-auto sm:max-w-sm">
+    // Slot środkowy stałego, 3-kolumnowego paska akcji (Wróć / Usuń / Edytuj)
+    // — pozycję ustala rodzic (justify-self-center), więc przycisk trzyma się
+    // własnej, naturalnej szerokości zamiast rozciągać się na cały wiersz.
+    <div className="flex flex-col items-center">
       <form
         action={formAction}
         onSubmit={(event) => {
@@ -60,11 +60,11 @@ export function DeleteMeetingButton({
       </form>
 
       {hasChroniclePlay ? (
-        <p className="mt-1.5 text-xs leading-5 text-[#8a433a]">
+        <p className="mt-1.5 max-w-[14rem] text-center text-xs leading-5 text-[#8a433a]">
           {MEETING_WITH_CHRONICLE_DELETE_ERROR}
         </p>
       ) : state.status === "error" && state.message ? (
-        <p className="mt-1.5 text-xs leading-5 text-[#8a433a]">
+        <p className="mt-1.5 max-w-[14rem] text-center text-xs leading-5 text-[#8a433a]">
           {state.message}
         </p>
       ) : null}

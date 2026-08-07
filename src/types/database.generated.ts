@@ -433,6 +433,58 @@ export type Database = {
           },
         ]
       }
+      game_loans: {
+        Row: {
+          borrower_user_id: string
+          game_id: string
+          id: string
+          lender_user_id: string
+          loaned_at: string
+          note: string | null
+          returned_at: string | null
+        }
+        Insert: {
+          borrower_user_id: string
+          game_id: string
+          id?: string
+          lender_user_id: string
+          loaned_at?: string
+          note?: string | null
+          returned_at?: string | null
+        }
+        Update: {
+          borrower_user_id?: string
+          game_id?: string
+          id?: string
+          lender_user_id?: string
+          loaned_at?: string
+          note?: string | null
+          returned_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_loans_borrower_user_id_fkey"
+            columns: ["borrower_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_loans_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_loans_lender_user_id_fkey"
+            columns: ["lender_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           archived_at: string | null
@@ -1703,6 +1755,14 @@ export type Database = {
           id: string
         }[]
       }
+      loan_game: {
+        Args: {
+          p_borrower_user_id: string
+          p_game_id: string
+          p_note?: string
+        }
+        Returns: string
+      }
       propose_meeting_game: {
         Args: { p_game_id: string; p_meeting_id: string }
         Returns: {
@@ -1715,6 +1775,7 @@ export type Database = {
         Args: { p_photo_ids: string[]; p_play_id: string }
         Returns: undefined
       }
+      return_game: { Args: { p_game_id: string }; Returns: string }
       save_push_subscription: {
         Args: {
           p_auth: string
@@ -1971,4 +2032,3 @@ export const Constants = {
     },
   },
 } as const
-

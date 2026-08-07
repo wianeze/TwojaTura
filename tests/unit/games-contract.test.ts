@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   countAdvancedShelfFilters,
+  filterShelfItemsByActiveLoan,
   hasAnySelectedTag,
   matchesPlayerCount,
   parseGameFilters,
@@ -331,7 +332,30 @@ test("filter parser returns defaults for empty params", () => {
     type: undefined,
     mechanics: [],
     categories: [],
+    loanedOnly: false,
   });
+});
+
+test("loaned shelf toggle is opt-in and independent from owner display", () => {
+  const defaults = parseGameFilters(new URLSearchParams());
+  const loaned = parseGameFilters(new URLSearchParams("loaned=1"));
+
+  assert.equal(defaults.loanedOnly, false);
+  assert.equal(loaned.loanedOnly, true);
+  assert.equal(
+    parseShelfOwnerVisibility(new URLSearchParams("loaned=1")),
+    false,
+  );
+});
+
+test("loaned shelf toggle keeps only games with an active loan", () => {
+  const games = [
+    { id: "available", activeLoan: null },
+    { id: "loaned", activeLoan: { id: "loan-1" } },
+  ];
+
+  assert.deepEqual(filterShelfItemsByActiveLoan(games, false), games);
+  assert.deepEqual(filterShelfItemsByActiveLoan(games, true), [games[1]]);
 });
 
 test("owner avatar visibility is an opt-in display toggle", () => {
@@ -392,6 +416,7 @@ test("compact advanced filter count reflects type mechanics and categories", () 
       type: "Kooperacyjna",
       mechanics: ["Draft", "Area Control"],
       categories: ["Fantasy"],
+      loanedOnly: false,
     }),
     4,
   );

@@ -759,6 +759,24 @@ body {
   background-repeat: no-repeat;
 }
 
+/*
+  Tło popupu propozycji gier (Kalendarium) — ozdobiona rama półki z pełną,
+  zaokrągloną obwódką i zdobionymi narożnikami. W przeciwieństwie do
+  .shelf-row-bg (stretch na dopasowany kształt rzędu) tu popup ma zmienne
+  proporcje zależne od treści listy, więc `cover` zamiast 100% 100%: kadruje
+  zamiast rozciągać, więc narożniki nigdy się nie deformują. Jasny panel
+  treści (paper-wash) w środku zostaje bez zmian kolorystycznych — drewno
+  jest widoczne tylko jako rama dookoła, więc czytelność listy i przycisków
+  nie cierpi.
+*/
+.shelf-popup-frame {
+  background-color: #2a160f;
+  background-image: url("/assets/shelf-popup.png");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
 .shelf-segment-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

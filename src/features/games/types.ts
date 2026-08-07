@@ -50,6 +50,14 @@ export type GameExpansionFormValue = {
   isOwned: boolean;
 };
 
+export type ActiveGameLoan = {
+  id: string;
+  lender: MemberOption;
+  borrower: MemberOption;
+  loanedAt: string;
+  note: string | null;
+};
+
 export type GameShelfItem = {
   id: string;
   title: string;
@@ -73,6 +81,7 @@ export type GameShelfItem = {
   expansions: GameExpansion[];
   bggUrl: string | null;
   ratingSummary: GameRatingSummary;
+  activeLoan: ActiveGameLoan | null;
 };
 
 export type GameDetails = GameShelfItem & {
@@ -92,6 +101,7 @@ export type GameFilters = {
   type?: string;
   mechanics: string[];
   categories: string[];
+  loanedOnly: boolean;
 };
 
 export type GameFilterOptions = {
@@ -157,6 +167,11 @@ export type BggAutofillActionState =
   | { status: "error"; message: string };
 
 export type ToggleGameExpansionState = {
+  status: "idle" | "error" | "success";
+  message?: string;
+};
+
+export type GameLoanActionState = {
   status: "idle" | "error" | "success";
   message?: string;
 };

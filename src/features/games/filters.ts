@@ -59,6 +59,7 @@ export function parseGameFilters(searchParams: SearchParamsInput): GameFilters {
   const maxTime = parsePositiveInteger(getFirst(searchParams, "maxTime"));
   const mechanics = normalizeTextList(getValues(searchParams, "mechanic"));
   const categories = normalizeTextList(getValues(searchParams, "category"));
+  const loanedOnly = getFirst(searchParams, "loaned") === "1";
 
   return {
     q,
@@ -71,6 +72,7 @@ export function parseGameFilters(searchParams: SearchParamsInput): GameFilters {
     type: type || undefined,
     mechanics,
     categories,
+    loanedOnly,
   };
 }
 
@@ -87,8 +89,15 @@ export function hasActiveFilters(filters: GameFilters) {
     filters.maxTime ||
     filters.type ||
     filters.mechanics.length > 0 ||
-    filters.categories.length > 0,
+    filters.categories.length > 0 ||
+    filters.loanedOnly,
   );
+}
+
+export function filterShelfItemsByActiveLoan<
+  T extends { activeLoan: unknown | null },
+>(items: T[], loanedOnly: boolean) {
+  return loanedOnly ? items.filter((item) => item.activeLoan !== null) : items;
 }
 
 export function countAdvancedShelfFilters(filters: GameFilters) {
