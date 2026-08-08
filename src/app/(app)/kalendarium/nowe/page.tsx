@@ -74,6 +74,7 @@ export default async function NewMeetingPage({
           initialValues={getMeetingFormValues(undefined, prefilledDateKey)}
           locationSuggestions={locationSuggestions}
           invitableMembers={createFormData.invitableMembers}
+          continuablePlays={createFormData.continuablePlays}
           submitLabel="Utwórz spotkanie"
           pendingLabel="Tworzymy spotkanie…"
         />

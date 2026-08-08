@@ -10,6 +10,7 @@ import { buildMeetingGameRecommendations } from "./game-recommendations";
 import type {
   MeetingAttendanceRow,
   MeetingCardItem,
+  MeetingContinuablePlay,
   MeetingDetails,
   MeetingGameCandidateOption,
   MeetingGameRecommendation,
@@ -234,6 +235,56 @@ function buildConfirmedCounts(
   );
 }
 
+/*
+ * Partie, które grupa może dokończyć na kolejnym spotkaniu: wyłącznie wpisy
+ * Kroniki ze statusem `in_progress`. Lista jest z natury krótka, więc nie ma
+ * limitu ani paginacji.
+ *
+ * `includePlayId` obsługuje jeden przypadek brzegowy edycji: spotkanie
+ * wskazuje partię, którą w międzyczasie zamknięto. Bez tego pozycja zniknęłaby
+ * z listy i formularz wyglądałby, jakby kontynuacji nigdy nie było — a zapis
+ * po cichu zdjąłby powiązanie.
+ */
+export async function listContinuablePlays(
+  includePlayId?: string | null,
+): Promise<MeetingContinuablePlay[]> {
+  const supabase = await createClient();
+  const baseQuery = supabase
+    .from("plays")
+    .select("id, game_id, played_at, state_note")
+    .order("played_at", { ascending: false });
+
+  const { data, error } = await (includePlayId
+    ? baseQuery.or(`status.eq.in_progress,id.eq.${includePlayId}`)
+    : baseQuery.eq("status", "in_progress"));
+
+  if (error) {
+    throw new Error("Nie udało się pobrać rozpoczętych partii.");
+  }
+
+  const rows = data ?? [];
+  if (rows.length === 0) return [];
+
+  const { data: games, error: gamesError } = await supabase
+    .from("games")
+    .select("id, title, cover_url")
+    .in("id", [...new Set(rows.map((row) => row.game_id))]);
+
+  if (gamesError) {
+    throw new Error("Nie udało się pobrać tytułów rozpoczętych partii.");
+  }
+
+  const gamesById = new Map((games ?? []).map((game) => [game.id, game]));
+
+  return rows.map((row) => ({
+    playId: row.id,
+    gameTitle: gamesById.get(row.game_id)?.title ?? "Nieznana gra",
+    coverUrl: gamesById.get(row.game_id)?.cover_url ?? null,
+    playedAt: row.played_at,
+    stateNote: row.state_note,
+  }));
+}
+
 export async function listMeetings(): Promise<MeetingCardItem[]> {
   const supabase = await createClient();
   const memberState = await getCurrentMember();
@@ -302,7 +353,7 @@ export async function getMeetingDetails(
   const { data: meeting, error } = await supabase
     .from("meetings")
     .select(
-      "id, created_by, title, description, location, status, starts_at, ends_at, created_at, updated_at",
+      "id, created_by, title, description, location, status, starts_at, ends_at, continued_play_id, created_at, updated_at",
     )
     .eq("id", meetingId)
     .is("deleted_at", null)
@@ -487,6 +538,38 @@ export async function getMeetingDetails(
     actor && (actor.role === "admin" || actor.id === meeting.created_by),
   );
 
+  // Kontynuowana partia zostaje przy spotkaniu także po zamknięciu (status
+  // 'completed') — to jej historia, nie stan chwilowy — więc pobieramy ją bez
+  // filtra po statusie.
+  let continuedPlay: MeetingContinuablePlay | null = null;
+  if (meeting.continued_play_id) {
+    const { data: playRow, error: playError } = await supabase
+      .from("plays")
+      .select("id, game_id, played_at, state_note")
+      .eq("id", meeting.continued_play_id)
+      .maybeSingle();
+
+    if (playError) {
+      throw new Error("Nie udało się pobrać kontynuowanej partii.");
+    }
+
+    if (playRow) {
+      const { data: gameRow } = await supabase
+        .from("games")
+        .select("title, cover_url")
+        .eq("id", playRow.game_id)
+        .maybeSingle();
+
+      continuedPlay = {
+        playId: playRow.id,
+        gameTitle: gameRow?.title ?? "Nieznana gra",
+        coverUrl: gameRow?.cover_url ?? null,
+        playedAt: playRow.played_at,
+        stateNote: playRow.state_note,
+      };
+    }
+  }
+
   return {
     ...mapMeetingCardItem(
       meeting as MeetingRow,
@@ -497,6 +580,7 @@ export async function getMeetingDetails(
     canEdit,
     canDelete: canEdit,
     hasChroniclePlay: (relatedPlaysResult.count ?? 0) > 0,
+    continuedPlay,
     canConfirm: canEdit && meeting.status === "planned",
     hasResponded: typeof ownResponse === "boolean",
     attendanceRows,
@@ -512,15 +596,16 @@ export async function getMeetingFormData(meetingId: string) {
   if (!details) return null;
 
   const supabase = await createClient();
-  const invitableMembers = await getInvitableMembers(
-    supabase,
-    details.createdBy.id,
-  );
+  const [invitableMembers, continuablePlays] = await Promise.all([
+    getInvitableMembers(supabase, details.createdBy.id),
+    listContinuablePlays(details.continuedPlay?.playId),
+  ]);
 
   return {
     meeting: details,
     values: getMeetingFormValues(details),
     invitableMembers,
+    continuablePlays,
   };
 }
 
@@ -529,15 +614,18 @@ export async function getMeetingCreateFormData() {
   const memberState = await getCurrentMember();
 
   if (memberState.status !== "active-member") {
-    return { invitableMembers: [] as MeetingMember[] };
+    return {
+      invitableMembers: [] as MeetingMember[],
+      continuablePlays: [] as MeetingContinuablePlay[],
+    };
   }
 
-  return {
-    invitableMembers: await getInvitableMembers(
-      supabase,
-      memberState.member.id,
-    ),
-  };
+  const [invitableMembers, continuablePlays] = await Promise.all([
+    getInvitableMembers(supabase, memberState.member.id),
+    listContinuablePlays(),
+  ]);
+
+  return { invitableMembers, continuablePlays };
 }
 
 export async function getMeetingLocationSuggestions() {

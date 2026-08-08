@@ -7,6 +7,7 @@ import { DeletePlayButton } from "./delete-play-button";
 import {
   formatPlayDuration,
   formatPlayScore,
+  formatPlaySessionLabel,
   getChronicleParticipantBadgeAsset,
   getPlayDateBadgeParts,
   PLAY_STATUS_LABELS,
@@ -407,6 +408,41 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
             <MetaRow label="Miejsce">{play.meeting.location}</MetaRow>
           ) : null}
         </dl>
+
+        {/* Oś sesji pokazuje się dopiero, gdy partia realnie przeszła przez
+            więcej niż jeden wieczór — dla zwykłej partii kartka wygląda
+            dokładnie jak dotąd. */}
+        {play.sessions.length > 1 ? (
+          <div className="mt-4">
+            <p className="text-[0.58rem] font-bold tracking-[0.2em] text-[#a3703f] uppercase">
+              Sesje
+            </p>
+
+            <SheetRule tone="strong" className="mt-1.5" />
+
+            <ol className="mt-2 space-y-1.5">
+              {play.sessions.map((session) => (
+                <li
+                  key={session.meeting.id}
+                  className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[0.82rem] text-[#5b4a3d]"
+                >
+                  <span className="text-[0.6rem] font-bold tracking-[0.12em] text-[#a3703f] uppercase">
+                    {session.kind === "start" ? "Start" : "Kontynuacja"}
+                  </span>
+                  <Link
+                    href={`/kalendarium/${session.meeting.id}`}
+                    className="min-w-0 truncate underline decoration-[#b37a46]/45 underline-offset-4"
+                  >
+                    {session.meeting.title}
+                  </Link>
+                  <span className="text-[#7a6048]">
+                    {formatPlaySessionLabel(session)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : null}
       </Sheet>
 
       <Sheet delayMs={nextDelay()}>

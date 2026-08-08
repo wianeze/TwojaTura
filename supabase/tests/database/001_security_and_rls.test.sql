@@ -4920,7 +4920,7 @@ set local role authenticated;
 select throws_ok(
   $$select public.delete_meeting('8d000000-0000-0000-0000-000000000003')$$,
   'P0001',
-  'Nie można usunąć spotkania z zapisaną partią w Kronice.',
+  'To spotkanie jest częścią historii partii w Kronice. Najpierw usuń zapisaną na nim partię.',
   '288. meeting linked to a Chronicle play cannot be deleted'
 );
 reset role;

@@ -16,6 +16,7 @@ type MeetingValidationResult =
         startsAt: string;
         endsAt: string;
         invitedUserIds: string[];
+        continuedPlayId: string | null;
       };
     }
   | {
@@ -158,6 +159,38 @@ export function parseInvitedUserIds(formData: FormData): string[] {
   }
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Odsiewa wartości, które nie są w ogóle identyfikatorem, zanim trafią do RPC
+// (inaczej Postgres odpowiedziałby 22P02 i użytkownik dostałby komunikat
+// „nie udało się zapisać”, zamiast błędu przy właściwym polu). Realna
+// walidacja — czy partia istnieje, czy jest w toku i czy nie jest to
+// samo-kontynuacja — żyje w private.assert_valid_continued_play.
+export function parseContinuedPlayId(formData: FormData) {
+  const raw = value(formData, "continuedPlayId").trim();
+  return UUID_PATTERN.test(raw) ? raw : "";
+}
+
+export function isContinuationRequested(formData: FormData) {
+  return value(formData, "continuesPlay") === "1";
+}
+
+/*
+ * Sekcja kontynuacji montuje ukryte pola formularza tylko wtedy, gdy w ogóle
+ * się renderuje. Dlatego brak kandydatów NIE może jej ukryć, jeśli spotkanie ma
+ * już przypisaną kontynuację: bez tych pól submit nie niósłby continuedPlayId,
+ * a zapis po cichu zdjąłby powiązanie — mimo że użytkownik poprawiał tylko
+ * godzinę. Ten przypadek jest realny, bo lista kandydatów pokazuje wyłącznie
+ * partie `in_progress`, a przypisana kontynuacja bywa już zakończona.
+ */
+export function shouldRenderContinuationField(
+  candidateCount: number,
+  currentPlayId: string,
+) {
+  return candidateCount > 0 || currentPlayId.length > 0;
+}
+
 export function buildMeetingSubmittedValues(
   formData: FormData,
 ): MeetingFormValues {
@@ -170,6 +203,7 @@ export function buildMeetingSubmittedValues(
     startTime: value(formData, "startTime"),
     endTime: value(formData, "endTime"),
     invitedUserIds: parseInvitedUserIds(formData),
+    continuedPlayId: parseContinuedPlayId(formData),
   };
 }
 
@@ -222,6 +256,16 @@ export function validateMeetingFormData(
 
   if (!title) {
     pushError(fieldErrors, "title", "Tytuł spotkania jest wymagany.");
+  }
+
+  // Zaznaczone „dokończymy rozpoczętą grę”, ale bez wskazanej partii — bez
+  // tego sprawdzenia spotkanie zapisałoby się po cichu bez kontynuacji.
+  if (isContinuationRequested(formData) && !submittedValues.continuedPlayId) {
+    pushError(
+      fieldErrors,
+      "continuedPlayId",
+      "Wybierz partię, do której wracacie, albo odznacz kontynuację.",
+    );
   }
 
   const startDate = parsePolishDate(submittedValues.startDate);
@@ -279,6 +323,7 @@ export function validateMeetingFormData(
           startsAt,
           endsAt,
           invitedUserIds: submittedValues.invitedUserIds,
+          continuedPlayId: submittedValues.continuedPlayId || null,
         },
       };
     }

@@ -762,6 +762,7 @@ export type Database = {
       }
       meetings: {
         Row: {
+          continued_play_id: string | null
           created_at: string
           created_by: string
           deleted_at: string | null
@@ -777,6 +778,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          continued_play_id?: string | null
           created_at?: string
           created_by: string
           deleted_at?: string | null
@@ -792,6 +794,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          continued_play_id?: string | null
           created_at?: string
           created_by?: string
           deleted_at?: string | null
@@ -807,6 +810,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "meetings_continued_play_id_fkey"
+            columns: ["continued_play_id"]
+            isOneToOne: false
+            referencedRelation: "plays"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "meetings_created_by_fkey"
             columns: ["created_by"]
@@ -1692,6 +1702,7 @@ export type Database = {
       }
       create_meeting_with_invitations: {
         Args: {
+          p_continued_play_id?: string
           p_description?: string
           p_ends_at: string
           p_invited_user_ids: string[]
@@ -1756,11 +1767,7 @@ export type Database = {
         }[]
       }
       loan_game: {
-        Args: {
-          p_borrower_user_id: string
-          p_game_id: string
-          p_note?: string
-        }
+        Args: { p_borrower_user_id: string; p_game_id: string; p_note?: string }
         Returns: string
       }
       propose_meeting_game: {
@@ -1826,6 +1833,7 @@ export type Database = {
       }
       update_meeting_with_invitations: {
         Args: {
+          p_continued_play_id?: string
           p_description?: string
           p_ends_at: string
           p_invited_user_ids: string[]
@@ -2032,3 +2040,4 @@ export const Constants = {
     },
   },
 } as const
+

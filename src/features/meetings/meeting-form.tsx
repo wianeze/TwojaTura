@@ -2,10 +2,12 @@
 
 import { useActionState } from "react";
 import { INITIAL_MEETING_FORM_STATE } from "./form-state";
+import { MeetingContinuationField } from "./meeting-continuation-field";
 import { MeetingDateField } from "./meeting-date-field";
 import { MeetingInvitedField } from "./meeting-invited-field";
 import { MeetingSubmitButton } from "./meeting-submit-button";
 import type {
+  MeetingContinuablePlay,
   MeetingFormState,
   MeetingFormValues,
   MeetingMember,
@@ -19,6 +21,7 @@ type MeetingFormProps = {
   initialValues: MeetingFormValues;
   locationSuggestions: string[];
   invitableMembers: MeetingMember[];
+  continuablePlays: MeetingContinuablePlay[];
   submitLabel: string;
   pendingLabel: string;
 };
@@ -33,6 +36,7 @@ export function MeetingForm({
   initialValues,
   locationSuggestions,
   invitableMembers,
+  continuablePlays,
   submitLabel,
   pendingLabel,
 }: MeetingFormProps) {
@@ -146,13 +150,25 @@ export function MeetingForm({
         />
       </div>
 
+      {/* Kontynuacja siedzi na samym dole treści formularza — jest decyzją
+          opcjonalną i nie może rozbijać podstawowego rytmu „co / kiedy / z
+          kim”. Gdy nie ma żadnej partii w toku, komponent nic nie renderuje. */}
+      <div className="order-5">
+        <MeetingContinuationField
+          key={`continuation-${values.continuedPlayId}`}
+          plays={continuablePlays}
+          defaultValue={values.continuedPlayId}
+          error={state.fieldErrors?.continuedPlayId}
+        />
+      </div>
+
       {state.message && state.status === "error" ? (
-        <div className="order-5 rounded-xl border border-[#8f3528]/18 bg-[#fff2ef] px-4 py-3 text-sm text-[#7b3428]">
+        <div className="order-6 rounded-xl border border-[#8f3528]/18 bg-[#fff2ef] px-4 py-3 text-sm text-[#7b3428]">
           {state.message}
         </div>
       ) : null}
 
-      <div className="order-6 flex flex-wrap items-center justify-end gap-3">
+      <div className="order-7 flex flex-wrap items-center justify-end gap-3">
         <MeetingSubmitButton label={submitLabel} pendingLabel={pendingLabel} />
       </div>
     </form>

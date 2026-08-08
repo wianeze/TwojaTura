@@ -272,7 +272,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       .order("starts_at", { ascending: true }),
     supabase
       .from("meetings")
-      .select("id, title, status, starts_at, ends_at")
+      .select("id, title, status, starts_at, ends_at, continued_play_id")
       .is("deleted_at", null)
       .in("status", ["confirmed", "completed"])
       .lt("ends_at", nowIso)
@@ -380,6 +380,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     status: "confirmed" | "completed";
     starts_at: string;
     ends_at: string | null;
+    continued_play_id: string | null;
   }>;
   const finishedMeetingIds = finishedMeetings.map((meeting) => meeting.id);
 
@@ -442,8 +443,15 @@ export async function getDashboardData(): Promise<DashboardData> {
       ),
     })),
     unratedGames,
+    // Spotkanie-kontynuacja nie ma własnego wiersza w plays — wynik wieczoru
+    // jest zapisany w partii rozpoczętej wcześniej. Bez tego filtra quest
+    // „Uzupełnij wynik spotkania” wisiałby na nim w nieskończoność i wprost
+    // zachęcał do założenia drugiego wpisu o tej samej rozgrywce.
     finishedMeetingsWithoutPlay: finishedMeetings
-      .filter((meeting) => !meetingsWithPlays.has(meeting.id))
+      .filter(
+        (meeting) =>
+          !meetingsWithPlays.has(meeting.id) && !meeting.continued_play_id,
+      )
       .map((meeting) => ({
         id: meeting.id,
         title: meeting.title,

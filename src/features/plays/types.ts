@@ -82,8 +82,22 @@ export type PlayListItem = {
   canEdit: boolean;
 };
 
+/*
+ * Jeden wieczór z historii jednej rozgrywki. „start” to spotkanie z
+ * plays.meeting_id (kotwica, nieprzepinana), „continuation” to każde spotkanie
+ * wskazujące tę partię przez meetings.continued_play_id. Partia zawsze
+ * pozostaje JEDNYM wpisem Kroniki — sesje to tylko jej oś czasu.
+ */
+export type PlaySessionKind = "start" | "continuation";
+
+export type PlaySession = {
+  kind: PlaySessionKind;
+  meeting: PlayMeetingRef;
+};
+
 export type PlayDetails = PlayListItem & {
   photos: PlayPhoto[];
+  sessions: PlaySession[];
 };
 
 export type ChronicleMonthGroup = {

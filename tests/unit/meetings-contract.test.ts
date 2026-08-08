@@ -24,6 +24,7 @@ import {
 } from "../../src/features/meetings/meeting-points.ts";
 import {
   mapMeetingDeleteError,
+  MEETING_CONTINUATION_DELETE_ERROR,
   MEETING_WITH_CHRONICLE_DELETE_ERROR,
 } from "../../src/features/meetings/meeting-deletion.ts";
 import {
@@ -39,6 +40,7 @@ import {
   buildMeetingSubmittedValues,
   countConfirmedResponses,
   hasMeetingAvailabilityGap,
+  shouldRenderContinuationField,
   sortMeetingRanking,
   validateMeetingFormData,
 } from "../../src/features/meetings/validation.ts";
@@ -203,6 +205,8 @@ function buildFormData(
     endDate: string;
     startTime: string;
     endTime: string;
+    continuesPlay: string;
+    continuedPlayId: string;
   }>,
 ) {
   const formData = new FormData();
@@ -213,6 +217,15 @@ function buildFormData(
   formData.set("endDate", overrides?.endDate ?? "18/07/2026");
   formData.set("startTime", overrides?.startTime ?? "17:30");
   formData.set("endTime", overrides?.endTime ?? "21:00");
+
+  if (overrides?.continuesPlay !== undefined) {
+    formData.set("continuesPlay", overrides.continuesPlay);
+  }
+
+  if (overrides?.continuedPlayId !== undefined) {
+    formData.set("continuedPlayId", overrides.continuedPlayId);
+  }
+
   return formData;
 }
 
@@ -689,6 +702,7 @@ test("form values use the clicked day as both start and end date by default", ()
     startTime: "18:00",
     endTime: "23:00",
     invitedUserIds: [],
+    continuedPlayId: "",
   });
 });
 
@@ -717,5 +731,279 @@ test("a proposed game stays a candidate with no responses at all", () => {
   assert.deepEqual(
     sorted.map((game) => game.title),
     ["Chciana", "Bez odpowiedzi", "Odrzucona"],
+  );
+});
+
+// --- Kontynuacja rozpoczętej partii (meetings.continued_play_id) -----------
+
+const CONTINUED_PLAY_ID = "9f6f1d0c-3b3a-4d63-9c1e-2f0a5b7c8d91";
+
+test("meeting without the continuation checkbox saves no play pointer", () => {
+  const validation = validateMeetingFormData(buildFormData());
+
+  assert.equal(validation.ok, true);
+  if (!validation.ok) return;
+  assert.equal(validation.data.continuedPlayId, null);
+});
+
+test("meeting continuation carries the selected play id to the RPC payload", () => {
+  const validation = validateMeetingFormData(
+    buildFormData({ continuesPlay: "1", continuedPlayId: CONTINUED_PLAY_ID }),
+  );
+
+  assert.equal(validation.ok, true);
+  if (!validation.ok) return;
+  assert.equal(validation.data.continuedPlayId, CONTINUED_PLAY_ID);
+});
+
+test("continuation checked without a chosen play is a field error, not a silent save", () => {
+  const validation = validateMeetingFormData(
+    buildFormData({ continuesPlay: "1", continuedPlayId: "" }),
+  );
+
+  assert.equal(validation.ok, false);
+  if (validation.ok) return;
+  assert.equal(
+    validation.fieldErrors.continuedPlayId,
+    "Wybierz partię, do której wracacie, albo odznacz kontynuację.",
+  );
+});
+
+test("a play id that is not an identifier never reaches the RPC", () => {
+  const values = buildMeetingSubmittedValues(
+    buildFormData({ continuesPlay: "1", continuedPlayId: "1; drop table" }),
+  );
+
+  assert.equal(values.continuedPlayId, "");
+});
+
+test("meeting form values prefill the currently continued play", () => {
+  const values = getMeetingFormValues({
+    ...createMeeting({ id: "meeting-1" }),
+    canEdit: true,
+    canDelete: true,
+    hasChroniclePlay: false,
+    continuedPlay: {
+      playId: CONTINUED_PLAY_ID,
+      gameTitle: "Gloomhaven",
+      coverUrl: null,
+      playedAt: "2026-08-01T16:00:00.000Z",
+      stateNote: "Runda 3 z 5",
+    },
+    canConfirm: false,
+    hasResponded: false,
+    attendanceRows: [],
+    invitedUserIds: [],
+    gameVotes: [],
+    availableGames: [],
+    recommendedGames: [],
+  });
+
+  assert.equal(values.continuedPlayId, CONTINUED_PLAY_ID);
+});
+
+test("continuation deletion guard keeps the message coming from the database", () => {
+  assert.equal(
+    mapMeetingDeleteError({
+      code: "P0001",
+      message: MEETING_CONTINUATION_DELETE_ERROR,
+    }),
+    MEETING_CONTINUATION_DELETE_ERROR,
+  );
+});
+
+test("the finished-meeting quest source skips meetings that continue a play", () => {
+  const source = readFileSync(
+    new URL("../../src/features/dashboard/queries.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /!meeting\.continued_play_id/);
+});
+
+/*
+ * Regresja scenariusza: spotkanie A rozpoczyna partię, spotkanie B ją
+ * kontynuuje, na B partia zostaje zamknięta, a potem ktoś edytuje w B samą
+ * godzinę. Przypisana kontynuacja ma przetrwać taką edycję, mimo że lista
+ * kandydatów pokazuje wyłącznie partie `in_progress`.
+ */
+
+test("a finished continuation still renders the field when no candidates are left", () => {
+  assert.equal(shouldRenderContinuationField(0, CONTINUED_PLAY_ID), true);
+
+  // Sama funkcja nie wystarczy — ukryte pola znikają razem z sekcją, więc to
+  // komponent musi pytać o widoczność właśnie w ten sposób.
+  const source = readFileSync(
+    new URL(
+      "../../src/features/meetings/meeting-continuation-field.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(
+    source,
+    /shouldRenderContinuationField\(plays\.length, defaultValue\)/,
+  );
+  assert.doesNotMatch(source, /plays\.length === 0\) return null/);
+});
+
+test("no candidates and no assigned play hides the whole section", () => {
+  assert.equal(shouldRenderContinuationField(0, ""), false);
+});
+
+test("available candidates render the field even without an assigned play", () => {
+  assert.equal(shouldRenderContinuationField(2, ""), true);
+});
+
+test("the edit form loads the assigned play regardless of its status", () => {
+  const source = readFileSync(
+    new URL("../../src/features/meetings/queries.ts", import.meta.url),
+    "utf8",
+  );
+
+  // Karta spotkania czyta kontynuację bez filtra po statusie...
+  const continuedPlayRead = source.slice(
+    source.indexOf("if (meeting.continued_play_id)"),
+  );
+  assert.doesNotMatch(
+    continuedPlayRead.slice(0, 400),
+    /\.eq\("status", "in_progress"\)/,
+  );
+
+  // ...a lista wyboru dokłada bieżącą partię obok kandydatów in_progress.
+  assert.match(
+    source,
+    /\.or\(\s*`status\.eq\.in_progress,id\.eq\.\$\{includePlayId\}`\s*\)/,
+  );
+  assert.match(
+    source,
+    /listContinuablePlays\(details\.continuedPlay\?\.playId\)/,
+  );
+});
+
+test("a new meeting can only pick plays that are still in progress", () => {
+  const source = readFileSync(
+    new URL("../../src/features/meetings/queries.ts", import.meta.url),
+    "utf8",
+  );
+  const createFormData = source.slice(
+    source.indexOf("export async function getMeetingCreateFormData"),
+  );
+
+  // Brak argumentu = gałąź .eq("status", "in_progress"), więc zakończona partia
+  // nie może zostać wybrana dla nowego spotkania.
+  assert.match(createFormData, /listContinuablePlays\(\)/);
+  assert.doesNotMatch(createFormData, /listContinuablePlays\([^)]+\)/);
+});
+
+/*
+ * Sekcja gier na kartce spotkania ma dwa warianty treści w JEDNYM miejscu:
+ * propozycje + głosowanie dla zwykłego spotkania, kontynuowana partia dla
+ * spotkania z continued_play_id. Testy pilnują rozgałęzienia i tego, czego w
+ * wariancie kontynuacji być NIE MOŻE.
+ */
+
+function readMeetingDetailsPage() {
+  return readFileSync(
+    new URL("../../src/app/(app)/kalendarium/[id]/page.tsx", import.meta.url),
+    "utf8",
+  );
+}
+
+test("the games section switches content instead of disappearing", () => {
+  const source = readMeetingDetailsPage();
+
+  // Oba warianty żyją w tym samym gnieździe sekcji — jedno rozgałęzienie,
+  // jeden animowany kontener, ta sama pozycja na kartce.
+  assert.match(
+    source,
+    /\{meeting\.continuedPlay \? \(\s*<MeetingContinuationSummary play=\{meeting\.continuedPlay\} \/>\s*\) : \(\s*<MeetingGameProposals/,
+  );
+  assert.equal(source.match(/<MeetingGameProposals/g)?.length, 1);
+  assert.equal(source.match(/<MeetingContinuationSummary/g)?.length, 1);
+});
+
+test("a plain meeting keeps proposals, voting and the propose button", () => {
+  const proposals = readFileSync(
+    new URL(
+      "../../src/features/meetings/meeting-game-proposals.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(proposals, /Propozycje gier/);
+  assert.match(proposals, /Proponuj grę/);
+  assert.match(proposals, /<MeetingGameResponseToggle/);
+});
+
+// Asercje negatywne patrzą na sam kod: komentarze w tych plikach z natury
+// wymieniają rzeczy, których w danym wariancie NIE ma („bez głosowania”,
+// „zamiast Proponuj grę”), więc bez odsiania trafiałyby we własne uzasadnienia.
+function withoutComments(source: string) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+}
+
+test("the continuation variant shows the play and never offers a duplicate entry", () => {
+  const summary = readFileSync(
+    new URL(
+      "../../src/features/meetings/meeting-continuation-summary.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const code = withoutComments(summary);
+
+  assert.match(code, /Kontynuujemy partię/);
+  assert.match(code, /Dokańczamy rozpoczętą partię/);
+  assert.match(code, /\{stateNote\}/);
+  assert.match(code, /Wróć do partii/);
+  assert.match(code, /size="card"/);
+  assert.match(code, /href=\{`\/kronika\/\$\{play\.playId\}`\}/);
+
+  // Czego w tej sekcji być nie może: głosowania, zgłaszania gier i jakiejkolwiek
+  // ścieżki tworzącej nowy wpis Kroniki.
+  assert.doesNotMatch(code, /MeetingGameResponseToggle/);
+  assert.doesNotMatch(code, /Proponuj grę/);
+  assert.doesNotMatch(code, /proposeMeetingGameAction/);
+  assert.doesNotMatch(code, /kronika\/nowa/);
+});
+
+test("the continuation summary reads existing data and mutates nothing", () => {
+  const summary = readFileSync(
+    new URL(
+      "../../src/features/meetings/meeting-continuation-summary.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const code = withoutComments(summary);
+
+  // Brak akcji serwerowych i brak stanu klienta: sekcja jest czystym odczytem,
+  // więc nie ma jak stworzyć ani skasować żadnego wiersza.
+  assert.doesNotMatch(code, /"use client"/);
+  assert.doesNotMatch(code, /Action\(/);
+  assert.doesNotMatch(code, /supabase/i);
+});
+
+test("a continuation meeting offers no CTA for logging the same game again", () => {
+  const source = readMeetingDetailsPage();
+  const actionRow = withoutComments(
+    source.slice(
+      source.indexOf("{canLogPlay ? ("),
+      source.indexOf("Pasek akcji NAD kartką"),
+    ),
+  );
+
+  // Jeden link w pasku i prowadzi wyłącznie do formularza INNEJ partii —
+  // powrót do kontynuowanej rozgrywki należy do sekcji gier niżej, więc nie ma
+  // go tu w postaci drugiego, konkurencyjnego CTA.
+  assert.match(actionRow, /Zapisz inną partię/);
+  assert.equal(actionRow.match(/<ActionLink/g)?.length, 1);
+  assert.equal(actionRow.match(/href=/g)?.length, 1);
+  assert.match(
+    actionRow,
+    /href=\{`\/kronika\/nowa\?meeting=\$\{meeting\.id\}`\}/,
   );
 });

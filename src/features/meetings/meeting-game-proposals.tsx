@@ -78,7 +78,7 @@ export function MeetingGameProposals({
         </div>
         <span
           aria-hidden="true"
-          className="block h-px bg-[#8b6743]/30 shadow-[0_1px_0_rgba(255,255,255,0.5)]"
+          className="block h-px bg-[#8b6743]/70 shadow-[0_1px_0_rgba(255,255,255,0.5)]"
         />
       </div>
 
@@ -89,8 +89,13 @@ export function MeetingGameProposals({
               key={game.gameId}
               style={{
                 animationDelay: `${getEntranceStaggerDelayMs(index)}ms`,
+                // Kolor musi iść przez inline style — patrz komentarz przy
+                // SEPARATOR_LINE_COLOR w page.tsx: nielayerowana reguła
+                // `* { border-color: var(--border) }` bije Tailwindowe
+                // `border-[...]` niezależnie od specyficzności.
+                borderBottomColor: "rgba(139, 103, 67, 0.65)",
               }}
-              className="anim-rise-in-fast flex items-center gap-3 border-b border-[#c9aa7f]/25 py-2.5 last:border-b-0"
+              className="anim-rise-in-fast flex items-center gap-3 border-b py-2.5 last:border-b-0"
             >
               <MeetingGameResponseToggle
                 meetingId={meetingId}

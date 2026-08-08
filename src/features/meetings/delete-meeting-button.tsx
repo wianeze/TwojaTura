@@ -4,7 +4,10 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { ActionButton } from "@/components/ui/action-button";
 import { useCanWrite } from "@/features/auth/member-role-context";
-import { MEETING_WITH_CHRONICLE_DELETE_ERROR } from "./meeting-deletion";
+import {
+  getMeetingChronicleLockMessage,
+  type MeetingChronicleLock,
+} from "./meeting-deletion";
 import type { MeetingDeleteState } from "./types";
 
 const INITIAL_STATE: MeetingDeleteState = { status: "idle" };
@@ -28,10 +31,11 @@ function DeleteMeetingSubmitButton({ disabled }: { disabled: boolean }) {
 
 export function DeleteMeetingButton({
   action,
-  hasChroniclePlay,
+  chronicleLock,
 }: {
   action: (state: MeetingDeleteState) => Promise<MeetingDeleteState>;
-  hasChroniclePlay: boolean;
+  // null = spotkanie nie należy do historii żadnej partii i da się je usunąć.
+  chronicleLock: MeetingChronicleLock | null;
 }) {
   const canWrite = useCanWrite();
   const [state, formAction] = useActionState(action, INITIAL_STATE);
@@ -47,7 +51,7 @@ export function DeleteMeetingButton({
         action={formAction}
         onSubmit={(event) => {
           if (
-            !hasChroniclePlay &&
+            !chronicleLock &&
             !window.confirm(
               "Usunąć spotkanie? Cofniemy punkty za utworzenie, RSVP i głosy.",
             )
@@ -56,12 +60,12 @@ export function DeleteMeetingButton({
           }
         }}
       >
-        <DeleteMeetingSubmitButton disabled={hasChroniclePlay} />
+        <DeleteMeetingSubmitButton disabled={Boolean(chronicleLock)} />
       </form>
 
-      {hasChroniclePlay ? (
+      {chronicleLock ? (
         <p className="mt-1.5 max-w-[14rem] text-center text-xs leading-5 text-[#8a433a]">
-          {MEETING_WITH_CHRONICLE_DELETE_ERROR}
+          {getMeetingChronicleLockMessage(chronicleLock)}
         </p>
       ) : state.status === "error" && state.message ? (
         <p className="mt-1.5 max-w-[14rem] text-center text-xs leading-5 text-[#8a433a]">

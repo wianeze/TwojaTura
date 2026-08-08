@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { toPublicStorageUrl } from "@/lib/supabase/env";
 import type { Tables } from "@/types/database.generated";
 import {
+  buildPlaySessions,
   getPlayFormValues,
   sortPlayParticipants,
   sortPlaysByPlayedAtDesc,
@@ -322,8 +323,36 @@ export async function getPlayDetails(
   const [item] = await hydratePlayItems([data as PlayRow], viewer);
   if (!item) return null;
 
-  const photos = await getPlayPhotos(supabase, playId);
-  return { ...item, photos };
+  // Spotkania, na których grupa wracała do tej partii. Wpis Kroniki zostaje
+  // jeden — to wyłącznie jego oś czasu.
+  const [photos, continuationsResult] = await Promise.all([
+    getPlayPhotos(supabase, playId),
+    supabase
+      .from("meetings")
+      .select("id, title, starts_at, ends_at, location")
+      .eq("continued_play_id", playId)
+      .is("deleted_at", null),
+  ]);
+
+  if (continuationsResult.error) {
+    throw new Error("Nie udało się pobrać kolejnych sesji partii.");
+  }
+
+  const continuationMeetings = (
+    (continuationsResult.data ?? []) as MeetingRow[]
+  ).map((meeting) => ({
+    id: meeting.id,
+    title: meeting.title,
+    startsAt: meeting.starts_at,
+    endsAt: meeting.ends_at,
+    location: meeting.location,
+  }));
+
+  return {
+    ...item,
+    photos,
+    sessions: buildPlaySessions(item.meeting, continuationMeetings),
+  };
 }
 
 export async function getPlayFormOptions(): Promise<

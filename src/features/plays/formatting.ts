@@ -9,9 +9,11 @@ import type {
   PlayFormMeetingOption,
   PlayFormValues,
   PlayListItem,
+  PlayMeetingRef,
   PlayMember,
   PlayParticipantResult,
   PlayMode,
+  PlaySession,
   PlayStatus,
   PlayTeamResult,
   RecentPlaySummary,
@@ -420,6 +422,46 @@ export function formatMeetingOptionLabel(meeting: PlayFormMeetingOption) {
   });
 
   return `${meeting.title} · ${formatted.compactStartDate} · ${formatted.startTime}`;
+}
+
+/*
+ * Oś sesji jednej rozgrywki: spotkanie startowe (plays.meeting_id) plus
+ * wszystkie spotkania, które wskazały tę partię jako kontynuowaną —
+ * chronologicznie, po dacie rozpoczęcia wieczoru.
+ *
+ * Kolejność bierze się z terminów spotkań, nie z typu sesji: gdyby ktoś
+ * poprawił datę spotkania startowego, oś ma zostać zgodna z kalendarzem, a nie
+ * z tym, które powiązanie powstało pierwsze. Miękko usunięte spotkania są
+ * odsiewane wyżej, przez zapytanie.
+ */
+export function buildPlaySessions(
+  startMeeting: PlayMeetingRef | null,
+  continuationMeetings: PlayMeetingRef[],
+): PlaySession[] {
+  const sessions: PlaySession[] = [
+    ...(startMeeting
+      ? [{ kind: "start" as const, meeting: startMeeting }]
+      : []),
+    ...continuationMeetings.map((meeting) => ({
+      kind: "continuation" as const,
+      meeting,
+    })),
+  ];
+
+  return sessions.sort(
+    (left, right) =>
+      new Date(left.meeting.startsAt).getTime() -
+      new Date(right.meeting.startsAt).getTime(),
+  );
+}
+
+export function formatPlaySessionLabel(session: PlaySession) {
+  const formatted = formatMeetingDateRange({
+    startsAt: session.meeting.startsAt,
+    endsAt: session.meeting.endsAt,
+  });
+
+  return `${formatted.compactStartDate} · ${formatted.startTime}`;
 }
 
 export function getPlayMeetingPrefillValues(

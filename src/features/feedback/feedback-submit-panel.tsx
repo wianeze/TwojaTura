@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
+import { PatchNotesDialog } from "@/features/patch-notes/patch-notes-dialog";
 import { submitFeedbackAction } from "./actions";
 import { FEEDBACK_MAX_LENGTH } from "./constants";
 import { INITIAL_FEEDBACK_FORM_STATE } from "./form-state";
@@ -40,18 +41,24 @@ export function FeedbackSubmitPanel() {
       style={{ animationDelay: `${getEntranceStaggerDelayMs(5)}ms` }}
       className="anim-rise-in-fast paper-wash p-3.5 sm:p-4"
     >
-      <button
-        type="button"
-        onClick={() => setIsExpanded((expanded) => !expanded)}
-        aria-expanded={isExpanded}
-        aria-controls="feedback-submit-form"
-        className="flex w-full items-center justify-between gap-2 text-left text-sm font-bold text-[#4c3528]"
-      >
-        Zgłoś poprawkę
-        <span aria-hidden="true" className="text-accent text-base leading-none">
-          {isExpanded ? "−" : "+"}
-        </span>
-      </button>
+      <div className="grid grid-cols-2 items-stretch gap-3">
+        <PatchNotesDialog />
+        <button
+          type="button"
+          onClick={() => setIsExpanded((expanded) => !expanded)}
+          aria-expanded={isExpanded}
+          aria-controls="feedback-submit-form"
+          className="flex min-h-8 w-full items-center justify-between gap-2 border-l border-[#b98d63]/30 pl-3 text-left text-sm font-bold text-[#4c3528]"
+        >
+          Zgłoś poprawkę
+          <span
+            aria-hidden="true"
+            className="text-accent text-base leading-none"
+          >
+            {isExpanded ? "−" : "+"}
+          </span>
+        </button>
+      </div>
 
       {isExpanded ? (
         <form

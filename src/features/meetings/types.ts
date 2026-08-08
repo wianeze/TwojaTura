@@ -20,6 +20,9 @@ export type MeetingFormValues = {
   startTime: string;
   endTime: string;
   invitedUserIds: string[];
+  // Pusty string = "nie kontynuujemy niczego" (domyślnie). Formularz nigdy nie
+  // tworzy wpisu w Kronice — to wyłącznie wskaźnik na już istniejącą partię.
+  continuedPlayId: string;
 };
 
 export type MeetingFormFieldName =
@@ -30,7 +33,8 @@ export type MeetingFormFieldName =
   | "endDate"
   | "startTime"
   | "endTime"
-  | "invitedUserIds";
+  | "invitedUserIds"
+  | "continuedPlayId";
 
 export type MeetingFormState = {
   status: "idle" | "error" | "success";
@@ -100,10 +104,24 @@ export type MeetingGameCandidateOption = {
 export type MeetingGameRecommendation = MeetingGameCandidateOption &
   MeetingGameRecommendationScore;
 
+// Partia „w toku”, do której grupa może wrócić na kolejnym spotkaniu. Ta sama
+// struktura służy jako pozycja listy wyboru w formularzu i jako opis
+// kontynuacji na karcie spotkania.
+export type MeetingContinuablePlay = {
+  playId: string;
+  gameTitle: string;
+  coverUrl: string | null;
+  playedAt: string;
+  stateNote: string | null;
+};
+
 export type MeetingDetails = MeetingCardItem & {
   canEdit: boolean;
   canDelete: boolean;
+  // Na tym spotkaniu zapisano partię (plays.meeting_id) — spotkanie startowe.
   hasChroniclePlay: boolean;
+  // Na tym spotkaniu wracamy do partii rozpoczętej gdzie indziej.
+  continuedPlay: MeetingContinuablePlay | null;
   canConfirm: boolean;
   hasResponded: boolean;
   // Organizator + zaproszeni — nie "wszyscy aktywni członkowie". Kto trafia

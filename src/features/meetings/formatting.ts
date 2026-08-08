@@ -1,5 +1,9 @@
 import { DEFAULT_MEETING_STATUS } from "./types.ts";
-import type { MeetingDetails, MeetingFormValues } from "./types.ts";
+import type {
+  MeetingContinuablePlay,
+  MeetingDetails,
+  MeetingFormValues,
+} from "./types.ts";
 
 const dateFormatter = new Intl.DateTimeFormat("pl-PL", {
   day: "2-digit",
@@ -130,6 +134,25 @@ export function getMeetingDateBadgeParts(startsAt: string) {
   };
 }
 
+/*
+ * Podpis pozycji na liście partii do dokończenia oraz kapsułki „Kontynuacja”
+ * na karcie spotkania: data rozpoczęcia partii i — jeśli jest — notatka o
+ * stanie gry, przycięta do jednej linii.
+ */
+export function formatMeetingContinuationSubtitle(
+  play: Pick<MeetingContinuablePlay, "playedAt" | "stateNote">,
+) {
+  const startedAt = compactDateFormatter
+    .format(new Date(play.playedAt))
+    .replace(".", "");
+  const note = play.stateNote?.trim();
+
+  if (!note) return `rozpoczęta ${startedAt}`;
+
+  const shortNote = note.length > 60 ? `${note.slice(0, 59)}…` : note;
+  return `${startedAt} · ${shortNote}`;
+}
+
 export function formatMeetingListBadge(meeting: {
   startsAt: string;
   endsAt: string;
@@ -159,6 +182,7 @@ export function getMeetingFormValues(
       startTime: "18:00",
       endTime: "23:00",
       invitedUserIds: [],
+      continuedPlayId: "",
     };
   }
 
@@ -174,6 +198,7 @@ export function getMeetingFormValues(
     startTime: `${startParts.hour}:${startParts.minute}`,
     endTime: `${endParts.hour}:${endParts.minute}`,
     invitedUserIds: meeting.invitedUserIds,
+    continuedPlayId: meeting.continuedPlay?.playId ?? "",
   };
 }
 

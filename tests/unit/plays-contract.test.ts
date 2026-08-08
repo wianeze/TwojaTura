@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildPlaySessions,
   getChronicleParticipantChips,
   formatPlayDateTime,
   formatPlayCompactDateTime,
@@ -965,5 +966,65 @@ test("compact chronicle date formatting uses dd/MM/yyyy HH:mm", () => {
   assert.equal(
     formatPlayCompactDateTime("2026-07-18T16:30:00.000Z"),
     "18/07/2026 18:30",
+  );
+});
+
+// --- Oś sesji jednej rozgrywki (spotkanie startowe + kontynuacje) ----------
+
+const startMeeting = {
+  id: "meeting-start",
+  title: "Piątkowy start",
+  startsAt: "2026-08-01T16:00:00.000Z",
+  endsAt: "2026-08-01T21:00:00.000Z",
+  location: "Górska Chata",
+};
+
+const saturdayMeeting = {
+  id: "meeting-saturday",
+  title: "Sobotnia dogrywka",
+  startsAt: "2026-08-02T16:00:00.000Z",
+  endsAt: "2026-08-02T21:00:00.000Z",
+  location: "U Michała",
+};
+
+const sundayMeeting = {
+  id: "meeting-sunday",
+  title: "Niedzielne domknięcie",
+  startsAt: "2026-08-03T16:00:00.000Z",
+  endsAt: "2026-08-03T20:00:00.000Z",
+  location: null,
+};
+
+test("a play without continuations has a single session", () => {
+  const sessions = buildPlaySessions(startMeeting, []);
+
+  assert.deepEqual(
+    sessions.map((session) => session.kind),
+    ["start"],
+  );
+});
+
+test("sessions run chronologically with the start meeting first", () => {
+  const sessions = buildPlaySessions(startMeeting, [
+    sundayMeeting,
+    saturdayMeeting,
+  ]);
+
+  assert.deepEqual(
+    sessions.map((session) => [session.kind, session.meeting.id]),
+    [
+      ["start", "meeting-start"],
+      ["continuation", "meeting-saturday"],
+      ["continuation", "meeting-sunday"],
+    ],
+  );
+});
+
+test("a spontaneous play continued later shows only its continuation sessions", () => {
+  const sessions = buildPlaySessions(null, [saturdayMeeting]);
+
+  assert.deepEqual(
+    sessions.map((session) => [session.kind, session.meeting.id]),
+    [["continuation", "meeting-saturday"]],
   );
 });

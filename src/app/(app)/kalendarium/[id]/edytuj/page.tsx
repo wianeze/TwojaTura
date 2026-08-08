@@ -72,6 +72,7 @@ export default async function EditMeetingPage({
           initialValues={formData.values}
           locationSuggestions={locationSuggestions}
           invitableMembers={formData.invitableMembers}
+          continuablePlays={formData.continuablePlays}
           submitLabel="Zapisz zmiany"
           pendingLabel="Zapisujemy spotkanie…"
         />

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActionButton, ActionLink } from "@/components/ui/action-button";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
@@ -8,12 +9,14 @@ import {
   saveMeetingAvailabilityAction,
 } from "@/features/meetings/actions";
 import { DeleteMeetingButton } from "@/features/meetings/delete-meeting-button";
+import type { MeetingChronicleLock } from "@/features/meetings/meeting-deletion";
 import {
   formatConfirmedAttendeesLabel,
   formatMeetingDateRange,
   getMeetingDateBadgeParts,
 } from "@/features/meetings/formatting";
 import { MeetingAvailabilityForm } from "@/features/meetings/meeting-availability-form";
+import { MeetingContinuationSummary } from "@/features/meetings/meeting-continuation-summary";
 import { MeetingGameProposals } from "@/features/meetings/meeting-game-proposals";
 import {
   canManageMeetingConfirmation,
@@ -30,10 +33,22 @@ function SheetRule() {
   return (
     <span
       aria-hidden="true"
-      className="block h-px bg-[#8b6743]/30 shadow-[0_1px_0_rgba(255,255,255,0.5)]"
+      className="block h-px bg-[#8b6743]/70 shadow-[0_1px_0_rgba(255,255,255,0.5)]"
     />
   );
 }
+
+/*
+  Jeden, wspólny kolor dla wszystkich separatorów na tej kartce (poziomych
+  border-t/border-b i nowego pionowego border-l) — musi iść przez inline
+  `style`, nie przez Tailwindową klasę `border-[...]`/`divide-[...]`: globalna,
+  NIELAYEROWANA reguła `* { border-color: var(--border) }` (globals.css) bije
+  każdą warstwowaną utility koloru obramowania niezależnie od specyficzności,
+  więc np. `divide-[#8b6743]/70` renderowałoby się i tak jako neutralny,
+  blady `--border` (#dacdbb) — dokładnie ten sam efekt, który sprawiał, że
+  linie „zlewały się z pergaminem". Inline style bezwarunkowo tę regułę bije.
+*/
+const SEPARATOR_LINE_COLOR = "rgba(139, 103, 67, 0.65)";
 
 /*
   Status potwierdzenia spotkania ma dwa miejsca na kartce: tekst "N osób
@@ -83,6 +98,13 @@ export default async function MeetingDetailsPage({
   // "Zapisz partię" ma sens dopiero, gdy wieczór faktycznie się odbył —
   // przed zakończeniem spotkania nie ma jeszcze czego zapisywać w Kronice.
   const canLogPlay = meeting.status === "completed";
+  // Obie krawędzie do Kroniki blokują usunięcie spotkania; komunikat mówi,
+  // którą z nich trzeba zdjąć najpierw (to samo rozstrzyga RPC delete_meeting).
+  const chronicleLock: MeetingChronicleLock | null = meeting.hasChroniclePlay
+    ? "start"
+    : meeting.continuedPlay
+      ? "continuation"
+      : null;
   // Ile osób realnie odpowiedziało "Będę" — niezależnie od statusu
   // potwierdzenia terminu przez organizatora/admina.
   const confirmedAttendeesCount = meeting.attendanceRows.filter(
@@ -98,14 +120,19 @@ export default async function MeetingDetailsPage({
       {canLogPlay ? (
         <div
           style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
-          className="anim-rise-in-fast mb-2 flex justify-end"
+          className="anim-rise-in-fast mb-2 flex flex-wrap justify-end gap-2"
         >
+          {/* Przy kontynuacji „Wróć do partii” należy do sekcji gier niżej —
+              tutaj zostaje wyłącznie możliwość zapisania INNEJ partii z tego
+              samego wieczoru, i to jako akcja drugoplanowa, żeby nie zachęcać
+              do założenia drugiego wpisu o tej samej rozgrywce. */}
           <ActionLink
             action="chronicle"
             size="compact"
+            emphasis={meeting.continuedPlay ? "secondary" : "primary"}
             href={`/kronika/nowa?meeting=${meeting.id}`}
           >
-            Zapisz partię
+            {meeting.continuedPlay ? "Zapisz inną partię" : "Zapisz partię"}
           </ActionLink>
         </div>
       ) : null}
@@ -139,7 +166,7 @@ export default async function MeetingDetailsPage({
           {meeting.canEdit && meeting.canDelete ? (
             <DeleteMeetingButton
               action={deleteMeetingAction.bind(null, meeting.id)}
-              hasChroniclePlay={meeting.hasChroniclePlay}
+              chronicleLock={chronicleLock}
             />
           ) : null}
         </div>
@@ -162,6 +189,22 @@ export default async function MeetingDetailsPage({
           >
             {formatConfirmedAttendeesLabel(confirmedAttendeesCount)}
           </p>
+
+          {/* Kapsułka kontynuacji prowadzi do wpisu Kroniki, a nie do jego
+              edycji — z karty partii widać całą historię sesji. */}
+          {meeting.continuedPlay ? (
+            <Link
+              href={`/kronika/${meeting.continuedPlay.playId}`}
+              className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#b9884a]/60 bg-[#f7e7c4] px-3.5 py-1.5 text-[0.8rem] font-semibold text-[#5c3f1f] transition hover:bg-[#f2dcae]"
+            >
+              <span className="shrink-0 text-[0.65rem] font-bold tracking-[0.14em] uppercase opacity-70">
+                Kontynuacja
+              </span>
+              <span className="min-w-0 truncate">
+                {meeting.continuedPlay.gameTitle}
+              </span>
+            </Link>
+          ) : null}
 
           <div className="flex gap-4 sm:gap-6">
             <div className="w-[7rem] shrink-0 text-center sm:w-[8rem]">
@@ -188,20 +231,46 @@ export default async function MeetingDetailsPage({
               ) : null}
             </div>
 
-            <div className="min-w-0 flex-1 divide-y divide-[#c9aa7f]/30">
-              <div className="pb-2">
+            {/*
+              Pionowy separator = border-l na tej kolumnie, nie osobny
+              element — bo domyślne `align-items: stretch` flexboksa (rodzic
+              nie ma własnego items-*) rozciąga obie kolumny do wysokości
+              wyższej z nich, więc linia zaczyna i kończy się dokładnie na
+              wysokości tego wiersza, nigdy nie dotykając ramki kartki.
+              Wstawienie osobnego elementu-slupka między kolumny podwoiłoby
+              odstęp (gap po obu jego stronach) — border na istniejącej
+              kolumnie nie rusza `gap-4 sm:gap-6` w ogóle.
+            */}
+            <div
+              className="min-w-0 flex-1 border-l pl-3 sm:pl-4"
+              style={{ borderLeftColor: SEPARATOR_LINE_COLOR }}
+            >
+              <div
+                className="border-b pb-2"
+                style={{ borderBottomColor: SEPARATOR_LINE_COLOR }}
+              >
                 <h1 className="font-display text-[1.25rem] leading-tight font-semibold text-[#3f2a1a] sm:text-[1.55rem]">
                   {meeting.title}
                 </h1>
               </div>
 
               {meeting.location ? (
-                <p className="py-2 text-[0.85rem] text-[#6c5644]">
+                <p
+                  className="border-b py-2 text-[0.85rem] text-[#6c5644]"
+                  style={{ borderBottomColor: SEPARATOR_LINE_COLOR }}
+                >
                   {meeting.location}
                 </p>
               ) : null}
 
-              <p className="py-2 text-[0.85rem] text-[#6c5644]">
+              <p
+                className={`py-2 text-[0.85rem] text-[#6c5644] ${meeting.description ? "border-b" : ""}`}
+                style={
+                  meeting.description
+                    ? { borderBottomColor: SEPARATOR_LINE_COLOR }
+                    : undefined
+                }
+              >
                 Organizuje{" "}
                 <span className="font-semibold text-[#4e3528]">
                   {meeting.createdBy.displayName}
@@ -279,18 +348,25 @@ export default async function MeetingDetailsPage({
           />
         </div>
 
-        {/* SEKCJA 3 — Propozycje gier: nagłówek + przycisk „Proponuj grę"
-            renderuje MeetingGameProposals we własnym, jednym wierszu. */}
+        {/* SEKCJA 3 — gry na wieczór. Miejsce i szkielet są stałe, zmienia się
+            wyłącznie treść: spotkanie z kontynuacją ma grę już ustaloną, więc
+            zamiast propozycji i głosowania pokazuje kontynuowaną partię.
+            Wcześniejsze propozycje zostają w bazie nietknięte i wracają razem z
+            tą sekcją, gdy ktoś zdejmie kontynuację w edycji spotkania. */}
         <div
           style={{ animationDelay: `${getEntranceStaggerDelayMs(4)}ms` }}
           className="anim-rise-in-fast"
         >
-          <MeetingGameProposals
-            meetingId={meeting.id}
-            games={meeting.gameVotes}
-            availableGames={meeting.availableGames}
-            recommendedGames={meeting.recommendedGames}
-          />
+          {meeting.continuedPlay ? (
+            <MeetingContinuationSummary play={meeting.continuedPlay} />
+          ) : (
+            <MeetingGameProposals
+              meetingId={meeting.id}
+              games={meeting.gameVotes}
+              availableGames={meeting.availableGames}
+              recommendedGames={meeting.recommendedGames}
+            />
+          )}
         </div>
       </section>
     </div>

@@ -38,6 +38,17 @@ function statusLabel(response: boolean | null) {
   return "Brak odpowiedzi";
 }
 
+/*
+  Kolor linii między wierszami musi iść przez inline `style`, nie przez
+  Tailwindową klasę `border-[...]`: globalna, NIELAYEROWANA reguła
+  `* { border-color: var(--border) }` (globals.css) bije każdą warstwowaną
+  utility koloru obramowania niezależnie od specyficzności — border-b
+  renderowałby się jako blady, neutralny `--border` (#dacdbb), nie jako
+  zamierzony ciemniejszy brąz. Ta sama wartość co separatory na stronie
+  szczegółów spotkania (page.tsx), żeby cała kartka mówiła jednym językiem.
+*/
+const SEPARATOR_LINE_COLOR = "rgba(139, 103, 67, 0.65)";
+
 export function MeetingAvailabilityForm({
   action,
   rows,
@@ -113,8 +124,9 @@ export function MeetingAvailabilityForm({
               key={row.member.id}
               style={{
                 animationDelay: `${getEntranceStaggerDelayMs(index)}ms`,
+                borderBottomColor: SEPARATOR_LINE_COLOR,
               }}
-              className={`anim-rise-in-fast flex items-center justify-between gap-3 border-b border-[#c9aa7f]/25 py-2 ${
+              className={`anim-rise-in-fast flex items-center justify-between gap-3 border-b py-2 ${
                 isSelf ? "border-l-2 border-l-[#c58a3a] pl-2.5" : ""
               }`}
             >

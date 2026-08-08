@@ -30,6 +30,23 @@ type DatabaseErrorLike = {
 };
 
 function mapMeetingDatabaseError(error: DatabaseErrorLike) {
+  // Kontynuacja dzieli kody błędów z resztą walidacji spotkania (23514 dla
+  // reguły, 23503 dla brakującego wiersza), więc rozpoznajemy ją po treści —
+  // inaczej użytkownik zobaczyłby komunikat o godzinach zakończenia.
+  const message = error.message?.toLowerCase() ?? "";
+
+  if (message.includes("continued play does not exist")) {
+    return "Wybrana partia nie jest już dostępna. Odśwież stronę i wybierz ponownie.";
+  }
+
+  if (message.includes("play in progress can be continued")) {
+    return "Kontynuować można wyłącznie partię w toku. Ta jest już zakończona.";
+  }
+
+  if (message.includes("cannot continue a play that already starts at it")) {
+    return "To spotkanie jest początkiem tej partii — nie może być własną kontynuacją.";
+  }
+
   switch (error.code) {
     case "42501":
       return "Nie masz uprawnień do tej operacji.";
@@ -73,6 +90,7 @@ export async function createMeetingAction(
       p_starts_at: validation.data.startsAt,
       p_ends_at: validation.data.endsAt,
       p_invited_user_ids: validation.data.invitedUserIds,
+      p_continued_play_id: validation.data.continuedPlayId ?? undefined,
     },
   );
 
@@ -148,6 +166,9 @@ export async function updateMeetingAction(
       p_starts_at: validation.data.startsAt,
       p_ends_at: validation.data.endsAt,
       p_invited_user_ids: validation.data.invitedUserIds,
+      // Brak wyboru = wyzerowanie wskaźnika (RPC ma `default null`), czyli
+      // odznaczenie kontynuacji jest zwykłą edycją spotkania.
+      p_continued_play_id: validation.data.continuedPlayId ?? undefined,
     },
   );
 

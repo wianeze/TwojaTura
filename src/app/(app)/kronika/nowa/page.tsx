@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActionLink } from "@/components/ui/action-button";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
+import { getMeetingDetails } from "@/features/meetings/queries";
 import { createPlayAction } from "@/features/plays/actions";
 import { PlayForm } from "@/features/plays/play-form";
 import { getPlayCreateFormData } from "@/features/plays/queries";
@@ -18,7 +20,11 @@ export default async function NewPlayPage({
   if (memberState.status !== "active-member") notFound();
 
   const { meeting } = await searchParams;
-  const formData = await getPlayCreateFormData(meeting);
+  const [formData, meetingDetails] = await Promise.all([
+    getPlayCreateFormData(meeting),
+    meeting ? getMeetingDetails(meeting) : Promise.resolve(null),
+  ]);
+  const continuedPlay = meetingDetails?.continuedPlay ?? null;
 
   return (
     // Ta sama kolumna co w szczegółach partii, ale szersza: formularz ma rząd
@@ -47,6 +53,27 @@ export default async function NewPlayPage({
           Wróć do Kroniki
         </ActionLink>
       </div>
+
+      {/* Spotkanie kontynuuje rozpoczętą partię — zanim ktokolwiek założy tu
+          drugi wpis o tej samej rozgrywce, pokazujemy drogę powrotną do
+          istniejącego. Formularz zostaje w pełni dostępny: zagranie w inną grę
+          tego samego wieczoru jest w porządku. */}
+      {continuedPlay ? (
+        <div className="rounded-2xl border border-[#b9884a]/55 bg-[#f7e7c4]/70 px-4 py-3 text-sm text-[#5c3f1f]">
+          <p>
+            To spotkanie kontynuuje partię{" "}
+            <span className="font-semibold">{continuedPlay.gameTitle}</span>.
+            Jeśli zapisujesz właśnie tę grę —{" "}
+            <Link
+              href={`/kronika/${continuedPlay.playId}/edytuj`}
+              className="font-semibold underline decoration-[#b37a46]/60 underline-offset-4"
+            >
+              wróć do tamtego wpisu
+            </Link>{" "}
+            zamiast zakładać nowy.
+          </p>
+        </div>
+      ) : null}
 
       {/* Border arkusza sam trzyma treść z dala od postrzępionych brzegów,
           więc formularz nie potrzebuje własnego paddingu. */}
