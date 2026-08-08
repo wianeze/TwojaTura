@@ -7,6 +7,7 @@ import {
   formatQuestRewardPreview,
   formatDashboardWinnerSummary,
   getConfirmedMeetingAlert,
+  pickActiveMeeting,
   pickUpcomingMeeting,
   sortDashboardQuests,
   sumQuestFollowUpPoints,
@@ -826,6 +827,56 @@ test("nearest meeting prefers confirmed over earlier planned", () => {
   );
 
   assert.equal(meeting?.id, "confirmed");
+});
+
+test("active meeting has priority over a later upcoming meeting", () => {
+  const now = new Date("2026-07-18T18:00:00.000Z");
+  const activeMeeting = pickActiveMeeting(
+    [
+      buildUpcomingMeeting({
+        id: "active",
+        status: "confirmed",
+        startsAt: "2026-07-18T17:00:00.000Z",
+        endsAt: "2026-07-18T21:00:00.000Z",
+      }),
+      buildUpcomingMeeting({
+        id: "upcoming",
+        startsAt: "2026-07-20T16:00:00.000Z",
+      }),
+    ],
+    now,
+  );
+
+  assert.equal(activeMeeting?.id, "active");
+  assert.equal(
+    pickUpcomingMeeting(
+      [
+        buildUpcomingMeeting({
+          id: "active",
+          startsAt: "2026-07-18T17:00:00.000Z",
+          endsAt: "2026-07-18T21:00:00.000Z",
+        }),
+        buildUpcomingMeeting({
+          id: "upcoming",
+          startsAt: "2026-07-20T16:00:00.000Z",
+        }),
+      ],
+      now,
+    )?.id,
+    "upcoming",
+  );
+});
+
+test("meeting is no longer active at its scheduled end", () => {
+  const meeting = buildUpcomingMeeting({
+    startsAt: "2026-07-18T17:00:00.000Z",
+    endsAt: "2026-07-18T21:00:00.000Z",
+  });
+
+  assert.equal(
+    pickActiveMeeting([meeting], new Date("2026-07-18T21:00:00.000Z")),
+    null,
+  );
 });
 
 test("confirmed meeting exposes a readable organizer confirmation status", () => {

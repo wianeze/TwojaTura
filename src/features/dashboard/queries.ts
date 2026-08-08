@@ -14,6 +14,7 @@ import {
   buildLeaderboardPreview,
   buildRecentPlayPreviews,
   formatDashboardWinnerSummary,
+  pickActiveMeeting,
   pickUpcomingMeeting,
 } from "./formatting";
 import { buildDashboardQuests } from "./quests";
@@ -252,7 +253,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const nowIso = now.toISOString();
 
   const [
-    futureMeetingsResult,
+    availableMeetingsResult,
     finishedMeetingsResult,
     ratingsResult,
     ownGamesCountResult,
@@ -267,7 +268,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       .select("id, title, location, status, starts_at, ends_at")
       .is("deleted_at", null)
       .in("status", ["planned", "confirmed"])
-      .gte("starts_at", nowIso)
+      .gte("ends_at", nowIso)
       .order("starts_at", { ascending: true }),
     supabase
       .from("meetings")
@@ -298,7 +299,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   ]);
 
   if (
-    futureMeetingsResult.error ||
+    availableMeetingsResult.error ||
     finishedMeetingsResult.error ||
     ratingsResult.error ||
     ownGamesCountResult.error ||
@@ -309,7 +310,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     throw new Error("Nie udało się zbudować danych Stołu.");
   }
 
-  const futureMeetings = (futureMeetingsResult.data ?? []) as MeetingRow[];
+  const futureMeetings = (availableMeetingsResult.data ?? []) as MeetingRow[];
   const futureMeetingIds = futureMeetings.map((meeting) => meeting.id);
 
   const [availabilityResult, votesResult, rankingResult] = await Promise.all([
@@ -461,10 +462,12 @@ export async function getDashboardData(): Promise<DashboardData> {
       0,
     quests,
   );
+  const activeMeeting = pickActiveMeeting(upcomingMeetings, now);
+  const nextMeeting = pickUpcomingMeeting(upcomingMeetings, now);
   const summary = buildDashboardHeroSummary({
     memberName: member.displayName,
     quests,
-    hasFutureMeeting: upcomingMeetings.length > 0,
+    hasFutureMeeting: nextMeeting !== null,
   });
 
   const leaderboardUserIds = [
@@ -524,7 +527,8 @@ export async function getDashboardData(): Promise<DashboardData> {
     summary,
     pointsSummary,
     quests,
-    upcomingMeeting: pickUpcomingMeeting(upcomingMeetings, now),
+    activeMeeting,
+    upcomingMeeting: nextMeeting,
     leaderboard: buildLeaderboardPreview({
       currentPoints: pointsSummary.currentPoints,
       entries: leaderboardEntries,

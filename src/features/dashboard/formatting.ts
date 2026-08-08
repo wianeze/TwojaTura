@@ -188,7 +188,7 @@ export function pickUpcomingMeeting(
   now = new Date(),
 ) {
   const futureMeetings = meetings.filter(
-    (meeting) => new Date(meeting.startsAt).getTime() >= now.getTime(),
+    (meeting) => new Date(meeting.startsAt).getTime() > now.getTime(),
   );
 
   const nearestConfirmed = futureMeetings
@@ -204,6 +204,40 @@ export function pickUpcomingMeeting(
     futureMeetings.sort(
       (left, right) =>
         new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
+    )[0] ?? null
+  );
+}
+
+/**
+ * Trwające spotkanie ma pierwszeństwo przed kolejnym. Dashboard otrzymuje
+ * wyłącznie spotkania planned/confirmed, więc wpis oznaczony jako zakończony
+ * nie może tu wrócić nawet, gdy jego czas byłby nieprawidłowy.
+ */
+export function pickActiveMeeting(
+  meetings: DashboardUpcomingMeeting[],
+  now = new Date(),
+) {
+  const nowTime = now.getTime();
+  const activeMeetings = meetings.filter((meeting) => {
+    const startsAt = new Date(meeting.startsAt).getTime();
+    const endsAt = new Date(meeting.endsAt).getTime();
+
+    return startsAt <= nowTime && nowTime < endsAt;
+  });
+
+  const activeConfirmed = activeMeetings
+    .filter((meeting) => meeting.status === "confirmed")
+    .sort(
+      (left, right) =>
+        new Date(left.endsAt).getTime() - new Date(right.endsAt).getTime(),
+    )[0];
+
+  if (activeConfirmed) return activeConfirmed;
+
+  return (
+    activeMeetings.sort(
+      (left, right) =>
+        new Date(left.endsAt).getTime() - new Date(right.endsAt).getTime(),
     )[0] ?? null
   );
 }

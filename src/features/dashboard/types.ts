@@ -129,6 +129,7 @@ export type DashboardData = {
   summary: DashboardHeroSummary;
   pointsSummary: DashboardPointsSummary;
   quests: DashboardQuest[];
+  activeMeeting: DashboardUpcomingMeeting | null;
   upcomingMeeting: DashboardUpcomingMeeting | null;
   leaderboard: DashboardLeaderboardPreview;
   recentPlays: DashboardRecentPlayPreview[];

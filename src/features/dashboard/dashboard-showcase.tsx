@@ -83,7 +83,25 @@ function MeetingStatusBadge({
 
 function getUpcomingMeetingPanelClasses(
   state: "confirmed" | "decision-required" | "awaiting-group" | "completed",
+  isActiveMeeting = false,
 ) {
+  if (isActiveMeeting) {
+    return {
+      panel:
+        "border border-[#d99a39] bg-[radial-gradient(circle_at_16%_12%,rgba(255,238,179,0.94),transparent_35%),radial-gradient(circle_at_84%_88%,rgba(185,73,18,0.28),transparent_46%),linear-gradient(145deg,rgba(255,247,218,0.98),rgba(240,198,110,0.94))] shadow-[inset_0_0_0_1px_rgba(255,248,205,0.78),0_0_30px_rgba(255,153,32,0.35),0_18px_38px_rgba(90,39,5,0.24)] motion-safe:animate-[pulse_3.6s_ease-in-out_infinite]",
+      tile: "border-[#d89b40] bg-[linear-gradient(145deg,rgba(255,252,231,0.9),rgba(248,215,143,0.82))]",
+      tileLabel: "text-[#a64d16]",
+      tileValue: "text-[#5f3013]",
+      attendees: "bg-[#7d3515] text-[#fff2c7]",
+      coverFrame:
+        "border-[#c9872d] bg-[linear-gradient(145deg,rgba(255,249,219,0.96),rgba(238,185,89,0.9))] shadow-[inset_0_0_0_1px_rgba(255,255,227,0.72),0_10px_24px_rgba(113,48,5,0.24)]",
+      coverBorder: "border-[#c98b36] bg-[#fff1c8]",
+      coverFallback: "border-[#c98b36] bg-[#fff0c4] text-[#98531a]",
+      link: "text-[#9a3d14] underline decoration-[#9a3d14]/35 underline-offset-4",
+      action: "border-[#8f3b12] bg-[#753012] text-[#fff0c4] shadow-[0_6px_16px_rgba(104,42,5,0.24)]",
+    };
+  }
+
   if (state === "confirmed") {
     return {
       panel:
@@ -246,9 +264,11 @@ function MobileLeaderboardRow({ entry }: { entry: DashboardLeaderboardEntry }) {
 
 export async function DashboardShowcase() {
   const data = await getDashboardData();
-  const upcoming = data.upcomingMeeting;
+  const activeMeeting = data.activeMeeting;
+  const upcoming = activeMeeting ?? data.upcomingMeeting;
+  const isActiveMeeting = activeMeeting !== null;
   const upcomingVisual = upcoming
-    ? getUpcomingMeetingPanelClasses(upcoming.visualState)
+    ? getUpcomingMeetingPanelClasses(upcoming.visualState, isActiveMeeting)
     : null;
   const upcomingRange = upcoming
     ? formatMeetingDateRange({
@@ -311,19 +331,39 @@ export async function DashboardShowcase() {
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-accent text-[0.68rem] font-bold tracking-[0.18em] uppercase">
-              Najbliższe spotkanie
+              {isActiveMeeting ? "Spotkanie w trakcie" : "Najbliższe spotkanie"}
             </p>
             <h2 className="font-display mt-1 truncate text-[1.25rem] font-semibold text-[#4c3528]">
-              {upcoming ? upcoming.title : "Brak przyszłego spotkania"}
+              {upcoming
+                ? isActiveMeeting
+                  ? "GRAMY!"
+                  : upcoming.title
+                : "Brak przyszłego spotkania"}
             </h2>
+            {isActiveMeeting && upcoming ? (
+              <>
+                <p className="mt-0.5 truncate text-sm font-semibold text-[#713515]">
+                  {upcoming.title}
+                </p>
+                <p className="mt-0.5 text-xs text-[#8a4618]">
+                  Drużyna zebrała się przy stole.
+                </p>
+              </>
+            ) : null}
           </div>
 
           {upcoming ? (
             <div className="flex flex-wrap items-center gap-1.5">
-              <MeetingStatusBadge
-                label={upcoming.visualLabel}
-                state={upcoming.visualState}
-              />
+              {isActiveMeeting ? (
+                <span className="inline-flex items-center rounded-full bg-[#7d3515] px-2.5 py-1 text-[0.65rem] font-bold text-[#fff2c7] shadow-[0_2px_8px_rgba(96,37,5,0.2)]">
+                  TRWA TERAZ
+                </span>
+              ) : (
+                <MeetingStatusBadge
+                  label={upcoming.visualLabel}
+                  state={upcoming.visualState}
+                />
+              )}
               <span
                 className={`rounded-full px-2.5 py-1 text-[0.65rem] font-semibold ${upcomingVisual?.attendees ?? "bg-[#f4ead3] text-[#705338]"}`}
               >
@@ -410,9 +450,9 @@ export async function DashboardShowcase() {
               </div>
               <Link
                 href={upcoming.href}
-                className={`inline-flex w-[5.7rem] items-center justify-center rounded-[0.78rem] border px-2 py-1.5 text-[0.68rem] font-bold ${upcomingVisual?.action ?? "border-[#d8b3b9] bg-[#fff7f8] text-[#b14833]"}`}
+                className={`inline-flex w-[5.7rem] items-center justify-center rounded-[0.78rem] border px-2 py-1.5 font-bold ${isActiveMeeting ? "text-[0.55rem] leading-tight whitespace-normal" : "text-[0.68rem]"} ${upcomingVisual?.action ?? "border-[#d8b3b9] bg-[#fff7f8] text-[#b14833]"}`}
               >
-                Przejdź {"→"}
+                {isActiveMeeting ? "Przejdź do spotkania" : "Przejdź →"}
               </Link>
             </div>
           </div>
@@ -463,14 +503,25 @@ export async function DashboardShowcase() {
             className={`anim-rise-in-fast ${upcomingVisual?.panel ?? "paper-wash shadow-[0_12px_26px_rgba(32,16,8,0.14)]"} min-w-0 overflow-hidden p-2.5`}
           >
             <p className="text-accent text-center text-[0.66rem] font-bold tracking-[0.12em] uppercase">
-              Najbliższe spotkanie
+              {isActiveMeeting ? "Spotkanie w trakcie" : "Najbliższe spotkanie"}
             </p>
 
             {upcoming && upcomingRange ? (
               <div className="mt-0.5">
                 <h3 className="font-display truncate text-center text-[1rem] leading-tight font-bold text-[#4c3528]">
-                  {upcoming.title}
+                  {isActiveMeeting ? "GRAMY!" : upcoming.title}
                 </h3>
+
+                {isActiveMeeting ? (
+                  <div className="mt-0.5 text-center">
+                    <p className="truncate text-[0.7rem] font-semibold text-[#713515]">
+                      {upcoming.title}
+                    </p>
+                    <p className="text-[0.56rem] text-[#8a4618]">
+                      Drużyna zebrała się przy stole.
+                    </p>
+                  </div>
+                ) : null}
 
                 <div className="mt-1 flex flex-nowrap items-center justify-center gap-0.5">
                   <span
@@ -478,15 +529,21 @@ export async function DashboardShowcase() {
                   >
                     {upcoming.confirmedAttendeesCount} osób potwierdziło
                   </span>
-                  <MeetingStatusBadge
-                    label={
-                      upcoming.visualLabel === "Do ustalenia"
-                        ? "Niepotwierdzone"
-                        : upcoming.visualLabel
-                    }
-                    state={upcoming.visualState}
-                    compact
-                  />
+                  {isActiveMeeting ? (
+                    <span className="inline-flex items-center rounded-full bg-[#7d3515] px-1 py-0.5 text-[0.46rem] font-bold whitespace-nowrap text-[#fff2c7]">
+                      TRWA TERAZ
+                    </span>
+                  ) : (
+                    <MeetingStatusBadge
+                      label={
+                        upcoming.visualLabel === "Do ustalenia"
+                          ? "Niepotwierdzone"
+                          : upcoming.visualLabel
+                      }
+                      state={upcoming.visualState}
+                      compact
+                    />
+                  )}
                 </div>
 
                 <div className="mt-1.5 space-y-1">
@@ -564,7 +621,7 @@ export async function DashboardShowcase() {
                   href={upcoming.href}
                   className={`mt-1.5 flex w-full items-center justify-center rounded-[0.6rem] border px-2 py-1.5 text-[0.62rem] font-bold ${upcomingVisual?.action ?? "border-[#d8b3b9] bg-[#fff7f8] text-[#b14833]"}`}
                 >
-                  Przejdź {"→"}
+                  {isActiveMeeting ? "Przejdź do spotkania" : "Przejdź →"}
                 </Link>
               </div>
             ) : (
