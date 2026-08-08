@@ -7,19 +7,26 @@ import { GameCover } from "@/components/ui/game-cover";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { proposeMeetingGameAction } from "./actions";
 import { formatMeetingGameResponseCounts } from "./formatting";
+import { getMeetingRecommendationLabel } from "./game-recommendations";
 import { MeetingGameResponseToggle } from "./meeting-game-response-toggle";
-import type { MeetingGameCandidateOption, MeetingGameVoteItem } from "./types";
+import type {
+  MeetingGameCandidateOption,
+  MeetingGameRecommendation,
+  MeetingGameVoteItem,
+} from "./types";
 
 type MeetingGameProposalsProps = {
   meetingId: string;
   games: MeetingGameVoteItem[];
   availableGames: MeetingGameCandidateOption[];
+  recommendedGames: MeetingGameRecommendation[];
 };
 
 export function MeetingGameProposals({
   meetingId,
   games,
   availableGames,
+  recommendedGames,
 }: MeetingGameProposalsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -174,10 +181,10 @@ export function MeetingGameProposals({
                 <div className="relative z-10 px-4 pt-4 pb-3 sm:px-5 sm:pt-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="[text-shadow:0_1px_3px_rgba(10,5,2,0.9)] text-[0.62rem] font-bold tracking-[0.16em] text-[#e8c383] uppercase">
+                      <p className="text-[0.62rem] font-bold tracking-[0.16em] text-[#e8c383] uppercase [text-shadow:0_1px_3px_rgba(10,5,2,0.9)]">
                         Półka spotkania
                       </p>
-                      <h3 className="font-display [text-shadow:0_2px_5px_rgba(10,5,2,0.92)] mt-1 text-2xl leading-tight font-bold text-[#fbeed9] sm:text-[1.85rem]">
+                      <h3 className="font-display mt-1 text-2xl leading-tight font-bold text-[#fbeed9] [text-shadow:0_2px_5px_rgba(10,5,2,0.92)] sm:text-[1.85rem]">
                         Wybierz grę do propozycji
                       </h3>
                     </div>
@@ -200,6 +207,78 @@ export function MeetingGameProposals({
                 </div>
 
                 <div className="max-h-[52vh] space-y-2 overflow-y-auto p-4 sm:p-5">
+                  {recommendedGames.length > 0 && query.trim() === "" ? (
+                    <section className="mb-4 rounded-[1rem] border border-[#efbd65]/45 bg-[linear-gradient(135deg,rgba(94,47,18,0.84),rgba(42,20,12,0.78))] p-3 shadow-[0_0_18px_rgba(218,142,48,0.2)]">
+                      <div className="mb-2.5 flex items-end justify-between gap-3">
+                        <div>
+                          <p className="text-[0.67rem] font-extrabold tracking-[0.14em] text-[#ffd88a] uppercase">
+                            ✨ Dla tej drużyny
+                          </p>
+                          <p className="mt-0.5 text-[0.7rem] text-[#ead6b5]">
+                            Gry, które najlepiej pasują do tej ekipy
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+                        {recommendedGames.map((game) => {
+                          const average = game.averageRating.toLocaleString(
+                            "pl-PL",
+                            {
+                              minimumFractionDigits: 1,
+                              maximumFractionDigits: 1,
+                            },
+                          );
+                          const explanation = [
+                            `Średnia ${average} z ${game.ratingCount} ocen uczestników.`,
+                            `${game.wantsAgainCount} osób chce zagrać ponownie.`,
+                            game.historicalPositiveCount > 0
+                              ? `${game.historicalPositiveCount} osób wcześniej głosowało na tę grę.`
+                              : "Brak wcześniejszych pozytywnych głosów tej ekipy.",
+                          ].join(" ");
+
+                          return (
+                            <button
+                              key={game.gameId}
+                              type="button"
+                              disabled={pending}
+                              onClick={() => handlePropose(game.gameId)}
+                              className="group relative flex w-[12.5rem] shrink-0 items-center gap-2.5 overflow-hidden rounded-xl border border-[#e8bb70]/35 bg-black/24 p-2 text-left shadow-[0_3px_10px_rgba(10,5,2,0.28)] transition hover:-translate-y-0.5 hover:border-[#ffd17c]/70 hover:bg-[#6c371d]/70 focus-visible:ring-2 focus-visible:ring-[#ffd17c] focus-visible:outline-none disabled:cursor-wait disabled:opacity-70 sm:w-[14rem]"
+                              aria-label={`Zgłoś ${game.title}. ${explanation}`}
+                              title={explanation}
+                            >
+                              <div className="w-12 shrink-0 sm:w-14">
+                                <GameCover
+                                  title={game.title}
+                                  coverUrl={game.coverUrl}
+                                  size="micro"
+                                  fitParent
+                                  className="w-full"
+                                />
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[0.58rem] leading-tight font-extrabold text-[#ffd88a]">
+                                  {getMeetingRecommendationLabel(game.label)}
+                                </p>
+                                <p className="mt-1 line-clamp-2 text-xs leading-tight font-bold text-[#fff1d8]">
+                                  {game.title}
+                                </p>
+                                <p className="mt-1 text-[0.58rem] leading-tight text-[#e9cfaa]">
+                                  {game.likedCount}/{game.participantCount}{" "}
+                                  graczy lubi tę grę
+                                </p>
+                                <span className="mt-1 inline-block text-[0.56rem] font-bold text-[#f3bd62] underline decoration-[#f3bd62]/45 underline-offset-2">
+                                  Dlaczego?
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ) : null}
+
                   {filteredGames.map((game) => (
                     // Bardzo lekka "mgiełka" zamiast karty: 12% bieli +
                     // backdrop-blur łagodzi słoje drewna pod spodem (bez
@@ -228,10 +307,10 @@ export function MeetingGameProposals({
                         />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="[text-shadow:0_1px_3px_rgba(10,5,2,0.85)] truncate text-sm font-semibold text-[#fbeed9]">
+                        <p className="truncate text-sm font-semibold text-[#fbeed9] [text-shadow:0_1px_3px_rgba(10,5,2,0.85)]">
                           {game.title}
                         </p>
-                        <p className="[text-shadow:0_1px_3px_rgba(10,5,2,0.85)] mt-0.5 text-[0.68rem] text-[#e6cfa8]">
+                        <p className="mt-0.5 text-[0.68rem] text-[#e6cfa8] [text-shadow:0_1px_3px_rgba(10,5,2,0.85)]">
                           Właściciel: {game.owner.displayName}
                         </p>
                       </div>
@@ -268,7 +347,7 @@ export function MeetingGameProposals({
                   ))}
 
                   {filteredGames.length === 0 ? (
-                    <div className="[text-shadow:0_1px_3px_rgba(10,5,2,0.85)] rounded-[1rem] border border-dashed border-white/30 bg-white/12 px-4 py-5 text-sm text-[#fbeed9] backdrop-blur-[3px]">
+                    <div className="rounded-[1rem] border border-dashed border-white/30 bg-white/12 px-4 py-5 text-sm text-[#fbeed9] backdrop-blur-[3px] [text-shadow:0_1px_3px_rgba(10,5,2,0.85)]">
                       Nic nie pasuje do wyszukiwania. Spróbuj wpisać krótszy
                       tytuł.
                     </div>

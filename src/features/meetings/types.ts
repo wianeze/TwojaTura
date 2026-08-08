@@ -1,4 +1,5 @@
 import type { Enums, Tables } from "@/types/database.generated";
+import type { MeetingGameRecommendationScore } from "./game-recommendations";
 
 export type MeetingStatus = Enums<"meeting_status">;
 
@@ -96,6 +97,9 @@ export type MeetingGameCandidateOption = {
   ownResponse: MeetingGameResponse;
 };
 
+export type MeetingGameRecommendation = MeetingGameCandidateOption &
+  MeetingGameRecommendationScore;
+
 export type MeetingDetails = MeetingCardItem & {
   canEdit: boolean;
   canDelete: boolean;
@@ -108,6 +112,7 @@ export type MeetingDetails = MeetingCardItem & {
   invitedUserIds: string[];
   gameVotes: MeetingGameVoteItem[];
   availableGames: MeetingGameCandidateOption[];
+  recommendedGames: MeetingGameRecommendation[];
 };
 
 export type MeetingRecord = Tables<"meetings">;

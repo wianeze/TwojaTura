@@ -289,6 +289,7 @@ export default async function MeetingDetailsPage({
             meetingId={meeting.id}
             games={meeting.gameVotes}
             availableGames={meeting.availableGames}
+            recommendedGames={meeting.recommendedGames}
           />
         </div>
       </section>

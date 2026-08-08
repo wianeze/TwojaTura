@@ -6,11 +6,13 @@ import {
   getMeetingFormValues,
   normalizeMeetingLocationSuggestions,
 } from "./formatting";
+import { buildMeetingGameRecommendations } from "./game-recommendations";
 import type {
   MeetingAttendanceRow,
   MeetingCardItem,
   MeetingDetails,
   MeetingGameCandidateOption,
+  MeetingGameRecommendation,
   MeetingGameVoteItem,
   MeetingMember,
 } from "./types";
@@ -29,6 +31,7 @@ type ProfileRow = Pick<
   "id" | "display_name" | "avatar_url"
 >;
 type RankingRow = Tables<"meeting_game_rankings">;
+type RatingRow = Tables<"ratings">;
 
 function mapMember(profile: ProfileRow): MeetingMember {
   return {
@@ -419,6 +422,67 @@ export async function getMeetingDetails(
     gameOwners,
   );
 
+  // Rekomendacje dotyczą faktycznej ekipy: organizatora oraz osób, które
+  // odpowiedziały TAK. Osoby niezdecydowane i RSVP NIE nie wpływają na wynik.
+  const recommendationParticipantIds = [
+    ...new Set([
+      meeting.created_by,
+      ...availabilityRows
+        .filter((row) => row.is_available)
+        .map((row) => row.user_id),
+    ]),
+  ];
+  const [ratingsResult, historicalResponsesResult] = await Promise.all([
+    supabase
+      .from("ratings")
+      .select("game_id, user_id, overall, wants_to_play_again")
+      .in("user_id", recommendationParticipantIds),
+    supabase
+      .from("meeting_game_responses")
+      .select("game_id, user_id")
+      .in("user_id", recommendationParticipantIds)
+      .eq("wants_to_play", true)
+      .neq("meeting_id", meetingId),
+  ]);
+
+  // Rekomendacje są warstwą pomocniczą. Ewentualny brak dostępu do historii
+  // nie może zepsuć podstawowego wyboru gry — wtedy pełna lista działa jak
+  // wcześniej, a inteligentna sekcja po prostu się nie pojawia.
+  let recommendedGames: MeetingGameRecommendation[] = [];
+  if (!ratingsResult.error && !historicalResponsesResult.error) {
+    const recommendationScores = buildMeetingGameRecommendations({
+      participantIds: recommendationParticipantIds,
+      games: availableGames
+        .filter((game) => !game.alreadyProposed)
+        .map((game) => ({ gameId: game.gameId, title: game.title })),
+      ratings: (
+        (ratingsResult.data ?? []) as Pick<
+          RatingRow,
+          "game_id" | "user_id" | "overall" | "wants_to_play_again"
+        >[]
+      ).map((rating) => ({
+        gameId: rating.game_id,
+        userId: rating.user_id,
+        overall: rating.overall,
+        wantsToPlayAgain: rating.wants_to_play_again,
+      })),
+      historicalPositiveResponses: (historicalResponsesResult.data ?? []).map(
+        (response) => ({
+          gameId: response.game_id,
+          userId: response.user_id,
+        }),
+      ),
+      limit: 5,
+    });
+    const availableGamesById = new Map(
+      availableGames.map((game) => [game.gameId, game] as const),
+    );
+    recommendedGames = recommendationScores.flatMap((score) => {
+      const game = availableGamesById.get(score.gameId);
+      return game ? [{ ...game, ...score }] : [];
+    });
+  }
+
   const canEdit = Boolean(
     actor && (actor.role === "admin" || actor.id === meeting.created_by),
   );
@@ -439,6 +503,7 @@ export async function getMeetingDetails(
     invitedUserIds,
     gameVotes,
     availableGames,
+    recommendedGames,
   };
 }
 
