@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import type {
   AdminFeedbackSubmissionRow,
   FeedbackStatus,
@@ -15,7 +16,6 @@ const STATUS_FILTER_OPTIONS: Array<{
   { value: "all", label: "Wszystkie statusy" },
   { value: "new", label: FEEDBACK_STATUS_LABELS.new },
   { value: "in_progress", label: FEEDBACK_STATUS_LABELS.in_progress },
-  { value: "completed", label: FEEDBACK_STATUS_LABELS.completed },
   { value: "rejected", label: FEEDBACK_STATUS_LABELS.rejected },
 ];
 
@@ -100,6 +100,112 @@ function FeedbackRow({
   );
 }
 
+function FeedbackArchiveDialog({
+  submissions,
+  isOpen,
+  isPending,
+  pendingId,
+  onSave,
+  onClose,
+}: {
+  submissions: AdminFeedbackSubmissionRow[];
+  isOpen: boolean;
+  isPending: boolean;
+  pendingId: string | null;
+  onSave: (
+    submissionId: string,
+    status: FeedbackStatus,
+    adminNote: string,
+  ) => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-100 flex items-end justify-center overflow-x-hidden bg-[#170b08]/78 p-2 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] backdrop-blur-sm sm:items-center sm:p-5"
+      role="presentation"
+      onClick={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="feedback-archive-title"
+        className="cork-board-bg premium-edge anim-rise-in-fast relative isolate flex max-h-[calc(100dvh-env(safe-area-inset-bottom)-6.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[1.6rem] p-2.5 shadow-[0_24px_52px_rgba(10,4,2,0.48)] sm:max-h-[min(48rem,calc(100dvh-2.5rem))] sm:p-3"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="parchment-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.25rem]">
+          <header className="flex items-start justify-between gap-3 border-b border-[#bd966f]/35 px-4 py-3.5 sm:px-5 sm:py-4">
+            <div>
+              <p className="text-accent text-[0.62rem] font-bold tracking-[0.18em] uppercase">
+                Zrealizowane pomysły
+              </p>
+              <h2
+                id="feedback-archive-title"
+                className="font-display mt-1 text-2xl font-semibold text-[#3f2a1a] sm:text-3xl"
+              >
+                Archiwum
+              </h2>
+              <p className="mt-1 text-sm text-[#705846]">
+                {submissions.length}{" "}
+                {submissions.length === 1 ? "zgłoszenie" : "zgłoszeń"}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Zamknij archiwum zgłoszeń"
+              className="grid size-9 shrink-0 place-items-center rounded-full border border-[#a76b43] bg-[#6b3828] text-lg font-bold text-[#fff4df] shadow-[0_4px_10px_rgba(60,27,13,0.2)] transition hover:bg-[#81452f]"
+            >
+              ×
+            </button>
+          </header>
+
+          <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-3 sm:px-5 sm:py-4">
+            {submissions.length === 0 ? (
+              <p className="py-8 text-center text-sm text-[#6f5640]">
+                Archiwum jest puste.
+              </p>
+            ) : (
+              <ul className="space-y-2.5">
+                {submissions.map((submission) => (
+                  <FeedbackRow
+                    key={submission.id}
+                    submission={submission}
+                    isPending={isPending && pendingId === submission.id}
+                    onSave={(status, adminNote) =>
+                      onSave(submission.id, status, adminNote)
+                    }
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </section>
+    </div>,
+    document.body,
+  );
+}
+
 export function FeedbackReviewPanel({
   initialSubmissions,
 }: {
@@ -111,14 +217,23 @@ export function FeedbackReviewPanel({
   );
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  const activeSubmissions = useMemo(
+    () => submissions.filter((item) => item.status !== "completed"),
+    [submissions],
+  );
+  const archivedSubmissions = useMemo(
+    () => submissions.filter((item) => item.status === "completed"),
+    [submissions],
+  );
   const filtered = useMemo(
     () =>
       statusFilter === "all"
-        ? submissions
-        : submissions.filter((item) => item.status === statusFilter),
-    [submissions, statusFilter],
+        ? activeSubmissions
+        : activeSubmissions.filter((item) => item.status === statusFilter),
+    [activeSubmissions, statusFilter],
   );
 
   function handleSave(
@@ -151,6 +266,23 @@ export function FeedbackReviewPanel({
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-display text-xl font-semibold text-[#4c3528]">
+          Zgłoszenia użytkowników
+        </h2>
+        <button
+          type="button"
+          onClick={() => setIsArchiveOpen(true)}
+          aria-haspopup="dialog"
+          className="shrink-0 rounded-full border border-[#8d5b42]/45 bg-[#603827] px-4 py-2 text-xs font-bold text-[#fff0db] shadow-[0_4px_12px_rgba(64,31,18,0.18)] transition hover:bg-[#75432e] focus-visible:ring-2 focus-visible:ring-[#c47a3e] focus-visible:outline-none"
+        >
+          Archiwum
+          {archivedSubmissions.length > 0
+            ? ` (${archivedSubmissions.length})`
+            : ""}
+        </button>
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <select
           value={statusFilter}
@@ -166,7 +298,7 @@ export function FeedbackReviewPanel({
           ))}
         </select>
         <span className="text-xs text-[#6f5640]">
-          {filtered.length} / {submissions.length} zgłoszeń
+          {filtered.length} / {activeSubmissions.length} zgłoszeń
         </span>
       </div>
 
@@ -192,6 +324,15 @@ export function FeedbackReviewPanel({
           ))}
         </ul>
       )}
+
+      <FeedbackArchiveDialog
+        submissions={archivedSubmissions}
+        isOpen={isArchiveOpen}
+        isPending={isPending}
+        pendingId={pendingId}
+        onSave={handleSave}
+        onClose={() => setIsArchiveOpen(false)}
+      />
     </div>
   );
 }

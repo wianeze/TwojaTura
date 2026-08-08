@@ -4,6 +4,10 @@ import type {
   FeedbackStatus,
 } from "@/features/feedback/types";
 import type { AdminAccountRow } from "./types";
+import type {
+  AdminPointAdjustmentRow,
+  AdminReversiblePointEventRow,
+} from "./point-adjustments";
 
 /**
  * Every account, unfiltered by role/visibility — this is the one place in
@@ -55,6 +59,64 @@ export async function listAdminFeedbackSubmissions(
     content: row.content,
     status: row.status,
     adminNote: row.admin_note,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function listAdminPointAdjustments(): Promise<
+  AdminPointAdjustmentRow[]
+> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_list_point_adjustments", {
+    p_limit: 40,
+  });
+
+  if (error) {
+    throw new Error("Nie udało się pobrać historii korekt punktowych.");
+  }
+
+  return (data ?? []).map((row) => ({
+    adjustmentId: row.adjustment_id,
+    adminUserId: row.admin_user_id,
+    adminDisplayName: row.admin_display_name,
+    targetUserId: row.target_user_id,
+    targetDisplayName: row.target_display_name,
+    actionType: row.action_type as AdminPointAdjustmentRow["actionType"],
+    operation: row.operation as AdminPointAdjustmentRow["operation"],
+    delta: row.delta,
+    reason: row.reason,
+    pointEventId: row.point_event_id,
+    reversedPointEventId: row.reversed_point_event_id,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function listAdminReversiblePointEvents(): Promise<
+  AdminReversiblePointEventRow[]
+> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(
+    "admin_list_reversible_point_events",
+    { p_limit: 150 },
+  );
+
+  if (error) {
+    console.error("[admin] reversible point events RPC failed", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    throw new Error("Nie udało się pobrać wpisów możliwych do cofnięcia.");
+  }
+
+  return (data ?? []).map((row) => ({
+    pointEventId: row.point_event_id,
+    targetUserId: row.target_user_id,
+    targetDisplayName: row.target_display_name,
+    actionType: row.action_type as AdminReversiblePointEventRow["actionType"],
+    points: row.points,
+    description: row.description,
     createdAt: row.created_at,
   }));
 }

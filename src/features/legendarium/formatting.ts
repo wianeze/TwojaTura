@@ -1,17 +1,30 @@
+import {
+  isPointActionType,
+  pointActionLabels as catalogPointActionLabels,
+} from "../points/action-catalog.ts";
+
 export const pointActionLabels: Record<string, string> = {
-  shelf_first_game: "Dodanie pierwszej gry do Półki",
-  shelf_5_games: "Dodanie 5 gier do wspólnej Półki",
-  shelf_10_games: "Dodanie 10 gier do wspólnej Półki",
-  shelf_15_games: "Dodanie 15 gier do wspólnej Półki",
-  meeting_created: "Zaproponowanie spotkania",
-  meeting_rsvp: "Odpowiedź na spotkanie",
-  meeting_vote: "Głos na grę",
-  rating_created: "Ocena gry",
-  play_logged: "Zapis partii w Kronice",
+  ...catalogPointActionLabels,
   admin_adjustment: "Korekta administratora",
 };
 
 export function formatPointAction(actionType: string) {
+  if (actionType.startsWith("admin_award:")) {
+    const correctedAction = actionType.slice("admin_award:".length);
+    const label = isPointActionType(correctedAction)
+      ? catalogPointActionLabels[correctedAction]
+      : "akcja punktowa";
+    return `Korekta Mistrza Gry — ${label}`;
+  }
+
+  if (actionType.startsWith("admin_reversal:")) {
+    const correctedAction = actionType.slice("admin_reversal:".length);
+    const label = isPointActionType(correctedAction)
+      ? catalogPointActionLabels[correctedAction]
+      : "akcja punktowa";
+    return `Wycofanie korekty — ${label}`;
+  }
+
   return pointActionLabels[actionType] ?? "Zdarzenie punktowe";
 }
 

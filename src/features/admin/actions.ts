@@ -5,7 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
 import type { MemberRole } from "@/features/auth/types";
 import type { FeedbackStatus } from "@/features/feedback/types";
-import type { AdminActionResult } from "./types";
+import type { AdminActionResult, AdminPointActionResult } from "./types";
+import {
+  validateAdminPointAward,
+  validateAdminPointReversal,
+} from "./point-adjustments";
 
 /**
  * Independent of the /admin route's own layout guard — Server Actions can
@@ -99,4 +103,64 @@ export async function adminUpdateFeedbackSubmissionAction(
 
   revalidatePath("/admin");
   return { ok: true };
+}
+
+export async function adminAwardPointAction(input: {
+  targetUserId: string;
+  actionType: string;
+  reason?: string;
+  requestId: string;
+}): Promise<AdminPointActionResult> {
+  const parsed = validateAdminPointAward(input);
+  if (!parsed.ok) return parsed;
+
+  const access = await requireAdminAccess();
+  if (!access.ok) return access;
+
+  const { data, error } = await access.supabase.rpc(
+    "admin_award_point_action",
+    {
+      p_target_user_id: parsed.value.targetUserId,
+      p_action_type: parsed.value.actionType,
+      p_reason: parsed.value.reason,
+      p_request_id: parsed.value.requestId,
+    },
+  );
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  revalidatePath("/legendarium");
+  revalidatePath("/profil");
+  return { ok: true, delta: data?.[0]?.delta ?? 0 };
+}
+
+export async function adminReversePointEventAction(input: {
+  pointEventId: string;
+  reason?: string;
+  requestId: string;
+}): Promise<AdminPointActionResult> {
+  const parsed = validateAdminPointReversal(input);
+  if (!parsed.ok) return parsed;
+
+  const access = await requireAdminAccess();
+  if (!access.ok) return access;
+
+  const { data, error } = await access.supabase.rpc(
+    "admin_reverse_point_event",
+    {
+      p_point_event_id: parsed.value.pointEventId,
+      p_reason: parsed.value.reason,
+      p_request_id: parsed.value.requestId,
+    },
+  );
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  revalidatePath("/legendarium");
+  revalidatePath("/profil");
+  return { ok: true, delta: data?.[0]?.delta ?? 0 };
 }

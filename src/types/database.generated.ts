@@ -192,6 +192,77 @@ export type Database = {
           },
         ]
       }
+      admin_point_adjustments: {
+        Row: {
+          action_type: string
+          admin_user_id: string
+          created_at: string
+          delta: number
+          id: string
+          operation: string
+          point_event_id: string
+          reason: string | null
+          request_id: string
+          reversed_point_event_id: string | null
+          target_user_id: string
+        }
+        Insert: {
+          action_type: string
+          admin_user_id: string
+          created_at?: string
+          delta: number
+          id?: string
+          operation: string
+          point_event_id: string
+          reason?: string | null
+          request_id: string
+          reversed_point_event_id?: string | null
+          target_user_id: string
+        }
+        Update: {
+          action_type?: string
+          admin_user_id?: string
+          created_at?: string
+          delta?: number
+          id?: string
+          operation?: string
+          point_event_id?: string
+          reason?: string | null
+          request_id?: string
+          reversed_point_event_id?: string | null
+          target_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_point_adjustments_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_point_adjustments_point_event_id_fkey"
+            columns: ["point_event_id"]
+            isOneToOne: true
+            referencedRelation: "point_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_point_adjustments_reversed_point_event_id_fkey"
+            columns: ["reversed_point_event_id"]
+            isOneToOne: true
+            referencedRelation: "point_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_point_adjustments_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_content: {
         Row: {
           content_key: string
@@ -1474,6 +1545,20 @@ export type Database = {
       }
     }
     Functions: {
+      admin_award_point_action: {
+        Args: {
+          p_action_type: string
+          p_reason?: string
+          p_request_id?: string
+          p_target_user_id: string
+        }
+        Returns: {
+          adjustment_id: string
+          created_at: string
+          delta: number
+          point_event_id: string
+        }[]
+      }
       admin_change_role: {
         Args: {
           p_new_role: Database["public"]["Enums"]["membership_role"]
@@ -1529,6 +1614,23 @@ export type Database = {
           status: Database["public"]["Enums"]["feedback_status"]
         }[]
       }
+      admin_list_point_adjustments: {
+        Args: { p_limit?: number }
+        Returns: {
+          action_type: string
+          adjustment_id: string
+          admin_display_name: string
+          admin_user_id: string
+          created_at: string
+          delta: number
+          operation: string
+          point_event_id: string
+          reason: string
+          reversed_point_event_id: string
+          target_display_name: string
+          target_user_id: string
+        }[]
+      }
       admin_list_push_audience: {
         Args: never
         Returns: {
@@ -1557,6 +1659,18 @@ export type Database = {
           title: string
         }[]
       }
+      admin_list_reversible_point_events: {
+        Args: { p_limit?: number }
+        Returns: {
+          action_type: string
+          created_at: string
+          description: string
+          point_event_id: string
+          points: number
+          target_display_name: string
+          target_user_id: string
+        }[]
+      }
       admin_provision_existing_user: {
         Args: {
           p_role?: Database["public"]["Enums"]["membership_role"]
@@ -1573,6 +1687,19 @@ export type Database = {
         }[]
       }
       admin_reschedule_pending_push_deliveries: { Args: never; Returns: number }
+      admin_reverse_point_event: {
+        Args: {
+          p_point_event_id: string
+          p_reason?: string
+          p_request_id?: string
+        }
+        Returns: {
+          adjustment_id: string
+          created_at: string
+          delta: number
+          point_event_id: string
+        }[]
+      }
       admin_update_feedback_submission: {
         Args: {
           p_admin_note: string
@@ -2040,4 +2167,3 @@ export const Constants = {
     },
   },
 } as const
-

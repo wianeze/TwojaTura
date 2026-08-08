@@ -11,3 +11,6 @@ export type AdminAccountRow = {
 };
 
 export type AdminActionResult = { ok: true } | { ok: false; message: string };
+
+export type AdminPointActionResult =
+  { ok: true; delta: number } | { ok: false; message: string };

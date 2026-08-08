@@ -5,18 +5,29 @@ import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { AdminAccountsPanel } from "@/features/admin/admin-accounts-panel";
 import { FeedbackReviewPanel } from "@/features/admin/feedback-review-panel";
+import { AdminPointAdjustmentsPanel } from "@/features/admin/admin-point-adjustments-panel";
 import {
   listAdminAccounts,
   listAdminFeedbackSubmissions,
+  listAdminPointAdjustments,
+  listAdminReversiblePointEvents,
 } from "@/features/admin/queries";
 
 export const metadata: Metadata = { title: "Admin" };
 
 export default async function AdminPage() {
-  const [memberState, accounts, feedbackSubmissions] = await Promise.all([
+  const [
+    memberState,
+    accounts,
+    feedbackSubmissions,
+    pointAdjustments,
+    reversiblePointEvents,
+  ] = await Promise.all([
     getCurrentMember(),
     listAdminAccounts(),
     listAdminFeedbackSubmissions(),
+    listAdminPointAdjustments(),
+    listAdminReversiblePointEvents(),
   ]);
 
   const currentUserId =
@@ -58,9 +69,17 @@ export default async function AdminPage() {
         style={{ animationDelay: `${getEntranceStaggerDelayMs(2)}ms` }}
         className="anim-rise-in-fast paper-wash p-5 sm:p-6"
       >
-        <h2 className="font-display mb-4 text-xl font-semibold text-[#4c3528]">
-          Zgłoszenia użytkowników
-        </h2>
+        <AdminPointAdjustmentsPanel
+          accounts={accounts}
+          initialAdjustments={pointAdjustments}
+          initialReversibleEvents={reversiblePointEvents}
+        />
+      </Panel>
+
+      <Panel
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(3)}ms` }}
+        className="anim-rise-in-fast paper-wash p-5 sm:p-6"
+      >
         <FeedbackReviewPanel initialSubmissions={feedbackSubmissions} />
       </Panel>
     </div>
