@@ -11,17 +11,17 @@ Narzędzie przygotowuje oznaczone fixture’y `qa-achievements-*` w lokalnym Sup
 
 Wspólne hasło wszystkich kont: `QaAchievements123!`.
 
-| Konto                                           | Co sprawdzić                                                                                 |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `qa-achievements-near@twojatura.local`          | Progi 49/50, 9/10, 4/5, 19/20, 4/5 Gospodarza Obozu i seria 2/3.                             |
-| `qa-achievements-ready@twojatura.local`         | Pełne progi, Naturalna Jedynka 3/3, Mroczna Żądza 3/3, Gospodarz Obozu 5/5 oraz odznaki 0/1. |
-| `qa-achievements-last-one@twojatura.local`      | Naturalna Jedynka 1/3.                                                                       |
-| `qa-achievements-last-two@twojatura.local`      | Naturalna Jedynka 2/3.                                                                       |
+| Konto                                           | Co sprawdzić                                                                                                             |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `qa-achievements-near@twojatura.local`          | Progi 49/50, 9/10, 4/5, 19/20, 4/5 Gospodarza Obozu i seria 2/3.                                                         |
+| `qa-achievements-ready@twojatura.local`         | Pełne progi, Naturalna Jedynka 3/3, Mroczna Żądza 3/3, Gospodarz Obozu 5/5 oraz odznaki 0/1.                             |
+| `qa-achievements-last-one@twojatura.local`      | Naturalna Jedynka 1/3.                                                                                                   |
+| `qa-achievements-last-two@twojatura.local`      | Naturalna Jedynka 2/3.                                                                                                   |
 | `qa-achievements-coop@twojatura.local`          | Trzy partie w trybie kooperacyjnym z wynikiem drużyny „wygrana" (bez miejsc): Naturalna Jedynka 0/3 i Mroczna Żądza 3/3. |
-| `qa-achievements-loot-near@twojatura.local`     | Loot Goblin 24/25.                                                                           |
-| `qa-achievements-streak-broken@twojatura.local` | Przerwana seria zwycięstw — bez Mrocznej Żądzy.                                              |
-| `qa-achievements-class-locked@twojatura.local`  | Bard Stołu 4/5.                                                                              |
-| `qa-achievements-class-ready@twojatura.local`   | Bard Stołu 5/5 oraz aktywna klasa.                                                           |
+| `qa-achievements-loot-near@twojatura.local`     | Loot Goblin 24/25.                                                                                                       |
+| `qa-achievements-streak-broken@twojatura.local` | Przerwana seria zwycięstw — bez Mrocznej Żądzy.                                                                          |
+| `qa-achievements-class-locked@twojatura.local`  | Bard Stołu 4/5.                                                                                                          |
+| `qa-achievements-class-ready@twojatura.local`   | Bard Stołu 5/5 oraz aktywna klasa.                                                                                       |
 
 ## Automatyczny check
 

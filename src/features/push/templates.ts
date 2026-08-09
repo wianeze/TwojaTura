@@ -9,6 +9,7 @@
  */
 export type PushTemplateKey =
   | "meeting_vote_reminder"
+  | "meeting_confirm_reminder"
   | "meeting_today"
   | "complete_meeting"
   | "new_feature"
@@ -40,6 +41,14 @@ export const PUSH_TEMPLATES: readonly PushTemplate[] = [
     body: "Nie wszyscy wybrali jeszcze gry na najbliższe spotkanie.",
     requiresMeeting: true,
     hint: "Wskaż spotkanie — link poprowadzi na jego stronę.",
+  },
+  {
+    key: "meeting_confirm_reminder",
+    label: "Potwierdzenie spotkania",
+    title: "Twoja Tura!",
+    body: "Pamiętaj potwierdzić spotkanie",
+    requiresMeeting: true,
+    hint: "Przypomnienie dla organizatora po dwóch odpowiedziach „Będę”.",
   },
   {
     key: "meeting_today",

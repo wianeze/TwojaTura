@@ -473,7 +473,11 @@ export function validatePlayFormData(
       );
     }
 
-    if (normalizedParticipants.some((participant) => participant.placement !== null)) {
+    if (
+      normalizedParticipants.some(
+        (participant) => participant.placement !== null,
+      )
+    ) {
       pushError(
         fieldErrors,
         "participants",

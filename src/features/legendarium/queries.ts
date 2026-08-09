@@ -31,6 +31,7 @@ export type LegendariumLeaderboardEntry = {
   isCurrentMember: boolean;
   badges: ReturnType<typeof mapLeaderboardBadges>[string];
   activeClass: ActiveClassView | null;
+  activePortraitFrameKey: string | null;
 };
 
 export type LegendariumPointEvent = {
@@ -57,6 +58,7 @@ export type AchievementClassData = {
   recentAchievements: AchievementView[];
   badgesByUser: ReturnType<typeof mapLeaderboardBadges>;
   activeClassesByUser: Record<string, ActiveClassView>;
+  activePortraitFramesByUser: Record<string, string | null>;
   currentActiveClass: ActiveClassView | null;
 };
 
@@ -124,7 +126,9 @@ export async function getAchievementClassData(
       .from("play_participants")
       .select("play_id, placement, is_winner")
       .eq("user_id", currentUserId),
-    supabase.from("profiles").select("id, active_class_key"),
+    supabase
+      .from("profiles")
+      .select("id, active_class_key, active_portrait_frame_key"),
   ]);
 
   if (
@@ -182,6 +186,12 @@ export async function getAchievementClassData(
     })),
   );
   const currentActiveClass = activeClassesByUser[currentUserId] ?? null;
+  const activePortraitFramesByUser = Object.fromEntries(
+    (profilesResult.data ?? []).map((profile) => [
+      profile.id,
+      profile.active_portrait_frame_key,
+    ]),
+  );
   const ownMeetingIds = (ownedMeetingsResult.data ?? []).map(
     (meeting) => meeting.id,
   );
@@ -347,6 +357,7 @@ export async function getAchievementClassData(
       .sort((a, b) => (b.awardedAt ?? "").localeCompare(a.awardedAt ?? "")),
     badgesByUser: mapLeaderboardBadges(definitions, awards),
     activeClassesByUser,
+    activePortraitFramesByUser,
     currentActiveClass,
   };
 }
@@ -395,6 +406,8 @@ export async function getLegendariumData(
       rank: Number(entry.rank ?? 0),
       badges: achievementData.badgesByUser[entry.user_id] ?? [],
       activeClass: achievementData.activeClassesByUser[entry.user_id] ?? null,
+      activePortraitFrameKey:
+        achievementData.activePortraitFramesByUser[entry.user_id] ?? null,
     })),
     member.id,
   );

@@ -8,6 +8,8 @@ select coalesce(sum(points), 0)::bigint as points
 from public.point_events
 where user_id = '10000000-0000-0000-0000-000000000002';
 
+grant select on admin_point_test_baseline to authenticated;
+
 select has_table(
   'public',
   'admin_point_adjustments',

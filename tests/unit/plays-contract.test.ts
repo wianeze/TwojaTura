@@ -315,6 +315,9 @@ function createPlay(overrides?: Partial<PlayListItem>): PlayListItem {
     comment: overrides?.comment ?? null,
     status: overrides?.status ?? "completed",
     stateNote: overrides?.stateNote ?? null,
+    liveStartedAt: overrides?.liveStartedAt ?? null,
+    liveEndedAt: overrides?.liveEndedAt ?? null,
+    resultPending: overrides?.resultPending ?? false,
     createdAt: overrides?.createdAt ?? "2026-07-18T18:10:00.000Z",
     updatedAt: overrides?.updatedAt ?? "2026-07-18T18:10:00.000Z",
     game: overrides?.game ?? {
@@ -335,6 +338,7 @@ function createPlay(overrides?: Partial<PlayListItem>): PlayListItem {
     winners: overrides?.winners ?? [member],
     playersCount: overrides?.playersCount ?? 1,
     canEdit: overrides?.canEdit ?? true,
+    canDelete: overrides?.canDelete ?? true,
   };
 }
 

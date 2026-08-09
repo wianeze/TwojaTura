@@ -4,6 +4,7 @@ import { ActionButton, ActionLink } from "@/components/ui/action-button";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { GameCover } from "@/components/ui/game-cover";
+import { PlayerPortraitFrame } from "@/components/ui/player-portrait-frame";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getBggExpansionPreview } from "./bgg";
 import { getOwnedExpansionNames } from "./expansions";
@@ -61,23 +62,19 @@ type ShelfSegmentProps = {
   onSelect: (game: GameShelfItem) => void;
 };
 
-function getOwnerInitial(displayName: string) {
-  return displayName.trim().charAt(0).toLocaleUpperCase("pl-PL") || "?";
-}
-
 function ShelfOwnerAvatar({ owner }: { owner: GameShelfItem["owner"] }) {
   return (
     <span
-      className="absolute top-1 right-1 z-10 grid size-7 place-items-center overflow-hidden rounded-full border-2 border-[#f4d8a4] bg-[#3f281f] text-[0.68rem] font-bold text-[#fff6e5] shadow-[0_3px_9px_rgba(13,6,3,0.62),0_0_0_1px_rgba(63,35,22,0.42)] sm:size-8 sm:text-xs"
+      className="absolute -top-1 right-0 z-10"
       aria-label={`Owner: ${owner.displayName}`}
       title={owner.displayName}
     >
-      {owner.avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- profile avatars can use external URLs
-        <img src={owner.avatarUrl} alt="" className="size-full object-cover" />
-      ) : (
-        getOwnerInitial(owner.displayName)
-      )}
+      <PlayerPortraitFrame
+        avatarUrl={owner.avatarUrl}
+        name={owner.displayName}
+        frameType={owner.activePortraitFrameKey}
+        size="compact"
+      />
     </span>
   );
 }

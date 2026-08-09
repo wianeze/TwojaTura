@@ -183,12 +183,23 @@ export function buildDashboardHeroSummary(input: {
   };
 }
 
+/**
+ * „Następne spotkanie” w dotychczasowym rozumieniu: takie, które jeszcze się
+ * nie zaczęło.
+ *
+ * `excludeMeetingId` wyłącza z tej listy wieczór, który właśnie zajmuje sekcję
+ * Stołu (patrz pickTableSession). Bez tego to samo spotkanie mogłoby pojawić
+ * się na Stole dwa razy — raz jako trwająca sesja, raz jako „najbliższe”.
+ */
 export function pickUpcomingMeeting(
   meetings: DashboardUpcomingMeeting[],
   now = new Date(),
+  options: { excludeMeetingId?: string | null } = {},
 ) {
   const futureMeetings = meetings.filter(
-    (meeting) => new Date(meeting.startsAt).getTime() > now.getTime(),
+    (meeting) =>
+      meeting.id !== options.excludeMeetingId &&
+      new Date(meeting.startsAt).getTime() > now.getTime(),
   );
 
   const nearestConfirmed = futureMeetings
@@ -209,37 +220,25 @@ export function pickUpcomingMeeting(
 }
 
 /**
- * Trwające spotkanie ma pierwszeństwo przed kolejnym. Dashboard otrzymuje
- * wyłącznie spotkania planned/confirmed, więc wpis oznaczony jako zakończony
- * nie może tu wrócić nawet, gdy jego czas byłby nieprawidłowy.
+ * Czy „teraz” mieści się w zaplanowanym oknie spotkania.
+ *
+ * Zastąpiło dawne pickActiveMeeting: wybór wieczoru zajmującego sekcję Stołu
+ * robi dziś pickTableSession (features/meetings/live-play.ts), bo musi brać pod
+ * uwagę także biegnącą partię i okno tolerancji po zaplanowanym końcu. Tutaj
+ * został sam predykat czasowy — używany do rozróżnienia „TRWA TERAZ” od
+ * „gramy po godzinach”.
  */
-export function pickActiveMeeting(
-  meetings: DashboardUpcomingMeeting[],
+export function isWithinMeetingWindow(
+  meeting: Pick<DashboardUpcomingMeeting, "startsAt" | "endsAt">,
   now = new Date(),
 ) {
   const nowTime = now.getTime();
-  const activeMeetings = meetings.filter((meeting) => {
-    const startsAt = new Date(meeting.startsAt).getTime();
-    const endsAt = new Date(meeting.endsAt).getTime();
+  const startsAt = new Date(meeting.startsAt).getTime();
+  const endsAt = new Date(meeting.endsAt).getTime();
 
-    return startsAt <= nowTime && nowTime < endsAt;
-  });
+  if (!Number.isFinite(startsAt) || !Number.isFinite(endsAt)) return false;
 
-  const activeConfirmed = activeMeetings
-    .filter((meeting) => meeting.status === "confirmed")
-    .sort(
-      (left, right) =>
-        new Date(left.endsAt).getTime() - new Date(right.endsAt).getTime(),
-    )[0];
-
-  if (activeConfirmed) return activeConfirmed;
-
-  return (
-    activeMeetings.sort(
-      (left, right) =>
-        new Date(left.endsAt).getTime() - new Date(right.endsAt).getTime(),
-    )[0] ?? null
-  );
+  return startsAt <= nowTime && nowTime < endsAt;
 }
 
 export function buildLeaderboardPreview(input: {

@@ -22,7 +22,7 @@ type ExpansionRow = Tables<"game_expansions">;
 type GameLoanRow = Tables<"game_loans">;
 type ProfileRow = Pick<
   Tables<"profiles">,
-  "id" | "display_name" | "avatar_url"
+  "id" | "display_name" | "avatar_url" | "active_portrait_frame_key"
 >;
 type AppMemberRow = Pick<
   Tables<"app_members">,
@@ -38,6 +38,7 @@ function toMemberOption(
     id: profile.id,
     displayName: profile.display_name,
     avatarUrl: profile.avatar_url,
+    activePortraitFrameKey: profile.active_portrait_frame_key,
     role,
   };
 }
@@ -194,7 +195,7 @@ async function getProfilesMap(ids: string[]) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url")
+    .select("id, display_name, avatar_url, active_portrait_frame_key")
     .in("id", ids);
 
   if (error) {
@@ -214,7 +215,7 @@ async function getProfilesMapFromClient(
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url")
+    .select("id, display_name, avatar_url, active_portrait_frame_key")
     .in("id", ids);
 
   if (error) {

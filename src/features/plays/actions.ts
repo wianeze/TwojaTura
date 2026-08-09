@@ -137,6 +137,10 @@ function revalidatePlaySurfaces(params: {
   meetingIds: string[];
   participantIds: string[];
 }) {
+  // Stół czyta stan wieczoru wprost z partii (sekcja „GRAMY!”), więc każda
+  // mutacja partii musi go odświeżyć — inaczej zakończona rozgrywka dalej
+  // wyglądałaby na trwającą.
+  revalidatePath("/");
   revalidatePath("/kronika");
   revalidatePath(`/kronika/${params.playId}`);
   revalidatePath(`/kronika/${params.playId}/edytuj`);
@@ -153,6 +157,18 @@ function revalidatePlaySurfaces(params: {
   for (const participantId of params.participantIds) {
     revalidatePath(`/znajomi/${participantId}`);
   }
+}
+
+/**
+ * Dokąd odesłać po zapisie edycji partii.
+ *
+ * Świadomie zamknięta lista, nie dowolny adres z formularza: pole jest częścią
+ * requestu, więc bez białej listy byłoby otwartym przekierowaniem. „stol”
+ * obsługuje zakończenie partii granej przy stole — użytkownik wraca tam, skąd
+ * kliknął „Zakończ partię”, i od razu widzi podsumowanie wieczoru.
+ */
+function resolvePlayRedirectTarget(formData: FormData, playId: string) {
+  return formData.get("returnTo") === "stol" ? "/" : `/kronika/${playId}`;
 }
 
 export type CreatePlayActionResult =
@@ -277,7 +293,9 @@ export async function updatePlayAction(
     ],
   });
 
-  redirect(`/kronika/${playId}`);
+  // Zakończenie partii przy stole wraca na Stół — sekcja „GRAMY!” pokazuje tam
+  // podsumowanie właśnie zapisanej rozgrywki. Domyślnie (Kronika) bez zmian.
+  redirect(resolvePlayRedirectTarget(formData, playId));
 }
 
 async function removePlayPhotoFiles(

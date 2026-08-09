@@ -297,6 +297,17 @@ test("meeting_vote_reminder wymaga wskazania spotkania", () => {
   );
 });
 
+test("meeting_confirm_reminder has the organizer reminder copy", () => {
+  assert.deepEqual(findPushTemplate("meeting_confirm_reminder"), {
+    key: "meeting_confirm_reminder",
+    label: "Potwierdzenie spotkania",
+    title: "Twoja Tura!",
+    body: "Pamiętaj potwierdzić spotkanie",
+    requiresMeeting: true,
+    hint: "Przypomnienie dla organizatora po dwóch odpowiedziach „Będę”.",
+  });
+});
+
 test("findPushTemplate zwraca null dla nieznanego klucza", () => {
   assert.equal(findPushTemplate("nie-ma-takiego"), null);
   assert.equal(findPushTemplate(null), null);

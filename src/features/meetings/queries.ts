@@ -236,9 +236,13 @@ function buildConfirmedCounts(
 }
 
 /*
- * Partie, które grupa może dokończyć na kolejnym spotkaniu: wyłącznie wpisy
- * Kroniki ze statusem `in_progress`. Lista jest z natury krótka, więc nie ma
- * limitu ani paginacji.
+ * Partie, do których grupa może wrócić: wpisy Kroniki ze statusem
+ * `in_progress`, które nie są ani grane w tej chwili, ani zakończone i czekające
+ * wyłącznie na wynik. Obejmuje to zarówno partię odłożoną ręcznie w Kronice
+ * (bez znacznika live), jak i odłożoną przy stole przyciskiem „Odłóż partię”.
+ * Lustro `private.is_continuable_play`; bazę pilnuje ta sama reguła w
+ * assert_valid_continued_play. Lista jest z natury krótka, więc nie ma limitu
+ * ani paginacji.
  *
  * `includePlayId` obsługuje jeden przypadek brzegowy edycji: spotkanie
  * wskazuje partię, którą w międzyczasie zamknięto. Bez tego pozycja zniknęłaby
@@ -251,7 +255,11 @@ export async function listContinuablePlays(
   const supabase = await createClient();
   const baseQuery = supabase
     .from("plays")
-    .select("id, game_id, played_at, state_note")
+    .select("id, game_id, played_at, state_note, duration_minutes")
+    // Partia grana właśnie przy stole (start bez końca) oraz taka, która czeka
+    // wyłącznie na wynik, nie są niczym, do czego można „wrócić”.
+    .eq("result_pending", false)
+    .or("live_started_at.is.null,live_ended_at.not.is.null")
     .order("played_at", { ascending: false });
 
   const { data, error } = await (includePlayId
@@ -278,10 +286,14 @@ export async function listContinuablePlays(
 
   return rows.map((row) => ({
     playId: row.id,
+    gameId: row.game_id,
     gameTitle: gamesById.get(row.game_id)?.title ?? "Nieznana gra",
     coverUrl: gamesById.get(row.game_id)?.cover_url ?? null,
     playedAt: row.played_at,
     stateNote: row.state_note,
+    // Łączny czas dotychczasowych sesji — „wracamy do partii, w której mamy
+    // już 3 godziny” to zupełnie inna decyzja niż start czegoś nowego.
+    accumulatedMinutes: row.duration_minutes,
   }));
 }
 
@@ -545,7 +557,7 @@ export async function getMeetingDetails(
   if (meeting.continued_play_id) {
     const { data: playRow, error: playError } = await supabase
       .from("plays")
-      .select("id, game_id, played_at, state_note")
+      .select("id, game_id, played_at, state_note, duration_minutes")
       .eq("id", meeting.continued_play_id)
       .maybeSingle();
 
@@ -562,10 +574,12 @@ export async function getMeetingDetails(
 
       continuedPlay = {
         playId: playRow.id,
+        gameId: playRow.game_id,
         gameTitle: gameRow?.title ?? "Nieznana gra",
         coverUrl: gameRow?.cover_url ?? null,
         playedAt: playRow.played_at,
         stateNote: playRow.state_note,
+        accumulatedMinutes: playRow.duration_minutes,
       };
     }
   }

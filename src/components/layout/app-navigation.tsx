@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "@/components/ui/logo-mark";
+import { PlayerPortraitFrame } from "@/components/ui/player-portrait-frame";
 import { ClassTextureLayer } from "@/components/layout/class-texture-layer";
 import {
   NavigationIcon,
   type NavigationIconName,
 } from "@/components/layout/navigation-icon";
 import { signOutAction } from "@/features/auth/actions";
-import { getMemberInitial } from "@/features/auth/current-member";
 import { useMemberRole } from "@/features/auth/member-role-context";
 import type { CurrentMember } from "@/features/auth/types";
 import { ActiveClassEmblem } from "@/features/legendarium/active-class-emblem";
@@ -147,18 +147,13 @@ export function DesktopNavigation({
             href="/profil"
             className="flex items-center gap-3 rounded-xl p-1 transition-colors hover:bg-white/7"
           >
-            {member.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- external user-provided URL
-              <img
-                src={member.avatarUrl}
-                alt=""
-                className="size-10 rounded-full object-cover"
-              />
-            ) : (
-              <span className="bg-ember/20 grid size-10 place-items-center rounded-full text-sm font-bold text-[#f2ad77]">
-                {getMemberInitial(member.displayName)}
-              </span>
-            )}
+            <PlayerPortraitFrame
+              avatarUrl={member.avatarUrl}
+              name={member.displayName}
+              frameType={member.activePortraitFrameKey}
+              size="compact"
+              className="w-10"
+            />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold">
                 {member.displayName}

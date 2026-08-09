@@ -571,14 +571,8 @@ test("game opinions include ratings with and without a comment", () => {
       },
     ],
     new Map([
-      [
-        "player-1",
-        { id: "player-1", displayName: "Marta", avatarUrl: null },
-      ],
-      [
-        "player-2",
-        { id: "player-2", displayName: "Przemek", avatarUrl: null },
-      ],
+      ["player-1", { id: "player-1", displayName: "Marta", avatarUrl: null }],
+      ["player-2", { id: "player-2", displayName: "Przemek", avatarUrl: null }],
     ]),
     (userId) => `Gracz ${userId}`,
   );

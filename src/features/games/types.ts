@@ -6,6 +6,7 @@ export type MemberOption = {
   id: string;
   displayName: string;
   avatarUrl: string | null;
+  activePortraitFrameKey?: string | null;
   role?: "member" | "admin";
 };
 

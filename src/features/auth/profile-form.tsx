@@ -12,50 +12,59 @@ export function ProfileForm({ member }: { member: CurrentMember }) {
     INITIAL_FORM_STATE,
   );
   const inputClass =
-    "bg-background/75 focus:border-gold focus:ring-gold/20 mt-1.5 h-12 w-full rounded-xl border border-[#9a7657]/35 px-4 outline-none transition focus:ring-4 disabled:opacity-65";
+    "bg-background/75 focus:border-gold focus:ring-gold/20 mt-1.5 h-11 w-full min-w-0 rounded-xl border border-[#9a7657]/35 px-3 text-sm outline-none transition focus:ring-4 disabled:opacity-65 sm:h-12 sm:px-4";
 
   return (
-    <form action={formAction} className="mt-7 space-y-4">
-      <label className="block text-sm font-semibold">
-        Nazwa gracza
-        <input
-          className={inputClass}
-          name="displayName"
-          defaultValue={member.displayName}
-          maxLength={80}
-          required
-        />
-      </label>
-      <label className="block text-sm font-semibold">
-        Email
-        <input
-          className={inputClass}
-          type="email"
-          value={member.email}
-          readOnly
-          disabled
-        />
-      </label>
-      <label className="block text-sm font-semibold">
-        Adres URL avatara{" "}
-        <span className="text-muted font-normal">(opcjonalnie)</span>
-        <input
-          className={inputClass}
-          type="url"
-          name="avatarUrl"
-          defaultValue={member.avatarUrl ?? ""}
-          placeholder="https://…"
-        />
-      </label>
-      <label className="block text-sm font-semibold">
-        Rola
-        <input
-          className={inputClass}
-          value={member.role === "admin" ? "Administrator" : "Gracz"}
-          readOnly
-          disabled
-        />
-      </label>
+    <form action={formAction} className="mt-5 space-y-3 sm:mt-7 sm:space-y-4">
+      <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-2 sm:gap-4">
+        <label className="block min-w-0 text-xs font-semibold sm:text-sm">
+          <span className="block">Nazwa gracza</span>
+          <input
+            className={inputClass}
+            name="displayName"
+            defaultValue={member.displayName}
+            maxLength={80}
+            required
+          />
+        </label>
+        <label className="block min-w-0 text-xs font-semibold sm:text-sm">
+          <span className="block">Rola</span>
+          <input
+            className={inputClass}
+            value={member.role === "admin" ? "Administrator" : "Gracz"}
+            readOnly
+            disabled
+          />
+        </label>
+      </div>
+      <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-2 sm:gap-4">
+        <label className="flex min-w-0 flex-col text-xs font-semibold sm:text-sm">
+          <span className="flex min-h-8 items-end sm:min-h-0">Email</span>
+          <input
+            className={inputClass}
+            type="email"
+            value={member.email}
+            readOnly
+            disabled
+          />
+        </label>
+        <label className="flex min-w-0 flex-col text-xs font-semibold sm:text-sm">
+          <span className="min-h-8 leading-4 sm:min-h-0 sm:leading-normal">
+            <span className="sm:hidden">URL avatara</span>
+            <span className="hidden sm:inline">
+              Adres URL avatara{" "}
+              <span className="text-muted font-normal">(opcjonalnie)</span>
+            </span>
+          </span>
+          <input
+            className={inputClass}
+            type="url"
+            name="avatarUrl"
+            defaultValue={member.avatarUrl ?? ""}
+            placeholder="https://…"
+          />
+        </label>
+      </div>
       {state.message && (
         <p
           role={state.status === "error" ? "alert" : "status"}

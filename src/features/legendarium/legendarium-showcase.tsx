@@ -1,6 +1,6 @@
 import Image from "next/image";
+import { PlayerPortraitFrame } from "@/components/ui/player-portrait-frame";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
-import { getMemberInitial } from "@/features/auth/current-member";
 import { AchievementCatalog } from "./achievement-catalog";
 import { ClassCatalog } from "./class-catalog";
 import { RecentLootList } from "./recent-loot-list";
@@ -352,7 +352,6 @@ function RankingEntry({
       : entry.rank <= 5
         ? "left-[-2.1rem] sm:left-[-2.4rem]"
         : "left-[-1.4rem] sm:left-[-1.6rem]";
-  const avatarSize = isPodium ? "size-10 sm:size-12" : "size-8 sm:size-9";
   // Shared by the avatar and text spans below (not the row, trophy/rank,
   // badges, or ornament) — both shift by the same amount so the gap
   // between them (from the <li>'s own gap-2.5) is untouched; transform is
@@ -465,7 +464,7 @@ function RankingEntry({
         <Avatar
           avatarUrl={entry.avatarUrl}
           name={entry.displayName}
-          sizeClass={avatarSize}
+          frameType={entry.activePortraitFrameKey}
         />
       </span>
       <span className={`relative z-10 min-w-0 flex-1 ${userBlockShift}`}>
@@ -745,28 +744,18 @@ function PodiumMobileTrophyCluster({
 function Avatar({
   avatarUrl,
   name,
-  sizeClass,
+  frameType,
 }: {
   avatarUrl: string;
   name: string;
-  sizeClass: string;
+  frameType?: string | null;
 }) {
-  if (avatarUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element -- user-provided avatar URL
-      <img
-        src={avatarUrl}
-        alt=""
-        className={`${sizeClass} shrink-0 rounded-full border-2 border-[#d3b68a] object-cover`}
-      />
-    );
-  }
-
   return (
-    <span
-      className={`wood-grain text-cream grid ${sizeClass} shrink-0 place-items-center rounded-full text-xs font-bold`}
-    >
-      {getMemberInitial(name)}
-    </span>
+    <PlayerPortraitFrame
+      avatarUrl={avatarUrl}
+      name={name}
+      frameType={frameType}
+      size="medium"
+    />
   );
 }

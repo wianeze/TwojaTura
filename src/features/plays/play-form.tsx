@@ -37,6 +37,13 @@ type PlayFormProps = {
   members: PlayFormData["members"];
   submitLabel: string;
   pendingLabel: string;
+  /**
+   * Dokąd wrócić po zapisie. Jedyna dopuszczalna wartość to "stol" — używa jej
+   * zakończenie partii granej przy stole, żeby po zapisie wyniku wylądować na
+   * Stole z podsumowaniem, a nie w Kronice. Brak wartości = zachowanie
+   * dotychczasowe (przejście do wpisu partii).
+   */
+  returnTo?: "stol";
 } & (
   | {
       mode: "edit";
@@ -367,6 +374,10 @@ export function PlayForm(props: PlayFormProps) {
 
   const formFields = (
     <>
+      {props.returnTo ? (
+        <input type="hidden" name="returnTo" value={props.returnTo} />
+      ) : null}
+
       <fieldset disabled={nonPhotoFieldsDisabled} className="space-y-5">
         {/* Szersza kolumna należy się spotkaniu, nie grze: tytuł gry to jeden
             człon, a spotkanie niesie nazwę razem z datą i godziną. Rząd schodzi

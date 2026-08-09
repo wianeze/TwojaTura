@@ -4,8 +4,29 @@ import {
   getMeetingVisualLabel,
   getMeetingVisualState,
 } from "@/features/meetings/calendar-view";
+import {
+  TABLE_SESSION_GRACE_MS,
+  buildFinishedPlayResult,
+  buildTableSessionGameChoices,
+  getPlayTablePhase,
+  listTableSessions,
+  pickTableSession,
+} from "@/features/meetings/live-play";
+import {
+  getViewerMeetingParticipation,
+  getViewerMeetingQuestEligibility,
+} from "@/features/meetings/participation";
+import {
+  getMeetingDetails,
+  listContinuablePlays,
+} from "@/features/meetings/queries";
 import { sortMeetingRanking } from "@/features/meetings/validation";
-import { listRecentMemberPlays } from "@/features/plays/queries";
+import { PLAY_PHASE_LABELS } from "@/features/plays/formatting";
+import {
+  listMeetingPlays,
+  listRecentMemberPlays,
+} from "@/features/plays/queries";
+import type { PlayListItem } from "@/features/plays/types";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database.generated";
 import {
@@ -14,16 +35,22 @@ import {
   buildLeaderboardPreview,
   buildRecentPlayPreviews,
   formatDashboardWinnerSummary,
-  pickActiveMeeting,
   pickUpcomingMeeting,
 } from "./formatting";
-import { buildDashboardQuests } from "./quests";
+import {
+  buildDashboardQuests,
+  filterDashboardQuestSourceForMeetingEligibility,
+} from "./quests";
 import type {
   DashboardData,
   DashboardLeaderboardEntry,
   DashboardQuestSource,
   DashboardRecentPlayPreview,
+  DashboardTableSession,
   DashboardUpcomingMeeting,
+  TableSessionEndedPlay,
+  TableSessionMember,
+  TableSessionOption,
 } from "./types";
 
 type MeetingRow = Pick<
@@ -43,7 +70,16 @@ type ResponseRow = Pick<
 type RankingRow = Tables<"meeting_game_rankings">;
 type GameRow = Pick<Tables<"games">, "id" | "title" | "cover_url">;
 type RatingRow = Pick<Tables<"ratings">, "game_id">;
-type PlayRow = Pick<Tables<"plays">, "id" | "game_id" | "played_at" | "status">;
+type PlayRow = Pick<
+  Tables<"plays">,
+  | "id"
+  | "game_id"
+  | "played_at"
+  | "status"
+  | "live_started_at"
+  | "live_ended_at"
+  | "result_pending"
+>;
 type PlayParticipantRow = Pick<
   Tables<"play_participants">,
   "play_id" | "user_id" | "is_winner"
@@ -179,7 +215,14 @@ function mapRecentPlayPreviews(input: {
     playersCount: playersCountByPlayId.get(play.id) ?? 0,
     winnerLabel:
       play.status === "in_progress"
-        ? "W toku"
+        ? PLAY_PHASE_LABELS[
+            getPlayTablePhase({
+              status: play.status,
+              liveStartedAt: play.live_started_at,
+              liveEndedAt: play.live_ended_at,
+              resultPending: play.result_pending,
+            })
+          ]
         : formatDashboardWinnerSummary(
             (winnersByPlayId.get(play.id) ?? []).map((displayName, index) => ({
               id: `${play.id}:${index}`,
@@ -198,7 +241,9 @@ async function getRecentPlayPreviews(
 ) {
   const { data: playRows, error: playError } = await supabase
     .from("plays")
-    .select("id, game_id, played_at, status")
+    .select(
+      "id, game_id, played_at, status, live_started_at, live_ended_at, result_pending",
+    )
     .order("played_at", { ascending: false })
     .limit(5);
 
@@ -241,7 +286,426 @@ async function getRecentPlayPreviews(
   });
 }
 
-export async function getDashboardData(): Promise<DashboardData> {
+type TableSessionMeetingRow = Pick<
+  Tables<"meetings">,
+  "id" | "starts_at" | "ends_at"
+>;
+
+const TABLE_SESSION_MEETING_COLUMNS = "id, starts_at, ends_at";
+
+function toTableSessionMember(member: {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+}): TableSessionMember {
+  return {
+    id: member.id,
+    displayName: member.displayName,
+    avatarUrl: member.avatarUrl,
+  };
+}
+
+function toEndedPlay(
+  play: PlayListItem,
+  viewerId: string,
+): TableSessionEndedPlay {
+  const phase = getPlayTablePhase(play);
+  // Wynik ma sens dopiero dla partii rozliczonej. Dla „zagrane, wynik później”
+  // i „odłożone” nie ma czego pokazywać — i nie wolno tego udawać.
+  const result =
+    phase === "completed"
+      ? buildFinishedPlayResult({
+          mode: play.mode,
+          teamResult: play.teamResult,
+          winnerNames: play.winners.map((winner) => winner.displayName),
+          viewerIsWinner: play.winners.some((winner) => winner.id === viewerId),
+        })
+      : null;
+
+  return {
+    playId: play.id,
+    gameId: play.game.id,
+    gameTitle: play.game.title,
+    coverUrl: play.game.coverUrl,
+    durationMinutes: play.durationMinutes,
+    playersCount: play.playersCount,
+    phase,
+    resultLabel: result?.label ?? null,
+    resultTone: result?.tone ?? "neutral",
+    stateNote: play.stateNote,
+    href: `/kronika/${play.id}`,
+    resultHref: `/kronika/${play.id}/edytuj?powrot=stol`,
+  };
+}
+
+/**
+ * Który wieczór zajmuje teraz sekcję Stołu — i wszystko, czego ta sekcja
+ * potrzebuje, żeby przejść przez stany „drużyna przy stole” → „GRAMY!” →
+ * „podsumowanie partii”.
+ *
+ * Zapytania są celowo wąskie: najpierw ustalamy KANDYDATÓW (kilka wierszy),
+ * dopiero dla zwycięzcy dociągamy pełne dane istniejącymi funkcjami domeny
+ * (getMeetingDetails — głosy, rekomendacje, obecność; listMeetingPlays —
+ * partie wieczoru). Dzięki temu Stół bez trwającego spotkania kosztuje dwa
+ * lekkie zapytania i ani jednego dodatkowego joina.
+ */
+async function getTableSession(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  viewerId: string,
+  now: Date,
+  preferredMeetingId: string | null,
+): Promise<{
+  session: DashboardTableSession | null;
+  options: TableSessionOption[];
+}> {
+  const empty = { session: null, options: [] as TableSessionOption[] };
+  const nowIso = now.toISOString();
+  const graceStartIso = new Date(
+    now.getTime() - TABLE_SESSION_GRACE_MS,
+  ).toISOString();
+
+  const [startedMeetingsResult, livePlaysResult] = await Promise.all([
+    supabase
+      .from("meetings")
+      .select(TABLE_SESSION_MEETING_COLUMNS)
+      .is("deleted_at", null)
+      .in("status", ["planned", "confirmed"])
+      .lte("starts_at", nowIso)
+      .gte("ends_at", graceStartIso)
+      .order("starts_at", { ascending: false })
+      .limit(10),
+    // Tylko partie FAKTYCZNIE trwające. Te czekające na wynik ani odłożone nie
+    // trzymają już sekcji w stanie „GRAMY!”.
+    supabase
+      .from("plays")
+      .select("id, meeting_id, game_id")
+      .eq("status", "in_progress")
+      .not("live_started_at", "is", null)
+      .is("live_ended_at", null)
+      .not("meeting_id", "is", null),
+  ]);
+
+  if (startedMeetingsResult.error || livePlaysResult.error) {
+    throw new Error("Nie udało się sprawdzić stanu wieczoru przy stole.");
+  }
+
+  const runningPlays = livePlaysResult.data ?? [];
+  // Gra biegnąca przy danym wieczorze — po niej bierze się tytuł do przełącznika
+  // równoległych spotkań.
+  const runningGameIdByMeeting = new Map<string, string>();
+  const liveMeetingIds = new Set<string>();
+  for (const row of runningPlays) {
+    if (!row.meeting_id) continue;
+    liveMeetingIds.add(row.meeting_id);
+    runningGameIdByMeeting.set(row.meeting_id, row.game_id);
+  }
+
+  // Wznowiona kontynuacja biegnie ze swoim STARTOWYM meeting_id, więc wieczór,
+  // przy którym grupa faktycznie siedzi, trzeba dobrać po continued_play_id.
+  if (runningPlays.length > 0) {
+    const { data: continuationRows, error: continuationError } = await supabase
+      .from("meetings")
+      .select("id, continued_play_id")
+      .in(
+        "continued_play_id",
+        runningPlays.map((row) => row.id),
+      )
+      .is("deleted_at", null);
+
+    if (continuationError) {
+      throw new Error("Nie udało się sprawdzić stanu wieczoru przy stole.");
+    }
+
+    const gameByPlayId = new Map(
+      runningPlays.map((row) => [row.id, row.game_id] as const),
+    );
+    for (const row of continuationRows ?? []) {
+      liveMeetingIds.add(row.id);
+      const gameId = row.continued_play_id
+        ? gameByPlayId.get(row.continued_play_id)
+        : undefined;
+      if (gameId) runningGameIdByMeeting.set(row.id, gameId);
+    }
+  }
+  const startedMeetings = (startedMeetingsResult.data ??
+    []) as TableSessionMeetingRow[];
+  const knownMeetingIds = new Set(startedMeetings.map((meeting) => meeting.id));
+  const unlistedLiveMeetingIds = [...liveMeetingIds].filter(
+    (meetingId) => !knownMeetingIds.has(meetingId),
+  );
+
+  // Partia potrafi przeżyć zaplanowany koniec spotkania o więcej niż okno
+  // tolerancji. Wtedy wieczór wraca na Stół po samej partii, nie po zegarze —
+  // inaczej trwająca gra zniknęłaby razem z sekcją.
+  let unlistedLiveMeetings: TableSessionMeetingRow[] = [];
+  if (unlistedLiveMeetingIds.length > 0) {
+    const { data, error } = await supabase
+      .from("meetings")
+      .select(TABLE_SESSION_MEETING_COLUMNS)
+      .in("id", unlistedLiveMeetingIds)
+      .is("deleted_at", null)
+      .in("status", ["planned", "confirmed"]);
+
+    if (error) {
+      throw new Error("Nie udało się sprawdzić stanu wieczoru przy stole.");
+    }
+
+    unlistedLiveMeetings = (data ?? []) as TableSessionMeetingRow[];
+  }
+
+  const globalCandidates = [...startedMeetings, ...unlistedLiveMeetings];
+  if (globalCandidates.length === 0) return empty;
+
+  /*
+   * SCOPING. „GRAMY!” to sekcja OSOBISTA, nie tablica ogłoszeń całej grupy:
+   * zawężamy kandydatów do wieczorów, w których widz faktycznie bierze udział,
+   * ZANIM cokolwiek wybierzemy. Odwrotna kolejność (wybierz globalnie, potem
+   * sprawdź uprawnienia) potrafiła przy dwóch równoległych spotkaniach oddać
+   * całą sekcję obcej grupie tylko dlatego, że kończyła się wcześniej — a
+   * własna, biegnąca partia znikała użytkownikowi z ekranu.
+   *
+   * Uprawnienia admina świadomie NIE poszerzają tej listy. Admin może
+   * zarządzać cudzą partią po stronie bazy (assert_can_run_meeting_play), ale
+   * jego własny Stół ma pokazywać jego własne wieczory — inaczej wracałby
+   * dokładnie ten sam błąd, tyle że dla adminów.
+   */
+  const participation = await getViewerMeetingParticipation(
+    supabase,
+    viewerId,
+    globalCandidates.map((meeting) => meeting.id),
+  );
+  const candidateMeetings = globalCandidates.filter((meeting) =>
+    participation.has(meeting.id),
+  );
+  if (candidateMeetings.length === 0) return empty;
+
+  // „Coś już zagraliśmy” to każda zamknięta sesja — rozliczona albo czekająca
+  // na wynik. Bez tego kliknięcie „Zakończ partię” wracałoby do ekranu wyboru
+  // gry zamiast do podsumowania.
+  const { data: endedRows, error: endedError } = await supabase
+    .from("plays")
+    .select("meeting_id")
+    .in(
+      "meeting_id",
+      candidateMeetings.map((meeting) => meeting.id),
+    )
+    .or("status.eq.completed,live_ended_at.not.is.null");
+
+  if (endedError) {
+    throw new Error("Nie udało się sprawdzić partii rozegranych na spotkaniu.");
+  }
+
+  const finishedMeetingIds = new Set(
+    (endedRows ?? [])
+      .map((row) => row.meeting_id)
+      .filter((meetingId): meetingId is string => Boolean(meetingId)),
+  );
+
+  const sessionCandidates = candidateMeetings.map((meeting) => ({
+    id: meeting.id,
+    startsAt: meeting.starts_at,
+    endsAt: meeting.ends_at,
+    hasLivePlay: liveMeetingIds.has(meeting.id),
+    hasFinishedPlay: finishedMeetingIds.has(meeting.id),
+  }));
+
+  // `preferredMeetingId` pochodzi z adresu (?meeting=), więc trafia tu dopiero
+  // po zawężeniu listy do wieczorów widza — obcy identyfikator nie ma czego
+  // dopasować i po cichu wraca domyślny wybór.
+  const viable = listTableSessions(sessionCandidates, now);
+  const picked = pickTableSession(sessionCandidates, now, {
+    preferredMeetingId,
+  });
+
+  if (!picked) return empty;
+
+  /*
+   * Przełącznik dostaje tylko tyle danych, ile potrzebuje na pigułkę — tytuł
+   * wieczoru i grę, w którą przy nim właśnie grają. Pełną sesję (głosy,
+   * rekomendacje, partie, obecność) budujemy WYŁĄCZNIE dla wybranego
+   * spotkania: przy dwóch równoległych wieczorach drugi komplet zapytań byłby
+   * zmarnowany, bo i tak nie ma go gdzie pokazać.
+   */
+  const optionMeetingTitles = new Map(
+    (
+      (
+        await supabase
+          .from("meetings")
+          .select("id, title")
+          .is("deleted_at", null)
+          .in(
+            "id",
+            viable.map((candidate) => candidate.meeting.id),
+          )
+      ).data ?? []
+    ).map((row) => [row.id, row.title] as const),
+  );
+
+  const optionGameIds = [
+    ...new Set(
+      viable
+        .map((candidate) => runningGameIdByMeeting.get(candidate.meeting.id))
+        .filter((gameId): gameId is string => Boolean(gameId)),
+    ),
+  ];
+  const optionGameTitles = new Map(
+    optionGameIds.length > 0
+      ? (
+          (
+            await supabase
+              .from("games")
+              .select("id, title")
+              .in("id", optionGameIds)
+          ).data ?? []
+        ).map((row) => [row.id, row.title] as const)
+      : [],
+  );
+
+  const options: TableSessionOption[] = viable.map((candidate) => {
+    const gameId = runningGameIdByMeeting.get(candidate.meeting.id);
+
+    return {
+      meetingId: candidate.meeting.id,
+      meetingTitle:
+        optionMeetingTitles.get(candidate.meeting.id) ?? "Spotkanie",
+      gameTitle: gameId ? (optionGameTitles.get(gameId) ?? null) : null,
+      isLive: candidate.state === "playing",
+      isSelected: candidate.meeting.id === picked.meeting.id,
+      href: `/?meeting=${candidate.meeting.id}`,
+    };
+  });
+
+  const [details, plays, continuablePlays] = await Promise.all([
+    getMeetingDetails(picked.meeting.id),
+    listMeetingPlays(picked.meeting.id),
+    // Odłożone rozgrywki z całej Kroniki — picker musi wiedzieć, że wybór
+    // Frostpunka może oznaczać powrót do partii sprzed tygodnia.
+    listContinuablePlays(),
+  ]);
+
+  // Spotkanie zamknięte (albo usunięte) między dwoma zapytaniami przestaje być
+  // sesją przy stole — Stół po prostu wraca do widoku następnego spotkania.
+  if (!details || details.status === "completed") return empty;
+
+  const livePlaySource =
+    plays.find((play) => getPlayTablePhase(play) === "running") ?? null;
+  // Wszystko, w co już zagrano tego wieczoru: rozliczone, czekające na wynik i
+  // odłożone. Odłożona partia zostaje na osi wieczoru — to jej sesja.
+  const endedPlays = plays.filter(
+    (play) => play.id !== livePlaySource?.id && play.liveEndedAt !== null,
+  );
+  const lastEndedSource =
+    [...endedPlays].sort(
+      (left, right) =>
+        new Date(right.liveEndedAt ?? right.updatedAt).getTime() -
+        new Date(left.liveEndedAt ?? left.updatedAt).getTime(),
+    )[0] ?? null;
+
+  const confirmedMembers = details.attendanceRows
+    .filter((row) => row.response === true)
+    .map((row) => toTableSessionMember(row.member));
+  const participants = livePlaySource
+    ? livePlaySource.participants.map((participant) =>
+        toTableSessionMember(participant.member),
+      )
+    : confirmedMembers.length > 0
+      ? confirmedMembers
+      : details.attendanceRows.map((row) => toTableSessionMember(row.member));
+
+  const leadingVote =
+    details.gameVotes.find((vote) => vote.yesCount > 0) ?? null;
+  const meetingStatus = details.status;
+  const visualState = getMeetingVisualState({
+    status: meetingStatus,
+    ownResponse: details.ownResponse,
+  });
+
+  const meeting: DashboardUpcomingMeeting = {
+    id: details.id,
+    title: details.title,
+    location: details.location,
+    startsAt: details.startsAt,
+    endsAt: details.endsAt,
+    status: meetingStatus,
+    ownResponse: details.ownResponse,
+    confirmedAttendeesCount: details.confirmedAttendeesCount,
+    visualLabel: getMeetingVisualLabel({
+      status: meetingStatus,
+      ownResponse: details.ownResponse,
+    }),
+    visualState,
+    needsAction: visualState === "decision-required",
+    href: `/kalendarium/${details.id}`,
+    leadingGame: leadingVote
+      ? {
+          gameId: leadingVote.gameId,
+          title: leadingVote.title,
+          coverUrl: leadingVote.coverUrl,
+          yesCount: leadingVote.yesCount,
+        }
+      : null,
+  };
+
+  const session: DashboardTableSession = {
+    // Stan liczony jest z tych samych danych, na których stoi panel: gdyby
+    // partia zniknęła między zapytaniem kandydatów a dociągnięciem partii,
+    // sekcja pokaże spójny stan, a nie „GRAMY!” bez gry.
+    state: livePlaySource
+      ? "playing"
+      : endedPlays.length > 0
+        ? "summary"
+        : "gathering",
+    meeting,
+    participants,
+    gameChoices: buildTableSessionGameChoices({
+      votes: details.gameVotes,
+      recommendations: details.recommendedGames,
+      otherGames: details.availableGames,
+      continuablePlays: continuablePlays.map((play) => ({
+        gameId: play.gameId,
+        title: play.gameTitle,
+        coverUrl: play.coverUrl,
+        playId: play.playId,
+        stateNote: play.stateNote,
+        playedAt: play.playedAt,
+        accumulatedMinutes: play.accumulatedMinutes,
+      })),
+    }),
+    livePlay: livePlaySource?.liveStartedAt
+      ? {
+          playId: livePlaySource.id,
+          gameId: livePlaySource.game.id,
+          gameTitle: livePlaySource.game.title,
+          coverUrl: livePlaySource.game.coverUrl,
+          startedAt: livePlaySource.liveStartedAt,
+          accumulatedMinutes: livePlaySource.durationMinutes,
+          isContinuation: (livePlaySource.durationMinutes ?? 0) > 0,
+          players: livePlaySource.participants.map((participant) =>
+            toTableSessionMember(participant.member),
+          ),
+          resultHref: `/kronika/${livePlaySource.id}/edytuj?powrot=stol`,
+        }
+      : null,
+    lastEndedPlay: lastEndedSource
+      ? toEndedPlay(lastEndedSource, viewerId)
+      : null,
+    endedPlays: endedPlays.map((play) => toEndedPlay(play, viewerId)),
+    // Partiami wieczoru steruje każdy jego uczestnik. `details.canEdit` to
+    // organizator/admin, więc uczestnictwo liczymy osobno — tak samo jak robi
+    // to private.is_meeting_participant po stronie bazy.
+    canManagePlays:
+      details.canEdit ||
+      details.attendanceRows.some((row) => row.member.id === viewerId) ||
+      participants.some((member) => member.id === viewerId),
+    canFinishMeeting: details.canEdit,
+  };
+
+  return { session, options };
+}
+
+export async function getDashboardData(
+  options: { preferredMeetingId?: string | null } = {},
+): Promise<DashboardData> {
   const memberState = await getCurrentMember();
   if (memberState.status !== "active-member") {
     throw new Error("Stół wymaga aktywnego członkostwa.");
@@ -262,6 +726,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     currentBalanceResult,
     recentPlayPreviews,
     recentMemberPlays,
+    tableSessionResult,
   ] = await Promise.all([
     supabase
       .from("meetings")
@@ -296,7 +761,15 @@ export async function getDashboardData(): Promise<DashboardData> {
       .maybeSingle(),
     getRecentPlayPreviews(supabase),
     listRecentMemberPlays(member.id, 12),
+    getTableSession(
+      supabase,
+      member.id,
+      now,
+      options.preferredMeetingId ?? null,
+    ),
   ]);
+
+  const tableSession = tableSessionResult.session;
 
   if (
     availableMeetingsResult.error ||
@@ -374,6 +847,15 @@ export async function getDashboardData(): Promise<DashboardData> {
     currentUserId: member.id,
   });
 
+  // Jedna definicja uczestnictwa (lustro private.is_meeting_participant) —
+  // używana niżej wyłącznie do kafla „Najbliższe spotkanie”. Questy zostają
+  // globalne, patrz komentarz przy nextMeeting.
+  const viewerMeetingIds = await getViewerMeetingParticipation(
+    supabase,
+    member.id,
+    futureMeetingIds,
+  );
+
   const finishedMeetings = (finishedMeetingsResult.data ?? []) as Array<{
     id: string;
     title: string;
@@ -406,6 +888,10 @@ export async function getDashboardData(): Promise<DashboardData> {
   );
 
   const unratedGames = recentMemberPlays
+    // Oceniać można wyłącznie rozegraną partię. Odkąd wieczór przy stole ma
+    // swój wpis w Kronice już w trakcie gry, bez tego filtra Stół prosiłby o
+    // ocenę gry, w którą właśnie gramy.
+    .filter((play) => play.status === "completed")
     .filter((play) => !ratedGameIds.has(play.game.id))
     .reduce<
       Array<{
@@ -413,6 +899,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         gameId: string;
         gameTitle: string;
         playedAt: string;
+        meetingId: string | null;
       }>
     >((result, play) => {
       if (result.some((item) => item.gameId === play.game.id)) {
@@ -424,13 +911,30 @@ export async function getDashboardData(): Promise<DashboardData> {
         gameId: play.game.id,
         gameTitle: play.game.title,
         playedAt: play.playedAt,
+        meetingId: play.meeting?.id ?? null,
       });
 
       return result;
     }, []);
 
-  const questSource: DashboardQuestSource = {
-    futureMeetings: upcomingMeetings.map((meeting) => ({
+  const questMeetingIds = [
+    ...new Set([
+      ...futureMeetingIds,
+      ...finishedMeetingIds,
+      ...recentMemberPlays
+        .map((play) => play.meeting?.id)
+        .filter((meetingId): meetingId is string => Boolean(meetingId)),
+    ]),
+  ];
+  const eligibleQuestMeetingIds = await getViewerMeetingQuestEligibility(
+    supabase,
+    member.id,
+    questMeetingIds,
+  );
+
+  const questSource: DashboardQuestSource =
+    filterDashboardQuestSourceForMeetingEligibility({
+      futureMeetings: upcomingMeetings.map((meeting) => ({
       id: meeting.id,
       title: meeting.title,
       startsAt: meeting.startsAt,
@@ -442,27 +946,27 @@ export async function getDashboardData(): Promise<DashboardData> {
         (response) => response.meeting_id === meeting.id,
       ),
     })),
-    unratedGames,
+      unratedGames,
     // Spotkanie-kontynuacja nie ma własnego wiersza w plays — wynik wieczoru
     // jest zapisany w partii rozpoczętej wcześniej. Bez tego filtra quest
     // „Uzupełnij wynik spotkania” wisiałby na nim w nieskończoność i wprost
     // zachęcał do założenia drugiego wpisu o tej samej rozgrywce.
-    finishedMeetingsWithoutPlay: finishedMeetings
-      .filter(
-        (meeting) =>
-          !meetingsWithPlays.has(meeting.id) && !meeting.continued_play_id,
-      )
-      .map((meeting) => ({
-        id: meeting.id,
-        title: meeting.title,
-        startsAt: meeting.starts_at,
-        endsAt: meeting.ends_at,
-        status: meeting.status,
-      })),
-    ownGamesCount: ownGamesCountResult.count ?? 0,
-    totalActiveGames: totalGamesCountResult.count ?? 0,
-    now,
-  };
+      finishedMeetingsWithoutPlay: finishedMeetings
+        .filter(
+          (meeting) =>
+            !meetingsWithPlays.has(meeting.id) && !meeting.continued_play_id,
+        )
+        .map((meeting) => ({
+          id: meeting.id,
+          title: meeting.title,
+          startsAt: meeting.starts_at,
+          endsAt: meeting.ends_at,
+          status: meeting.status,
+        })),
+      ownGamesCount: ownGamesCountResult.count ?? 0,
+      totalActiveGames: totalGamesCountResult.count ?? 0,
+      now,
+    }, eligibleQuestMeetingIds);
 
   const quests = buildDashboardQuests(questSource);
   const pointsSummary = buildDashboardPointsSummary(
@@ -470,8 +974,26 @@ export async function getDashboardData(): Promise<DashboardData> {
       0,
     quests,
   );
-  const activeMeeting = pickActiveMeeting(upcomingMeetings, now);
-  const nextMeeting = pickUpcomingMeeting(upcomingMeetings, now);
+  /*
+   * Kafel „Najbliższe spotkanie” też jest osobisty: pokazuje wieczór, w którym
+   * widz bierze udział, a nie pierwszy z brzegu wieczór grupy.
+   *
+   * Świadomie NIE dotyczy to questów niżej ani Kalendarium — widoczność spotkań
+   * i RSVP są w tej aplikacji celowo globalne (patrz 20260806090000: „każdy
+   * aktywny member nadal widzi każde spotkanie w Kalendarium i może na nie
+   * odpowiedzieć”). Questy dalej zapraszają do odpowiedzi na cudzy wieczór, a
+   * gdy widz odpowie „będę”, staje się jego uczestnikiem i wieczór pojawia się
+   * także tutaj. Rozdział jest zamierzony: Kalendarium i questy = odkrywanie
+   * grupowe, Stół = mój własny stan.
+   *
+   * Wykluczamy przy tym wieczór trzymający sekcję „GRAMY!”, żeby to samo
+   * spotkanie nie pojawiło się na Stole dwa razy.
+   */
+  const nextMeeting = pickUpcomingMeeting(
+    upcomingMeetings.filter((meeting) => viewerMeetingIds.has(meeting.id)),
+    now,
+    { excludeMeetingId: tableSession?.meeting.id ?? null },
+  );
   const summary = buildDashboardHeroSummary({
     memberName: member.displayName,
     quests,
@@ -535,7 +1057,8 @@ export async function getDashboardData(): Promise<DashboardData> {
     summary,
     pointsSummary,
     quests,
-    activeMeeting,
+    tableSession,
+    tableSessionOptions: tableSessionResult.options,
     upcomingMeeting: nextMeeting,
     leaderboard: buildLeaderboardPreview({
       currentPoints: pointsSummary.currentPoints,

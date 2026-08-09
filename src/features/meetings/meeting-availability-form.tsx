@@ -97,7 +97,10 @@ export function MeetingAvailabilityForm({
               value="unavailable"
               disabled={pending}
               aria-pressed={currentResponse === false}
-              style={segmentedOptionStyle("negative", currentResponse === false)}
+              style={segmentedOptionStyle(
+                "negative",
+                currentResponse === false,
+              )}
               className={`min-w-0 rounded-full border px-3 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${segmentedOptionClasses(
                 "negative",
                 currentResponse === false,

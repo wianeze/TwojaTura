@@ -7,7 +7,7 @@ import {
 import { ClassTextureLayer } from "@/components/layout/class-texture-layer";
 import { SectionBackground } from "@/components/layout/section-background";
 import { LogoMark } from "@/components/ui/logo-mark";
-import { getMemberInitial } from "@/features/auth/current-member";
+import { PlayerPortraitFrame } from "@/components/ui/player-portrait-frame";
 import { MemberRoleProvider } from "@/features/auth/member-role-context";
 import type { CurrentMember } from "@/features/auth/types";
 import { ActiveClassEmblem } from "@/features/legendarium/active-class-emblem";
@@ -67,18 +67,15 @@ export function AppShell({
             <Link
               href="/profil"
               aria-label="Przejdź do profilu"
-              className="focus-visible:outline-gold grid size-9 place-items-center overflow-hidden rounded-full border border-white/10 bg-white/8 text-xs font-bold text-[#f2ad77] focus-visible:outline-2 focus-visible:outline-offset-2"
+              className="focus-visible:outline-gold shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2"
             >
-              {member.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element -- external user-provided URL
-                <img
-                  src={member.avatarUrl}
-                  alt=""
-                  className="size-full object-cover"
-                />
-              ) : (
-                getMemberInitial(member.displayName)
-              )}
+              <PlayerPortraitFrame
+                avatarUrl={member.avatarUrl}
+                name={member.displayName}
+                frameType={member.activePortraitFrameKey}
+                size="compact"
+                className="w-8 min-[420px]:w-9"
+              />
             </Link>
           </header>
           <main className="relative z-10 mx-auto w-full max-w-[90rem] px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:py-10 xl:px-12">

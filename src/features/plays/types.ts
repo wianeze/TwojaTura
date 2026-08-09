@@ -69,6 +69,20 @@ export type PlayListItem = {
   comment: string | null;
   status: PlayStatus;
   stateNote: string | null;
+  /*
+   * Znaczniki sesji przy stole. Razem ze statusem dają cztery stany, których
+   * sam status nie unosi (patrz getPlayTablePhase w meetings/live-play.ts):
+   *   in_progress + start, bez końca            → gramy TERAZ,
+   *   in_progress + koniec + resultPending      → zagrane, wynik do uzupełnienia,
+   *   in_progress + koniec, bez resultPending   → odłożone, wrócimy do tego,
+   *   in_progress bez startu                    → odłożone, wpis ręczny z Kroniki,
+   *   completed                                 → rozliczone, historia.
+   * `durationMinutes` jest ŁĄCZNYM czasem rozgrywki — każda zamknięta sesja
+   * dokłada do niego swoje minuty, więc kontynuacja nie kasuje historii.
+   */
+  liveStartedAt: string | null;
+  liveEndedAt: string | null;
+  resultPending: boolean;
   mode: PlayMode;
   teamResult: PlayTeamResult | null;
   createdAt: string;
@@ -79,7 +93,16 @@ export type PlayListItem = {
   participants: PlayParticipantResult[];
   winners: PlayMember[];
   playersCount: number;
+  /**
+   * Autor, admin ALBO uczestnik spotkania, z którym partia jest powiązana —
+   * ten sam krąg, który przepuszcza update_play_with_participants.
+   */
   canEdit: boolean;
+  /**
+   * Usuwanie zostaje przy autorze i adminie (delete_play). Uczestnik może
+   * rozliczyć cudzą partię swojego wieczoru, ale nie skasować jej z Kroniki.
+   */
+  canDelete: boolean;
 };
 
 /*

@@ -1,10 +1,11 @@
 import { GameCover } from "@/components/ui/game-cover";
+import { getPlayTablePhase } from "@/features/meetings/live-play";
 import {
   formatChronicleChipScore,
   formatPlayDuration,
   getChronicleParticipantBadgeAsset,
   getPlayDateBadgeParts,
-  PLAY_STATUS_LABELS,
+  PLAY_PHASE_LABELS,
   resolveChronicleParticipantPlacement,
   sortPlayParticipants,
 } from "./formatting";
@@ -111,7 +112,10 @@ function PlayerCapsule({
 
 export function ChronicleEntryCard({ item }: { item: PlayListItem }) {
   const date = getPlayDateBadgeParts(item.playedAt);
-  const isInProgress = item.status === "in_progress";
+  // Cztery różne stany, nie jeden „in_progress”: zagrana partia bez wyniku nie
+  // może wyglądać jak taka, w którą wciąż ktoś gra.
+  const phase = getPlayTablePhase(item);
+  const isUnfinished = phase !== "completed";
   const isCooperative = item.mode === "cooperative";
   const durationLabel = formatPlayDuration(item.durationMinutes);
   const placeLabel = item.meeting?.title ?? item.meeting?.location ?? null;
@@ -148,8 +152,8 @@ export function ChronicleEntryCard({ item }: { item: PlayListItem }) {
           ) : null}
 
           <div className="mt-[0.3em] flex flex-wrap gap-[0.25em]">
-            {isInProgress ? (
-              <MetaChip tone="live">{PLAY_STATUS_LABELS.in_progress}</MetaChip>
+            {isUnfinished ? (
+              <MetaChip tone="live">{PLAY_PHASE_LABELS[phase]}</MetaChip>
             ) : null}
             {durationLabel ? <MetaChip>{durationLabel}</MetaChip> : null}
             {isDraw ? <MetaChip>Remis</MetaChip> : null}

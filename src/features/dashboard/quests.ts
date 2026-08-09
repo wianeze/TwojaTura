@@ -12,6 +12,28 @@ const QUEST_PRIORITY = {
 
 const DAY_MS = 86_400_000;
 
+/**
+ * Kalendarz pozostaje widoczny dla grupy, ale questy konkretnego spotkania
+ * dostają tylko jego organizator i osoby zaproszone.
+ */
+export function filterDashboardQuestSourceForMeetingEligibility(
+  source: DashboardQuestSource,
+  eligibleMeetingIds: ReadonlySet<string>,
+): DashboardQuestSource {
+  return {
+    ...source,
+    futureMeetings: source.futureMeetings.filter((meeting) =>
+      eligibleMeetingIds.has(meeting.id),
+    ),
+    unratedGames: source.unratedGames.filter(
+      (play) => !play.meetingId || eligibleMeetingIds.has(play.meetingId),
+    ),
+    finishedMeetingsWithoutPlay: source.finishedMeetingsWithoutPlay.filter(
+      (meeting) => eligibleMeetingIds.has(meeting.id),
+    ),
+  };
+}
+
 export function buildDashboardQuests(source: DashboardQuestSource) {
   const quests: DashboardQuest[] = [];
   const futureMeetings = source.futureMeetings

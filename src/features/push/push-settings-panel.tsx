@@ -223,12 +223,6 @@ export function PushSettingsPanel() {
       <h2 className="font-display mt-1 text-2xl font-semibold text-[#4c3528]">
         Powiadomienia push
       </h2>
-      <p className="mt-2 text-sm text-[#6f5640]">
-        Dostaniesz powiadomienie, gdy ktoś utworzy nowe spotkanie. Ustawienie
-        dotyczy tego jednego urządzenia — na każdym telefonie i w każdej
-        przeglądarce trzeba je włączyć osobno.
-      </p>
-
       <div className="mt-4">{renderState(state)}</div>
 
       {message ? (

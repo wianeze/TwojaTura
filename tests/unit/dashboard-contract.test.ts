@@ -7,14 +7,17 @@ import {
   formatQuestRewardPreview,
   formatDashboardWinnerSummary,
   getConfirmedMeetingAlert,
-  pickActiveMeeting,
+  isWithinMeetingWindow,
   pickUpcomingMeeting,
   sortDashboardQuests,
   sumQuestFollowUpPoints,
   sumQuestImmediatePoints,
   sumQuestOptionalPoints,
 } from "../../src/features/dashboard/formatting.ts";
-import { buildDashboardQuests } from "../../src/features/dashboard/quests.ts";
+import {
+  buildDashboardQuests,
+  filterDashboardQuestSourceForMeetingEligibility,
+} from "../../src/features/dashboard/quests.ts";
 import type {
   DashboardQuest,
   DashboardQuestSource,
@@ -829,25 +832,9 @@ test("nearest meeting prefers confirmed over earlier planned", () => {
   assert.equal(meeting?.id, "confirmed");
 });
 
-test("active meeting has priority over a later upcoming meeting", () => {
+test("a meeting already under way is not offered as the next one", () => {
   const now = new Date("2026-07-18T18:00:00.000Z");
-  const activeMeeting = pickActiveMeeting(
-    [
-      buildUpcomingMeeting({
-        id: "active",
-        status: "confirmed",
-        startsAt: "2026-07-18T17:00:00.000Z",
-        endsAt: "2026-07-18T21:00:00.000Z",
-      }),
-      buildUpcomingMeeting({
-        id: "upcoming",
-        startsAt: "2026-07-20T16:00:00.000Z",
-      }),
-    ],
-    now,
-  );
 
-  assert.equal(activeMeeting?.id, "active");
   assert.equal(
     pickUpcomingMeeting(
       [
@@ -867,15 +854,45 @@ test("active meeting has priority over a later upcoming meeting", () => {
   );
 });
 
-test("meeting is no longer active at its scheduled end", () => {
+test("the meeting holding the table is excluded from the next-meeting slot", () => {
+  const now = new Date("2026-07-18T12:00:00.000Z");
+  const meetings = [
+    buildUpcomingMeeting({
+      id: "tonight",
+      startsAt: "2026-07-18T16:00:00.000Z",
+      endsAt: "2026-07-18T21:00:00.000Z",
+    }),
+    buildUpcomingMeeting({
+      id: "next-week",
+      startsAt: "2026-07-25T16:00:00.000Z",
+      endsAt: "2026-07-25T21:00:00.000Z",
+    }),
+  ];
+
+  assert.equal(pickUpcomingMeeting(meetings, now)?.id, "tonight");
+  assert.equal(
+    pickUpcomingMeeting(meetings, now, { excludeMeetingId: "tonight" })?.id,
+    "next-week",
+  );
+});
+
+test("meeting window covers its start and excludes its scheduled end", () => {
   const meeting = buildUpcomingMeeting({
     startsAt: "2026-07-18T17:00:00.000Z",
     endsAt: "2026-07-18T21:00:00.000Z",
   });
 
   assert.equal(
-    pickActiveMeeting([meeting], new Date("2026-07-18T21:00:00.000Z")),
-    null,
+    isWithinMeetingWindow(meeting, new Date("2026-07-18T16:59:59.000Z")),
+    false,
+  );
+  assert.equal(
+    isWithinMeetingWindow(meeting, new Date("2026-07-18T17:00:00.000Z")),
+    true,
+  );
+  assert.equal(
+    isWithinMeetingWindow(meeting, new Date("2026-07-18T21:00:00.000Z")),
+    false,
   );
 });
 
@@ -946,4 +963,66 @@ test("winner summary returns many winners", () => {
     ]),
     "Marta, Ania",
   );
+});
+
+test("uninvited member receives no quests tied to that meeting", () => {
+  const eligibleSource = filterDashboardQuestSourceForMeetingEligibility(
+    buildSource({
+      futureMeetings: [
+        {
+          id: "invited-meeting",
+          title: "Wieczór drużyny",
+          startsAt: "2026-07-20T16:00:00.000Z",
+          endsAt: "2026-07-20T20:00:00.000Z",
+          status: "planned",
+          ownResponse: null,
+          hasOwnVote: false,
+        },
+        {
+          id: "uninvited-meeting",
+          title: "Obcy wieczór",
+          startsAt: "2026-07-21T16:00:00.000Z",
+          endsAt: "2026-07-21T20:00:00.000Z",
+          status: "planned",
+          ownResponse: null,
+          hasOwnVote: false,
+        },
+      ],
+      finishedMeetingsWithoutPlay: [
+        {
+          id: "uninvited-finished-meeting",
+          title: "Obcy zakończony wieczór",
+          startsAt: "2026-07-10T16:00:00.000Z",
+          endsAt: "2026-07-10T20:00:00.000Z",
+          status: "completed",
+        },
+      ],
+      unratedGames: [
+        {
+          playId: "standalone-play",
+          gameId: "standalone-game",
+          gameTitle: "Własna partia",
+          playedAt: "2026-07-12T10:00:00.000Z",
+        },
+        {
+          playId: "uninvited-play",
+          gameId: "uninvited-game",
+          gameTitle: "Gra z obcego spotkania",
+          playedAt: "2026-07-12T10:00:00.000Z",
+          meetingId: "uninvited-finished-meeting",
+        },
+      ],
+    }),
+    new Set(["invited-meeting"]),
+  );
+
+  const quests = buildDashboardQuests(eligibleSource);
+
+  assert.ok(quests.some((quest) => quest.id === "missing-rsvp:invited-meeting"));
+  assert.ok(!quests.some((quest) => quest.id.includes("uninvited-meeting")));
+  assert.ok(
+    !quests.some((quest) => quest.id === "missing-play:uninvited-finished-meeting"),
+  );
+  assert.ok(!quests.some((quest) => quest.id === "rate-game:uninvited-play:uninvited-game"));
+  assert.ok(quests.some((quest) => quest.id === "rate-game:standalone-play:standalone-game"));
 });

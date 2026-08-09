@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Panel } from "@/components/ui/panel";
-import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { signOutAction } from "@/features/auth/actions";
-import { getMemberInitial } from "@/features/auth/current-member";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { ProfileForm } from "@/features/auth/profile-form";
 import { getAchievementClassData } from "@/features/legendarium/queries";
-import { ProfileAchievementsPanel } from "@/features/legendarium/profile-achievements-panel";
-import { ActiveClassEmblem } from "@/features/legendarium/active-class-emblem";
-import { listRecentMemberPlays } from "@/features/plays/queries";
-import { RecentMemberPlaysPanel } from "@/features/plays/recent-plays-list";
+import { PlayerProfileShowcase } from "@/features/profile/player-profile-showcase";
+import { getPlayerProfileData } from "@/features/profile/queries";
+import { getPortraitFrameStoreData } from "@/features/profile/portrait-frames";
 import { PushSettingsPanel } from "@/features/push/push-settings-panel";
+import { getEntranceStaggerDelayMs } from "@/lib/animation";
 
 export const metadata: Metadata = { title: "Karta Gracza" };
 
@@ -19,76 +17,52 @@ export default async function ProfilePage() {
   const state = await getCurrentMember();
   if (state.status !== "active-member") redirect("/brak-dostepu");
   const { member } = state;
-  const [recentPlays, achievementData] = await Promise.all([
-    listRecentMemberPlays(member.id),
+  const [profileData, achievementData, portraitFrameData] = await Promise.all([
+    getPlayerProfileData(member.id),
     getAchievementClassData(member.id),
+    getPortraitFrameStoreData(member.id, member.activePortraitFrameKey),
   ]);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
-      <Panel
-        style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
-        className="anim-rise-in-fast paper-wash p-6 sm:p-8"
-      >
-        <div className="flex min-h-20 items-center gap-4">
-          <span className="shrink-0">
-            {member.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- external user-provided URL
-              <img
-                src={member.avatarUrl}
-                alt=""
-                className="size-20 rounded-full object-cover shadow-lg"
-              />
-            ) : (
-              <span className="bg-brand text-cream grid size-20 place-items-center rounded-full text-2xl font-bold shadow-lg">
-                {getMemberInitial(member.displayName)}
-              </span>
-            )}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-accent text-xs font-bold tracking-[0.16em] uppercase">
-              Twoje konto
-            </p>
-            <h1 className="font-display mt-1 text-3xl font-semibold">
-              Karta Gracza
-            </h1>
-          </div>
-          <ActiveClassEmblem
-            activeClass={achievementData.currentActiveClass}
-            sizeClass="size-20 shrink-0"
-            className="ml-auto"
-          />
-        </div>
-        <ProfileForm member={member} />
-        <form action={signOutAction} className="mt-4 text-center">
-          <button
-            type="submit"
-            className="text-accent text-sm font-semibold underline-offset-4 hover:underline"
-          >
-            Wyloguj się
-          </button>
-        </form>
-      </Panel>
-
-      <Panel
-        style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
-        className="anim-rise-in-fast paper-wash p-6 sm:p-8"
-      >
-        <PushSettingsPanel />
-      </Panel>
-
-      <ProfileAchievementsPanel
+    <div className="mx-auto max-w-[96rem] space-y-4">
+      <PlayerProfileShowcase
+        member={member}
+        profile={profileData}
         achievements={achievementData.achievements}
         classes={achievementData.classes}
         activeClass={achievementData.currentActiveClass}
+        portraitFrameData={portraitFrameData}
       />
 
-      <RecentMemberPlaysPanel
-        title="Ostatnie partie"
-        items={recentPlays}
-        emptyMessage="Nie masz jeszcze zapisanych partii w Kronice."
-        entranceIndex={2}
-      />
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <Panel
+          style={{ animationDelay: `${getEntranceStaggerDelayMs(5)}ms` }}
+          className="anim-rise-in-fast paper-wash p-5 sm:p-6"
+        >
+          <p className="text-accent text-[0.62rem] font-bold tracking-[0.17em] uppercase">
+            Ustawienia bohatera
+          </p>
+          <h2 className="font-display mt-1 text-2xl font-semibold">
+            Dane Karty Gracza
+          </h2>
+          <ProfileForm member={member} />
+          <form action={signOutAction} className="mt-4 text-center">
+            <button
+              type="submit"
+              className="text-accent text-sm font-semibold underline-offset-4 hover:underline"
+            >
+              Wyloguj się
+            </button>
+          </form>
+        </Panel>
+
+        <Panel
+          style={{ animationDelay: `${getEntranceStaggerDelayMs(6)}ms` }}
+          className="anim-rise-in-fast paper-wash p-5 sm:p-6"
+        >
+          <PushSettingsPanel />
+        </Panel>
+      </div>
     </div>
   );
 }

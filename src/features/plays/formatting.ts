@@ -3,6 +3,11 @@ import {
   formatMeetingDateRange,
   parseMeetingDisplayDateToDateKey,
 } from "../meetings/formatting.ts";
+import {
+  getPlayTablePhase,
+  type PlayTablePhase,
+  type PlayTableState,
+} from "../meetings/live-play.ts";
 import type {
   ChronicleMonthGroup,
   PlayDetails,
@@ -23,6 +28,23 @@ export const PLAY_STATUS_LABELS: Record<PlayStatus, string> = {
   in_progress: "W toku",
   completed: "Zakończona",
 };
+
+/*
+ * Sam status nie wystarcza, żeby opisać wpis Kroniki: pod `in_progress` kryją
+ * się trzy różne rzeczy. „W toku” zarezerwowane jest dla partii, w którą
+ * naprawdę ktoś teraz gra — zagrana partia bez wyniku nie może udawać, że
+ * wciąż trwa.
+ */
+export const PLAY_PHASE_LABELS: Record<PlayTablePhase, string> = {
+  running: "Gramy teraz",
+  "awaiting-result": "Wynik do uzupełnienia",
+  paused: "W toku",
+  completed: "Zakończona",
+};
+
+export function getPlayPhaseLabel(play: PlayTableState) {
+  return PLAY_PHASE_LABELS[getPlayTablePhase(play)];
+}
 
 const dateTimeFormatter = new Intl.DateTimeFormat("pl-PL", {
   day: "2-digit",

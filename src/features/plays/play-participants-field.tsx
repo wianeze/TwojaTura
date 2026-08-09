@@ -74,7 +74,9 @@ export function PlayParticipantsField({
   // znacznik u wszystkich naraz.
   if (isCooperative && teamResult !== previousTeamResult) {
     setPreviousTeamResult(teamResult);
-    setDrafts((current) => applyTeamResultToDrafts(current, status, teamResult));
+    setDrafts((current) =>
+      applyTeamResultToDrafts(current, status, teamResult),
+    );
   }
 
   // Switching to "w toku" clears any already-marked winner — an in-progress

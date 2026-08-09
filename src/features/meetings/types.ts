@@ -59,6 +59,15 @@ export type MeetingDeleteState = {
   message?: string;
 };
 
+// Wynik akcji stanu „GRAMY!” (start partii, zakończenie spotkania). `playId`
+// pojawia się tylko po starcie partii — klient używa go, żeby od razu wskazać
+// właściwy wpis Kroniki.
+export type MeetingTableSessionState = {
+  status: "idle" | "error" | "success";
+  message?: string;
+  playId?: string;
+};
+
 export type MeetingCardItem = {
   id: string;
   title: string;
@@ -109,10 +118,13 @@ export type MeetingGameRecommendation = MeetingGameCandidateOption &
 // kontynuacji na karcie spotkania.
 export type MeetingContinuablePlay = {
   playId: string;
+  gameId: string;
   gameTitle: string;
   coverUrl: string | null;
   playedAt: string;
   stateNote: string | null;
+  /** Łączny czas dotychczasowych sesji tej rozgrywki. */
+  accumulatedMinutes: number | null;
 };
 
 export type MeetingDetails = MeetingCardItem & {

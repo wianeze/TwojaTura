@@ -328,14 +328,22 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
 
         {play.canEdit ? (
           <div className="flex flex-wrap items-center gap-2">
-            <DeletePlayButton action={deletePlayAction.bind(null, play.id)} />
+            {/* Usuwanie zostaje przy autorze i adminie — uczestnik spotkania
+                może rozliczyć cudzą partię, ale nie skasować jej z Kroniki. */}
+            {play.canDelete ? (
+              <DeletePlayButton action={deletePlayAction.bind(null, play.id)} />
+            ) : null}
             <ActionLink
               action="chronicle"
               size="compact"
               emphasis="secondary"
               href={`/kronika/${play.id}/edytuj`}
             >
-              {play.status === "in_progress" ? "Wznów grę" : "Edytuj"}
+              {play.resultPending
+                ? "Uzupełnij wynik"
+                : play.status === "in_progress"
+                  ? "Wznów grę"
+                  : "Edytuj"}
             </ActionLink>
           </div>
         ) : null}

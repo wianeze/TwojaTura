@@ -16,10 +16,12 @@ import {
   awardMeetingVotePointsAfterSave,
 } from "./meeting-points";
 import { mapMeetingDeleteError } from "./meeting-deletion";
+import { enqueueMeetingConfirmationReminderAfterRsvp } from "./meeting-confirmation-reminder";
 import type {
   MeetingAvailabilityFormState,
   MeetingDeleteState,
   MeetingFormState,
+  MeetingTableSessionState,
   MeetingVoteState,
 } from "./types";
 import { toMeetingFormErrorState, validateMeetingFormData } from "./validation";
@@ -41,6 +43,10 @@ function mapMeetingDatabaseError(error: DatabaseErrorLike) {
 
   if (message.includes("play in progress can be continued")) {
     return "Kontynuować można wyłącznie partię w toku. Ta jest już zakończona.";
+  }
+
+  if (message.includes("running live at the table")) {
+    return "Ta partia jest właśnie grana przy stole. Najpierw zapisz jej wynik.";
   }
 
   if (message.includes("cannot continue a play that already starts at it")) {
@@ -220,6 +226,25 @@ export async function saveMeetingAvailabilityAction(
     };
   }
 
+  const confirmationReminder =
+    await enqueueMeetingConfirmationReminderAfterRsvp(
+      () =>
+        // Typ RPC pojawi się w database.generated.ts po zastosowaniu migracji.
+        // Lokalny CLI jest obecnie blokowany przez dostęp do Dockera, więc ten
+        // wąski cast utrzymuje build bez ręcznej edycji wygenerowanego pliku.
+        access.supabase.rpc(
+          "enqueue_meeting_confirmation_reminder" as never,
+          { p_meeting_id: meetingId } as never,
+        ) as unknown as PromiseLike<{
+          data: boolean | null;
+          error: { code?: string | null; message?: string | null } | null;
+        }>,
+    );
+
+  if (confirmationReminder.queued) {
+    after(() => dispatchPendingPushDeliveriesInBackground());
+  }
+
   const pointAward = await awardMeetingRsvpPointsAfterSave(() =>
     access.supabase.rpc("award_meeting_rsvp_points", {
       p_meeting_id: meetingId,
@@ -338,6 +363,194 @@ export async function setMeetingGameResponseAction(
 
   revalidatePath("/kalendarium");
   revalidatePath(`/kalendarium/${meetingId}`);
+  return { status: "success" };
+}
+
+/*
+ * Stan „GRAMY!”. Obie akcje są cienkimi opakowaniami RPC — cała logika
+ * (idempotencja, „jedna aktywna partia na spotkanie”, uprawnienia) siedzi w
+ * bazie, tak jak reszta reguł domenowych tego projektu.
+ *
+ * Zakończenie partii NIE ma tu własnej akcji: korzysta z istniejącego
+ * updatePlayAction i istniejącego formularza Kroniki, więc wynik, punkty i
+ * odznaki liczą się dokładnie jedną, sprawdzoną ścieżką.
+ */
+
+function mapTableSessionError(error: DatabaseErrorLike) {
+  const message = error.message?.toLowerCase() ?? "";
+
+  if (message.includes("finish the running play")) {
+    return "Najpierw zakończ trwającą partię — dopiero potem można zamknąć wieczór albo zacząć kolejną grę.";
+  }
+
+  if (message.includes("meeting is already finished")) {
+    return "To spotkanie zostało już zakończone. Odśwież Stół.";
+  }
+
+  if (message.includes("participant of this meeting")) {
+    return "Partiami tego wieczoru sterują jego uczestnicy. Poproś kogoś ze stołu albo odśwież Stół.";
+  }
+
+  if (message.includes("already running at another meeting")) {
+    return "Ta partia jest właśnie grana na innym spotkaniu.";
+  }
+
+  if (message.includes("already continues another play")) {
+    return "Na tym spotkaniu wracacie już do innej odłożonej partii.";
+  }
+
+  if (message.includes("paused play in progress can be resumed")) {
+    return "Tej partii nie da się wznowić — jest już rozliczona albo czeka tylko na wynik.";
+  }
+
+  if (message.includes("running at the table can be cancelled")) {
+    return "Anulować można wyłącznie partię, która właśnie trwa.";
+  }
+
+  if (message.includes("earlier sessions cannot be cancelled")) {
+    return "Ta partia ma już wcześniejsze sesje — zamiast anulować, odłóż ją albo zakończ.";
+  }
+
+  switch (error.code) {
+    case "42501":
+      return "Nie masz uprawnień do tej operacji.";
+    case "23503":
+      return "Spotkanie, partia albo gra nie są już dostępne. Odśwież Stół.";
+    default:
+      return "Nie udało się wykonać tej operacji. Spróbuj ponownie.";
+  }
+}
+
+function revalidateTableSession(meetingId: string) {
+  revalidatePath("/");
+  revalidatePath("/kalendarium");
+  revalidatePath(`/kalendarium/${meetingId}`);
+  revalidatePath("/kronika");
+}
+
+export async function startMeetingPlayAction(
+  meetingId: string,
+  gameId: string,
+): Promise<MeetingTableSessionState> {
+  const access = await requireWriteAccess();
+  if (!access.ok) {
+    return { status: "error", message: access.message };
+  }
+
+  // RPC jest idempotentne: powtórzone kliknięcie dostaje id już biegnącej
+  // partii, więc podwójny submit nie tworzy drugiej rozgrywki.
+  const { data, error } = await access.supabase.rpc("start_meeting_play", {
+    p_meeting_id: meetingId,
+    p_game_id: gameId,
+  });
+
+  if (error || !data) {
+    return { status: "error", message: mapTableSessionError(error ?? {}) };
+  }
+
+  revalidateTableSession(meetingId);
+  return { status: "success", playId: data };
+}
+
+/**
+ * Wznowienie odłożonej rozgrywki na tym wieczorze. Korzysta z istniejącego
+ * mechanizmu kontynuacji (meetings.continued_play_id), więc partia zostaje
+ * JEDNYM wpisem Kroniki, a jej wcześniejsze sesje i czas nie znikają.
+ */
+export async function resumeMeetingPlayAction(
+  meetingId: string,
+  playId: string,
+): Promise<MeetingTableSessionState> {
+  const access = await requireWriteAccess();
+  if (!access.ok) {
+    return { status: "error", message: access.message };
+  }
+
+  const { data, error } = await access.supabase.rpc("resume_meeting_play", {
+    p_meeting_id: meetingId,
+    p_play_id: playId,
+  });
+
+  if (error || !data) {
+    return { status: "error", message: mapTableSessionError(error ?? {}) };
+  }
+
+  revalidateTableSession(meetingId);
+  return { status: "success", playId: data };
+}
+
+/**
+ * „Zakończ partię” i „Odłóż partię”. Obie zatrzymują zegar i dopisują minuty do
+ * łącznego czasu rozgrywki; różni je tylko to, czy partia czeka teraz na wynik,
+ * czy na kolejną sesję. Żadna z nich NIE prowadzi do formularza Kroniki i żadna
+ * nie nalicza nagród.
+ */
+export async function finishMeetingPlayAction(
+  meetingId: string,
+  playId: string,
+  options: { keepForLater?: boolean; stateNote?: string } = {},
+): Promise<MeetingTableSessionState> {
+  const access = await requireWriteAccess();
+  if (!access.ok) {
+    return { status: "error", message: access.message };
+  }
+
+  const { data, error } = await access.supabase.rpc("finish_meeting_play", {
+    p_play_id: playId,
+    p_result_pending: !options.keepForLater,
+    ...(options.stateNote ? { p_state_note: options.stateNote } : {}),
+  });
+
+  if (error || !data) {
+    return { status: "error", message: mapTableSessionError(error ?? {}) };
+  }
+
+  revalidateTableSession(meetingId);
+  return { status: "success", playId: data };
+}
+
+/**
+ * „Anuluj start” — pomyłkowo wybrana gra. Partia znika bez śladu, więc nie
+ * trafia do Kroniki, statystyk ani nagród.
+ */
+export async function cancelMeetingPlayAction(
+  meetingId: string,
+  playId: string,
+): Promise<MeetingTableSessionState> {
+  const access = await requireWriteAccess();
+  if (!access.ok) {
+    return { status: "error", message: access.message };
+  }
+
+  const { error } = await access.supabase.rpc("cancel_meeting_play", {
+    p_play_id: playId,
+  });
+
+  if (error) {
+    return { status: "error", message: mapTableSessionError(error) };
+  }
+
+  revalidateTableSession(meetingId);
+  return { status: "success" };
+}
+
+export async function finishMeetingAction(
+  meetingId: string,
+): Promise<MeetingTableSessionState> {
+  const access = await requireWriteAccess();
+  if (!access.ok) {
+    return { status: "error", message: access.message };
+  }
+
+  const { error } = await access.supabase.rpc("complete_meeting", {
+    p_meeting_id: meetingId,
+  });
+
+  if (error) {
+    return { status: "error", message: mapTableSessionError(error) };
+  }
+
+  revalidateTableSession(meetingId);
   return { status: "success" };
 }
 

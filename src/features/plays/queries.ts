@@ -1,5 +1,6 @@
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import type { MemberRole } from "@/features/auth/types";
+import { getViewerMeetingParticipation } from "@/features/meetings/participation";
 import { createClient } from "@/lib/supabase/server";
 import { toPublicStorageUrl } from "@/lib/supabase/env";
 import type { Tables } from "@/types/database.generated";
@@ -181,6 +182,39 @@ async function hydratePlayItems(
   const gamesMap = new Map(games.map((game) => [game.id, game]));
   const meetingsMap = new Map(meetings.map((meeting) => [meeting.id, meeting]));
 
+  /*
+   * Uczestnik spotkania może rozliczyć partię tego wieczoru — także taką, której
+   * nie założył. Uprawnienie kończy się na spotkaniu: wpis Kroniki bez
+   * meeting_id zostaje przy dotychczasowej regule autor/admin. Liczy się również
+   * spotkanie, na którym partia jest KONTYNUOWANA, bo tam też siedzi się przy
+   * tym samym stole.
+   */
+  const continuationsResult =
+    viewer && playIds.length > 0
+      ? await supabase
+          .from("meetings")
+          .select("id, continued_play_id")
+          .in("continued_play_id", playIds)
+          .is("deleted_at", null)
+      : { data: [], error: null };
+
+  const continuationMeetingsByPlay = new Map<string, string[]>();
+  for (const row of continuationsResult.data ?? []) {
+    if (!row.continued_play_id) continue;
+    const current = continuationMeetingsByPlay.get(row.continued_play_id) ?? [];
+    current.push(row.id);
+    continuationMeetingsByPlay.set(row.continued_play_id, current);
+  }
+
+  const participation = viewer
+    ? await getViewerMeetingParticipation(supabase, viewer.id, [
+        ...new Set([
+          ...meetingIds,
+          ...[...continuationMeetingsByPlay.values()].flat(),
+        ]),
+      ])
+    : new Set<string>();
+
   return playRows.map((play) => {
     const game = gamesMap.get(play.game_id);
     const participants = participantsMap.get(play.id) ?? [];
@@ -195,6 +229,9 @@ async function hydratePlayItems(
       comment: play.comment,
       status: play.status,
       stateNote: play.state_note,
+      liveStartedAt: play.live_started_at,
+      liveEndedAt: play.live_ended_at,
+      resultPending: play.result_pending,
       mode: play.mode,
       teamResult: play.team_result,
       createdAt: play.created_at,
@@ -223,6 +260,15 @@ async function hydratePlayItems(
       winners,
       playersCount: participants.length,
       canEdit: Boolean(
+        viewer &&
+        (viewer.role === "admin" ||
+          viewer.id === play.created_by ||
+          (play.meeting_id !== null && participation.has(play.meeting_id)) ||
+          (continuationMeetingsByPlay.get(play.id) ?? []).some((meetingId) =>
+            participation.has(meetingId),
+          )),
+      ),
+      canDelete: Boolean(
         viewer && (viewer.role === "admin" || viewer.id === play.created_by),
       ),
     } satisfies PlayListItem;
@@ -238,7 +284,7 @@ export async function listChroniclePlays(): Promise<PlayListItem[]> {
   const { data, error } = await supabase
     .from("plays")
     .select(
-      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, mode, team_result, created_at, updated_at",
+      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, live_started_at, live_ended_at, result_pending, mode, team_result, created_at, updated_at",
     )
     .order("played_at", { ascending: false });
 
@@ -309,7 +355,7 @@ export async function getPlayDetails(
   const { data, error } = await supabase
     .from("plays")
     .select(
-      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, mode, team_result, created_at, updated_at",
+      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, live_started_at, live_ended_at, result_pending, mode, team_result, created_at, updated_at",
     )
     .eq("id", playId)
     .maybeSingle();
@@ -483,7 +529,7 @@ export async function listRecentGamePlays(
   const { data, error } = await supabase
     .from("plays")
     .select(
-      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, mode, team_result, created_at, updated_at",
+      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, live_started_at, live_ended_at, result_pending, mode, team_result, created_at, updated_at",
     )
     .eq("game_id", gameId)
     .order("played_at", { ascending: false })
@@ -495,6 +541,50 @@ export async function listRecentGamePlays(
 
   const items = await hydratePlayItems((data ?? []) as PlayRow[], viewer);
   return sortPlaysByPlayedAtDesc(items);
+}
+
+/**
+ * Wszystkie partie jednego wieczoru — te grane przy stole, te dopisane ręcznie
+ * ORAZ rozgrywka kontynuowana na tym spotkaniu (meetings.continued_play_id),
+ * której kotwicą jest wcześniejsze spotkanie. Bez tej ostatniej Stół nie
+ * widziałby partii, przy której grupa właśnie siedzi.
+ *
+ * Świadomie ta sama ścieżka hydratacji co reszta Kroniki, żeby wynik znaczył
+ * wszędzie to samo.
+ */
+export async function listMeetingPlays(
+  meetingId: string,
+): Promise<PlayListItem[]> {
+  const supabase = await createClient();
+  const memberState = await getCurrentMember();
+  const viewer =
+    memberState.status === "active-member" ? memberState.member : null;
+
+  const { data: meetingRow } = await supabase
+    .from("meetings")
+    .select("continued_play_id")
+    .eq("id", meetingId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  const continuedPlayId = meetingRow?.continued_play_id ?? null;
+  const filter = continuedPlayId
+    ? `meeting_id.eq.${meetingId},id.eq.${continuedPlayId}`
+    : `meeting_id.eq.${meetingId}`;
+
+  const { data, error } = await supabase
+    .from("plays")
+    .select(
+      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, live_started_at, live_ended_at, result_pending, mode, team_result, created_at, updated_at",
+    )
+    .or(filter)
+    .order("played_at", { ascending: true });
+
+  if (error) {
+    throw new Error("Nie udało się pobrać partii tego spotkania.");
+  }
+
+  return hydratePlayItems((data ?? []) as PlayRow[], viewer);
 }
 
 export async function listRecentMemberPlays(
@@ -519,7 +609,7 @@ export async function listRecentMemberPlays(
   const { data: playRows, error: playError } = await supabase
     .from("plays")
     .select(
-      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, mode, team_result, created_at, updated_at",
+      "id, game_id, meeting_id, created_by, played_at, duration_minutes, comment, status, state_note, live_started_at, live_ended_at, result_pending, mode, team_result, created_at, updated_at",
     )
     .in("id", playIds)
     .order("played_at", { ascending: false })

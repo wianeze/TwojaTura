@@ -16,6 +16,20 @@ export type PatchNotesRelease = {
  */
 export const PATCH_NOTES: readonly PatchNotesRelease[] = [
   {
+    date: "9 sierpnia 2026",
+    title: "Nowa oprawa Karty Gracza",
+    categories: [
+      {
+        category: "Profil",
+        items: [
+          "Dodano Ekwipunek ramek portretu oraz wybór aktywnej ramki Karty Gracza.",
+          "Wybrana ramka jest teraz widoczna również w Legendarium, na Półce i w nawigacji.",
+          "Sklep z ramkami prezentuje nadchodzące oprawy Rare i Epic — możliwość ich zdobywania pojawi się wraz z nową walutą.",
+        ],
+      },
+    ],
+  },
+  {
     date: "8 sierpnia 2026",
     title: "Jeszcze lepsze spotkania",
     categories: [

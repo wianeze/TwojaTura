@@ -1050,9 +1050,12 @@ export type Database = {
           duration_minutes: number | null
           game_id: string
           id: string
+          live_ended_at: string | null
+          live_started_at: string | null
           meeting_id: string | null
           mode: Database["public"]["Enums"]["play_mode"]
           played_at: string
+          result_pending: boolean
           rewards_managed: boolean
           state_note: string | null
           status: Database["public"]["Enums"]["play_status"]
@@ -1066,9 +1069,12 @@ export type Database = {
           duration_minutes?: number | null
           game_id: string
           id?: string
+          live_ended_at?: string | null
+          live_started_at?: string | null
           meeting_id?: string | null
           mode?: Database["public"]["Enums"]["play_mode"]
           played_at: string
+          result_pending?: boolean
           rewards_managed?: boolean
           state_note?: string | null
           status?: Database["public"]["Enums"]["play_status"]
@@ -1082,9 +1088,12 @@ export type Database = {
           duration_minutes?: number | null
           game_id?: string
           id?: string
+          live_ended_at?: string | null
+          live_started_at?: string | null
           meeting_id?: string | null
           mode?: Database["public"]["Enums"]["play_mode"]
           played_at?: string
+          result_pending?: boolean
           rewards_managed?: boolean
           state_note?: string | null
           status?: Database["public"]["Enums"]["play_status"]
@@ -1169,9 +1178,52 @@ export type Database = {
           },
         ]
       }
+      portrait_frames: {
+        Row: {
+          asset_path: string
+          created_at: string
+          frame_key: string
+          id: string
+          is_active: boolean
+          is_shop_available: boolean
+          name: string
+          price_points: number
+          rarity: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          asset_path: string
+          created_at?: string
+          frame_key: string
+          id?: string
+          is_active?: boolean
+          is_shop_available?: boolean
+          name: string
+          price_points?: number
+          rarity: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          asset_path?: string
+          created_at?: string
+          frame_key?: string
+          id?: string
+          is_active?: boolean
+          is_shop_available?: boolean
+          name?: string
+          price_points?: number
+          rarity?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           active_class_key: string | null
+          active_portrait_frame_key: string | null
           avatar_url: string | null
           created_at: string
           display_name: string
@@ -1181,6 +1233,7 @@ export type Database = {
         }
         Insert: {
           active_class_key?: string | null
+          active_portrait_frame_key?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name: string
@@ -1190,6 +1243,7 @@ export type Database = {
         }
         Update: {
           active_class_key?: string | null
+          active_portrait_frame_key?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string
@@ -1204,6 +1258,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "class_definitions"
             referencedColumns: ["class_key"]
+          },
+          {
+            foreignKeyName: "profiles_active_portrait_frame_key_fkey"
+            columns: ["active_portrait_frame_key"]
+            isOneToOne: false
+            referencedRelation: "portrait_frames"
+            referencedColumns: ["frame_key"]
           },
         ]
       }
@@ -1476,6 +1537,42 @@ export type Database = {
           },
           {
             foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_portrait_frames: {
+        Row: {
+          acquired_at: string
+          acquisition_type: string
+          frame_id: string
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string
+          acquisition_type?: string
+          frame_id: string
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string
+          acquisition_type?: string
+          frame_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_portrait_frames_frame_id_fkey"
+            columns: ["frame_id"]
+            isOneToOne: false
+            referencedRelation: "portrait_frames"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_portrait_frames_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -1779,6 +1876,7 @@ export type Database = {
           awarded_points: number
         }[]
       }
+      cancel_meeting_play: { Args: { p_play_id: string }; Returns: boolean }
       claim_push_deliveries: {
         Args: { p_limit?: number }
         Returns: {
@@ -1793,6 +1891,7 @@ export type Database = {
           title: string
         }[]
       }
+      complete_meeting: { Args: { p_meeting_id: string }; Returns: boolean }
       complete_push_delivery: {
         Args: {
           p_delivery_id: string
@@ -1861,6 +1960,18 @@ export type Database = {
         Args: { p_endpoint: string }
         Returns: boolean
       }
+      enqueue_meeting_confirmation_reminder: {
+        Args: { p_meeting_id: string }
+        Returns: boolean
+      }
+      finish_meeting_play: {
+        Args: {
+          p_play_id: string
+          p_result_pending?: boolean
+          p_state_note?: string
+        }
+        Returns: string
+      }
       get_leaderboard: {
         Args: never
         Returns: {
@@ -1909,6 +2020,10 @@ export type Database = {
         Args: { p_photo_ids: string[]; p_play_id: string }
         Returns: undefined
       }
+      resume_meeting_play: {
+        Args: { p_meeting_id: string; p_play_id: string }
+        Returns: string
+      }
       return_game: { Args: { p_game_id: string }; Returns: string }
       save_push_subscription: {
         Args: {
@@ -1920,6 +2035,10 @@ export type Database = {
         Returns: string
       }
       set_active_class: { Args: { p_class_key: string }; Returns: string }
+      set_active_portrait_frame: {
+        Args: { p_frame_key: string }
+        Returns: string
+      }
       set_meeting_game_response: {
         Args: {
           p_game_id: string
@@ -1931,6 +2050,10 @@ export type Database = {
           point_event_id: string
           points: number
         }[]
+      }
+      start_meeting_play: {
+        Args: { p_game_id: string; p_meeting_id: string }
+        Returns: string
       }
       update_game_with_expansions: {
         Args: {
@@ -2167,3 +2290,4 @@ export const Constants = {
     },
   },
 } as const
+

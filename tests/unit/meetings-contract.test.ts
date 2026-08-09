@@ -22,6 +22,7 @@ import {
   awardMeetingRsvpPointsAfterSave,
   awardMeetingVotePointsAfterSave,
 } from "../../src/features/meetings/meeting-points.ts";
+import { enqueueMeetingConfirmationReminderAfterRsvp } from "../../src/features/meetings/meeting-confirmation-reminder.ts";
 import {
   mapMeetingDeleteError,
   MEETING_CONTINUATION_DELETE_ERROR,
@@ -63,6 +64,64 @@ test("RSVP save follow-up requests meeting RSVP points", async () => {
     points: 10,
     pointEventId: "point-event-1",
   });
+});
+
+test("meeting confirmation reminder failure never turns a saved RSVP into a failed mutation", async () => {
+  const logged: Array<{ message: string; details: Record<string, unknown> }> =
+    [];
+  const result = await enqueueMeetingConfirmationReminderAfterRsvp(
+    async () => ({
+      data: null,
+      error: { code: "PUSH_DOWN", message: "temporary failure" },
+    }),
+    (message, details) => logged.push({ message, details }),
+  );
+
+  assert.deepEqual(result, { ok: false, queued: false });
+  assert.equal(logged.length, 1);
+  assert.deepEqual(logged[0]?.details, {
+    code: "PUSH_DOWN",
+    message: "temporary failure",
+  });
+});
+
+test("meeting confirmation reminder reports whether the outbox needs dispatch", async () => {
+  const queued = await enqueueMeetingConfirmationReminderAfterRsvp(
+    async () => ({
+      data: true,
+      error: null,
+    }),
+  );
+  const belowThreshold = await enqueueMeetingConfirmationReminderAfterRsvp(
+    async () => ({ data: false, error: null }),
+  );
+
+  assert.deepEqual(queued, { ok: true, queued: true });
+  assert.deepEqual(belowThreshold, { ok: true, queued: false });
+});
+
+test("RSVP action checks the confirmation reminder only after a successful upsert", () => {
+  const source = readFileSync(
+    new URL("../../src/features/meetings/actions.ts", import.meta.url),
+    "utf8",
+  );
+  const actionSource = source.slice(
+    source.indexOf("export async function saveMeetingAvailabilityAction"),
+    source.indexOf("export async function confirmMeetingAction"),
+  );
+
+  const upsertIndex = actionSource.indexOf(
+    '.from("meeting_availability").upsert',
+  );
+  const errorGuardIndex = actionSource.indexOf("if (error)", upsertIndex);
+  const reminderIndex = actionSource.indexOf(
+    "enqueueMeetingConfirmationReminderAfterRsvp",
+  );
+
+  assert.ok(upsertIndex >= 0);
+  assert.ok(errorGuardIndex > upsertIndex);
+  assert.ok(reminderIndex > errorGuardIndex);
+  assert.match(actionSource, /rpc\(\s*"enqueue_meeting_confirmation_reminder"/);
 });
 
 test("meeting vote follow-up requests vote points", async () => {
@@ -182,6 +241,7 @@ test("meeting read model exposes deletion only to existing managers", () => {
 test("all application meeting reads explicitly exclude soft-deleted rows", () => {
   const sources = [
     "../../src/features/meetings/queries.ts",
+    "../../src/features/meetings/participation.ts",
     "../../src/features/dashboard/queries.ts",
     "../../src/features/plays/queries.ts",
     "../../src/features/legendarium/queries.ts",
@@ -785,10 +845,12 @@ test("meeting form values prefill the currently continued play", () => {
     hasChroniclePlay: false,
     continuedPlay: {
       playId: CONTINUED_PLAY_ID,
+      gameId: "game-1",
       gameTitle: "Gloomhaven",
       coverUrl: null,
       playedAt: "2026-08-01T16:00:00.000Z",
       stateNote: "Runda 3 z 5",
+      accumulatedMinutes: 180,
     },
     canConfirm: false,
     hasResponded: false,

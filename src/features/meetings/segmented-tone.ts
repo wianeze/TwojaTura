@@ -26,7 +26,10 @@ const BORDER_COLORS = {
     active: "#8f3528",
     inactive: "rgba(208, 154, 144, 0.55)",
   },
-} as const satisfies Record<SegmentedTone, { active: string; inactive: string }>;
+} as const satisfies Record<
+  SegmentedTone,
+  { active: string; inactive: string }
+>;
 
 export function segmentedOptionClasses(tone: SegmentedTone, active: boolean) {
   if (tone === "positive") {
