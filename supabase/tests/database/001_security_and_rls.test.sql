@@ -607,8 +607,8 @@ select results_eq(
 
 select results_eq(
   $$select count(*)::bigint from public.get_leaderboard()$$,
-  $$values (5::bigint)$$,
-  '33. active member sees every gamification-eligible account in the leaderboard'
+  $$values (4::bigint)$$,
+  '33. active member sees only publicly visible accounts in the leaderboard'
 );
 
 select ok(
