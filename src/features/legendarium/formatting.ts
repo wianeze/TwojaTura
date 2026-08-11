@@ -6,6 +6,10 @@ import {
 export const pointActionLabels: Record<string, string> = {
   ...catalogPointActionLabels,
   admin_adjustment: "Korekta administratora",
+  // Zdarzenia sprzed Economy V2. Nie ma ich w katalogu (nie da się ich już
+  // przyznać), ale zostają w księdze i muszą mieć czytelną etykietę.
+  play_logged: "Zapis partii w Kronice",
+  meeting_created: "Utworzenie spotkania",
 };
 
 export function formatPointAction(actionType: string) {

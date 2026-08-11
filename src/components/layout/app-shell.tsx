@@ -57,11 +57,11 @@ export function AppShell({
             ) : null}
             <div className="flex min-w-0 items-center gap-1.5 rounded-full border border-white/10 bg-black/18 px-2 py-1 whitespace-nowrap shadow-[0_10px_18px_rgba(17,8,5,0.18)] sm:px-3">
               <span className="font-display flex flex-col items-center text-center text-[0.56rem] leading-[1.05] font-semibold text-[#e2b578] min-[420px]:text-[0.68rem]">
-                <span>Twoje</span>
-                <span>Punkty:</span>
+                <span>Twoja</span>
+                <span>Renoma:</span>
               </span>
               <span className="font-display text-[0.8rem] font-semibold text-[#fff1dc] min-[420px]:text-[1.05rem]">
-                {currentPoints.toLocaleString("pl-PL")} pkt
+                {currentPoints.toLocaleString("pl-PL")}
               </span>
             </div>
             <Link

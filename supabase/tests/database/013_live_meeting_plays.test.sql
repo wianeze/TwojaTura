@@ -277,12 +277,13 @@ reset role;
 select results_eq(
   $$
     select count(*)::bigint from public.point_events
-    where action_type = 'play_logged'
+    where action_type = 'play_participated'
       and related_entity_id = (select id from t_ids where name = 'play_1')
+      and user_id = '10000000-0000-0000-0000-000000000002'
       and points > 0
   $$,
   $$values (1::bigint)$$,
-  '13. punkty za zapis partii naliczają się dokładnie raz'
+  '13. Renoma za udział nalicza się każdemu uczestnikowi dokładnie raz'
 );
 
 -- Znacznik zostaje jako ślad „to była partia grana przy stole”; o tym, że nie

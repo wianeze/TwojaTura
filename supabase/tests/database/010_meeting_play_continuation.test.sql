@@ -303,7 +303,7 @@ reset role;
 select results_eq(
   $$
     select count(*)::bigint from public.point_events
-    where action_type = 'play_logged'
+    where action_type = 'play_participated'
       and related_entity_id = (select id from t_ids where name = 'play')
       and points > 0
   $$,

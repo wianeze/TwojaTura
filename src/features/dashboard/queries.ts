@@ -40,6 +40,7 @@ import {
 import {
   buildDashboardQuests,
   filterDashboardQuestSourceForMeetingEligibility,
+  pickVisibleDashboardQuests,
 } from "./quests";
 import type {
   DashboardData,
@@ -933,42 +934,48 @@ export async function getDashboardData(
   );
 
   const questSource: DashboardQuestSource =
-    filterDashboardQuestSourceForMeetingEligibility({
-      futureMeetings: upcomingMeetings.map((meeting) => ({
-      id: meeting.id,
-      title: meeting.title,
-      startsAt: meeting.startsAt,
-      endsAt: meeting.endsAt,
-      status: meeting.status,
-      ownResponse: meeting.ownResponse,
-      // Quest zaliczony przy dowolnej odpowiedzi — także odmownej.
-      hasOwnVote: ((votesResult.data ?? []) as ResponseRow[]).some(
-        (response) => response.meeting_id === meeting.id,
-      ),
-    })),
-      unratedGames,
-    // Spotkanie-kontynuacja nie ma własnego wiersza w plays — wynik wieczoru
-    // jest zapisany w partii rozpoczętej wcześniej. Bez tego filtra quest
-    // „Uzupełnij wynik spotkania” wisiałby na nim w nieskończoność i wprost
-    // zachęcał do założenia drugiego wpisu o tej samej rozgrywce.
-      finishedMeetingsWithoutPlay: finishedMeetings
-        .filter(
-          (meeting) =>
-            !meetingsWithPlays.has(meeting.id) && !meeting.continued_play_id,
-        )
-        .map((meeting) => ({
+    filterDashboardQuestSourceForMeetingEligibility(
+      {
+        futureMeetings: upcomingMeetings.map((meeting) => ({
           id: meeting.id,
           title: meeting.title,
-          startsAt: meeting.starts_at,
-          endsAt: meeting.ends_at,
+          startsAt: meeting.startsAt,
+          endsAt: meeting.endsAt,
           status: meeting.status,
+          ownResponse: meeting.ownResponse,
+          // Quest zaliczony przy dowolnej odpowiedzi — także odmownej.
+          hasOwnVote: ((votesResult.data ?? []) as ResponseRow[]).some(
+            (response) => response.meeting_id === meeting.id,
+          ),
         })),
-      ownGamesCount: ownGamesCountResult.count ?? 0,
-      totalActiveGames: totalGamesCountResult.count ?? 0,
-      now,
-    }, eligibleQuestMeetingIds);
+        unratedGames,
+        // Spotkanie-kontynuacja nie ma własnego wiersza w plays — wynik wieczoru
+        // jest zapisany w partii rozpoczętej wcześniej. Bez tego filtra quest
+        // „Uzupełnij wynik spotkania” wisiałby na nim w nieskończoność i wprost
+        // zachęcał do założenia drugiego wpisu o tej samej rozgrywce.
+        finishedMeetingsWithoutPlay: finishedMeetings
+          .filter(
+            (meeting) =>
+              !meetingsWithPlays.has(meeting.id) && !meeting.continued_play_id,
+          )
+          .map((meeting) => ({
+            id: meeting.id,
+            title: meeting.title,
+            startsAt: meeting.starts_at,
+            endsAt: meeting.ends_at,
+            status: meeting.status,
+          })),
+        ownGamesCount: ownGamesCountResult.count ?? 0,
+        totalActiveGames: totalGamesCountResult.count ?? 0,
+        now,
+      },
+      eligibleQuestMeetingIds,
+    );
 
-  const quests = buildDashboardQuests(questSource);
+  // Stół pokazuje wyłącznie czubek listy — reszta czeka, aż zwolni się miejsce.
+  // Podsumowania liczymy z tego samego, przyciętego zbioru, żeby nagłówek nie
+  // obiecywał Renomy za karty, których nie widać.
+  const quests = pickVisibleDashboardQuests(buildDashboardQuests(questSource));
   const pointsSummary = buildDashboardPointsSummary(
     (currentBalanceResult.data as UserPointBalanceRow | null)?.total_points ??
       0,
@@ -1013,11 +1020,11 @@ export async function getDashboardData(
         )
         .eq("is_active", true)
         .order("sort_order", { ascending: true }),
+      // Wąska projekcja zamiast odczytu z `profiles`: polityka na tej tabeli
+      // ukrywa wiersze admina przed zwykłym członkiem, przez co ranking
+      // pokazywałby aktywnego admina bez klasy postaci.
       leaderboardUserIds.length > 0
-        ? supabase
-            .from("profiles")
-            .select("id, active_class_key")
-            .in("id", leaderboardUserIds)
+        ? supabase.rpc("get_public_player_profiles")
         : Promise.resolve({ data: [], error: null }),
     ],
   );
@@ -1036,7 +1043,7 @@ export async function getDashboardData(
       sortOrder: characterClass.sort_order,
     })),
     (activeClassProfilesResult.data ?? []).map((profile) => ({
-      userId: profile.id,
+      userId: profile.user_id,
       activeClassKey: profile.active_class_key,
     })),
   );

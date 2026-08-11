@@ -126,9 +126,12 @@ export async function getAchievementClassData(
       .from("play_participants")
       .select("play_id, placement, is_winner")
       .eq("user_id", currentUserId),
-    supabase
-      .from("profiles")
-      .select("id, active_class_key, active_portrait_frame_key"),
+    // Wąska projekcja zamiast odczytu z `profiles`: polityka na tej tabeli
+    // ukrywa wiersze admina przed zwykłym członkiem, przez co aktywny admin
+    // trafiałby do Legendarium bez klasy postaci i bez ramki portretu.
+    // Funkcja zwraca wyłącznie dane publiczne — email jest poza jej listą
+    // kolumn.
+    supabase.rpc("get_public_player_profiles"),
   ]);
 
   if (
@@ -181,14 +184,14 @@ export async function getAchievementClassData(
   const activeClassesByUser = mapActiveClassesByUser(
     classDefinitions,
     (profilesResult.data ?? []).map((profile) => ({
-      userId: profile.id,
+      userId: profile.user_id,
       activeClassKey: profile.active_class_key,
     })),
   );
   const currentActiveClass = activeClassesByUser[currentUserId] ?? null;
   const activePortraitFramesByUser = Object.fromEntries(
     (profilesResult.data ?? []).map((profile) => [
-      profile.id,
+      profile.user_id,
       profile.active_portrait_frame_key,
     ]),
   );

@@ -116,7 +116,7 @@ select results_eq(
   $$values (
     'award'::text,
     'shelf_first_game'::text,
-    40::integer,
+    10::integer,
     'Naprawa brakującej nagrody'::text
   )$$,
   '10. award audit stores the action, delta and private reason'
@@ -132,7 +132,7 @@ select results_eq(
   $$,
   $$values (
     '10000000-0000-0000-0000-000000000002'::uuid,
-    40::integer,
+    10::integer,
     'admin_award:shelf_first_game'::text,
     '10000000-0000-0000-0000-000000000001'::uuid
   )$$,
@@ -145,7 +145,7 @@ select results_eq(
     from public.point_events
     where user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$values (40::bigint)$$,
+  $$values (10::bigint)$$,
   '12. the correction increases the user balance by the catalog reward'
 );
 
@@ -161,7 +161,7 @@ select results_eq(
     from public.get_leaderboard()
     where user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$values (40::bigint)$$,
+  $$values (10::bigint)$$,
   '13. leaderboard includes the correction'
 );
 select lives_ok(
@@ -231,7 +231,7 @@ select results_eq(
   $$values (
     'reversal'::text,
     'shelf_first_game'::text,
-    (-40)::integer,
+    (-10)::integer,
     'Nagroda przyznana omyłkowo'::text
   )$$,
   '19. reversal audit keeps its negative delta and reason'
@@ -245,7 +245,7 @@ select results_eq(
     join public.point_events as original on original.id = adjustment.reversed_point_event_id
     where adjustment.request_id = 'a1000000-0000-0000-0000-000000000004'
   $$,
-  $$values ((-40)::integer, 'admin_reversal:shelf_first_game'::text, true)$$,
+  $$values ((-10)::integer, 'admin_reversal:shelf_first_game'::text, true)$$,
   '20. reversal is a negative ledger event linked to the original event'
 );
 

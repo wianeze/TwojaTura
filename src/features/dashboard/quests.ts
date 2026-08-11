@@ -1,20 +1,48 @@
 import { formatDashboardDateTime, sortDashboardQuests } from "./formatting.ts";
 import type { DashboardQuest, DashboardQuestSource } from "./types";
 
-const QUEST_PRIORITY = {
-  missingPlay: 120,
-  missingRsvp: 110,
-  missingVote: 100,
-  scheduleMeeting: 90,
-  missingRating: 80,
-  addGame: 70,
+/**
+ * Konfiguracja sekcji „Zlecenia”.
+ *
+ * Zlecenia to przypomnienia operacyjne, które trzymają dane grupy w porządku.
+ * To NIE są Misje — faktyczne wyzwania gameplayowe będą osobną warstwą z
+ * własnymi nagrodami i na razie ich nie ma.
+ *
+ * Grupa gra około raz w miesiącu, więc lista musi znosić długie przerwy:
+ * krótka, uporządkowana priorytetami i wygasająca sama z siebie.
+ */
+export const OPERATIONAL_TASK_POLICY = {
+  /** Ile pozycji pokazujemy na Stole. Reszta czeka na swoją kolej. */
+  maxVisibleTasks: 3,
+  /**
+   * Maksymalny wiek przypomnienia liczony od zdarzenia, które je wywołało.
+   * Po tym czasie znika z Stołu — sama czynność (np. ocena gry) pozostaje
+   * możliwa bez ograniczeń, wygasa wyłącznie zachęta.
+   */
+  reminderMaxAgeDays: 30,
+} as const;
+
+/**
+ * P1 — blokuje dane grupy: bez tego historia wieczoru nie powstanie.
+ * P2 — ma realny deadline: im bliżej spotkania, tym wyżej.
+ * P3 — housekeeping: warto, ale nic nie blokuje.
+ */
+export const TASK_PRIORITY = {
+  blocking: 1,
+  deadline: 2,
+  housekeeping: 3,
 } as const;
 
 const DAY_MS = 86_400_000;
 
+function isWithinReminderWindow(eventIso: string, now: Date) {
+  const age = now.getTime() - new Date(eventIso).getTime();
+  return age <= OPERATIONAL_TASK_POLICY.reminderMaxAgeDays * DAY_MS;
+}
+
 /**
- * Kalendarz pozostaje widoczny dla grupy, ale questy konkretnego spotkania
- * dostają tylko jego organizator i osoby zaproszone.
+ * Kalendarz pozostaje widoczny dla grupy, ale Zlecenia konkretnego spotkania
+ * dostaje tylko jego organizator i osoby zaproszone.
  */
 export function filterDashboardQuestSourceForMeetingEligibility(
   source: DashboardQuestSource,
@@ -34,6 +62,14 @@ export function filterDashboardQuestSourceForMeetingEligibility(
   };
 }
 
+/**
+ * Buduje pełną listę aktualnych Zleceń.
+ *
+ * Nagrody podane w `renownPoints` to DOKŁADNIE tyle Renomy, ile naliczy baza
+ * po wykonaniu czynności (`private.point_reward_for`). Zlecenia, które same z
+ * siebie nie dają Renomy, nie mają tego pola — karta nie pokazuje wtedy żadnej
+ * nagrody, zamiast obiecywać punkty „potem”.
+ */
 export function buildDashboardQuests(source: DashboardQuestSource) {
   const quests: DashboardQuest[] = [];
   const futureMeetings = source.futureMeetings
@@ -45,6 +81,35 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
         new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime(),
     );
 
+  // --- P1: wynik spotkania, którego nikt nie zapisał ------------------------
+  // Bez wpisu w Kronice wieczór nie istnieje: nie ma partii, nie ma Renomy za
+  // udział dla nikogo przy stole i nie przeliczą się odznaki.
+  for (const meeting of source.finishedMeetingsWithoutPlay) {
+    const meetingEnd = meeting.endsAt ?? meeting.startsAt;
+
+    if (new Date(meetingEnd).getTime() > source.now.getTime()) continue;
+    if (!isWithinReminderWindow(meetingEnd, source.now)) continue;
+
+    quests.push({
+      id: `missing-play:${meeting.id}`,
+      type: "action",
+      tone: "action",
+      title: "Uzupełnij wynik spotkania",
+      description: meeting.title,
+      href: `/kronika/nowa?meeting=${meeting.id}`,
+      ctaLabel: "Zapisz wynik gry",
+      // Renomę za partię dostaje każdy jej uczestnik, więc autor wpisu też —
+      // ale jako gracz, nie za samą operację w UI.
+      renownPoints: 5,
+      priority: TASK_PRIORITY.blocking,
+      deadlineAt: meetingEnd,
+      createdAt: meetingEnd,
+    });
+  }
+
+  // --- P2: odpowiedź na spotkanie ------------------------------------------
+  // Znika sama, gdy spotkanie się zacznie: futureMeetings trzyma wyłącznie
+  // spotkania jeszcze nierozpoczęte.
   for (const meeting of futureMeetings.filter(
     (item) => item.ownResponse === null,
   )) {
@@ -56,20 +121,16 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
       description: `${meeting.title} · ${formatDashboardDateTime(meeting.startsAt)}`,
       href: `/kalendarium/${meeting.id}`,
       ctaLabel: "Odpowiedz",
-      optionalPoints: 10,
-      reward: {
-        immediatePoints: 10,
-        immediateLabel: "teraz",
-        followUpPoints: 30,
-        followUpLabel: "po udziale",
-        totalPreviewPoints: 40,
-        rewardTone: "split",
-      },
-      priority: QUEST_PRIORITY.missingRsvp,
+      // Także odpowiedź odmowna: „nie będę” jest organizacyjnie tak samo
+      // przydatne jak „będę”.
+      renownPoints: 2,
+      priority: TASK_PRIORITY.deadline,
+      deadlineAt: meeting.startsAt,
       createdAt: meeting.startsAt,
     });
   }
 
+  // --- P2: głos na grę -----------------------------------------------------
   for (const meeting of futureMeetings.filter(
     (item) => item.ownResponse === true && !item.hasOwnVote,
   )) {
@@ -81,23 +142,20 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
       description: `${meeting.title} · ${formatDashboardDateTime(meeting.startsAt)}`,
       href: `/kalendarium/${meeting.id}`,
       ctaLabel: "Odpowiedz",
-      optionalPoints: 10,
-      // Bonus „jeśli trafi na stół” nie istnieje w bazie — podgląd pokazuje
-      // wyłącznie realną nagrodę za pierwszą odpowiedź w głosowaniu.
-      reward: {
-        immediatePoints: 10,
-        immediateLabel: "teraz",
-        totalPreviewPoints: 10,
-        rewardTone: "immediate",
-      },
-      priority: QUEST_PRIORITY.missingVote,
+      renownPoints: 1,
+      priority: TASK_PRIORITY.deadline,
+      deadlineAt: meeting.startsAt,
       createdAt: meeting.startsAt,
     });
   }
 
-  for (const play of source.unratedGames.filter(
-    (item) => new Date(item.playedAt).getTime() <= source.now.getTime(),
-  )) {
+  // --- P3: ocena rozegranej gry --------------------------------------------
+  // Przypomnienie wygasa po 30 dniach od partii. Ocenić grę można nadal —
+  // w Półce, kiedy tylko przyjdzie ochota.
+  for (const play of source.unratedGames) {
+    if (new Date(play.playedAt).getTime() > source.now.getTime()) continue;
+    if (!isWithinReminderWindow(play.playedAt, source.now)) continue;
+
     quests.push({
       id: `rate-game:${play.playId}:${play.gameId}`,
       type: "question",
@@ -106,123 +164,21 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
       description: play.gameTitle,
       href: `/gry/${play.gameId}`,
       ctaLabel: "Dodaj opinię",
-      optionalPoints: 30,
-      reward: {
-        immediatePoints: 30,
-        immediateLabel: "za opinię",
-        totalPreviewPoints: 30,
-        rewardTone: "immediate",
-      },
-      priority: QUEST_PRIORITY.missingRating,
+      renownPoints: 3,
+      priority: TASK_PRIORITY.housekeeping,
       createdAt: play.playedAt,
     });
   }
 
-  for (const meeting of source.finishedMeetingsWithoutPlay.filter((item) => {
-    const meetingEnd = item.endsAt ?? item.startsAt;
-    return new Date(meetingEnd).getTime() <= source.now.getTime();
-  })) {
-    quests.push({
-      id: `missing-play:${meeting.id}`,
-      type: "action",
-      tone: "action",
-      title: "Uzupełnij wynik spotkania",
-      description: meeting.title,
-      href: `/kronika/nowa?meeting=${meeting.id}`,
-      ctaLabel: "Zapisz wynik gry",
-      optionalPoints: 40,
-      reward: {
-        immediatePoints: 40,
-        immediateLabel: "za Kronikę",
-        totalPreviewPoints: 40,
-        rewardTone: "immediate",
-      },
-      priority: QUEST_PRIORITY.missingPlay,
-      createdAt: meeting.endsAt ?? meeting.startsAt,
-    });
-  }
-
-  if (source.ownGamesCount === 0) {
-    quests.push({
-      id: "add-first-game",
-      type: "action",
-      tone: "success",
-      title: "Dodaj pierwszą grę do Półki",
-      description: "Niech grupa wie, co możesz przynieść na stół.",
-      href: "/gry/nowa",
-      ctaLabel: "Dodaj grę",
-      optionalPoints: 40,
-      reward: {
-        immediatePoints: 40,
-        immediateLabel: "teraz",
-        totalPreviewPoints: 40,
-        rewardTone: "immediate",
-      },
-      priority: QUEST_PRIORITY.addGame,
-    });
-  } else if (source.ownGamesCount < 5) {
-    quests.push({
-      id: "add-five-games",
-      type: "action",
-      tone: "success",
-      title: "Dodaj 5 gier do wspólnej Półki",
-      description: `${source.ownGamesCount}/5 gier na wspólnej Półce.`,
-      href: "/gry/nowa",
-      ctaLabel: "Dodaj grę",
-      optionalPoints: 30,
-      reward: {
-        immediatePoints: 30,
-        immediateLabel: "teraz",
-        totalPreviewPoints: 30,
-        rewardTone: "immediate",
-      },
-      priority: QUEST_PRIORITY.addGame,
-    });
-  } else if (source.ownGamesCount < 10) {
-    quests.push({
-      id: "add-ten-games",
-      type: "action",
-      tone: "success",
-      title: "Dodaj 10 gier do wspólnej Półki",
-      description: `${source.ownGamesCount}/10 gier na wspólnej Półce.`,
-      href: "/gry/nowa",
-      ctaLabel: "Dodaj grę",
-      optionalPoints: 20,
-      reward: {
-        immediatePoints: 20,
-        immediateLabel: "teraz",
-        totalPreviewPoints: 20,
-        rewardTone: "immediate",
-      },
-      priority: QUEST_PRIORITY.addGame,
-    });
-  } else if (source.ownGamesCount < 15) {
-    quests.push({
-      id: "add-fifteen-games",
-      type: "action",
-      tone: "success",
-      title: "Dodaj 15 gier do wspólnej Półki",
-      description: `${source.ownGamesCount}/15 gier na wspólnej Półce.`,
-      href: "/gry/nowa",
-      ctaLabel: "Dodaj grę",
-      optionalPoints: 15,
-      reward: {
-        immediatePoints: 15,
-        immediateLabel: "teraz",
-        totalPreviewPoints: 15,
-        rewardTone: "immediate",
-      },
-      priority: QUEST_PRIORITY.addGame,
-    });
-  }
-
-  const nearestMeeting = futureMeetings[0] ?? null;
-  const hasFarAwayMeeting =
-    nearestMeeting &&
-    new Date(nearestMeeting.startsAt).getTime() - source.now.getTime() >
-      21 * DAY_MS;
-
-  if (!nearestMeeting || hasFarAwayMeeting) {
+  // --- P3: zwołanie ekipy --------------------------------------------------
+  // Pokazujemy WYŁĄCZNIE wtedy, gdy w kalendarzu nie ma żadnego przyszłego
+  // spotkania. Poprzedni próg „dalej niż 21 dni” tworzył kartę mimo
+  // zaplanowanego wieczoru, co przy rytmie jednego spotkania na miesiąc było
+  // po prostu nieprawdą.
+  //
+  // Bez `renownPoints`: samo utworzenie spotkania nie daje już Renomy —
+  // organizator dostaje 5 dopiero za spotkanie, które faktycznie się odbyło.
+  if (futureMeetings.length === 0) {
     quests.push({
       id: "schedule-meeting",
       type: "action",
@@ -231,18 +187,18 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
       description: "Zwołaj ekipę na kolejny wieczór.",
       href: "/kalendarium/nowe",
       ctaLabel: "Zorganizuj spotkanie",
-      optionalPoints: 25,
-      reward: {
-        immediatePoints: 25,
-        immediateLabel: "teraz",
-        followUpPoints: 25,
-        followUpLabel: "po spotkaniu",
-        totalPreviewPoints: 50,
-        rewardTone: "split",
-      },
-      priority: QUEST_PRIORITY.scheduleMeeting,
+      priority: TASK_PRIORITY.housekeeping,
     });
   }
 
   return sortDashboardQuests(quests);
+}
+
+/**
+ * Lista pokazywana na Stole. Pełny wynik `buildDashboardQuests` bywa dłuższy
+ * (trzy spotkania i cztery nieocenione gry to już siedem kart) — Stół ma być
+ * podpowiedzią, nie skrzynką odbiorczą.
+ */
+export function pickVisibleDashboardQuests(quests: DashboardQuest[]) {
+  return quests.slice(0, OPERATIONAL_TASK_POLICY.maxVisibleTasks);
 }

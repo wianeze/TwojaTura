@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(319);
+select plan(316);
 
 create temporary table pgtap_created_plays (
   label text primary key,
@@ -607,8 +607,8 @@ select results_eq(
 
 select results_eq(
   $$select count(*)::bigint from public.get_leaderboard()$$,
-  $$values (4::bigint)$$,
-  '33. active member sees the limited global leaderboard (admin excluded per role system)'
+  $$values (5::bigint)$$,
+  '33. active member sees every gamification-eligible account in the leaderboard'
 );
 
 select ok(
@@ -1291,25 +1291,32 @@ select results_eq(
       'shelf_15_games',
       'meeting_rsvp',
       'meeting_vote',
-      'meeting_created',
+      'meeting_hosted',
       'rating_created',
-      'play_logged'
+      'play_participated'
     ]) as rewards(action_type)
     order by action_type
   $$,
   $$
     values
-      ('meeting_created', 25),
-      ('meeting_rsvp', 10),
-      ('meeting_vote', 10),
-      ('play_logged', 40),
-      ('rating_created', 30),
+      ('meeting_hosted', 5),
+      ('meeting_rsvp', 2),
+      ('meeting_vote', 1),
+      ('play_participated', 5),
+      ('rating_created', 3),
       ('shelf_10_games', 20),
-      ('shelf_15_games', 15),
-      ('shelf_5_games', 30),
-      ('shelf_first_game', 40)
+      ('shelf_15_games', 25),
+      ('shelf_5_games', 15),
+      ('shelf_first_game', 10)
   $$,
   '73. point reward catalog returns fixed values for every allowed action'
+);
+
+select throws_ok(
+  $$select private.point_reward_for('play_logged')$$,
+  '22023',
+  null,
+  '73a. retired creator-only play reward is no longer in the catalog'
 );
 
 select throws_ok(
@@ -1340,7 +1347,7 @@ select results_eq(
       null
     )
   $$,
-  $$values (true, 40, true)$$,
+  $$values (true, 10, true)$$,
   '76. award_points_once returns an awarded event with catalog points'
 );
 
@@ -1353,7 +1360,7 @@ select results_eq(
   $$,
   $$
     values (
-      40,
+      10,
       'shelf_first_game',
       'profile',
       '10000000-0000-0000-0000-000000000002'::uuid
@@ -1374,7 +1381,7 @@ select results_eq(
       null
     )
   $$,
-  $$values (false, 40, true)$$,
+  $$values (false, 10, true)$$,
   '78. repeated award reports a harmless idempotent no-op'
 );
 
@@ -1575,7 +1582,7 @@ set local role authenticated;
 -- pilnuje tego test 89a poniżej.
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (1249::bigint)$$,
+  $$values (1163::bigint)$$,
   '88. user point balance includes idempotent awards and repeatable corrections'
 );
 
@@ -1585,14 +1592,20 @@ select results_eq(
     from public.get_leaderboard()
     where user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$values (1249::bigint)$$,
+  $$values (1163::bigint)$$,
   '89. leaderboard includes the same updated ledger balance'
 );
 reset role;
 
--- Straż modelu legacy: partie z seeda istniały przed wdrożeniem silnika, więc
--- mają rewards_managed = false i nigdy nie mogą dostać punktów za zapis z mocą
--- wsteczną — nawet po edycji przez RPC (test 65 edytuje partię 5000...0001).
+-- Zasada zmieniona przez Economy V2. Dawniej partie z seeda (rewards_managed =
+-- false) nie mogły dostać punktów wstecz, bo nagroda należała się AUTOROWI za
+-- sam zapis. Teraz nagroda należy się UCZESTNIKOWI za grę, a rewards_managed
+-- jest wyłącznie śladem po starej księgowości silnika — nie orzeka, czy ludzie
+-- naprawdę zagrali. Partia z seeda o statusie 'completed' jest prawdziwą
+-- rozgrywką, więc jej uczestnicy dostają swoje 5, gdy tylko coś przeliczy ich
+-- nagrody (test 65 edytuje partię 5000...0001).
+--
+-- Niezmienne zostaje jedno: creator-only 40 nie wraca nigdy.
 select results_eq(
   $$
     select count(*)::bigint
@@ -1604,7 +1617,31 @@ select results_eq(
       )
   $$,
   $$values (0::bigint)$$,
-  '89a. legacy plays never receive retroactive play_logged points'
+  '89a. the retired creator-only reward never appears on legacy plays'
+);
+
+-- Test 65 zmienia skład tej partii, więc w księdze są też kompensaty dla osób
+-- wypisanych. Sprawdzamy więc SALDO każdego AKTUALNEGO uczestnika, a nie
+-- surowe wartości zdarzeń: każdy z nich ma mieć dokładnie 5.
+select results_eq(
+  $$
+    select count(*)::bigint
+    from public.play_participants as participant
+    where participant.play_id = '50000000-0000-0000-0000-000000000001'
+      and coalesce((
+        select sum(event.points)
+        from public.point_events as event
+        where event.user_id = participant.user_id
+          and event.action_type = 'play_participated'
+          and event.related_entity_id = participant.play_id
+      ), 0) = 5
+  $$,
+  $$
+    select count(*)::bigint
+    from public.play_participants
+    where play_id = '50000000-0000-0000-0000-000000000001'
+  $$,
+  '89b. every current participant of a recomputed legacy play holds exactly 5'
 );
 
 select results_eq(
@@ -1693,7 +1730,7 @@ insert into public.games (
 
 select results_eq(
   $$select * from public.award_shelf_onboarding_points()$$,
-  $$values (1, 40)$$,
+  $$values (1, 10)$$,
   '94. first active game awards shelf_first_game once'
 );
 
@@ -1707,7 +1744,7 @@ select results_eq(
   $$
     values (
       'shelf_first_game',
-      40,
+      10,
       'profile',
       '10000000-0000-0000-0000-000000000004'::uuid
     )
@@ -1736,7 +1773,7 @@ from generate_series(2, 5) as game_number;
 
 select results_eq(
   $$select * from public.award_shelf_onboarding_points()$$,
-  $$values (1, 30)$$,
+  $$values (1, 15)$$,
   '96. five active games award shelf_5_games once'
 );
 
@@ -1786,7 +1823,7 @@ from generate_series(11, 15) as game_number;
 
 select results_eq(
   $$select * from public.award_shelf_onboarding_points()$$,
-  $$values (1, 15)$$,
+  $$values (1, 25)$$,
   '98. fifteen active games award shelf_15_games once'
 );
 
@@ -1814,10 +1851,11 @@ select results_eq(
 
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (925::bigint)$$,
+  $$values (886::bigint)$$,
   '100. user point balance includes all four shelf milestones exactly once'
 );
 reset role;
+
 
 select ok(
   (
@@ -1917,7 +1955,7 @@ select results_eq(
       '75000000-0000-0000-0000-000000000001'
     )
   $$,
-  $$values (true, 10, true)$$,
+  $$values (true, 2, true)$$,
   '106. first saved RSVP awards meeting_rsvp points once'
 );
 
@@ -1942,7 +1980,7 @@ select results_eq(
       '75000000-0000-0000-0000-000000000001'
     ) as award
   $$,
-  $$values (false, 10, 1)$$,
+  $$values (false, 2, 1)$$,
   '107. changing RSVP does not duplicate meeting_rsvp points'
 );
 
@@ -1960,7 +1998,7 @@ select results_eq(
       '75000000-0000-0000-0000-000000000002'
     )
   $$,
-  $$values (true, 10)$$,
+  $$values (true, 2)$$,
   '108. first unavailable RSVP also qualifies for meeting_rsvp points'
 );
 
@@ -1972,7 +2010,7 @@ select results_eq(
       '30000000-0000-0000-0000-000000000001'
     )
   $$,
-  $$values (true, 10, true)$$,
+  $$values (true, 1, true)$$,
   '109. proposing a game awards the participation points once'
 );
 
@@ -2037,7 +2075,7 @@ select results_eq(
       '30000000-0000-0000-0000-000000000002'
     ) as award
   $$,
-  $$values (false, 10, 1)$$,
+  $$values (false, 1, 1)$$,
   '110. several responses in one meeting do not duplicate meeting_vote points'
 );
 
@@ -2050,13 +2088,13 @@ select results_eq(
       '30000000-0000-0000-0000-000000000001'
     )
   $$,
-  $$values (true, 10)$$,
+  $$values (true, 1)$$,
   '111. the same user can earn meeting_vote for another meeting'
 );
 
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (965::bigint)$$,
+  $$values (892::bigint)$$,
   '112. user point balance includes RSVP and vote rewards exactly once'
 );
 
@@ -2071,20 +2109,32 @@ select throws_ok(
   null,
   '113. meeting point events remain append-only'
 );
-reset role;
 
+-- Economy V2: public.award_play_logged_points zostało usunięte razem z
+-- nagrodą 'play_logged' (creator-only, 40 Renomy). Testy 114/116/118/123-125
+-- dotyczyły wyłącznie tej funkcji; ich odpowiedniki dla nagrody za UDZIAŁ w
+-- partii żyją w 016_economy_v2.test.sql.
 select ok(
   (
-    select count(*) = 2
+    select count(*) = 1
       and bool_and(pronargs = 1)
       and bool_and(oidvectortypes(proargtypes) = 'uuid')
     from pg_proc
-    where oid in (
-      'public.award_rating_created_points(uuid)'::regprocedure,
-      'public.award_play_logged_points(uuid)'::regprocedure
-    )
+    where oid = 'public.award_rating_created_points(uuid)'::regprocedure
   ),
-  '114. rating and play point RPCs accept only one related entity id'
+  '114. rating point RPC accepts only one related entity id'
+);
+
+-- Funkcja istnieje wyłącznie jako wrapper zgodności wstecznej. Kontraktem
+-- nie jest już jej brak, tylko to, że NIE przyznaje dawnych 40 Renomy —
+-- pilnuje tego 016_economy_v2.
+select ok(
+  (
+    select obj_description(
+      'public.award_play_logged_points(uuid)'::regprocedure, 'pg_proc'
+    ) like 'DEPRECATED%'
+  ),
+  '116. the creator-only play award RPC survives only as a deprecated shim'
 );
 
 set local role anon;
@@ -2093,13 +2143,6 @@ select throws_ok(
   '42501',
   null,
   '115. anonymous user cannot execute rating award RPC'
-);
-
-select throws_ok(
-  $$select * from public.award_play_logged_points('50000000-0000-0000-0000-000000000001')$$,
-  '42501',
-  null,
-  '116. anonymous user cannot execute play award RPC'
 );
 reset role;
 
@@ -2114,13 +2157,6 @@ select throws_ok(
   '42501',
   null,
   '117. inactive member cannot award rating points'
-);
-
-select throws_ok(
-  $$select * from public.award_play_logged_points('50000000-0000-0000-0000-000000000001')$$,
-  '42501',
-  null,
-  '118. inactive member cannot award play points'
 );
 reset role;
 
@@ -2161,7 +2197,7 @@ select results_eq(
       '74000000-0000-0000-0000-000000000001'
     )
   $$,
-  $$values (true, 30, true)$$,
+  $$values (true, 3, true)$$,
   '120. first own rating awards rating_created points once'
 );
 
@@ -2181,7 +2217,7 @@ select results_eq(
       '74000000-0000-0000-0000-000000000001'
     ) as award
   $$,
-  $$values (false, 30, 1)$$,
+  $$values (false, 3, 1)$$,
   '121. repeated rating award call does not duplicate points'
 );
 
@@ -2208,7 +2244,7 @@ select results_eq(
       '74000000-0000-0000-0000-000000000002'
     )
   $$,
-  $$values (true, 30)$$,
+  $$values (true, 3)$$,
   '122. the same user can earn rating_created for another game'
 );
 
@@ -2228,48 +2264,14 @@ insert into public.plays (
   'Partia testowa nagrody Kroniki'
 );
 
-select results_eq(
-  $$
-    select awarded, points, point_event_id is not null
-    from public.award_play_logged_points(
-      '77000000-0000-0000-0000-000000000001'
-    )
-  $$,
-  $$values (true, 40, true)$$,
-  '123. active play author earns play_logged points once'
-);
-
-select results_eq(
-  $$
-    select
-      award.awarded,
-      award.points,
-      (
-        select count(*)::integer
-        from public.point_events
-        where user_id = '10000000-0000-0000-0000-000000000004'
-          and action_type = 'play_logged'
-          and related_entity_id = '77000000-0000-0000-0000-000000000001'
-      )
-    from public.award_play_logged_points(
-      '77000000-0000-0000-0000-000000000001'
-    ) as award
-  $$,
-  $$values (false, 40, 1)$$,
-  '124. repeated play award call does not duplicate points'
-);
-
-select throws_ok(
-  $$select * from public.award_play_logged_points('50000000-0000-0000-0000-000000000001')$$,
-  '42501',
-  null,
-  '125. member cannot earn play_logged for another author play'
-);
+-- Testy 123-125 dotyczyły public.award_play_logged_points (40 Renomy dla
+-- autora wpisu). Funkcja zniknęła razem z Economy V2; nagrodę za UDZIAŁ w
+-- partii pokrywa 016_economy_v2.test.sql.
 
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (1065::bigint)$$,
-  '126. user point balance includes rating and play rewards exactly once'
+  $$values (898::bigint)$$,
+  '126. user point balance includes the rating reward exactly once'
 );
 
 select throws_ok(
@@ -2277,11 +2279,11 @@ select throws_ok(
     update public.point_events
     set points = 999
     where user_id = '10000000-0000-0000-0000-000000000004'
-      and action_type in ('rating_created', 'play_logged')
+      and action_type = 'rating_created'
   $$,
   '42501',
   null,
-  '127. rating and play point events remain append-only'
+  '127. rating point events remain append-only'
 );
 reset role;
 
@@ -2289,7 +2291,7 @@ select results_eq(
   $$
     select pronargs, oidvectortypes(proargtypes)
     from pg_proc
-    where oid = 'public.award_meeting_created_points(uuid)'::regprocedure
+    where oid = 'public.award_meeting_hosted_points(uuid)'::regprocedure
   $$,
   $$values (1::smallint, 'uuid')$$,
   '128. meeting created award RPC accepts only a meeting id'
@@ -2297,7 +2299,7 @@ select results_eq(
 
 set local role anon;
 select throws_ok(
-  $$select * from public.award_meeting_created_points('40000000-0000-0000-0000-000000000001')$$,
+  $$select * from public.award_meeting_hosted_points('40000000-0000-0000-0000-000000000001')$$,
   '42501',
   null,
   '129. anonymous user cannot execute meeting created award RPC'
@@ -2311,7 +2313,7 @@ select set_config(
 );
 set local role authenticated;
 select throws_ok(
-  $$select * from public.award_meeting_created_points('40000000-0000-0000-0000-000000000001')$$,
+  $$select * from public.award_meeting_hosted_points('40000000-0000-0000-0000-000000000001')$$,
   '42501',
   null,
   '130. inactive member cannot award meeting created points'
@@ -2325,15 +2327,29 @@ select set_config(
 );
 set local role authenticated;
 
+-- Economy V2: Renoma za organizację należy się dopiero za spotkanie, które
+-- faktycznie się odbyło. Domykamy je, zanim sprawdzimy naliczenie.
+reset role;
+update public.meetings
+set status = 'completed'::public.meeting_status
+where id = '75000000-0000-0000-0000-000000000001';
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000004","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
 select results_eq(
   $$
     select awarded, points, point_event_id is not null
-    from public.award_meeting_created_points(
+    from public.award_meeting_hosted_points(
       '75000000-0000-0000-0000-000000000001'
     )
   $$,
-  $$values (true, 25, true)$$,
-  '131. active meeting author earns meeting_created points once'
+  $$values (true, 5, true)$$,
+  '131. organizer of a meeting that actually happened earns 5 Renown once'
 );
 
 select results_eq(
@@ -2345,27 +2361,29 @@ select results_eq(
         select count(*)::integer
         from public.point_events
         where user_id = '10000000-0000-0000-0000-000000000004'
-          and action_type = 'meeting_created'
+          and action_type = 'meeting_hosted'
           and related_entity_id = '75000000-0000-0000-0000-000000000001'
       )
-    from public.award_meeting_created_points(
+    from public.award_meeting_hosted_points(
       '75000000-0000-0000-0000-000000000001'
     ) as award
   $$,
-  $$values (false, 25, 1)$$,
+  $$values (false, 5, 1)$$,
   '132. repeated meeting created award call does not duplicate points'
 );
 
-select throws_ok(
-  $$select * from public.award_meeting_created_points('40000000-0000-0000-0000-000000000001')$$,
-  '42501',
-  null,
-  '133. member cannot earn meeting_created for another author meeting'
+select results_eq(
+  $$
+    select awarded, points
+    from public.award_meeting_hosted_points('40000000-0000-0000-0000-000000000001')
+  $$,
+  $$values (false, 0)$$,
+  '133. a meeting that never happened mints no Renown for anyone'
 );
 
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (1090::bigint)$$,
+  $$values (903::bigint)$$,
   '134. user point balance includes meeting created reward exactly once'
 );
 
@@ -2374,7 +2392,7 @@ select throws_ok(
     update public.point_events
     set points = 999
     where user_id = '10000000-0000-0000-0000-000000000004'
-      and action_type = 'meeting_created'
+      and action_type = 'meeting_hosted'
   $$,
   '42501',
   null,
@@ -2668,7 +2686,7 @@ select results_eq(
 -- konkretną wartość licznika.
 select results_eq(
   $$select count(*)::bigint from public.user_achievements$$,
-  $$values (7::bigint)$$,
+  $$values (9::bigint)$$,
   '164. admin reads awarded achievements'
 );
 reset role;
@@ -3199,8 +3217,8 @@ select results_eq(
 reset role;
 
 select is(
-  private.point_reward_for('play_logged'),
-  40,
+  private.point_reward_for('play_participated'),
+  5,
   '205. achievement rewards do not change the existing activity reward catalog'
 );
 
@@ -3630,8 +3648,8 @@ select results_eq(
     select awarded_count, points_awarded, awarded_user_ids
     from public.award_play_result_achievements('79000000-0000-0000-0000-000000000016')
   $$,
-  $$values (0::integer, 0::integer, array[]::uuid[])$$,
-  '225. otherwise-qualifying dark_urge streak is a no-op for an admin recipient (role system)'
+  $$values (1::integer, 15::integer, array['10000000-0000-0000-0000-000000000001'::uuid])$$,
+  '225. an admin who plays earns dark_urge like any other participant'
 );
 
 select results_eq(
@@ -3678,8 +3696,11 @@ select results_eq(
     where achievement_key = 'dark_urge'
       and user_id in ('10000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001')
   $$,
-  $$values (1::bigint)$$,
-  '229. only the qualifying non-admin user receives dark_urge without backfill (admin is a gamification no-op)'
+  $$values (2::bigint)$$,
+  -- Uprawnienia administracyjne nie wykluczają z grywalizacji (Economy V2,
+  -- private.is_gamification_eligible), więc odznakę dostają obaj
+  -- kwalifikujący się uczestnicy.
+  '229. every qualifying participant receives dark_urge, admin included'
 );
 
 select set_config(
@@ -4259,13 +4280,15 @@ select ok(
 
 select results_eq(
   $$
-    select awarded, points
-    from public.award_play_logged_points(
-      (select play_id from pgtap_created_plays where label = 'in-progress-play')
-    )
+    select coalesce(sum(points), 0)::bigint
+    from public.point_events
+    where action_type = 'play_participated'
+      and related_entity_id = (
+        select play_id from pgtap_created_plays where label = 'in-progress-play'
+      )
   $$,
-  $$values (false, 0)$$,
-  '257. play_logged points are withheld while a play is in_progress'
+  $$values (0::bigint)$$,
+  '257. participation Renown is withheld while a play is in_progress'
 );
 
 select public.award_current_user_simple_achievements();
@@ -4309,36 +4332,18 @@ select results_eq(
   $$
     select count(*)::bigint, coalesce(sum(points), 0)::bigint
     from public.point_events
-    where action_type = 'play_logged'
+    where action_type = 'play_participated'
       and related_entity_id = (
         select play_id from pgtap_created_plays where label = 'in-progress-play'
       )
   $$,
-  $$values (1::bigint, 40::bigint)$$,
-  '261. play_logged points are granted exactly when the play becomes completed'
+  $$values (1::bigint, 5::bigint)$$,
+  '261. participation Renown is granted exactly when the play becomes completed'
 );
 
-select results_eq(
-  $$
-    select awarded, points
-    from public.award_play_logged_points(
-      (select play_id from pgtap_created_plays where label = 'in-progress-play')
-    )
-  $$,
-  $$values (false, 40)$$,
-  '261a. explicit play_logged award is a no-op once recompute granted it'
-);
-
-select results_eq(
-  $$
-    select awarded, points
-    from public.award_play_logged_points(
-      (select play_id from pgtap_created_plays where label = 'in-progress-play')
-    )
-  $$,
-  $$values (false, 40)$$,
-  '262. re-awarding play_logged points on an already-completed play is a no-op'
-);
+-- Testy 261a i 262 wywoływały usunięte public.award_play_logged_points.
+-- Idempotencję przeliczania po ponownej finalizacji sprawdza teraz
+-- 016_economy_v2.test.sql.
 
 select public.award_current_user_simple_achievements();
 
@@ -5129,17 +5134,21 @@ select results_eq(
   '302. soft-deleted meeting is hidden by RLS'
 );
 
-select throws_ok(
+-- Dwie warstwy tej samej gwarancji. RPC odsiewa usunięte spotkanie już przy
+-- wyszukaniu organizatora i zwraca spokojne `awarded = false`, a centralny
+-- bezpiecznik w private.award_points_once nadal twardo odrzuca każdą inną
+-- ścieżkę, która próbowałaby dopisać punkty spotkaniowe po usunięciu.
+select results_eq(
   $$
-    select *
-    from public.award_meeting_created_points(
+    select awarded, points
+    from public.award_meeting_hosted_points(
       '8d000000-0000-0000-0000-000000000001'
     )
   $$,
-  '22023',
-  null,
+  $$values (false, 0)$$,
   '303. deleted meeting cannot receive fresh automatic points'
 );
+
 
 select throws_ok(
   $$
@@ -5166,6 +5175,26 @@ select throws_ok(
   '304b. deleted meeting cannot accept new responses'
 );
 reset role;
+
+-- private.award_points_once jest funkcją prywatną — asercję wykonujemy po
+-- zdjęciu roli authenticated, inaczej odbiłaby się o brak grantu zamiast
+-- sprawdzić właściwy bezpiecznik.
+select throws_ok(
+  $guard$
+    select *
+    from private.award_points_once(
+      '10000000-0000-0000-0000-000000000002',
+      'meeting_hosted',
+      'meeting',
+      '8d000000-0000-0000-0000-000000000001',
+      null,
+      null
+    )
+  $guard$,
+  '22023',
+  null,
+  '303a. the central guard still rejects meeting points after a soft delete'
+);
 
 select * from finish();
 rollback;

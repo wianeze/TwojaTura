@@ -431,6 +431,83 @@ export type Database = {
           },
         ]
       }
+      economy_rebase_runs: {
+        Row: {
+          applied_at: string
+          applied_by: string | null
+          diagnostics: Json
+          events_written: number
+          points_delta: number
+          users_affected: number
+          version: string
+        }
+        Insert: {
+          applied_at?: string
+          applied_by?: string | null
+          diagnostics?: Json
+          events_written?: number
+          points_delta?: number
+          users_affected?: number
+          version: string
+        }
+        Update: {
+          applied_at?: string
+          applied_by?: string | null
+          diagnostics?: Json
+          events_written?: number
+          points_delta?: number
+          users_affected?: number
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "economy_rebase_runs_applied_by_fkey"
+            columns: ["applied_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      economy_rebase_user_totals: {
+        Row: {
+          balance_after: number
+          balance_before: number
+          breakdown: Json
+          user_id: string
+          version: string
+        }
+        Insert: {
+          balance_after: number
+          balance_before: number
+          breakdown?: Json
+          user_id: string
+          version: string
+        }
+        Update: {
+          balance_after?: number
+          balance_before?: number
+          breakdown?: Json
+          user_id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "economy_rebase_user_totals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "economy_rebase_user_totals_version_fkey"
+            columns: ["version"]
+            isOneToOne: false
+            referencedRelation: "economy_rebase_runs"
+            referencedColumns: ["version"]
+          },
+        ]
+      }
       feedback_submissions: {
         Row: {
           admin_note: string | null
@@ -1829,6 +1906,14 @@ export type Database = {
           points: number
         }[]
       }
+      award_meeting_hosted_points: {
+        Args: { p_meeting_id: string }
+        Returns: {
+          awarded: boolean
+          point_event_id: string
+          points: number
+        }[]
+      }
       award_meeting_rsvp_points: {
         Args: { p_meeting_id: string }
         Returns: {
@@ -2004,9 +2089,30 @@ export type Database = {
           id: string
         }[]
       }
+      get_public_player_profiles: {
+        Args: never
+        Returns: {
+          active_class_key: string
+          active_portrait_frame_key: string
+          avatar_url: string
+          display_name: string
+          user_id: string
+        }[]
+      }
       loan_game: {
         Args: { p_borrower_user_id: string; p_game_id: string; p_note?: string }
         Returns: string
+      }
+      preview_economy_v2_rebase: {
+        Args: never
+        Returns: {
+          balance_before: number
+          breakdown: Json
+          delta: number
+          display_name: string
+          projected_balance_after: number
+          user_id: string
+        }[]
       }
       propose_meeting_game: {
         Args: { p_game_id: string; p_meeting_id: string }

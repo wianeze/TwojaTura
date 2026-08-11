@@ -115,7 +115,8 @@ export default async function GamesPage({
               </p>
               <p className="text-muted mt-2 max-w-2xl text-sm leading-6">
                 Dodaj pierwszy fizyczny egzemplarz, a pojawi się na Półce całej
-                grupy wraz z właścicielem, statusem i ocenami.
+                grupy wraz z właścicielem, statusem i ocenami. Pierwsza gra to
+                także 10 Renomy.
               </p>
             </div>
             <ActionLink action="shelf" size="large" href="/gry/nowa">

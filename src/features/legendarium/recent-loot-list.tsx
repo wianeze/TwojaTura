@@ -16,12 +16,16 @@ const eventIconAssets: Record<string, string> = {
   shelf_5_games: "/brand/Exclamation-common.png",
   shelf_10_games: "/brand/Exclamation-common.png",
   shelf_15_games: "/brand/Exclamation-common.png",
-  meeting_created: "/brand/Exclamation-legendary.png",
+  meeting_hosted: "/brand/Exclamation-legendary.png",
   meeting_rsvp: "/brand/Exclamation-legendary.png",
   meeting_vote: "/brand/Exclamation-magic.png",
   rating_created: "/brand/Exclamation-uncommon.png",
-  play_logged: "/brand/Exclamation-epic.png",
+  play_participated: "/brand/Exclamation-epic.png",
   admin_adjustment: "/brand/Exclamation-magic.png",
+  // Typy sprzed Economy V2 — nie powstają już nowe zdarzenia, ale historyczne
+  // pozycje w Kronice Renomy nadal potrzebują ikony.
+  meeting_created: "/brand/Exclamation-legendary.png",
+  play_logged: "/brand/Exclamation-epic.png",
 };
 
 export function RecentLootList({

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { formatQuestRenownPreview } from "./formatting";
 import { getQuestVisualVariant } from "./quest-variants";
 import type { DashboardQuest } from "./types";
 
@@ -10,7 +11,7 @@ type QuestCardProps = {
 
 export function QuestCard({ quest, isPrimary = false }: QuestCardProps) {
   const variant = getQuestVisualVariant(quest);
-  const hasFollowUp = Boolean(quest.reward.followUpPoints);
+  const renownPreview = formatQuestRenownPreview(quest);
   const isActiveClickable = quest.type !== "info";
 
   return (
@@ -45,7 +46,7 @@ export function QuestCard({ quest, isPrimary = false }: QuestCardProps) {
         <span
           className={`w-fit rounded-full px-2 py-[0.16rem] text-[0.46rem] font-bold tracking-[0.16em] uppercase sm:text-[0.48rem] ${variant.badgeClassName}`}
         >
-          Nowy Quest!
+          Zlecenie
         </span>
 
         <span
@@ -73,18 +74,17 @@ export function QuestCard({ quest, isPrimary = false }: QuestCardProps) {
             {quest.ctaLabel} {"→"}
           </span>
 
-          <span
-            className={`shrink-0 rounded-full px-2.5 py-1 text-right leading-none font-black shadow-[0_10px_22px_rgba(41,19,10,0.16)] ${variant.rewardClassName}`}
-          >
-            <span className="block text-[0.84rem] whitespace-nowrap sm:text-[0.9rem]">
-              +{quest.reward.immediatePoints} teraz
+          {/*
+            Nagroda operacyjna jest detalem, nie głównym CTA: mała plakietka
+            z realną wartością albo — dla czynności bez Renomy — nic.
+          */}
+          {renownPreview ? (
+            <span
+              className={`shrink-0 rounded-full px-2 py-[0.2rem] text-right text-[0.58rem] leading-none font-bold whitespace-nowrap sm:text-[0.6rem] ${variant.rewardClassName}`}
+            >
+              {renownPreview}
             </span>
-            {hasFollowUp ? (
-              <span className="mt-0.5 block text-[0.54rem] font-bold whitespace-nowrap opacity-90 sm:text-[0.57rem]">
-                +{quest.reward.followUpPoints} potem
-              </span>
-            ) : null}
-          </span>
+          ) : null}
         </span>
       </span>
     </Link>

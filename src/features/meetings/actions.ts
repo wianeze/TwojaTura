@@ -11,7 +11,6 @@ import {
 } from "@/features/legendarium/achievement-awards";
 import { buildMeetingConfirmationStatusPatch } from "./meeting-status";
 import {
-  awardMeetingCreatedPointsAfterSave,
   awardMeetingRsvpPointsAfterSave,
   awardMeetingVotePointsAfterSave,
 } from "./meeting-points";
@@ -107,19 +106,9 @@ export async function createMeetingAction(
     };
   }
 
-  const pointAward = await awardMeetingCreatedPointsAfterSave(true, () =>
-    access.supabase.rpc("award_meeting_created_points", {
-      p_meeting_id: meetingId,
-    }),
-  );
-
-  if (!pointAward.ok) {
-    return {
-      status: "error",
-      message:
-        "Spotkanie zostało zapisane, ale nie udało się naliczyć punktów. Odśwież Kalendarium przed ponowną próbą.",
-    };
-  }
+  // Economy V2: samo utworzenie spotkania nie daje Renomy. Organizator dostaje
+  // ją dopiero za spotkanie, które faktycznie się odbyło — nalicza to
+  // public.complete_meeting w tej samej transakcji co zmianę statusu.
 
   const achievementAward = await awardSimpleAchievementsAfterMeetingCreate(() =>
     access.supabase.rpc("award_current_user_simple_achievements"),

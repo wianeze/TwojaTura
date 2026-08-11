@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(79);
+select plan(89);
 
 -- Fixture roles going into this file (see supabase/seed.sql):
 --   10000000-...-000001 Przemek  admin,  active
@@ -384,15 +384,16 @@ select results_eq(
 reset role;
 
 -- ---------------------------------------------------------------------
--- 37-40. get_leaderboard() excludes hidden accounts
+-- 37-40. get_leaderboard() używa tej samej kwalifikacji co reszta
+-- grywalizacji: member i admin są widoczni, obserwator nie.
 -- ---------------------------------------------------------------------
 
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
 set local role authenticated;
 select results_eq(
   $$select count(*)::bigint from public.get_leaderboard() where user_id = '10000000-0000-0000-0000-000000000001'$$,
-  $$values (0::bigint)$$,
-  '37. the leaderboard never lists an admin, even one with banked points'
+  $$values (1::bigint)$$,
+  '37. the leaderboard lists an admin who plays'
 );
 select results_eq(
   $$select count(*)::bigint from public.get_leaderboard() where user_id = '10000000-0000-0000-0000-000000000005'$$,
@@ -407,18 +408,95 @@ select results_eq(
 select cmp_ok(
   (select count(*) from public.get_leaderboard()),
   '=',
-  2::bigint,
-  '40. only the two remaining ordinary members (Marta, Ania) rank'
+  4::bigint,
+  '40. every gamification-eligible account ranks (2 members + 2 admins)'
 );
 reset role;
 
 -- ---------------------------------------------------------------------
--- 41-48. points/achievements are a silent no-op for hidden accounts
+-- 40a-40f. public.get_public_player_profiles — publiczny wygląd gracza
+-- ---------------------------------------------------------------------
+--
+-- Stan kont w tym miejscu: ...0001 admin aktywny, ...0002 member aktywny
+-- (widz), ...0003 admin aktywny, ...0004 member aktywny, ...0005 obserwator
+-- aktywny, ...0006 member nieaktywny.
+
+update public.profiles
+set active_class_key = 'bard_stolu'
+where id = '10000000-0000-0000-0000-000000000004';
+update public.profiles
+set active_class_key = 'druid_polki'
+where id = '10000000-0000-0000-0000-000000000001';
+update public.profiles
+set active_class_key = 'kleryk_druzyny'
+where id = '10000000-0000-0000-0000-000000000005';
+
+-- Kontrakt kolumn: jawna lista bez adresu e-mail i bez pól administracyjnych.
+select is(
+  pg_get_function_result('public.get_public_player_profiles()'::regprocedure),
+  'TABLE(user_id uuid, display_name text, avatar_url text, active_class_key text, active_portrait_frame_key text)',
+  '40a. the public projection exposes only leaderboard-safe columns'
+);
+
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+select results_eq(
+  $$
+    select active_class_key from public.get_public_player_profiles()
+    where user_id = '10000000-0000-0000-0000-000000000004'
+  $$,
+  $$values ('bard_stolu')$$,
+  '40b. a member sees another member class badge'
+);
+
+select results_eq(
+  $$
+    select active_class_key from public.get_public_player_profiles()
+    where user_id = '10000000-0000-0000-0000-000000000001'
+  $$,
+  $$values ('druid_polki')$$,
+  '40c. a member sees an active admin class badge, exactly like a member one'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint from public.get_public_player_profiles()
+    where user_id = '10000000-0000-0000-0000-000000000005'
+  $$,
+  $$values (0::bigint)$$,
+  '40d. an observer exposes no public player data'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint from public.get_public_player_profiles()
+    where user_id = '10000000-0000-0000-0000-000000000006'
+  $$,
+  $$values (0::bigint)$$,
+  '40e. an inactive account exposes no public player data'
+);
+
+-- Regresja przeciw poluzowaniu RLS: sama tabela profiles ma zostać zamknięta.
+select results_eq(
+  $$
+    select count(*)::bigint from public.profiles
+    where id = '10000000-0000-0000-0000-000000000001'
+  $$,
+  $$values (0::bigint)$$,
+  '40f. the admin profile row itself stays hidden — no wider RLS access'
+);
+reset role;
+
+-- ---------------------------------------------------------------------
+-- 41-48. Uprawnienia administracyjne NIE wykluczają z grywalizacji;
+-- obserwator nadal jest wykluczony. Jedno źródło reguły:
+-- private.is_gamification_eligible.
 -- ---------------------------------------------------------------------
 
 select results_eq(
   $$
-    select awarded, points, point_event_id
+    select awarded, points
     from private.award_points_once(
       '10000000-0000-0000-0000-000000000001',
       'shelf_first_game',
@@ -428,8 +506,8 @@ select results_eq(
       null
     )
   $$,
-  $$values (false, 0, null::uuid)$$,
-  '41. award_points_once is a no-op for an admin recipient'
+  $$values (true, 10)$$,
+  '41. an admin who plays still earns Renown'
 );
 
 select results_eq(
@@ -438,8 +516,8 @@ select results_eq(
     where user_id = '10000000-0000-0000-0000-000000000001'
       and action_type = 'shelf_first_game'
   $$,
-  $$values (0::bigint)$$,
-  '42. no point event is created for the admin no-op'
+  $$values (1::bigint)$$,
+  '42. the admin point event is written exactly once'
 );
 
 select results_eq(
@@ -455,7 +533,7 @@ select results_eq(
     )
   $$,
   $$values (false, 0, null::uuid)$$,
-  '43. award_points_once is a no-op for an observer recipient'
+  '43. award_points_once stays a no-op for an observer recipient'
 );
 
 select results_eq(
@@ -470,7 +548,7 @@ select results_eq(
 
 select results_eq(
   $$
-    select awarded, achievement_key, awarded_at, points_awarded, point_event_id
+    select awarded, achievement_key, points_awarded
     from private.award_achievement_once(
       '10000000-0000-0000-0000-000000000001',
       'dice_speak',
@@ -480,8 +558,8 @@ select results_eq(
       null
     )
   $$,
-  $$values (false, 'dice_speak', null::timestamptz, 0, null::uuid)$$,
-  '45. award_achievement_once is a no-op for an admin recipient'
+  $$values (true, 'dice_speak', 20)$$,
+  '45. an admin who plays still earns achievements'
 );
 
 select results_eq(
@@ -490,8 +568,8 @@ select results_eq(
     where user_id = '10000000-0000-0000-0000-000000000001'
       and achievement_key = 'dice_speak'
   $$,
-  $$values (0::bigint)$$,
-  '46. no achievement row is created for the admin no-op'
+  $$values (1::bigint)$$,
+  '46. the admin achievement row is written exactly once'
 );
 
 select results_eq(
@@ -507,7 +585,7 @@ select results_eq(
     )
   $$,
   $$values (false, 'dice_speak', null::timestamptz, 0, null::uuid)$$,
-  '47. award_achievement_once is a no-op for an observer recipient'
+  '47. award_achievement_once stays a no-op for an observer recipient'
 );
 
 select results_eq(
@@ -791,6 +869,85 @@ select results_eq(
   '78. the second admin''s demotion is persisted'
 );
 reset role;
+
+
+-- ---------------------------------------------------------------------
+-- 80-82. leaderboard eligibility == private.is_gamification_eligible
+-- ---------------------------------------------------------------------
+
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+set local role authenticated;
+
+-- Stan kont w tym miejscu pliku (zbudowany przez wcześniejsze testy):
+--   ...0001 Przemek  admin,     aktywny   -> rankuje
+--   ...0002 Marta    member,    aktywny   -> rankuje
+--   ...0003 Michał   admin,     aktywny   -> rankuje
+--   ...0004 Ania     observer,  nieaktywna (testy 62 i 68) -> nie rankuje
+--   ...0005 Kuba     observer,  aktywny   -> nie rankuje
+--   ...0006 Nieaktywny member,  nieaktywny -> nie rankuje
+--
+-- Sprawdzamy KOLEJNOŚĆ, nie nominały: wcześniejsze testy dopisują Renomę, więc
+-- twarde sumy z seeda byłyby kruche. Sedno jest takie, że admin rankuje
+-- pomiędzy członkami zgodnie ze swoim saldem, a nie na końcu ani poza listą.
+select results_eq(
+  $$
+    select user_id, rank
+    from public.get_leaderboard()
+  $$,
+  $$
+    values
+      ('10000000-0000-0000-0000-000000000001'::uuid, 1::bigint),
+      ('10000000-0000-0000-0000-000000000002'::uuid, 2::bigint),
+      ('10000000-0000-0000-0000-000000000003'::uuid, 3::bigint)
+  $$,
+  '80. an admin ranks between members according to their own Renown'
+);
+
+select results_eq(
+  $$
+    select count(*)::bigint from public.get_leaderboard()
+    where user_id in (
+      '10000000-0000-0000-0000-000000000004',
+      '10000000-0000-0000-0000-000000000006'
+    )
+  $$,
+  $$values (0::bigint)$$,
+  '81. an inactive account never ranks'
+);
+reset role;
+
+-- Renoma admina jest liczona dokładnie tak jak każdego innego gracza: suma
+-- jego księgi, bez żadnego odrębnego traktowania. Asercja po zdjęciu roli,
+-- bo RLS na point_events ukrywa cudze wiersze przed zwykłym członkiem, a
+-- get_leaderboard jest security definer i widzi wszystko.
+select results_eq(
+  $$
+    select entry.total_points
+    from public.get_leaderboard() as entry
+    where entry.user_id = '10000000-0000-0000-0000-000000000001'
+  $$,
+  $$
+    select coalesce(sum(event.points), 0)::bigint
+    from public.point_events as event
+    where event.user_id = '10000000-0000-0000-0000-000000000001'
+  $$,
+  '80a. the admin total equals the plain sum of their ledger'
+);
+
+-- Reguła nie może być powielona: zbiór rankujących ma być DOKŁADNIE zbiorem
+-- kont kwalifikujących się do grywalizacji.
+select is_empty(
+  $$
+    select membership.user_id
+    from public.app_members as membership
+    where private.is_gamification_eligible(membership.user_id)
+      <> exists (
+        select 1 from public.get_leaderboard() as entry
+        where entry.user_id = membership.user_id
+      )
+  $$,
+  '82. leaderboard membership matches private.is_gamification_eligible exactly'
+);
 
 select * from finish();
 rollback;

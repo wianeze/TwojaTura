@@ -94,21 +94,6 @@ const rarityExclamationAssets: Record<QuestVisualRarity, string> = {
   legendary: "/brand/Exclamation-legendary.png",
 };
 
-export function getQuestPreviewPoints(quest: Pick<DashboardQuest, "reward">) {
-  return (
-    quest.reward.totalPreviewPoints ??
-    quest.reward.immediatePoints + (quest.reward.followUpPoints ?? 0)
-  );
-}
-
-export function getQuestRarityFromPoints(points: number): QuestVisualRarity {
-  if (points >= 40) return "legendary";
-  if (points >= 30) return "epic";
-  if (points >= 25) return "magic";
-  if (points >= 20) return "uncommon";
-  return "common";
-}
-
 export function getQuestVisualCategory(
   quest: Pick<DashboardQuest, "id" | "href">,
 ): QuestVisualCategory {

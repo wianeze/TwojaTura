@@ -671,11 +671,10 @@ export async function DashboardShowcase({
 
                 <div className="hidden w-fit shrink-0 self-stretch rounded-[1.2rem] border border-white/12 bg-[linear-gradient(145deg,rgba(19,10,7,0.32),rgba(31,17,11,0.18))] px-3.5 py-3 text-center shadow-[0_18px_36px_rgba(17,8,5,0.22)] lg:ml-auto lg:flex lg:min-h-full lg:flex-col lg:items-center lg:justify-center">
                   <p className="text-center text-[0.58rem] font-bold tracking-[0.16em] text-[#d7b486] uppercase">
-                    Twoje punkty
+                    Twoja Renoma
                   </p>
                   <p className="font-display mt-1 text-center text-[1.95rem] font-semibold text-[#fff1dc]">
-                    {data.pointsSummary.currentPoints.toLocaleString("pl-PL")}{" "}
-                    pkt
+                    {data.pointsSummary.currentPoints.toLocaleString("pl-PL")}
                   </p>
                 </div>
               </div>
@@ -702,13 +701,13 @@ export async function DashboardShowcase({
               id="quests-heading"
               className="font-display text-[1.9rem] font-semibold text-[#fff1dc] sm:text-[2.05rem]"
             >
-              Questy do wykonania!
+              Zlecenia
             </h2>
 
             {data.quests.length === 0 ? (
               <Panel className="paper-wash p-4">
                 <p className="text-sm text-[#5f4738]">
-                  Nie masz teraz żadnych zadań.
+                  Nie masz teraz żadnych zleceń.
                 </p>
                 <Link
                   href={data.summary.emptyCtaHref}

@@ -10,15 +10,14 @@ export type DashboardQuestType = "action" | "question" | "info";
 
 export type DashboardQuestTone = "decision" | "action" | "success" | "neutral";
 
-export type DashboardQuestReward = {
-  immediatePoints: number;
-  immediateLabel?: string;
-  followUpPoints?: number;
-  followUpLabel?: string;
-  totalPreviewPoints?: number;
-  rewardTone?: "immediate" | "split" | "follow-up";
-};
-
+/**
+ * Zlecenie operacyjne pokazywane w sekcji „Zlecenia”.
+ *
+ * `renownPoints` to Renoma, którą baza naprawdę naliczy po wykonaniu czynności.
+ * Brak pola oznacza, że czynność nie daje Renomy — i wtedy karta nie pokazuje
+ * żadnej nagrody. Nie ma tu miejsca na nagrody „potem”: wcześniejsze pola
+ * followUpPoints/totalPreviewPoints nie miały pokrycia w `point_reward_for`.
+ */
 export type DashboardQuest = {
   id: string;
   type: DashboardQuestType;
@@ -26,9 +25,11 @@ export type DashboardQuest = {
   description?: string;
   href: string;
   ctaLabel: string;
-  optionalPoints?: number;
-  reward: DashboardQuestReward;
+  renownPoints?: number;
+  /** 1 = blokuje dane, 2 = ma deadline, 3 = housekeeping. */
   priority: number;
+  /** Moment, względem którego Zlecenie jest pilne (P2) albo wygasa (P1). */
+  deadlineAt?: string;
   createdAt?: string;
   tone?: DashboardQuestTone;
 };
@@ -75,13 +76,11 @@ export type DashboardHeroSummary = {
   emptyCtaLabel: string;
   questCount: number;
   availablePoints: number;
-  followUpPoints: number;
 };
 
 export type DashboardPointsSummary = {
   currentPoints: number;
   availablePoints: number;
-  followUpPoints: number;
 };
 
 export type DashboardUpcomingMeeting = {

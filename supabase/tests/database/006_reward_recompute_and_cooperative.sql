@@ -66,10 +66,11 @@ select results_eq(
   $$
     select count(*)::bigint, coalesce(sum(points), 0)::bigint
     from public.point_events
-    where action_type = 'play_logged'
+    where action_type = 'play_participated'
       and related_entity_id = (select play_id from t_play)
+      and user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$values (1::bigint, 40::bigint)$$,
+  $$values (1::bigint, 5::bigint)$$,
   '2. pierwsze przyznanie zapisuje dokładnie jedno dodatnie zdarzenie'
 );
 
@@ -103,7 +104,7 @@ select results_eq(
         select count(*)
         from public.point_events as event
         where event.user_id = state.user_id
-          and event.action_type = 'play_logged'
+          and event.action_type = 'play_participated'
           and event.related_entity_id = state.reward_key::uuid
       ) <> state.revision + 1
   $$,
@@ -207,8 +208,9 @@ select results_eq(
   $$
     select count(*)::bigint, coalesce(sum(points), 0)::bigint
     from public.point_events
-    where action_type = 'play_logged'
+    where action_type = 'play_participated'
       and related_entity_id = (select play_id from t_play)
+      and user_id = '10000000-0000-0000-0000-000000000002'
   $$,
   $$values (2::bigint, 0::bigint)$$,
   '11. cofnięcie dopisuje dokładnie jedno zdarzenie kompensujące, saldo nagrody wraca do zera'
@@ -218,8 +220,9 @@ select results_eq(
   $$
     select count(*)::bigint
     from public.point_events
-    where action_type = 'play_logged'
+    where action_type = 'play_participated'
       and related_entity_id = (select play_id from t_play)
+      and user_id = '10000000-0000-0000-0000-000000000002'
       and points < 0
   $$,
   $$values (1::bigint)$$,
@@ -257,10 +260,11 @@ select results_eq(
   $$
     select count(*)::bigint, coalesce(sum(points), 0)::bigint
     from public.point_events
-    where action_type = 'play_logged'
+    where action_type = 'play_participated'
       and related_entity_id = (select play_id from t_play)
+      and user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$values (3::bigint, 40::bigint)$$,
+  $$values (3::bigint, 5::bigint)$$,
   '14. cykl przyznanie-cofnięcie-przyznanie daje trzy zdarzenia i saldo wyjściowe'
 );
 
@@ -272,10 +276,11 @@ select results_eq(
   $$
     select distinct abs(points)
     from public.point_events
-    where action_type = 'play_logged'
+    where action_type = 'play_participated'
       and related_entity_id = (select play_id from t_play)
+      and user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$select private.point_reward_for('play_logged')$$,
+  $$select private.point_reward_for('play_participated')$$,
   '15. wartość dodatnia i kompensująca pochodzi z serwerowego cennika'
 );
 
@@ -352,14 +357,14 @@ select is(
 set local role authenticated;
 
 select throws_ok(
-  $$update public.point_events set points = 1 where action_type = 'play_logged'$$,
+  $$update public.point_events set points = 1 where action_type = 'play_participated'$$,
   '42501',
   null,
   '25. zwykły użytkownik nadal nie może zmienić zdarzenia punktowego'
 );
 
 select throws_ok(
-  $$delete from public.point_events where action_type = 'play_logged'$$,
+  $$delete from public.point_events where action_type = 'play_participated'$$,
   '42501',
   null,
   '26. zwykły użytkownik nadal nie może usunąć zdarzenia punktowego'
@@ -475,8 +480,9 @@ select results_eq(
   $$
     select coalesce(sum(points), 0)::bigint
     from public.point_events
-    where action_type = 'play_logged'
+    where action_type = 'play_participated'
       and related_entity_id = (select play_id from t_play)
+      and user_id = '10000000-0000-0000-0000-000000000002'
   $$,
   $$values (0::bigint)$$,
   '34. usunięcie partii kompensuje jej punkty za zapis do zera'

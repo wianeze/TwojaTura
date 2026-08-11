@@ -45,21 +45,10 @@ export async function awardMeetingVotePointsAfterSave(
   return requestMeetingPointAward(requestAward);
 }
 
-export async function awardMeetingCreatedPointsAfterSave(
-  wasCreated: boolean,
-  requestAward: () => PromiseLike<MeetingPointAwardResponse>,
-) {
-  if (!wasCreated) {
-    return {
-      ok: true as const,
-      skipped: true as const,
-      awarded: false,
-      points: 0,
-      pointEventId: null,
-    };
-  }
-
-  const result = await requestMeetingPointAward(requestAward);
-
-  return result.ok ? { ...result, skipped: false as const } : result;
-}
+/*
+ * Nagroda za organizację spotkania nie ma już odpowiednika po stronie TS.
+ * Od Economy V2 nalicza ją public.complete_meeting — w tej samej transakcji, w
+ * której spotkanie dostaje status 'completed'. Klient nie ma tu nic do
+ * zrobienia, więc świadomie nie ma tu wrappera: byłby wyłącznie okazją do
+ * przyznania Renomy za spotkanie, które się nie odbyło.
+ */

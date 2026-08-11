@@ -4,47 +4,22 @@ import {
   getQuestIconAsset,
   getQuestVisualCategory,
   getQuestVisualRarity,
-  getQuestRarityFromPoints,
   getQuestVisualVariant,
 } from "../../src/features/dashboard/quest-variants.ts";
 import type { DashboardQuest } from "../../src/features/dashboard/types.ts";
 
 function buildQuest(overrides: Partial<DashboardQuest> = {}): DashboardQuest {
   return {
-    id: "quest-1",
+    id: "task-1",
     type: "action",
-    title: "Quest",
+    title: "Zadanie",
     href: "/",
     ctaLabel: "Idź",
-    optionalPoints: 10,
     priority: 1,
-    reward: {
-      immediatePoints: 10,
-      immediateLabel: "teraz",
-    },
+    renownPoints: 2,
     ...overrides,
   };
 }
-
-test("40 points maps to legendary rarity", () => {
-  assert.equal(getQuestRarityFromPoints(40), "legendary");
-});
-
-test("30 points maps to epic rarity", () => {
-  assert.equal(getQuestRarityFromPoints(30), "epic");
-});
-
-test("25 points maps to magic rarity", () => {
-  assert.equal(getQuestRarityFromPoints(25), "magic");
-});
-
-test("20 points maps to uncommon rarity", () => {
-  assert.equal(getQuestRarityFromPoints(20), "uncommon");
-});
-
-test("10 points maps to common rarity", () => {
-  assert.equal(getQuestRarityFromPoints(10), "common");
-});
 
 test("RSVP quest uses exclamation icon asset", () => {
   const asset = getQuestIconAsset(
@@ -52,12 +27,6 @@ test("RSVP quest uses exclamation icon asset", () => {
       id: "missing-rsvp:meeting-1",
       type: "question",
       href: "/kalendarium/meeting-1",
-      reward: {
-        immediatePoints: 10,
-        immediateLabel: "teraz",
-        followUpPoints: 30,
-        followUpLabel: "po udziale",
-      },
     }),
   );
 
@@ -70,12 +39,6 @@ test("vote quest uses exclamation icon asset", () => {
       id: "missing-vote:meeting-1",
       type: "question",
       href: "/kalendarium/meeting-1",
-      reward: {
-        immediatePoints: 10,
-        immediateLabel: "teraz",
-        followUpPoints: 10,
-        followUpLabel: "jeśli trafi na stół",
-      },
     }),
   );
 
@@ -87,10 +50,6 @@ test("chronicle quest uses exclamation icon asset", () => {
     buildQuest({
       id: "missing-play:meeting-1",
       href: "/kronika/nowa?meeting=meeting-1",
-      reward: {
-        immediatePoints: 40,
-        immediateLabel: "za Kronikę",
-      },
     }),
   );
 
@@ -102,10 +61,6 @@ test("rating quest uses exclamation icon asset", () => {
     buildQuest({
       id: "rate-game:play-1:game-1",
       href: "/gry/game-1",
-      reward: {
-        immediatePoints: 30,
-        immediateLabel: "za opinię",
-      },
     }),
   );
 
@@ -118,13 +73,6 @@ test("point thresholds helper still maps raw numbers to rarity bands", () => {
       id: "missing-rsvp:meeting-1",
       type: "question",
       href: "/kalendarium/meeting-1",
-      reward: {
-        immediatePoints: 10,
-        immediateLabel: "teraz",
-        followUpPoints: 30,
-        followUpLabel: "po udziale",
-        totalPreviewPoints: 40,
-      },
     }),
   );
 
@@ -142,10 +90,6 @@ test("shelf onboarding quests keep common styling and the common exclamation", (
     const quest = buildQuest({
       id,
       href: "/gry/nowa",
-      reward: {
-        immediatePoints: 40,
-        immediateLabel: "teraz",
-      },
     });
     const variant = getQuestVisualVariant(quest);
 
@@ -162,12 +106,6 @@ test("meeting question quest keeps meeting emphasis", () => {
       id: "missing-vote:meeting-1",
       type: "question",
       href: "/kalendarium/meeting-1",
-      reward: {
-        immediatePoints: 10,
-        immediateLabel: "teraz",
-        followUpPoints: 10,
-        followUpLabel: "jeśli trafi na stół",
-      },
     }),
   );
 
@@ -179,10 +117,6 @@ test("chronicle create link is not treated as meeting quest", () => {
     buildQuest({
       id: "rate-game:play-1:game-1",
       href: "/kronika/nowa",
-      reward: {
-        immediatePoints: 30,
-        immediateLabel: "za opinię",
-      },
     }),
   );
 
@@ -205,10 +139,6 @@ test("visual category and rarity come from quest category instead of points", ()
       buildQuest({
         id: "missing-play:meeting-1",
         href: "/kronika/nowa?meeting=meeting-1",
-        reward: {
-          immediatePoints: 40,
-          immediateLabel: "za Kronikę",
-        },
       }),
     ),
     "epic",
