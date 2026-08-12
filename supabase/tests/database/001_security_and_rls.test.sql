@@ -1582,7 +1582,7 @@ set local role authenticated;
 -- pilnuje tego test 89a poniżej.
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (1163::bigint)$$,
+  $$values (1153::bigint)$$,
   '88. user point balance includes idempotent awards and repeatable corrections'
 );
 
@@ -1592,7 +1592,7 @@ select results_eq(
     from public.get_leaderboard()
     where user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$values (1163::bigint)$$,
+  $$values (1153::bigint)$$,
   '89. leaderboard includes the same updated ledger balance'
 );
 reset role;
@@ -2871,9 +2871,9 @@ select results_eq(
     from public.point_events
     where user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  -- 30 zamiast 5: wartość wynika z definicji nośnika ('bag_of_holding'),
+  -- 20 zamiast 5: wartość wynika z definicji nośnika ('bag_of_holding'),
   -- zmienionego w teście 169 z powodów opisanych tam.
-  $$select total_points + 30 from pgtap_achievement_points_before$$,
+  $$select total_points + 20 from pgtap_achievement_points_before$$,
   '175. first achievement award adds definition points to the user balance'
 );
 
@@ -3034,7 +3034,7 @@ select
   md5('simple-achievement-meeting-' || series.value)::uuid,
   '10000000-0000-0000-0000-000000000005',
   'Simple achievement meeting ' || series.value,
-  'planned',
+  'completed',
   '2026-08-01 16:00:00+00'::timestamptz + series.value * interval '1 day',
   '2026-08-01 20:00:00+00'::timestamptz + series.value * interval '1 day'
 from generate_series(1, 10) as series(value);
@@ -3114,12 +3114,12 @@ select results_eq(
     select awarded_count, points_awarded, cardinality(awarded_keys)
     from public.award_current_user_simple_achievements()
   $$,
-  $$values (13, 140, 13)$$,
+  $$values (13, 90, 13)$$,
   '185. qualifying active member receives all 13 simple achievements and their points'
 );
 
 select ok(private.has_achievement('critical_roll'), '186. first win unlocks critical_roll');
-select ok(private.has_achievement('initiative_master'), '187. five created meetings unlock initiative_master');
+select ok(private.has_achievement('initiative_master'), '187. five completed meetings unlock initiative_master');
 select ok(private.has_achievement('party_bard'), '188. ten rating comments unlock party_bard');
 select ok(private.has_achievement('coast_chronicler'), '189. twenty-five created plays unlock coast_chronicler');
 select ok(private.has_achievement('short_rest'), '190. two participations on one calendar day unlock short_rest');
@@ -3162,7 +3162,7 @@ select results_eq(
     from public.point_events
     where user_id = '10000000-0000-0000-0000-000000000005'
   $$,
-  $$select total_points + 140 from pgtap_simple_achievement_balance_before$$,
+  $$select total_points + 90 from pgtap_simple_achievement_balance_before$$,
   '201. achievement rewards add exactly the definition point total to the balance'
 );
 reset role;
@@ -3229,7 +3229,8 @@ select results_eq(
        where user_id = '10000000-0000-0000-0000-000000000005'),
       (select count(*) from public.point_events
        where user_id = '10000000-0000-0000-0000-000000000005'
-         and action_type like 'achievement_unlocked:%')
+         and action_type like 'achievement_unlocked:%'
+         and points > 0)
   $$,
   $$values (13::bigint, 13::bigint)$$,
   '206. repeated checks keep one achievement and one point event per key'
@@ -3639,7 +3640,7 @@ select results_eq(
     select awarded_count, points_awarded, awarded_user_ids
     from public.award_play_result_achievements('79000000-0000-0000-0000-000000000010')
   $$,
-  $$values (1::integer, 15::integer, array['10000000-0000-0000-0000-000000000004'::uuid])$$,
+  $$values (1::integer, 10::integer, array['10000000-0000-0000-0000-000000000004'::uuid])$$,
   '224. whole-history streak awards dark_urge to the qualifying participant'
 );
 
@@ -3648,7 +3649,7 @@ select results_eq(
     select awarded_count, points_awarded, awarded_user_ids
     from public.award_play_result_achievements('79000000-0000-0000-0000-000000000016')
   $$,
-  $$values (1::integer, 15::integer, array['10000000-0000-0000-0000-000000000001'::uuid])$$,
+  $$values (1::integer, 10::integer, array['10000000-0000-0000-0000-000000000001'::uuid])$$,
   '225. an admin who plays earns dark_urge like any other participant'
 );
 
@@ -3845,7 +3846,7 @@ select results_eq(
     select awarded_count, points_awarded, awarded_keys
     from public.award_meeting_achievements('7b000000-0000-0000-0000-000000000007')
   $$,
-  $$values (1::integer, 10::integer, array['camp_host']::text[])$$,
+  $$values (1::integer, 5::integer, array['camp_host']::text[])$$,
   '234. five distinct hosted meetings with Chronicle plays award camp_host'
 );
 reset role;
@@ -3872,7 +3873,7 @@ set local role authenticated;
 
 select results_eq(
   $$select total_points from public.user_point_balances where user_id = '10000000-0000-0000-0000-000000000004'$$,
-  $$select total_points + 10 from pgtap_camp_host_balance_before$$,
+  $$select total_points + 5 from pgtap_camp_host_balance_before$$,
   '236. camp_host increases the organizer balance exactly once'
 );
 reset role;

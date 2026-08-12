@@ -101,7 +101,7 @@ export async function getAchievementClassData(
       .select("class_key, achievement_key"),
     supabase
       .from("meetings")
-      .select("id")
+      .select("id, status")
       .eq("created_by", currentUserId)
       .is("deleted_at", null),
     supabase
@@ -213,7 +213,7 @@ export async function getAchievementClassData(
     ownParticipantPlayIds.length > 0
       ? supabase
           .from("plays")
-          .select("id, played_at, created_at, mode, team_result")
+          .select("id, meeting_id, played_at, created_at, mode, team_result")
           .in("id", ownParticipantPlayIds)
           .eq("status", "completed")
       : Promise.resolve({ data: [], error: null }),
@@ -296,7 +296,9 @@ export async function getAchievementClassData(
     }
   }
   const progressByKey = buildAchievementProgressMap({
-    meetingsCreated: ownMeetingIds.length,
+    completedMeetingsOrganized: (ownedMeetingsResult.data ?? []).filter(
+      (meeting) => meeting.status === "completed",
+    ).length,
     completedMeetingsHosted: new Set(
       (completedPlaysResult.data ?? [])
         .map((play) => play.meeting_id)
@@ -328,8 +330,8 @@ export async function getAchievementClassData(
       (participant) =>
         (participantsByPlay.get(participant.play_id)?.length ?? 0) === 1,
     ),
-    hasSideQuest: (ownPlaysResult.data ?? []).some(
-      (play) => play.meeting_id === null,
+    hasSideQuest: ownResults.some(
+      (participant) => participant.play?.meeting_id === null,
     ),
     currentWinStreak,
   });

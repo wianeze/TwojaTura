@@ -98,7 +98,7 @@ export function AchievementCatalog({
 
       {acquiredCount === 0 ? (
         <p className="mt-3 rounded-xl border border-[#d6b98e]/55 bg-[#fff8e9]/72 px-3 py-2 text-sm text-[#705b49]">
-          Jeszcze nie zdobyto odznak. Wykonuj questy, zapisuj partie i
+          Jeszcze nie zdobyto odznak. Wykonuj Zlecenia, zapisuj partie i
           rozbudowuj Półkę.
         </p>
       ) : null}

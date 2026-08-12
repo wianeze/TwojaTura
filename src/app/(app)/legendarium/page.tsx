@@ -1,10 +1,10 @@
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
-import { LegendariumShowcase } from "@/features/legendarium/legendarium-showcase";
 import {
   activeRewards,
-  futureRewards,
-} from "@/features/legendarium/legendarium-showcase";
+  achievementRewardNotice,
+} from "@/features/legendarium/reward-guide";
+import { LegendariumShowcase } from "@/features/legendarium/legendarium-showcase";
 import { MobileRewardsSheet } from "@/features/legendarium/mobile-rewards-sheet";
 import { getLegendariumData } from "@/features/legendarium/queries";
 
@@ -34,7 +34,7 @@ export default async function LegendariumPage() {
         <div className="md:hidden">
           <MobileRewardsSheet
             rewards={activeRewards}
-            futureRewards={futureRewards}
+            achievementRewardNotice={achievementRewardNotice}
           />
         </div>
       </header>

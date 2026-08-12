@@ -5,6 +5,11 @@ import { AchievementCatalog } from "./achievement-catalog";
 import { ClassCatalog } from "./class-catalog";
 import { RecentLootList } from "./recent-loot-list";
 import {
+  achievementRewardNotice,
+  activeRewards,
+  type LegendariumReward,
+} from "./reward-guide";
+import {
   getActiveClassBackdropGradient,
   getLeaderboardRankAsset,
   getLeaderboardRankLabel,
@@ -12,106 +17,6 @@ import {
 import type { AchievementRarity } from "./achievement-view-model";
 import type { LegendariumData, LegendariumLeaderboardEntry } from "./queries";
 import { hasRecentPointEvents } from "./view-model";
-
-export const legacyActiveRewards = [
-  ["Pierwsza gra w Półce", "+40"],
-  ["5 gier w Półce", "+30"],
-  ["10 gier w Półce", "+20"],
-  ["15 gier w Półce", "+15"],
-  ["Utworzenie spotkania", "+25"],
-  ["Odpowiedź na spotkanie", "+10"],
-  ["Głos na grę", "+10"],
-  ["Ocena gry", "+30"],
-  ["Zapis partii w Kronice", "+40"],
-] as const;
-
-export type LegendariumReward = {
-  points: string;
-  title: string;
-  condition: string;
-  limit: string;
-};
-
-export const activeRewards = [
-  {
-    points: "+40",
-    title: "Pierwsza gra",
-    condition: "Dodaj pierwszy egzemplarz gry do P\u00f3\u0142ki.",
-    limit: "Raz na gracza.",
-  },
-  {
-    points: "+30",
-    title: "5 gier",
-    condition: "Rozbuduj P\u00f3\u0142k\u0119 o 5 nowych gier.",
-    limit: "Raz na gracza.",
-  },
-  {
-    points: "+20",
-    title: "10 gier",
-    condition: "Dodaj \u0142\u0105cznie 10 gier do P\u00f3\u0142ki.",
-    limit: "Raz na gracza.",
-  },
-  {
-    points: "+15",
-    title: "15 gier",
-    condition: "Wprowad\u017a 15 gier do wsp\u00f3lnej kolekcji.",
-    limit: "Raz na gracza.",
-  },
-  {
-    points: "+25",
-    title: "Spotkanie",
-    condition: "Zaproponuj spotkanie plansz\u00f3wkowe w Kalendarium.",
-    limit: "Raz na spotkanie.",
-  },
-  {
-    points: "+10",
-    title: "Odpowied\u017a",
-    condition:
-      "Daj zna\u0107, czy b\u0119dziesz na spotkaniu \u2014 TAK albo NIE.",
-    limit: "Raz na spotkanie.",
-  },
-  {
-    points: "+10",
-    title: "G\u0142os",
-    condition: "Oddaj pierwszy g\u0142os na gr\u0119 w danym spotkaniu.",
-    limit: "Raz na spotkanie.",
-  },
-  {
-    points: "+30",
-    title: "Ocena gry",
-    condition: "Dodaj pierwsz\u0105 ocen\u0119 danej gry.",
-    limit: "Raz na gr\u0119.",
-  },
-  {
-    points: "+40",
-    title: "Kronika",
-    condition: "Uzupe\u0142nij rozegran\u0105 parti\u0119 w Kronice.",
-    limit: "Raz za wpis.",
-  },
-] as const satisfies readonly LegendariumReward[];
-
-export const futureRewards = [
-  {
-    points: "+30",
-    title: "Udzia\u0142 w spotkaniu",
-    condition: "Bonus po potwierdzeniu spotkania i uczestnictwie w Kronice.",
-    limit: "Wkr\u00f3tce.",
-  },
-  {
-    points: "+10",
-    title: "Trafiony g\u0142os",
-    condition:
-      "Bonus, je\u015bli gra, na kt\u00f3r\u0105 g\u0142osowa\u0142e\u015b, trafi na st\u00f3\u0142.",
-    limit: "Wkr\u00f3tce.",
-  },
-  {
-    points: "+25",
-    title: "Spotkanie odbyte",
-    condition:
-      "Bonus dla organizatora po zapisaniu rozegranej partii w Kronice.",
-    limit: "Wkr\u00f3tce.",
-  },
-] as const satisfies readonly LegendariumReward[];
 
 type LegendariumShowcaseProps = {
   data: LegendariumData;
@@ -169,7 +74,7 @@ export function LegendariumShowcase({ data }: LegendariumShowcaseProps) {
               </ol>
             ) : (
               <p className="paper-wash mt-4 rounded-xl px-4 py-6 text-center text-sm text-[#725a45]">
-                Ranking pojawi się, gdy grupa zdobędzie pierwsze punkty.
+                Ranking pojawi się, gdy grupa zdobędzie pierwszą Renomę.
               </p>
             )}
           </div>
@@ -190,6 +95,9 @@ export function LegendariumShowcase({ data }: LegendariumShowcaseProps) {
         <div className="flex min-w-0 flex-col gap-4 xl:h-full">
           <section className="parchment-card premium-edge hidden rounded-[1.55rem] p-4 md:block md:p-5">
             <SectionTitle title="Jak zdobywać łupy" />
+            <p className="text-muted mt-2 text-xs leading-5">
+              Renoma to trwały prestiż za dokonania gracza — nie wydajesz jej w Sklepie.
+            </p>
             <p className="text-accent mt-3 text-[0.65rem] font-bold tracking-[0.16em] uppercase">
               {"Naliczane od razu"}
             </p>
@@ -203,20 +111,8 @@ export function LegendariumShowcase({ data }: LegendariumShowcaseProps) {
               ))}
             </div>
 
-            <div className="mt-4 border-t border-[#c89d73]/45 pt-3">
-              <p className="text-[0.62rem] font-bold tracking-[0.15em] text-[#83614a] uppercase">
-                {"Po spotkaniu \u2014 wkr\u00f3tce"}
-              </p>
-              <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4">
-                {futureRewards.map((reward, index) => (
-                  <RewardPreviewNote
-                    key={reward.title}
-                    reward={reward}
-                    index={index}
-                    upcoming
-                  />
-                ))}
-              </div>
+            <div className="mt-4 border-t border-[#c89d73]/45 pt-3 text-xs leading-5 text-[#70533d]">
+              {achievementRewardNotice}
             </div>
           </section>
 
@@ -271,18 +167,16 @@ function SectionTitle({
 function RewardPreviewNote({
   reward,
   index,
-  upcoming = false,
 }: {
   reward: LegendariumReward;
   index: number;
-  upcoming?: boolean;
 }) {
   return (
     <article
       tabIndex={0}
       className={`paper-wash group relative min-h-16 overflow-hidden rounded-xl px-2.5 py-2 shadow-[0_7px_14px_rgba(70,40,22,0.12)] transition-shadow outline-none focus-visible:ring-2 focus-visible:ring-[#b96f3f] ${
         index % 3 === 1 ? "rotate-[0.35deg]" : "-rotate-[0.25deg]"
-      } ${upcoming ? "opacity-75" : ""}`}
+      }`}
     >
       {/*
         Animacja wejścia żyje na wewnętrznym wrapperze, nie na samym
@@ -300,11 +194,9 @@ function RewardPreviewNote({
         <p className="mt-0.5 text-xs leading-4 font-bold text-[#70533d]">
           {reward.title}
         </p>
-        {!upcoming ? (
-          <span className="absolute top-2 right-2 inline-flex rounded-full bg-[#ead8b9] px-1.5 py-0.5 text-[0.58rem] font-bold text-[#8a613f]">
-            Raz
-          </span>
-        ) : null}
+        <span className="absolute top-2 right-2 inline-flex rounded-full bg-[#ead8b9] px-1.5 py-0.5 text-[0.58rem] font-bold text-[#8a613f]">
+          {reward.limit.replace(/\.$/, "")}
+        </span>
       </div>
       <p className="absolute inset-1 grid place-items-center rounded-lg bg-[#fff8ea]/97 px-2 text-center text-[0.68rem] leading-4 font-semibold text-[#624635] opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus:opacity-100">
         {reward.condition}

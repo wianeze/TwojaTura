@@ -16,6 +16,29 @@ export type PatchNotesRelease = {
  */
 export const PATCH_NOTES: readonly PatchNotesRelease[] = [
   {
+    date: "11 sierpnia 2026",
+    title: "Renoma, Zlecenia i Legendarium",
+    categories: [
+      {
+        category: "Renoma",
+        items: [
+          "Renoma jest teraz trwałym prestiżem gracza — nie wydajesz jej w Sklepie.",
+          "Uporządkowano nagrody za codzienną aktywność i poprawiono progi Renomy za rozbudowę Półki.",
+          "Za ukończoną partię Renomę otrzymuje każdy uczestnik, a organizator spotkania dopiero wtedy, gdy spotkanie faktycznie się odbyło.",
+          "Historyczne salda Renomy zostały przeliczone według nowych zasad.",
+        ],
+      },
+      {
+        category: "Stół i Legendarium",
+        items: [
+          "Sekcja „Do zrobienia” nosi teraz nazwę „Zlecenia” — to krótkie działania organizacyjne, a nie Misje gameplayowe.",
+          "Administratorzy mogą zdobywać Renomę i osiągnięcia, ale ich konto nie pojawia się w publicznym rankingu Legendarium.",
+          "Ukryte i obserwujące konta pozostają poza grywalizacją.",
+        ],
+      },
+    ],
+  },
+  {
     date: "9 sierpnia 2026",
     title: "Nowa oprawa Karty Gracza",
     categories: [

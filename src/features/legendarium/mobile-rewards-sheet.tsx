@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import type { LegendariumReward } from "./legendarium-showcase";
+import type { LegendariumReward } from "./reward-guide";
 
 export function MobileRewardsSheet({
   rewards,
-  futureRewards,
+  achievementRewardNotice,
 }: {
   rewards: readonly LegendariumReward[];
-  futureRewards: readonly LegendariumReward[];
+  achievementRewardNotice: string;
 }) {
   // No SSR-mount guard needed: isOpen only ever flips to true from the
   // button's onClick, which can't fire during server rendering or before
@@ -101,13 +101,12 @@ export function MobileRewardsSheet({
                     </div>
 
                     <p className="text-muted mt-2 text-sm leading-5">
-                      Każda nagroda jest naliczana raz dla danego zdarzenia lub
-                      progu.
+                      Renoma to trwały prestiż za dokonania gracza — nie wydajesz jej w Sklepie.
                     </p>
 
                     <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
                       <p className="text-accent text-[0.65rem] font-bold tracking-[0.16em] uppercase">
-                        {"Działa teraz"}
+                        {"Naliczane od razu"}
                       </p>
                       <div className="mt-2 grid grid-cols-1 content-start gap-2">
                         {rewards.map((reward, index) => (
@@ -135,35 +134,8 @@ export function MobileRewardsSheet({
                         ))}
                       </div>
 
-                      <div className="mt-4 border-t border-[#c89d73]/45 pt-3">
-                        <p className="text-[0.65rem] font-bold tracking-[0.16em] text-[#83614a] uppercase">
-                          {"Po spotkaniu — wkrótce"}
-                        </p>
-                        <div className="mt-2 grid grid-cols-1 content-start gap-2">
-                          {futureRewards.map((reward, index) => (
-                            <article
-                              key={reward.title}
-                              className={`paper-wash relative min-h-28 rounded-xl px-3 py-2.5 opacity-75 shadow-[0_7px_14px_rgba(70,40,22,0.12)] ${
-                                index % 3 === 1
-                                  ? "rotate-[0.35deg]"
-                                  : "-rotate-[0.25deg]"
-                              }`}
-                            >
-                              <span className="text-accent text-base font-bold">
-                                {reward.points} pkt
-                              </span>
-                              <p className="mt-1 text-sm leading-4 font-bold text-[#70533d]">
-                                {reward.title}
-                              </p>
-                              <p className="mt-1 text-xs leading-4 text-[#70533d]">
-                                {reward.condition}
-                              </p>
-                              <p className="mt-1 text-[0.68rem] leading-4 font-bold text-[#a76538]">
-                                {"Planowany bonus · wkrótce"}
-                              </p>
-                            </article>
-                          ))}
-                        </div>
+                      <div className="mt-4 border-t border-[#c89d73]/45 pt-3 text-sm leading-5 text-[#70533d]">
+                        {achievementRewardNotice}
                       </div>
                     </div>
                   </div>

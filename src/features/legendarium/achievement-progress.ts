@@ -6,7 +6,7 @@ export type AchievementProgress = {
 };
 
 export type AchievementProgressMetrics = {
-  meetingsCreated: number;
+  completedMeetingsOrganized: number;
   completedMeetingsHosted: number;
   ratingComments: number;
   playsCreated: number;
@@ -54,7 +54,7 @@ export function buildAchievementProgressMap(
   metrics: AchievementProgressMetrics,
 ): Record<string, AchievementProgress> {
   return {
-    initiative_master: progress(metrics.meetingsCreated, 5),
+    initiative_master: progress(metrics.completedMeetingsOrganized, 5),
     camp_host: progress(metrics.completedMeetingsHosted, 5),
     party_bard: progress(metrics.ratingComments, 10),
     coast_chronicler: progress(metrics.playsCreated, 25),

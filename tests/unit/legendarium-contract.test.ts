@@ -33,6 +33,28 @@ import {
   hasRecentPointEvents,
   mapLegendariumLeaderboard,
 } from "../../src/features/legendarium/view-model.ts";
+import {
+  achievementRewardNotice,
+  activeRewards,
+} from "../../src/features/legendarium/reward-guide.ts";
+
+test("Legendarium reward guide reflects Economy V2", () => {
+  assert.deepEqual(
+    activeRewards.map((reward) => [reward.title, reward.points]),
+    [
+      ["Pierwsza gra", "+10"],
+      ["5 gier", "+15"],
+      ["10 gier", "+20"],
+      ["15 gier", "+25"],
+      ["Odpowiedź", "+2"],
+      ["Głos", "+1"],
+      ["Ocena gry", "+3"],
+      ["Udział w partii", "+5"],
+      ["Gospodarz spotkania", "+5"],
+    ],
+  );
+  assert.match(achievementRewardNotice, /Osiągnięcia również dodają Renomę/);
+});
 
 test("Legendarium formats supported point actions in Polish", () => {
   assert.equal(
@@ -237,7 +259,7 @@ test("unearned secret achievement becomes a safe placeholder", () => {
 
 test("achievement progress maps the supported read-only counters", () => {
   const progress = buildAchievementProgressMap({
-    meetingsCreated: 3,
+    completedMeetingsOrganized: 3,
     completedMeetingsHosted: 5,
     ratingComments: 2,
     playsCreated: 24,
@@ -281,7 +303,7 @@ test("achievement progress maps the supported read-only counters", () => {
 
 test("natural_one progress requires three last-place finishes", () => {
   const metrics = {
-    meetingsCreated: 0,
+    completedMeetingsOrganized: 0,
     completedMeetingsHosted: 0,
     ratingComments: 0,
     playsCreated: 0,

@@ -262,7 +262,7 @@ export function PlayerProfileShowcase({
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <HeroStat label="Punkty" value={`${profile.totalPoints} pkt`} />
+              <HeroStat label="Renoma" value={`${profile.totalPoints} pkt`} />
               <HeroStat label="Partie" value={String(profile.playsCount)} />
               <HeroStat label="Zwycięstwa" value={String(profile.wins)} />
               <HeroStat

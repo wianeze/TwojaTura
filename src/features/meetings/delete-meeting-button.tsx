@@ -53,7 +53,7 @@ export function DeleteMeetingButton({
           if (
             !chronicleLock &&
             !window.confirm(
-              "Usunąć spotkanie? Cofniemy punkty za utworzenie, RSVP i głosy.",
+              "Usunąć spotkanie? Cofniemy powiązaną Renomę za RSVP i głosy.",
             )
           ) {
             event.preventDefault();

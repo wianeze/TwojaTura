@@ -83,7 +83,7 @@ export function ProfileAchievementsPanel({
         </div>
       ) : (
         <p className="mt-3 rounded-xl border border-[#d4b88f]/55 bg-[#fff8e9]/75 px-3 py-3 text-sm leading-5 text-[#705b49]">
-          Jeszcze nie zdobyto odznak. Wykonuj questy, zapisuj partie i
+          Jeszcze nie zdobyto odznak. Wykonuj Zlecenia, zapisuj partie i
           rozbudowuj Półkę.
         </p>
       )}
