@@ -2,13 +2,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { PATCH_NOTES } from "../../src/features/patch-notes/patch-notes.ts";
 
-test("latest patch notes describe Economy V2 as prestige, not shop currency", () => {
-  const latestRelease = PATCH_NOTES[0];
-  const copy = latestRelease?.categories
+test("Economy V2 patch notes describe prestige, not shop currency", () => {
+  const economyRelease = PATCH_NOTES.find(
+    (release) => release.title === "Renoma, Zlecenia i Legendarium",
+  );
+  const copy = economyRelease?.categories
     .flatMap((category) => category.items)
     .join(" ");
 
-  assert.equal(latestRelease?.title, "Renoma, Zlecenia i Legendarium");
+  assert.equal(PATCH_NOTES[0]?.title, "Solidny buff do szybkości");
+  assert.ok(economyRelease);
   assert.match(copy ?? "", /trwałym prestiżem gracza/);
   assert.match(copy ?? "", /nie wydajesz jej w Sklepie/);
   assert.match(copy ?? "", /Zlecenia/);

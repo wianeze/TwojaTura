@@ -16,6 +16,21 @@ export type PatchNotesRelease = {
  */
 export const PATCH_NOTES: readonly PatchNotesRelease[] = [
   {
+    date: "12 sierpnia 2026",
+    title: "Solidny buff do szybkości",
+    categories: [
+      {
+        category: "Wydajność",
+        items: [
+          "Przechodzenie między głównymi sekcjami jest teraz znacznie szybsze, szczególnie na telefonach.",
+          "Odchudzono ciężkie tła, tekstury i grafiki oraz usprawniono ładowanie okładek gier i pozostałych obrazów.",
+          "Dane są pobierane sprawniej i bez zbędnego oczekiwania między kolejnymi krokami.",
+          "Backend działa teraz bliżej europejskiej bazy danych, dzięki czemu Stół, Legendarium i Kronika otrzymały szczególnie mocne przyspieszenie.",
+        ],
+      },
+    ],
+  },
+  {
     date: "11 sierpnia 2026",
     title: "Renoma, Zlecenia i Legendarium",
     categories: [
