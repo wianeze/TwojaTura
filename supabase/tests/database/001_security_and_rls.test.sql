@@ -1582,7 +1582,7 @@ set local role authenticated;
 -- pilnuje tego test 89a poniżej.
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (1153::bigint)$$,
+  $$values (1188::bigint)$$,
   '88. user point balance includes idempotent awards and repeatable corrections'
 );
 
@@ -1592,7 +1592,7 @@ select results_eq(
     from public.get_leaderboard()
     where user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$values (1153::bigint)$$,
+  $$values (1188::bigint)$$,
   '89. leaderboard includes the same updated ledger balance'
 );
 reset role;
@@ -2683,10 +2683,10 @@ select results_eq(
 -- Liczba wzrosła, bo przeliczanie przyznaje odznaki uczestnikowe wszystkim
 -- uprawnionym graczom partii, a nie tylko osobie zapisującej wpis (decyzja
 -- właściciela z 2026-07-29). Test sprawdza uprawnienie admina do odczytu, a nie
--- konkretną wartość licznika.
+-- licznik uwzględnia teraz także historycznie policzalne achievementy Etapu 2A.
 select results_eq(
   $$select count(*)::bigint from public.user_achievements$$,
-  $$values (9::bigint)$$,
+  $$values (10::bigint)$$,
   '164. admin reads awarded achievements'
 );
 reset role;
