@@ -142,7 +142,8 @@ async function hydratePlayItems(
     ),
   ];
 
-  const [participantsResult, gamesResult, meetingsResult] = await Promise.all([
+  const [participantsResult, gamesResult, meetingsResult, continuationsResult] =
+    await Promise.all([
     supabase
       .from("play_participants")
       .select("play_id, user_id, placement, score, is_winner")
@@ -151,14 +152,21 @@ async function hydratePlayItems(
       .from("games")
       .select("id, title, cover_url, owner_id")
       .in("id", gameIds),
-    meetingIds.length > 0
+      meetingIds.length > 0
       ? supabase
           .from("meetings")
           .select("id, title, starts_at, ends_at, location")
           .in("id", meetingIds)
           .is("deleted_at", null)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
+        : Promise.resolve({ data: [], error: null }),
+      viewer
+        ? supabase
+            .from("meetings")
+            .select("id, continued_play_id")
+            .in("continued_play_id", playIds)
+            .is("deleted_at", null)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
 
   if (participantsResult.error || gamesResult.error || meetingsResult.error) {
     throw new Error("Nie udało się pobrać pełnej historii partii.");
@@ -177,11 +185,6 @@ async function hydratePlayItems(
       ].filter(Boolean),
     ),
   ];
-  const profiles = await getProfilesMap(supabase, profileIds);
-  const participantsMap = buildParticipantsMap(participantRows, profiles);
-  const gamesMap = new Map(games.map((game) => [game.id, game]));
-  const meetingsMap = new Map(meetings.map((meeting) => [meeting.id, meeting]));
-
   /*
    * Uczestnik spotkania może rozliczyć partię tego wieczoru — także taką, której
    * nie założył. Uprawnienie kończy się na spotkaniu: wpis Kroniki bez
@@ -189,15 +192,6 @@ async function hydratePlayItems(
    * spotkanie, na którym partia jest KONTYNUOWANA, bo tam też siedzi się przy
    * tym samym stole.
    */
-  const continuationsResult =
-    viewer && playIds.length > 0
-      ? await supabase
-          .from("meetings")
-          .select("id, continued_play_id")
-          .in("continued_play_id", playIds)
-          .is("deleted_at", null)
-      : { data: [], error: null };
-
   const continuationMeetingsByPlay = new Map<string, string[]>();
   for (const row of continuationsResult.data ?? []) {
     if (!row.continued_play_id) continue;
@@ -206,14 +200,25 @@ async function hydratePlayItems(
     continuationMeetingsByPlay.set(row.continued_play_id, current);
   }
 
-  const participation = viewer
-    ? await getViewerMeetingParticipation(supabase, viewer.id, [
-        ...new Set([
-          ...meetingIds,
-          ...[...continuationMeetingsByPlay.values()].flat(),
-        ]),
-      ])
-    : new Set<string>();
+  const participationMeetingIds = [
+    ...new Set([
+      ...meetingIds,
+      ...[...continuationMeetingsByPlay.values()].flat(),
+    ]),
+  ];
+  const [profiles, participation] = await Promise.all([
+    getProfilesMap(supabase, profileIds),
+    viewer
+      ? getViewerMeetingParticipation(
+          supabase,
+          viewer.id,
+          participationMeetingIds,
+        )
+      : Promise.resolve(new Set<string>()),
+  ]);
+  const participantsMap = buildParticipantsMap(participantRows, profiles);
+  const gamesMap = new Map(games.map((game) => [game.id, game]));
+  const meetingsMap = new Map(meetings.map((meeting) => [meeting.id, meeting]));
 
   return playRows.map((play) => {
     const game = gamesMap.get(play.game_id);

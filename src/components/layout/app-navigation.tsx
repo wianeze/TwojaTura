@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "@/components/ui/logo-mark";
 import { PlayerPortraitFrame } from "@/components/ui/player-portrait-frame";
 import { ClassTextureLayer } from "@/components/layout/class-texture-layer";
+import { WarmLink } from "@/components/layout/warm-link";
 import {
   NavigationIcon,
   type NavigationIconName,
@@ -68,7 +68,7 @@ function DesktopNavItem({
   active: boolean;
 }) {
   return (
-    <Link
+    <WarmLink
       href={item.href}
       aria-current={active ? "page" : undefined}
       style={{
@@ -82,7 +82,7 @@ function DesktopNavItem({
     >
       <NavigationIcon name={item.icon} />
       {item.label}
-    </Link>
+    </WarmLink>
   );
 }
 
@@ -143,7 +143,7 @@ export function DesktopNavigation({
           </div>
         ) : null}
         <div className="rounded-2xl border border-white/10 bg-white/5 p-2.5">
-          <Link
+          <WarmLink
             href="/profil"
             className="flex items-center gap-3 rounded-xl p-1 transition-colors hover:bg-white/7"
           >
@@ -160,7 +160,7 @@ export function DesktopNavigation({
               </span>
               <span className="block text-xs text-[#aa9a8a]">Karta Gracza</span>
             </span>
-          </Link>
+          </WarmLink>
           <form action={signOutAction}>
             <button
               type="submit"
@@ -192,7 +192,7 @@ function MobileNavItem({
   active: boolean;
 }) {
   return (
-    <Link
+    <WarmLink
       href={item.href}
       aria-current={active ? "page" : undefined}
       style={{
@@ -202,7 +202,7 @@ function MobileNavItem({
     >
       <NavigationIcon name={item.icon} className="size-[1.15rem]" />
       <span className="whitespace-nowrap">{item.label}</span>
-    </Link>
+    </WarmLink>
   );
 }
 

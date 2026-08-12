@@ -189,6 +189,7 @@ function buildGameExpansionsMap(rows: ExpansionRow[]) {
   return expansionsMap;
 }
 
+/* Kept read helpers share one request client below.
 async function getProfilesMap(ids: string[]) {
   if (ids.length === 0) return new Map<string, MemberOption>();
 
@@ -206,6 +207,7 @@ async function getProfilesMap(ids: string[]) {
     (data ?? []).map((profile) => [profile.id, toMemberOption(profile)]),
   );
 }
+*/
 
 async function getProfilesMapFromClient(
   ids: string[],
@@ -227,6 +229,7 @@ async function getProfilesMapFromClient(
   );
 }
 
+/*
 async function getGameSummariesMap(gameIds: string[]) {
   if (gameIds.length === 0) return new Map<string, GameRatingSummary>();
 
@@ -250,6 +253,7 @@ async function getGameSummariesMap(gameIds: string[]) {
       .map((row) => [row.game_id, mapSummary(row)]),
   );
 }
+*/
 
 async function getGameSummariesMapFromClient(
   gameIds: string[],
@@ -277,6 +281,7 @@ async function getGameSummariesMapFromClient(
   );
 }
 
+/*
 async function getGameExpansionsMap(gameIds: string[]) {
   if (gameIds.length === 0) return new Map<string, GameExpansion[]>();
 
@@ -293,6 +298,7 @@ async function getGameExpansionsMap(gameIds: string[]) {
 
   return buildGameExpansionsMap((data ?? []) as ExpansionRow[]);
 }
+*/
 
 async function getGameExpansionsMapFromClient(
   gameIds: string[],
@@ -372,7 +378,7 @@ export async function listGameFilterOptions(): Promise<GameFilterOptions> {
   }
 
   const ownerIds = [...new Set((games ?? []).map((game) => game.owner_id))];
-  const ownersMap = await getProfilesMap(ownerIds);
+  const ownersMap = await getProfilesMapFromClient(ownerIds, supabase);
 
   const owners = ownerIds
     .map((ownerId) => ownersMap.get(ownerId))
@@ -408,6 +414,12 @@ export async function listGameFilterOptions(): Promise<GameFilterOptions> {
 
 export async function listShelfGames(filters: GameFilters) {
   const supabase = await createClient();
+  const activeLoansPromise = supabase
+    .from("game_loans")
+    .select(
+      "id, game_id, lender_user_id, borrower_user_id, loaned_at, returned_at, note",
+    )
+    .is("returned_at", null);
   let query = supabase
     .from("games")
     .select(
@@ -450,16 +462,19 @@ export async function listShelfGames(filters: GameFilters) {
     query = query.overlaps("categories", filters.categories);
   }
 
-  const { data: games, error } = await query;
+  const [{ data: games, error }, activeLoansResult] = await Promise.all([
+    query,
+    activeLoansPromise,
+  ]);
 
-  if (error) {
+  if (error || activeLoansResult.error) {
     throw new Error("Nie udało się pobrać gier z Półki.");
   }
 
   const gameRows = (games ?? []) as GameRow[];
-  const loanRows = await getActiveGameLoanRowsFromClient(
-    gameRows.map((game) => game.id),
-    supabase,
+  const gameIds = new Set(gameRows.map((game) => game.id));
+  const loanRows = ((activeLoansResult.data ?? []) as GameLoanRow[]).filter(
+    (loan) => gameIds.has(loan.game_id),
   );
   const profileIds = [
     ...new Set([
@@ -474,9 +489,15 @@ export async function listShelfGames(filters: GameFilters) {
     ]),
   ];
   const [profiles, summaries, expansionsByGame] = await Promise.all([
-    getProfilesMap(profileIds),
-    getGameSummariesMap(gameRows.map((game) => game.id)),
-    getGameExpansionsMap(gameRows.map((game) => game.id)),
+    getProfilesMapFromClient(profileIds, supabase),
+    getGameSummariesMapFromClient(
+      gameRows.map((game) => game.id),
+      supabase,
+    ),
+    getGameExpansionsMapFromClient(
+      gameRows.map((game) => game.id),
+      supabase,
+    ),
   ]);
 
   const activeLoans = buildActiveGameLoansMap(loanRows, profiles);

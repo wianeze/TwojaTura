@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
+import { canUseNextImageOptimization } from "@/lib/image-sources";
 import { formatMeetingDateRange } from "@/features/meetings/formatting";
 import {
   FinishMeetingButton,
@@ -49,7 +50,7 @@ function GatheringCover({
               alt={title}
               width={220}
               height={300}
-              unoptimized
+              unoptimized={!canUseNextImageOptimization(coverUrl)}
               className="h-full w-full object-cover"
             />
           ) : (

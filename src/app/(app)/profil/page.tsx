@@ -10,6 +10,7 @@ import { getPlayerProfileData } from "@/features/profile/queries";
 import { getPortraitFrameStoreData } from "@/features/profile/portrait-frames";
 import { PushSettingsPanel } from "@/features/push/push-settings-panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
+import { profileServerOperation } from "@/lib/server-performance";
 
 export const metadata: Metadata = { title: "Karta Gracza" };
 
@@ -17,11 +18,14 @@ export default async function ProfilePage() {
   const state = await getCurrentMember();
   if (state.status !== "active-member") redirect("/brak-dostepu");
   const { member } = state;
-  const [profileData, achievementData, portraitFrameData] = await Promise.all([
-    getPlayerProfileData(member.id),
-    getAchievementClassData(member.id),
-    getPortraitFrameStoreData(member.id, member.activePortraitFrameKey),
-  ]);
+  const [profileData, achievementData, portraitFrameData] =
+    await profileServerOperation("/profil", () =>
+      Promise.all([
+        getPlayerProfileData(member.id),
+        getAchievementClassData(member.id),
+        getPortraitFrameStoreData(member.id, member.activePortraitFrameKey),
+      ]),
+    );
 
   return (
     <div className="mx-auto max-w-[96rem] space-y-4">

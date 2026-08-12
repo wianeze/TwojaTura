@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.generated";
 import { mapCurrentMember } from "../current-member";
@@ -31,14 +32,16 @@ export async function getCurrentMemberFromClient(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, display_name, email, avatar_url, active_portrait_frame_key")
+    .select(
+      "id, display_name, email, avatar_url, active_portrait_frame_key, active_class_key",
+    )
     .eq("id", userId)
     .maybeSingle();
 
   return mapCurrentMember(userId, membership, profile);
 }
 
-export async function getCurrentMember() {
+export const getCurrentMember = cache(async function getCurrentMember() {
   const supabase = await createClient();
   return getCurrentMemberFromClient(supabase);
-}
+});

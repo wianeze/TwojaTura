@@ -2,9 +2,10 @@ import { ActionLink } from "@/components/ui/action-button";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { ChronicleFeed } from "@/features/plays/chronicle-feed";
 import { listChroniclePlays } from "@/features/plays/queries";
+import { profileServerOperation } from "@/lib/server-performance";
 
 export default async function ChroniclePage() {
-  const plays = await listChroniclePlays();
+  const plays = await profileServerOperation("/kronika", listChroniclePlays);
 
   return (
     <div className="space-y-4">

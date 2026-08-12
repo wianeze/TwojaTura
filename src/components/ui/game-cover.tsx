@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
+import { canUseNextImageOptimization } from "@/lib/image-sources";
 
 type GameCoverSize = "shelf" | "preview" | "card" | "mini" | "micro";
 
@@ -52,6 +54,15 @@ const accentClasses: Partial<Record<GameCoverSize, string>> = {
     "absolute inset-y-0 left-0 w-1 bg-gradient-to-r from-black/32 to-transparent",
 };
 
+const imageSizes: Record<GameCoverSize, string> = {
+  shelf:
+    "(max-width: 639px) 96px, (max-width: 1279px) 112px, (max-width: 1535px) 120px, 128px",
+  preview: "(max-width: 639px) 208px, (max-width: 1023px) 240px, 256px",
+  card: "(max-width: 639px) 176px, (max-width: 1023px) 208px, 240px",
+  mini: "(max-width: 639px) 88px, 96px",
+  micro: "52px",
+};
+
 export function GameCover({
   title,
   coverUrl,
@@ -73,6 +84,9 @@ export function GameCover({
   );
 
   const isShelfVariant = size === "shelf";
+  const useOptimizedImage = Boolean(
+    coverUrl && canUseNextImageOptimization(coverUrl),
+  );
 
   return (
     <div
@@ -81,14 +95,29 @@ export function GameCover({
       } ${className}`}
     >
       {showImage ? (
-        // eslint-disable-next-line @next/next/no-img-element -- cover_url can be external or local public asset
-        <img
-          src={coverUrl ?? undefined}
-          alt={`Okładka gry ${title}`}
-          loading={size === "preview" ? "eager" : "lazy"}
-          className={`size-full object-contain ${imagePaddingClasses[size]}`}
-          onError={() => setHasError(true)}
-        />
+        useOptimizedImage ? (
+          <Image
+            src={coverUrl ?? ""}
+            alt={`Okładka gry ${title}`}
+            fill
+            sizes={imageSizes[size]}
+            quality={90}
+            loading={size === "preview" ? "eager" : "lazy"}
+            className={`object-contain ${imagePaddingClasses[size]}`}
+            onError={() => setHasError(true)}
+          />
+        ) : (
+          // Dowolne URL-e użytkownika zostają przy zwykłym img; Next optymalizuje
+          // tylko bezpiecznie skonfigurowane źródła lokalne i BGG.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={coverUrl ?? undefined}
+            alt={`Okładka gry ${title}`}
+            loading={size === "preview" ? "eager" : "lazy"}
+            className={`size-full object-contain ${imagePaddingClasses[size]}`}
+            onError={() => setHasError(true)}
+          />
+        )
       ) : size === "micro" ? (
         // Na kafelku 52px etykieta „Półka” i tytuł byłyby nieczytelną plamą —
         // zostaje sam monogram gry.

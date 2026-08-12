@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@/types/database.generated";
+import { profiledFetch } from "@/lib/server-performance";
 import { getServerSupabaseEnv } from "./env";
 
 export async function createClient() {
@@ -8,6 +9,7 @@ export async function createClient() {
   const { url, publishableKey } = getServerSupabaseEnv();
 
   return createServerClient<Database>(url, publishableKey, {
+    global: { fetch: profiledFetch },
     cookies: {
       getAll() {
         return cookieStore.getAll();

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
+import { canUseNextImageOptimization } from "@/lib/image-sources";
 import {
   formatPlayDurationLabel,
   getLiveElapsedMs,
@@ -65,7 +66,7 @@ function GameCover({
           alt={title}
           width={90}
           height={122}
-          unoptimized
+          unoptimized={!canUseNextImageOptimization(coverUrl)}
           className={`${box} rounded-[0.68rem] border border-[#c98b36] bg-[#fff1c8] object-cover shadow-[0_6px_16px_rgba(61,34,16,0.18)]`}
         />
       ) : (

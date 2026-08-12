@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import {
   DesktopNavigation,
   MobileNavigation,
 } from "@/components/layout/app-navigation";
 import { ClassTextureLayer } from "@/components/layout/class-texture-layer";
+import { WarmLink } from "@/components/layout/warm-link";
 import { SectionBackground } from "@/components/layout/section-background";
 import { LogoMark } from "@/components/ui/logo-mark";
 import { PlayerPortraitFrame } from "@/components/ui/player-portrait-frame";
@@ -41,7 +41,7 @@ export function AppShell({
 
             <LogoMark compact tone="light" />
             {activeClass ? (
-              <Link
+              <WarmLink
                 href="/profil"
                 aria-label={`Aktywna klasa: ${activeClass.name}`}
                 className="-ml-1.5 flex min-w-0 items-center gap-1.5"
@@ -53,7 +53,7 @@ export function AppShell({
                 <span className="max-w-14 text-xs leading-4 font-bold tracking-wide text-[#f3a849] uppercase">
                   {activeClass.name}
                 </span>
-              </Link>
+              </WarmLink>
             ) : null}
             <div className="flex min-w-0 items-center gap-1.5 rounded-full border border-white/10 bg-black/18 px-2 py-1 whitespace-nowrap shadow-[0_10px_18px_rgba(17,8,5,0.18)] sm:px-3">
               <span className="font-display flex flex-col items-center text-center text-[0.56rem] leading-[1.05] font-semibold text-[#e2b578] min-[420px]:text-[0.68rem]">
@@ -64,7 +64,7 @@ export function AppShell({
                 {currentPoints.toLocaleString("pl-PL")}
               </span>
             </div>
-            <Link
+            <WarmLink
               href="/profil"
               aria-label="Przejdź do profilu"
               className="focus-visible:outline-gold shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -76,7 +76,7 @@ export function AppShell({
                 size="compact"
                 className="w-8 min-[420px]:w-9"
               />
-            </Link>
+            </WarmLink>
           </header>
           <main className="relative z-10 mx-auto w-full max-w-[90rem] px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:py-10 xl:px-12">
             {children}

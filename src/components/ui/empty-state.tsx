@@ -1,4 +1,5 @@
 import Image from "next/image";
+import emptyMeetings from "../../../public/empty/empty-meetings.webp";
 
 const emptyStateContent = {
   shelf: {
@@ -10,7 +11,7 @@ const emptyStateContent = {
       "Dodane gry pojawią się na tej półce jako część Twojej kolekcji.",
   },
   meetings: {
-    src: "/empty/empty-meetings.png",
+    src: emptyMeetings,
     alt: "Pusty stół przygotowany na spotkanie planszówkowe",
     eyebrow: "Stół jest wolny",
     title: "Zaplanuj pierwszy wieczór",

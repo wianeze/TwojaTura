@@ -28,6 +28,7 @@ import {
 } from "@/features/plays/queries";
 import type { PlayListItem } from "@/features/plays/types";
 import { createClient } from "@/lib/supabase/server";
+import { getUserPointBalanceResult } from "@/features/points/queries";
 import type { Tables } from "@/types/database.generated";
 import {
   buildDashboardHeroSummary,
@@ -721,13 +722,14 @@ export async function getDashboardData(
     availableMeetingsResult,
     finishedMeetingsResult,
     ratingsResult,
-    ownGamesCountResult,
-    totalGamesCountResult,
+    activeGamesResult,
     leaderboardResult,
     currentBalanceResult,
     recentPlayPreviews,
     recentMemberPlays,
     tableSessionResult,
+    classDefinitionsResult,
+    activeClassProfilesResult,
   ] = await Promise.all([
     supabase
       .from("meetings")
@@ -747,19 +749,10 @@ export async function getDashboardData(
     supabase.from("ratings").select("game_id").eq("user_id", member.id),
     supabase
       .from("games")
-      .select("id", { count: "exact", head: true })
-      .eq("owner_id", member.id)
-      .is("archived_at", null),
-    supabase
-      .from("games")
-      .select("id", { count: "exact", head: true })
+      .select("owner_id")
       .is("archived_at", null),
     supabase.rpc("get_leaderboard"),
-    supabase
-      .from("user_point_balances")
-      .select("user_id, total_points")
-      .eq("user_id", member.id)
-      .maybeSingle(),
+    getUserPointBalanceResult(member.id),
     getRecentPlayPreviews(supabase),
     listRecentMemberPlays(member.id, 12),
     getTableSession(
@@ -768,6 +761,12 @@ export async function getDashboardData(
       now,
       options.preferredMeetingId ?? null,
     ),
+    supabase
+      .from("class_definitions")
+      .select("class_key, name, description, playstyle, icon_path, sort_order")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+    supabase.rpc("get_public_player_profiles"),
   ]);
 
   const tableSession = tableSessionResult.session;
@@ -776,10 +775,11 @@ export async function getDashboardData(
     availableMeetingsResult.error ||
     finishedMeetingsResult.error ||
     ratingsResult.error ||
-    ownGamesCountResult.error ||
-    totalGamesCountResult.error ||
+    activeGamesResult.error ||
     leaderboardResult.error ||
-    currentBalanceResult.error
+    currentBalanceResult.error ||
+    classDefinitionsResult.error ||
+    activeClassProfilesResult.error
   ) {
     throw new Error("Nie udało się zbudować danych Stołu.");
   }
@@ -965,8 +965,10 @@ export async function getDashboardData(
             endsAt: meeting.ends_at,
             status: meeting.status,
           })),
-        ownGamesCount: ownGamesCountResult.count ?? 0,
-        totalActiveGames: totalGamesCountResult.count ?? 0,
+        ownGamesCount: (activeGamesResult.data ?? []).filter(
+          (game) => game.owner_id === member.id,
+        ).length,
+        totalActiveGames: activeGamesResult.data?.length ?? 0,
         now,
       },
       eligibleQuestMeetingIds,
@@ -1007,11 +1009,7 @@ export async function getDashboardData(
     hasFutureMeeting: nextMeeting !== null,
   });
 
-  const leaderboardUserIds = [
-    ...new Set((leaderboardResult.data ?? []).map((entry) => entry.user_id)),
-  ];
-
-  const [classDefinitionsResult, activeClassProfilesResult] = await Promise.all(
+  /* Class data started with the first query wave above.
     [
       supabase
         .from("class_definitions")
@@ -1027,7 +1025,7 @@ export async function getDashboardData(
         ? supabase.rpc("get_public_player_profiles")
         : Promise.resolve({ data: [], error: null }),
     ],
-  );
+  */
 
   if (classDefinitionsResult.error || activeClassProfilesResult.error) {
     throw new Error("Nie udało się pobrać aktywnych klas do rankingu Stołu.");

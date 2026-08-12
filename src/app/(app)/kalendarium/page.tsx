@@ -19,6 +19,7 @@ import {
   getTodayTimelineDateLabel,
 } from "@/features/meetings/calendar-view";
 import { listMeetings } from "@/features/meetings/queries";
+import { profileServerOperation } from "@/lib/server-performance";
 
 type CalendarPageProps = {
   searchParams?: Promise<{
@@ -39,7 +40,7 @@ export default async function CalendarPage({
   const now = new Date();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const monthParam = readMonthParam(resolvedSearchParams?.month);
-  const meetings = await listMeetings();
+  const meetings = await profileServerOperation("/kalendarium", listMeetings);
   const timelineItems = buildTimelineMeetings(meetings, now);
   const calendar = buildCalendarMonthView(meetings, monthParam, now, {
     showOutsideMonthDays: false,

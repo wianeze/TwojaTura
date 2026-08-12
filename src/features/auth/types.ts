@@ -6,6 +6,7 @@ export type CurrentMember = {
   email: string;
   avatarUrl: string | null;
   activePortraitFrameKey?: string | null;
+  activeClassKey?: string | null;
   role: MemberRole;
 };
 

@@ -1,4 +1,4 @@
-import { getActiveClassTexture } from "@/features/legendarium/leaderboard-presentation";
+import { getActiveClassTexture } from "@/config/class-textures";
 
 /*
   Tekstura aktywnej klasy jako tło nawigacji — jedna warstwa dla sidebara i dla

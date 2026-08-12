@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ActionLink } from "@/components/ui/action-button";
 import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
+import { canUseNextImageOptimization } from "@/lib/image-sources";
+import { profileServerOperation } from "@/lib/server-performance";
 import {
   getActiveClassBackdropGradient,
   getLeaderboardRankAsset,
@@ -259,7 +261,9 @@ export async function DashboardShowcase({
   /** Wybór z przełącznika równoległych wieczorów (`?meeting=`). */
   preferredMeetingId?: string | null;
 } = {}) {
-  const data = await getDashboardData({ preferredMeetingId });
+  const data = await profileServerOperation("/", () =>
+    getDashboardData({ preferredMeetingId }),
+  );
   // Stan „GRAMY!” dostał własny panel (TableSessionPanel) — kafel „Najbliższe
   // spotkanie” wraca więc do jednej roli: pokazuje NASTĘPNY wieczór i wygląda
   // dokładnie tak jak przed wdrożeniem.
@@ -415,7 +419,11 @@ export async function DashboardShowcase({
                     alt={upcoming.leadingGame.title}
                     width={62}
                     height={86}
-                    unoptimized
+                    unoptimized={
+                      !canUseNextImageOptimization(
+                        upcoming.leadingGame.coverUrl,
+                      )
+                    }
                     className={`h-[5.35rem] w-[3.95rem] rounded-[0.68rem] border object-cover shadow-[0_6px_16px_rgba(61,34,16,0.18)] ${upcomingVisual?.coverBorder ?? "border-[#dcc3a1] bg-[#f6ecdd]"}`}
                   />
                 ) : (
@@ -579,7 +587,11 @@ export async function DashboardShowcase({
                         alt={upcoming.leadingGame.title}
                         width={72}
                         height={72}
-                        unoptimized
+                        unoptimized={
+                          !canUseNextImageOptimization(
+                            upcoming.leadingGame.coverUrl,
+                          )
+                        }
                         className={`h-[4.5rem] w-[4.5rem] rounded-[0.5rem] border object-cover shadow-[0_4px_10px_rgba(61,34,16,0.18)] ${upcomingVisual?.coverBorder ?? "border-[#dcc3a1] bg-[#f6ecdd]"}`}
                       />
                     ) : (

@@ -4,6 +4,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import type { ActiveClassView } from "@/features/legendarium/achievement-view-model";
+import { getUserPointBalanceResult } from "@/features/points/queries";
 
 export default async function AuthenticatedAppLayout({
   children,
@@ -13,38 +14,29 @@ export default async function AuthenticatedAppLayout({
   if (memberState.status !== "active-member") redirect("/brak-dostepu");
 
   const supabase = await createClient();
-  const [balanceResult, profileResult] = await Promise.all([
-    supabase
-      .from("user_point_balances")
-      .select("total_points")
-      .eq("user_id", memberState.member.id)
-      .maybeSingle(),
-    supabase
-      .from("profiles")
-      .select("active_class_key")
-      .eq("id", memberState.member.id)
-      .maybeSingle(),
+  const activeClassKey = memberState.member.activeClassKey;
+  const activeClassPromise = activeClassKey
+    ? supabase
+        .from("class_definitions")
+        .select("class_key, name, description, playstyle, icon_path")
+        .eq("class_key", activeClassKey)
+        .eq("is_active", true)
+        .maybeSingle()
+    : Promise.resolve({ data: null });
+  const [balanceResult, classDefinitionResult] = await Promise.all([
+    getUserPointBalanceResult(memberState.member.id),
+    activeClassPromise,
   ]);
-  const activeClassKey = profileResult.data?.active_class_key;
   let activeClass: ActiveClassView | null = null;
 
-  if (activeClassKey) {
-    const { data: classDefinition } = await supabase
-      .from("class_definitions")
-      .select("class_key, name, description, playstyle, icon_path")
-      .eq("class_key", activeClassKey)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (classDefinition) {
-      activeClass = {
-        key: classDefinition.class_key,
-        name: classDefinition.name,
-        description: classDefinition.description,
-        playstyle: classDefinition.playstyle,
-        iconPath: classDefinition.icon_path,
-      };
-    }
+  if (classDefinitionResult.data) {
+    activeClass = {
+      key: classDefinitionResult.data.class_key,
+      name: classDefinitionResult.data.name,
+      description: classDefinitionResult.data.description,
+      playstyle: classDefinitionResult.data.playstyle,
+      iconPath: classDefinitionResult.data.icon_path,
+    };
   }
 
   return (

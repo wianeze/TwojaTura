@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getUserPointBalanceResult } from "@/features/points/queries";
 import type { Tables } from "@/types/database.generated";
 import {
   buildPlayerProfileStatistics,
@@ -34,11 +35,7 @@ export async function getPlayerProfileData(
         .select("play_id, user_id, placement, score, is_winner")
         .eq("user_id", userId),
       supabase.from("ratings").select("game_id, overall").eq("user_id", userId),
-      supabase
-        .from("user_point_balances")
-        .select("total_points")
-        .eq("user_id", userId)
-        .maybeSingle(),
+      getUserPointBalanceResult(userId),
     ]);
 
   if (

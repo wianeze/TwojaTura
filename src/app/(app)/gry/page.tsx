@@ -10,6 +10,7 @@ import {
 } from "@/features/games/filters";
 import { ShelfFilters } from "@/features/games/shelf-filters";
 import { ShelfShowcase } from "@/features/games/shelf-showcase";
+import { profileServerOperation } from "@/lib/server-performance";
 import {
   listGameFilterOptions,
   listShelfGames,
@@ -37,10 +38,9 @@ export default async function GamesPage({
   const params = await searchParams;
   const filters = parseGameFilters(params);
   const showOwners = parseShelfOwnerVisibility(params);
-  const [filterOptions, shelf] = await Promise.all([
-    listGameFilterOptions(),
-    listShelfGames(filters),
-  ]);
+  const [filterOptions, shelf] = await profileServerOperation("/gry", () =>
+    Promise.all([listGameFilterOptions(), listShelfGames(filters)]),
+  );
   const filtered = hasActiveFilters(filters);
 
   return (

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getUserPointBalanceResult } from "@/features/points/queries";
 import type { CurrentMember } from "@/features/auth/types";
 import { createLegendariumReadPlan } from "./read-plan";
 import {
@@ -202,7 +203,11 @@ export async function getAchievementClassData(
     (participant) => participant.play_id,
   );
 
-  const [completedPlaysResult, ownCompletedPlaysResult] = await Promise.all([
+  const [
+    completedPlaysResult,
+    ownCompletedPlaysResult,
+    allParticipantsResult,
+  ] = await Promise.all([
     ownMeetingIds.length > 0
       ? supabase
           .from("plays")
@@ -217,9 +222,19 @@ export async function getAchievementClassData(
           .in("id", ownParticipantPlayIds)
           .eq("status", "completed")
       : Promise.resolve({ data: [], error: null }),
+    ownParticipantPlayIds.length > 0
+      ? supabase
+          .from("play_participants")
+          .select("play_id, user_id, placement")
+          .in("play_id", ownParticipantPlayIds)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
-  if (completedPlaysResult.error || ownCompletedPlaysResult.error) {
+  if (
+    completedPlaysResult.error ||
+    ownCompletedPlaysResult.error ||
+    allParticipantsResult.error
+  ) {
     throw new Error("Nie udaÅ‚o siÄ™ obliczyÄ‡ progresu odznak.");
   }
 
@@ -230,23 +245,17 @@ export async function getAchievementClassData(
     ownCompletedPlaysResult.data ?? []
   ).map((play) => play.id);
 
-  const allParticipantsResult =
-    completedOwnParticipantPlayIds.length > 0
-      ? await supabase
-          .from("play_participants")
-          .select("play_id, user_id, placement")
-          .in("play_id", completedOwnParticipantPlayIds)
-      : { data: [], error: null };
-
   if (allParticipantsResult.error) {
     throw new Error("Nie udaÅ‚o siÄ™ obliczyÄ‡ progresu odznak.");
   }
 
+  const completedOwnParticipantIdSet = new Set(completedOwnParticipantPlayIds);
   const participantsByPlay = new Map<
     string,
     Array<{ placement: number | null }>
   >();
   for (const participant of allParticipantsResult.data ?? []) {
+    if (!completedOwnParticipantIdSet.has(participant.play_id)) continue;
     const existing = participantsByPlay.get(participant.play_id) ?? [];
     existing.push({ placement: participant.placement });
     participantsByPlay.set(participant.play_id, existing);
@@ -254,7 +263,6 @@ export async function getAchievementClassData(
   const playsById = new Map(
     (ownCompletedPlaysResult.data ?? []).map((play) => [play.id, play]),
   );
-  const completedOwnParticipantIdSet = new Set(completedOwnParticipantPlayIds);
   const ownResults = (ownParticipantsResult.data ?? [])
     .filter((participant) =>
       completedOwnParticipantIdSet.has(participant.play_id),
@@ -379,11 +387,7 @@ export async function getLegendariumData(
     recentEventsResult,
     achievementData,
   ] = await Promise.all([
-    supabase
-      .from(plan.balance.table)
-      .select("total_points")
-      .eq("user_id", plan.balance.userId)
-      .maybeSingle(),
+    getUserPointBalanceResult(plan.balance.userId),
     supabase.rpc(plan.leaderboardRpc),
     supabase
       .from(plan.recentEvents.table)

@@ -11,6 +11,7 @@ type ProfileRow = {
   email: string;
   avatar_url: string | null;
   active_portrait_frame_key?: string | null;
+  active_class_key?: string | null;
 };
 
 export function mapCurrentMember(
@@ -36,6 +37,9 @@ export function mapCurrentMember(
     email: profile.email,
     avatarUrl: profile.avatar_url,
     activePortraitFrameKey: profile.active_portrait_frame_key ?? null,
+    ...(profile.active_class_key !== undefined
+      ? { activeClassKey: profile.active_class_key }
+      : {}),
     role: membership.role,
   };
 

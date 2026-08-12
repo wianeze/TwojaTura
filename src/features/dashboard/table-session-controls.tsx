@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { ActionButton } from "@/components/ui/action-button";
+import { canUseNextImageOptimization } from "@/lib/image-sources";
 import { useCanWrite } from "@/features/auth/member-role-context";
 import {
   cancelMeetingPlayAction,
@@ -85,7 +86,7 @@ function GameChoiceTile({
           alt=""
           width={34}
           height={46}
-          unoptimized
+          unoptimized={!canUseNextImageOptimization(choice.coverUrl)}
           className="h-[2.6rem] w-[1.95rem] shrink-0 rounded-[0.35rem] border border-[#dcc3a1] bg-[#f6ecdd] object-cover"
         />
       ) : (

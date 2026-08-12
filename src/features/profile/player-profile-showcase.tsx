@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { GameCover } from "@/components/ui/game-cover";
 import { Panel } from "@/components/ui/panel";
 import { PlayerPortraitFrame } from "@/components/ui/player-portrait-frame";
+import { getActiveClassTexture } from "@/config/class-textures";
 import type { CurrentMember } from "@/features/auth/types";
 import { ActiveClassEmblem } from "@/features/legendarium/active-class-emblem";
 import type {
@@ -12,10 +13,7 @@ import type {
   CharacterClassView,
 } from "@/features/legendarium/achievement-view-model";
 import { MiniAchievementBadge } from "@/features/legendarium/mini-achievement-badge";
-import {
-  getActiveClassBackdropGradient,
-  getActiveClassTexture,
-} from "@/features/legendarium/leaderboard-presentation";
+import { getActiveClassBackdropGradient } from "@/features/legendarium/leaderboard-presentation";
 import { formatPlayShortDate } from "@/features/plays/formatting";
 import type { PlayerProfileData } from "./queries";
 import {

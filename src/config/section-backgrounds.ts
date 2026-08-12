@@ -1,3 +1,10 @@
+import heroDesktop from "../../public/brand/hero-desktop.webp";
+import heroMobile from "../../public/brand/hero-mobile.webp";
+import calendarBackground from "../../public/empty/empty-meetings.webp";
+import chronicleBackground from "../../public/empty/empty-chronicle-main.webp";
+import legendariumBackground from "../../public/empty/empty-corktable-main.webp";
+import shelfBackground from "../../public/empty/empty-shelf-main.webp";
+
 export type SectionBackgroundTheme = {
   key: "table" | "shelf" | "legendarium" | "calendar" | "chronicle";
   desktopSrc: string;
@@ -12,36 +19,36 @@ export const sectionBackgrounds: Record<
 > = {
   table: {
     key: "table",
-    desktopSrc: "/brand/hero-desktop.png",
-    mobileSrc: "/brand/hero-mobile.png",
+    desktopSrc: heroDesktop.src,
+    mobileSrc: heroMobile.src,
     desktopPosition: "center",
     mobilePosition: "center 54%",
   },
   shelf: {
     key: "shelf",
-    desktopSrc: "/empty/empty-shelf-main.png",
-    mobileSrc: "/empty/empty-shelf-main.png",
+    desktopSrc: shelfBackground.src,
+    mobileSrc: shelfBackground.src,
     desktopPosition: "center 45%",
     mobilePosition: "48% center",
   },
   legendarium: {
     key: "legendarium",
-    desktopSrc: "/empty/empty-corktable-main.png",
-    mobileSrc: "/empty/empty-corktable-main.png",
+    desktopSrc: legendariumBackground.src,
+    mobileSrc: legendariumBackground.src,
     desktopPosition: "center 42%",
     mobilePosition: "50% center",
   },
   calendar: {
     key: "calendar",
-    desktopSrc: "/empty/empty-meetings.png",
-    mobileSrc: "/empty/empty-meetings.png",
+    desktopSrc: calendarBackground.src,
+    mobileSrc: calendarBackground.src,
     desktopPosition: "center",
     mobilePosition: "58% center",
   },
   chronicle: {
     key: "chronicle",
-    desktopSrc: "/empty/empty-chronicle-main.png",
-    mobileSrc: "/empty/empty-chronicle-main.png",
+    desktopSrc: chronicleBackground.src,
+    mobileSrc: chronicleBackground.src,
     desktopPosition: "center",
     mobilePosition: "52% center",
   },

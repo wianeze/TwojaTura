@@ -7,6 +7,7 @@ import {
 import { LegendariumShowcase } from "@/features/legendarium/legendarium-showcase";
 import { MobileRewardsSheet } from "@/features/legendarium/mobile-rewards-sheet";
 import { getLegendariumData } from "@/features/legendarium/queries";
+import { profileServerOperation } from "@/lib/server-performance";
 
 export default async function LegendariumPage() {
   const memberState = await getCurrentMember();
@@ -15,7 +16,9 @@ export default async function LegendariumPage() {
     return null;
   }
 
-  const data = await getLegendariumData(memberState.member);
+  const data = await profileServerOperation("/legendarium", () =>
+    getLegendariumData(memberState.member),
+  );
 
   return (
     <div className="space-y-5 sm:space-y-6">

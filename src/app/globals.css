@@ -139,7 +139,7 @@ body {
   background-image:
     linear-gradient(105deg, rgba(255, 255, 255, 0.04), transparent 32%),
     linear-gradient(rgba(36, 20, 15, 0.62), rgba(36, 20, 15, 0.74)),
-    url("/textures/wood-dark-texture.png");
+    url("/textures/wood-dark-texture.webp");
   background-size:
     auto,
     auto,
@@ -151,7 +151,7 @@ body {
   background-color: #2d1711;
   background-image:
     linear-gradient(145deg, rgba(48, 21, 16, 0.2), rgba(12, 5, 4, 0.72)),
-    url("/textures/dark-texture-lupy.png");
+    url("/textures/dark-texture-lupy.webp");
   background-size:
     auto,
     720px 720px;
@@ -171,7 +171,7 @@ body {
       rgba(255, 255, 255, 0.7),
       rgba(255, 250, 240, 0.68)
     ),
-    url("/textures/paper-grain-light.png");
+    url("/textures/paper-grain-light.webp");
   background-size:
     auto,
     auto,
@@ -642,7 +642,7 @@ body {
       rgba(255, 255, 255, 0.72),
       rgba(255, 249, 238, 0.54)
     ),
-    url("/textures/paper-grain-light.png");
+    url("/textures/paper-grain-light.webp");
   background-size:
     auto,
     auto,
@@ -667,7 +667,7 @@ body {
       rgba(255, 250, 240, 0.78),
       rgba(239, 224, 200, 0.8)
     ),
-    url("/textures/paper-grain-light.png");
+    url("/textures/paper-grain-light.webp");
   background-size:
     auto,
     auto,
@@ -692,7 +692,7 @@ body {
       rgba(104, 67, 49, 0.92),
       rgba(59, 37, 30, 0.96) 75%
     ),
-    url("/textures/wood-dark-texture.png");
+    url("/textures/wood-dark-texture.webp");
   background-size:
     auto,
     auto,
@@ -707,7 +707,7 @@ body {
   background-color: #ded0ba;
   background-image:
     linear-gradient(rgba(222, 208, 186, 0.8), rgba(76, 46, 35, 0.28)),
-    url("/textures/felt-or-rug-pattern.png");
+    url("/textures/felt-or-rug-pattern.webp");
   background-size:
     auto,
     760px 760px;
@@ -718,7 +718,7 @@ body {
   background-color: #4b2e23;
   background-image:
     linear-gradient(rgba(73, 44, 32, 0.34), rgba(28, 14, 10, 0.46)),
-    url("/textures/felt-or-rug-pattern.png");
+    url("/textures/felt-or-rug-pattern.webp");
   background-position: center, center;
   background-size:
     auto,
@@ -792,7 +792,7 @@ body {
       transparent 17rem
     ),
     linear-gradient(rgba(54, 31, 23, 0.5), rgba(35, 19, 15, 0.7)),
-    url("/textures/wood-dark-texture.png");
+    url("/textures/wood-dark-texture.webp");
   background-size:
     auto,
     auto,
@@ -813,7 +813,7 @@ body {
       transparent 18rem
     ),
     linear-gradient(rgba(37, 21, 16, 0.42), rgba(21, 10, 8, 0.62)),
-    url("/textures/wood-dark-texture.png");
+    url("/textures/wood-dark-texture.webp");
   background-position: center, center, center;
   background-size:
     auto,
@@ -859,7 +859,7 @@ body {
   background-color: #8d5f3f;
   background-image:
     linear-gradient(rgba(38, 20, 12, 0.12), rgba(25, 12, 8, 0.38)),
-    url("/textures/cork-texture.png");
+    url("/textures/cork-texture.webp");
   background-position:
     center,
     center top;
@@ -1442,7 +1442,7 @@ a {
   inset: 1px;
   z-index: 0;
   border-radius: inherit;
-  background: url("/textures/wood-dark-texture.png") center / 180px auto;
+  background: url("/textures/wood-dark-texture.webp") center / 180px auto;
   pointer-events: none;
   content: "";
   filter: brightness(1.3) contrast(1.35);
