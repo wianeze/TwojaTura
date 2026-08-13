@@ -68,7 +68,7 @@ export default async function GamesPage({
             Od md: układ przejmuje justify-end i margines znika.
           */}
           <ActionLink
-            action="shelf"
+            action="library"
             size="compact"
             href="/gry/nowa"
             className="ml-auto md:ml-0"
@@ -119,7 +119,7 @@ export default async function GamesPage({
                 także 10 Renomy.
               </p>
             </div>
-            <ActionLink action="shelf" size="large" href="/gry/nowa">
+            <ActionLink action="library" size="large" href="/gry/nowa">
               Dodaj pierwszą grę
             </ActionLink>
           </Panel>

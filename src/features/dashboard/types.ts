@@ -134,6 +134,9 @@ export type TableSessionMember = {
   id: string;
   displayName: string;
   avatarUrl: string | null;
+  isViewer: boolean;
+  /** Aktualna Renoma z rankingu (get_leaderboard) — 0, gdy członek go nie ma. */
+  points: number;
 };
 
 export type TableSessionLivePlay = {

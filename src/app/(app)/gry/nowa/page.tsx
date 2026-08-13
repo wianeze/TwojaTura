@@ -59,6 +59,7 @@ export default async function NewGamePage() {
           submitLabel="Dodaj egzemplarz"
           pendingLabel="Dodajemy grę…"
           canTransferOwner={false}
+          submitAction="library"
         />
       </Panel>
     </div>

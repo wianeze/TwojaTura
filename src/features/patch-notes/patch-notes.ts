@@ -16,6 +16,18 @@ export type PatchNotesRelease = {
  */
 export const PATCH_NOTES: readonly PatchNotesRelease[] = [
   {
+    date: "13 sierpnia 2026",
+    title: "Porządek w podsumowaniu wieczoru",
+    categories: [
+      {
+        category: "Stół",
+        items: [
+          "W podsumowaniu wieczoru lista wyboru kolejnej gry zajmuje teraz pełną szerokość ekranu, a „Zagraj ponownie” przenosi się nad nią — koniec z ciasnym ściśnięciem obu obok siebie.",
+        ],
+      },
+    ],
+  },
+  {
     date: "12 sierpnia 2026",
     title: "Solidny buff do szybkości",
     categories: [

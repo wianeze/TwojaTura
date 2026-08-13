@@ -8,7 +8,20 @@
  */
 
 export type ActionVariant =
-  "meeting" | "vote" | "chronicle" | "rating" | "shelf" | "neutral" | "danger";
+  | "meeting"
+  | "vote"
+  | "chronicle"
+  | "rating"
+  | "shelf"
+  | "neutral"
+  | "danger"
+  | "library"
+  | "play"
+  | "finish"
+  | "session"
+  | "newPlay"
+  | "endPlay"
+  | "replay";
 
 export type ActionSize = "compact" | "default" | "large" | "hero";
 

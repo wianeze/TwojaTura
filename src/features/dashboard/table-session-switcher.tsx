@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ActionLink } from "@/components/ui/action-button";
 import type { TableSessionOption } from "./types";
 
 /*
@@ -10,9 +10,16 @@ import type { TableSessionOption } from "./types";
  * Wybór jedzie w adresie (`/?meeting=<id>`), nie w stanie komponentu ani w
  * bazie: przeżywa odświeżenie, da się go podesłać linkiem, a serwer i tak
  * waliduje go przez listę spotkań widza (patrz getTableSession) — sam
- * parametr nigdy nie jest źródłem uprawnień.
- *
- * Świadomie kompaktowy: to pasek pigułek NAD panelem, nie drugi wielki panel.
+ * parametr nigdy nie jest źródłem uprawnień. Logika przełączania (href,
+ * isSelected, isLive) jest tu niedotknięta — zmienia się wyłącznie warstwa
+ * wizualna: nagłówek na samej górze, wyśrodkowany i większy (z mniejszym,
+ * delikatniejszym dopiskiem "(przełącz)"), pod nim duże przyciski
+ * (ActionButton, wariant "session" — plakietka white-button-new) OBOK
+ * SIEBIE w jednym rzędzie (grid-cols-2, nie jeden pod drugim) — również na
+ * 375-430px, z dozwolonym zawinięciem długiej nazwy do dwóch linii zamiast
+ * zmniejszania fontu. Tekst przycisku to WYŁĄCZNIE nazwa spotkania; sygnał
+ * "trwa partia" (isLive) jest ikoną płomienia zamiast dawnego
+ * emoji-prefiksu przy tytule gry.
  */
 export function TableSessionSwitcher({
   options,
@@ -22,33 +29,28 @@ export function TableSessionSwitcher({
   if (options.length < 2) return null;
 
   return (
-    <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-      <span className="text-[0.56rem] font-bold tracking-[0.16em] text-[#e0b978] uppercase">
-        Trwają {options.length} spotkania
-      </span>
+    <div className="mb-3 space-y-2.5">
+      <p className="text-center text-[0.92rem] font-bold tracking-[0.08em] text-[#f0dcb8] uppercase">
+        Trwają {options.length} spotkania{" "}
+        <span className="text-[0.7rem] font-semibold tracking-[0.05em] text-[#c9a463]">
+          (przełącz)
+        </span>
+      </p>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-1">
+      <div className="grid grid-cols-2 gap-2">
         {options.map((option) => (
-          <Link
+          <ActionLink
             key={option.meetingId}
             href={option.href}
+            action="session"
+            size="large"
+            fullWidth
+            withIcon={option.isLive}
             aria-current={option.isSelected ? "true" : undefined}
-            className={`inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 text-[0.62rem] font-bold transition ${
-              option.isSelected
-                ? "border-[#e9c27a] bg-[linear-gradient(180deg,rgba(58,36,24,0.96),rgba(36,21,13,0.98))] text-[#f7ecc9]"
-                : "border-[#caa25a]/35 bg-[rgba(255,255,255,0.05)] text-[#d9c19a] hover:border-[#caa25a]/60 hover:text-[#f0dcb8]"
-            }`}
+            className={`table-session-option ${option.isSelected ? "is-active" : ""}`}
           >
-            {option.isLive ? <span aria-hidden="true">🔥</span> : null}
-            <span className="truncate">
-              {option.gameTitle ?? option.meetingTitle}
-            </span>
-            {option.gameTitle ? (
-              <span className="truncate opacity-70">
-                · {option.meetingTitle}
-              </span>
-            ) : null}
-          </Link>
+            {option.meetingTitle}
+          </ActionLink>
         ))}
       </div>
     </div>

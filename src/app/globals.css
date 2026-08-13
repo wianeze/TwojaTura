@@ -827,6 +827,422 @@ body {
     0 24px 56px rgba(24, 11, 7, 0.28);
 }
 
+/*
+ * Jeden Stół (dashboard-showcase.tsx) — nagłówek + trzy CTA (bez aktywnego
+ * spotkania) ALBO sekcja "wieczoru przy stole" (z aktywnym), nigdy oba naraz,
+ * WSZYSTKO w jednym module zamiast dwóch osobnych paneli jak wcześniej.
+ * Panel ma zmienną wysokość zależną od stanu spotkania — to naturalny efekt
+ * tego, że to JEDEN blok treści rosnący z contentem.
+ *
+ * Tło jest prawdziwym 9-slice border-image, tym samym mechanizmem co
+ * .chronicle-page/.nav-tile niżej w tym pliku — NIE zwykłym
+ * background-size: cover. Cover rozciągał/przycinał CAŁY obraz jednolicie,
+ * więc rzeźbione narożniki ramy (rogi z ornamentem) przy innych proporcjach
+ * panelu niż źródło (portret 1086x1448) wychodziły ucięte albo
+ * rozciągnięte — niepoprawnie, mimo że wizualnie "działało" dla jednej
+ * konkretnej proporcji.
+ *
+ * Źródło (1086x1448, RGB, BEZ kanału alfa — sprawdzone dekoderem) ma
+ * prostokątną drewnianą ramę: cienka listwa + rzeźbione, ścięte okucia w
+ * rogach. Zmierzone piksel po pikselu (zoom na róg 260x260): ornament rogu
+ * mieści się w promieniu ok. 110-120px od każdego rogu. slice: 140 fill
+ * obejmuje każdy róg z zapasem; pozostały środek to jednolity słój drewna,
+ * pokazywany jako tło wnętrza przez `fill` — dokładnie ten sam wzorzec co
+ * .chronicle-page (slice 101 fill na innym źródle). Brak alfa = brak
+ * przezroczystego marginesu = border-image-outset zostaje 0 (w
+ * przeciwieństwie do .chronicle-sheet, którego źródło MA taki margines).
+ *
+ * .table-sheet-shell dostarcza kontekst container-type: inline-size, bo
+ * --table-frame skaluje się przez cqi względem WŁASNEJ szerokości panelu
+ * (Stół bywa węższy niż viewport przez boczną nawigację desktopową),
+ * dokładnie jak .chronicle-page-shell dla .chronicle-page.
+ *
+ * premium-edge (dekoracyjna wewnętrzna obwódka współdzielona przez <Panel>)
+ * jest tu wyłączony: druga, sztuczna ramka w środku prawdziwej drewnianej
+ * ramy wyglądałaby jak dwie nakładające się ramki.
+ */
+.table-sheet-shell {
+  container-type: inline-size;
+  width: 100%;
+}
+
+.table-sheet {
+  --table-frame: clamp(18px, 9cqi, 50px);
+
+  border-style: solid;
+  border-color: transparent;
+  border-width: var(--table-frame);
+  border-image-source: url("/assets/table-background.png");
+  border-image-slice: 140 fill;
+  border-image-width: var(--table-frame);
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+
+  /* Fallback zanim/gdyby asset się nie wczytał — patrz .chronicle-page. */
+  background-color: #2a1a12;
+  background-clip: padding-box;
+  border-radius: 0.6rem;
+}
+
+.table-sheet.premium-edge {
+  box-shadow:
+    inset 0 1px 0 rgba(250, 220, 164, 0.12),
+    0 22px 50px rgba(18, 8, 5, 0.34);
+}
+
+.table-sheet.premium-edge::after {
+  content: none;
+}
+
+/*
+ * Rząd statusu "drużyna przy stole": TRWA TERAZ (stały rozmiar) | nazwa
+ * spotkania (rośnie, wyraźnie wyróżniona typografią) | Spotkanie -> (stały
+ * rozmiar). Grid zamiast flex-wrap: środkowa kolumna dostaje CAŁĄ resztę
+ * miejsca przez minmax(0, 1fr) niezależnie od długości sąsiadów, więc nazwa
+ * nigdy nie jest ściśnięta bardziej niż konieczne.
+ */
+/*
+ * Tytuł "Drużyna jest przy stole": sama litera zostaje jasna, płaska
+ * (czytelność najpierw) — "legendarne" jest wyłącznie podświetlenie ZA
+ * tekstem, przez stos text-shadow, nie gradientowe wypełnienie liter
+ * (wcześniejsza wersja przez background-clip: text — zmienione na wyraźną
+ * prośbę: "jasna czcionka, ale z tyłu legendarne podświetlenie"). Pierwsza,
+ * ciasna, ciemna warstwa to kontrastowy cień pod spodem (czytelność na
+ * jaśniejszych partiach słoju drewna w tle); trzy kolejne to sama poświata,
+ * od ciaśniejszej/mocniejszej do najszerszej/najsubtelniejszej — ciepłe
+ * złoto/bursztyn, nie neon.
+ */
+.table-legend-title {
+  color: #fff8e6;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 0 10px rgba(255, 214, 140, 0.65),
+    0 0 22px rgba(255, 185, 90, 0.42),
+    0 0 40px rgba(255, 160, 60, 0.24);
+}
+
+/*
+ * TRWA TERAZ przeniesione nad tytuł (osobny, wyśrodkowany rząd) — ten rząd
+ * niesie już tylko nazwę spotkania i link, więc nazwa dostaje niemal całą
+ * szerokość panelu (minmax(0, 1fr)).
+ */
+/*
+ * Na smartfonie: nazwa i link są PIONOWO ułożone, wyśrodkowane, każde na
+ * swojej pełnej szerokości — nie jeden ciasny poziomy rząd. Od sm: wraca
+ * poprzedni układ (siatka, nazwa do lewej, link po prawej) — o to konkretnie
+ * prosił użytkownik ("na widoku smartfonowym").
+ */
+.table-status-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+@media (min-width: 640px) {
+  .table-status-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+/*
+ * Na smartfonie nazwa jest wyśrodkowana i może zawinąć się do DWÓCH linii
+ * (line-clamp), NIE ucięta elipsą w jednej linii — text-align: center razem
+ * z text-overflow: ellipsis (Tailwindowy `truncate`) potrafi w niektórych
+ * przeglądarkach wyrenderować ucięty tekst tak, że wygląda jak zdublowany
+ * fragment (to była realna, zgłoszona usterka, nie tylko styl), więc przy
+ * wyśrodkowaniu unikamy jednowierszowej elipsy całkowicie. Od sm: (gdzie
+ * nazwa dzieli rząd z linkiem) wraca poprzedni, sprawdzony wariant: do
+ * lewej, jedna linia, elipsa. font-size przez clamp(cqi), żeby nazwa
+ * skalowała się płynnie z szerokością panelu.
+ */
+.table-meeting-name {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-align: center;
+  font-size: clamp(0.8rem, 3.6cqi, 0.98rem);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .table-meeting-name {
+    text-align: left;
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+/*
+ * TOP 3 propozycji jako fizyczne pudełka rozłożone na stole — bez białych
+ * kafli, bezpośrednio na teksturze. Rotacja przez nth-child (stałe wartości,
+ * nie losowe), żeby SSR i klient renderowały identycznie.
+ */
+.table-top-covers {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+/*
+ * Szerokość pudełka gry skaluje się płynnie z szerokością panelu (cqi) w
+ * dobranym zakresie, zamiast skakać na jednym breakpoincie sm: — "bardziej
+ * naturalne proporcje" zamiast identycznego, sztywnego wymiaru niezależnie
+ * od dostępnego miejsca.
+ */
+.table-top-cover-slot {
+  width: clamp(4.5rem, 20cqi, 6.75rem);
+}
+
+.table-top-cover {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+  border-radius: 0.6rem;
+  overflow: hidden;
+  box-shadow:
+    0 12px 22px rgba(8, 4, 2, 0.5),
+    0 2px 6px rgba(8, 4, 2, 0.35);
+  transition: transform 180ms ease;
+}
+
+.table-top-cover:nth-child(1) {
+  transform: rotate(-3deg) translateY(3px);
+  z-index: 1;
+}
+
+.table-top-cover:nth-child(2) {
+  transform: rotate(2deg);
+  z-index: 2;
+}
+
+.table-top-cover:nth-child(3) {
+  transform: rotate(-2deg) translateY(3px);
+  z-index: 1;
+}
+
+.table-top-cover:hover {
+  transform: rotate(0deg) translateY(-2px);
+  z-index: 3;
+}
+
+/* Rząd portretów graczy — bez ciężkich prostokątnych kart, poziomy scroll
+   tylko tej sekcji jeśli lista nie mieści się w szerokości. */
+.table-heroes-row {
+  display: flex;
+  gap: 1.1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  padding-block: 0.15rem;
+}
+
+.table-heroes-row::-webkit-scrollbar {
+  display: none;
+}
+
+.table-hero {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  /* Skaluje się z panelem (cqi) zamiast być stałym wymiarem — patrz
+     .table-top-cover-slot dla tej samej idei przy okładkach gier. */
+  max-width: clamp(3.75rem, 16cqi, 5.25rem);
+}
+
+/*
+ * Rozwijanie TOP 3 -> pełnej listy (i z powrotem) bez przeskoku layoutu i
+ * bez scale(): sztuczka grid-template-rows 0fr/1fr — jedyny sposób na
+ * płynne animowanie do wysokości "auto" bez mierzenia JS-em. Dziecko musi
+ * mieć overflow: hidden i min-height: 0, inaczej grid nie przytnie go przy
+ * 0fr.
+ */
+.table-picker-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 260ms ease,
+    opacity 180ms ease;
+}
+
+.table-picker-collapse.is-expanded {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows 260ms ease,
+    opacity 220ms ease 60ms;
+}
+
+.table-picker-collapse > * {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/*
+ * Dolne CTA Stołu (Zakończ spotkanie / Zaczynamy grać) mają wyglądać
+ * bardziej masywnie/premium niż zwykły ActionButton size="large" gdzie
+ * indziej w aplikacji (np. GRAMY!/podsumowanie w table-session-panel.tsx,
+ * sklep portretów, profil gracza) — stąd scoped override zamiast zmiany
+ * .action-size-large globalnie, żeby te niepowiązane ekrany zostały
+ * dokładnie takie, jakie były.
+ */
+.table-cta-row .action-size-large {
+  min-height: 70px;
+}
+
+@media (min-width: 640px) {
+  .table-cta-row .action-size-large {
+    min-height: 64px;
+  }
+}
+
+/*
+ * Ikona NAD tekstem (nie obok), nie przez rozmiar (jak .action-size-hero),
+ * tylko przez klasę na rodzicu — dla przycisków z ikoną w wąskiej,
+ * połowicznej kolumnie (grid-cols-2), gdzie dwuwierszowy tekst obok ikony w
+ * WIERSZU potrafi się wyrenderować z widocznie nierównym marginesem z
+ * lewej strony (nawracający problem, zgłoszony ponownie mimo wcześniejszej
+ * poprawki .action-btn-label { width: 100%; justify-content: center }).
+ * Pionowy układ + align-items: center (dziedziczone z .action-btn-label)
+ * jest jednoznacznie symetryczny niezależnie od zawijania tekstu czy
+ * rozmiaru ikony — nie polega na tej samej, niepewnej matematyce
+ * flexboksa w wierszu, która raz po raz dawała asymetryczny wynik.
+ */
+.table-icon-stack .action-btn-label {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.table-icon-stack .action-btn-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.table-icon-stack .action-btn-text {
+  text-wrap: balance;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .table-top-cover,
+  .table-picker-collapse {
+    transition: none;
+  }
+}
+
+/*
+ * Moduł GRAMY! (table-session-playing-panel.tsx) — tłem jest prawdziwa
+ * okładka ogrywanej gry (warstwa <Image fill>, dziecko .playing-module),
+ * z ciemnym overlayem (.playing-cover-overlay) NAD nią dla czytelności
+ * treści. Rogi są celowo OSTRE (border-radius: 0) — spójnie z resztą
+ * kanciastej stylistyki fantasy Stołu, bez mocnego zaokrąglenia wrappera.
+ *
+ * Rama celowo przypomina rant pudełka gry planszowej: gruby (5px), solidny
+ * border z DWUTONOWYM fazowaniem (bevel) przez różne kolory na
+ * poszczególnych bokach — jasna, ciepła krawędź górna/lewa (światło
+ * łapiące róg pudełka) i ciemniejsza, zabarwiona akcentem krawędź
+ * dolna/prawa (cień/głębia rantu, w kolorze zależnym od aktywnego
+ * spotkania). Rogi renderują się jako ukośne, mitrowane połączenie dwóch
+ * sąsiednich kolorów — dokładnie jak fizyczna, sfazowana krawędź pudełka.
+ * Świadomie border (nie inset box-shadow): border żyje w GEOMETRII
+ * border-boxa, więc zawsze zostaje widoczny mimo że wnętrze wypełniają
+ * pozycjonowane dzieci (<Image fill>, overlay) — inset box-shadow byłby
+ * przez nie zasłonięty (maluje się w tej samej warstwie co tło, POD
+ * pozycjonowanymi potomkami).
+ *
+ * Poświata jest w kolorze zależnym od tego, które z równoległych spotkań
+ * jest aktywne w przełączniku (niebieski dla lewego, pomarańczowy dla
+ * prawego — --glow-rgb ustawiany inline przez komponent, z bezpiecznym
+ * fallbackiem na niebieski) i ma być WYRAŹNIE mocna/duża/pulsująca (patrz
+ * amplituda i promienie niżej — świadomie dużo mocniejsza niż pierwsza
+ * iteracja tego modułu). box-shadow (na zewnątrz border-boxa) nie ma tego
+ * samego problemu co inset — zewnętrzny cień/poświata nigdy nie nachodzi
+ * na obszar, który mogłyby zasłonić dzieci.
+ *
+ * Animowana jest mimo to WYŁĄCZNIE intensywność poświaty przez
+ * zarejestrowaną (@property, więc płynnie interpolowalną) --playing-glow,
+ * NIE cała sekcja — to nadal ta sama, świadoma zamiana za poprzednim
+ * Tailwindowym `animate-pulse` (migało opacity całego panelu 1<->0.5).
+ * Silniejszy/bardziej zauważalny puls osiąga się szerszą amplitudą
+ * (0.4–1.3) i większymi promieniami blura w box-shadow, NIE przez
+ * animowanie opacity/scale/visibility całego elementu.
+ */
+@property --playing-glow {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.85;
+}
+
+.playing-module {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0;
+  border-width: 5px;
+  border-style: solid;
+  border-top-color: rgba(255, 244, 214, 0.42);
+  border-left-color: rgba(255, 244, 214, 0.32);
+  border-right-color: rgba(var(--glow-rgb, 94, 158, 214), 0.5);
+  border-bottom-color: rgba(var(--glow-rgb, 94, 158, 214), 0.58);
+  animation: playing-glow-pulse 3.2s ease-in-out infinite;
+  box-shadow:
+    0 0 calc(26px * var(--playing-glow))
+      rgba(var(--glow-rgb, 94, 158, 214), calc(0.85 * var(--playing-glow))),
+    0 0 calc(90px * var(--playing-glow))
+      rgba(var(--glow-rgb, 94, 158, 214), calc(0.55 * var(--playing-glow))),
+    0 18px 40px rgba(8, 5, 4, 0.4);
+}
+
+@keyframes playing-glow-pulse {
+  0%,
+  100% {
+    --playing-glow: 0.4;
+  }
+  50% {
+    --playing-glow: 1.3;
+  }
+}
+
+/*
+ * Jaśniejszy balans niż pierwsza iteracja (0.5/0.72/0.9 -> 0.32/0.5/0.68) —
+ * okładka ma być wyraźnie WIDOCZNA, overlay tylko na tyle ciemny, żeby
+ * tekst i tak zostawał czytelny. Gradient ciemnieje ku dołowi (gdzie siedzi
+ * najwięcej tekstu: timer, portrety, przyciski) i ma dodatkowy
+ * winieta-radial u góry — równomierne przyciemnienie całej okładki, nie
+ * twarda, jednolita płyta koloru nałożona na zdjęcie.
+ */
+.playing-cover-overlay {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(12, 8, 6, 0.32) 0%,
+      rgba(12, 8, 6, 0.5) 45%,
+      rgba(8, 5, 4, 0.68) 100%
+    ),
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(8, 5, 4, 0.3) 80%
+    );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playing-module {
+    animation: none;
+    --playing-glow: 1;
+  }
+}
+
 @media (min-width: 360px) {
   .shelf-segment-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1337,11 +1753,27 @@ a {
   initial-value: 0;
 }
 
+/*
+ * --act-plate: źródło JEDYNEJ warstwy assetu — border-image renderuje z
+ * niego jednocześnie ramę (rogi + krawędzie) I środek (patrz `fill`
+ * w border-image-slice, .action-btn niżej). Żadnego osobnego wycinka
+ * środka, żadnego drugiego pliku — to jest świadomy powrót do prostszego
+ * mechanizmu, po tym jak oddzielna warstwa (--act-fill + background-image)
+ * dawała efekt "button w buttonie" (dwie różne geometrie: kształt ramy
+ * z PNG vs. prostokąt tła). .act-neutral świadomie nie ustawia --act-plate
+ * — bazowy fallback (none) zostawia jej dawny, cienki, jednokolorowy
+ * obrys (patrz reguła przy końcu pliku): przy dwóch niskostawkowych
+ * użyciach (linki "Otwórz →") plakietka nie jest potrzebna, zgodnie
+ * z zasadą "nie wciskaj na siłę wszystkich wariantów do UI". Black (dark)
+ * i White (light) nie mają dziś żadnego wołającego w ActionVariant —
+ * asset źródłowy zostaje w public/assets/ na przyszłość, bez podpięcia.
+ */
 .act-meeting {
   --act-rgb: 197, 122, 58;
   --act-deep: #6f3f14;
   --act-bright: #e9bd86;
   --act-ink: #7a4712;
+  --act-plate: url("/assets/buttons/bronze.png");
 }
 
 .act-vote {
@@ -1349,6 +1781,7 @@ a {
   --act-deep: #234a66;
   --act-bright: #a6c9e0;
   --act-ink: #235a80;
+  --act-plate: url("/assets/buttons/blue.png");
 }
 
 .act-chronicle {
@@ -1356,6 +1789,7 @@ a {
   --act-deep: #453361;
   --act-bright: #c6b2dc;
   --act-ink: #59407f;
+  --act-plate: url("/assets/buttons/purple.png");
 }
 
 .act-rating {
@@ -1363,13 +1797,20 @@ a {
   --act-deep: #2f4a30;
   --act-bright: #b3cdac;
   --act-ink: #3c6039;
+  --act-plate: url("/assets/buttons/green.png");
 }
 
+/*
+ * Shelf dzieli plakietkę z meeting (obie to "primary" — tworzenie/dodawanie),
+ * ale zachowuje własny, nieco cieplejszy token barwy dla poświaty/obramowania:
+ * to jest już bardzo blisko bronzu, więc różnica jest subtelna, nie sprzeczna.
+ */
 .act-shelf {
   --act-rgb: 190, 158, 104;
   --act-deep: #5e4620;
   --act-bright: #eddcbc;
   --act-ink: #5c3d21;
+  --act-plate: url("/assets/buttons/bronze.png");
 }
 
 .act-neutral {
@@ -1384,13 +1825,259 @@ a {
   --act-deep: #8a3021;
   --act-bright: #e5ac9b;
   --act-ink: #7d2c1f;
+  --act-plate: url("/assets/buttons/red.png");
+}
+
+/*
+ * Library — WYŁĄCZNIE "Dodaj grę do Półki" (kafel hero na Stole) i "Dodaj
+ * egzemplarz" (Półka + formularz dodawania gry). Ta sama semantyka —
+ * dodawanie gry/egzemplarza do kolekcji — dostaje tę samą barwę: Green,
+ * dokładnie te same tokeny co .act-rating (dzielą też jedną plakietkę).
+ * Zwykłe "Dodaj do Półki"/"Edytuj"/wypożyczenia gdzie indziej w aplikacji
+ * zostają przy act-shelf/Bronze — to świadomie osobny wariant, nie
+ * przemalowanie shelf. Green to zwykła ciemna plakietka (jasny tekst
+ * z bazowego .action-btn) — bez specjalnego override'u tła/koloru,
+ * jakiego wymagało wcześniejsze White.
+ */
+.act-library {
+  --act-rgb: 130, 160, 128;
+  --act-deep: #2f4a30;
+  --act-bright: #b3cdac;
+  --act-ink: #3c6039;
+  --act-plate: url("/assets/buttons/green.png");
+}
+
+/*
+ * Play — WYŁĄCZNIE "Zaczynamy grać" (start właściwej rozgrywki przy
+ * stole). Rezerwowany dla tej jednej akcji, nie dla zwykłych ostrzeżeń —
+ * jeśli kiedyś powstanie prawdziwy wariant "warning", dostanie własny
+ * token, nie ten.
+ */
+.act-play {
+  --act-rgb: 214, 122, 44;
+  --act-deep: #7a3c12;
+  --act-bright: #ffdcae;
+  --act-ink: #7a3c12;
+  --act-plate: url("/assets/buttons/orange.png");
+}
+
+/*
+ * New Play — WYŁĄCZNIE "Zacznij nową partię" w ContinuePrompt (wybór gry
+ * z odłożoną rozgrywką: kontynuować czy zacząć od nowa). Świadomie OSOBNY
+ * wariant od .act-play, nie ponowne użycie action="play": .act-play jest
+ * gdzie indziej udokumentowany jako zarezerwowany wyłącznie dla "Zaczynamy
+ * grać" (m.in. dostaje tam 2x większą ikonę mieczy, patrz .act-play
+ * .action-btn-icon niżej) — ten wariant dzieli z nim TE SAME tokeny i tę
+ * samą plakietkę (orange.png, ta sama Orange-button-new), ale bez tamtej
+ * ikony-override. Ten sam wzorzec co .act-library dzielący plakietkę
+ * z .act-rating pod inną nazwą.
+ */
+.act-newPlay {
+  --act-rgb: 214, 122, 44;
+  --act-deep: #7a3c12;
+  --act-bright: #ffdcae;
+  --act-ink: #7a3c12;
+  --act-plate: url("/assets/buttons/orange.png");
+}
+
+/*
+ * End Play — WYŁĄCZNIE "Zakończ partię" w module GRAMY!. Osobny wariant od
+ * .act-danger (mimo tej samej plakietki red.png / Red-button-new): .act-danger
+ * jest gdzie indziej używany wyłącznie do akcji faktycznie destrukcyjnych
+ * (usuń grę, usuń partię, usuń spotkanie) i taki ma zostać — kończenie
+ * partii nie jest destrukcyjne (wynik można uzupełnić później), więc nie
+ * powinno dzielić KLASY z tamtymi, mimo że dzieli plakietkę/kolor. Ten sam
+ * wzorzec co .act-newPlay dzielący plakietkę z .act-play pod inną nazwą.
+ */
+.act-endPlay {
+  --act-rgb: 178, 82, 64;
+  --act-deep: #8a3021;
+  --act-bright: #e5ac9b;
+  --act-ink: #7d2c1f;
+  --act-plate: url("/assets/buttons/red.png");
+}
+
+/*
+ * Skrzyżowane miecze 2x większe na wyraźne życzenie — bezpieczne jako
+ * override po action, nie po size: .act-play jest WYŁĄCZNIE "Zaczynamy
+ * grać" (patrz komentarz wyżej), więc nic innego tego nie dziedziczy.
+ * em, nie px, żeby proporcja do tekstu została taka sama, gdyby rozmiar
+ * przycisku kiedyś się zmienił. align-items: center na .action-btn/
+ * .action-btn-label centruje tekst względem większej ikony automatycznie,
+ * bez dodatkowych reguł.
+ */
+.act-play .action-btn-icon {
+  width: 2.2em;
+  height: 2.2em;
+}
+
+/*
+ * Finish — WYŁĄCZNIE "Zakończ spotkanie" na ekranie "drużyna przy stole".
+ * Red-button-new (red.png) na wyraźną prośbę — te same tokeny co
+ * .act-danger/.act-endPlay, ale świadomie OSOBNA nazwa/klasa: kończenie
+ * wieczoru nie jest akcją destrukcyjną (RPC finishMeetingAction niczego nie
+ * kasuje), więc nie powinno dzielić KLASY z .act-danger (usuń grę/partię/
+ * spotkanie), mimo że dzieli plakietkę i kolor. Ten sam wzorzec co
+ * .act-endPlay dzielący plakietkę z .act-danger pod inną nazwą.
+ */
+.act-finish {
+  --act-rgb: 178, 82, 64;
+  --act-deep: #8a3021;
+  --act-bright: #e5ac9b;
+  --act-ink: #7d2c1f;
+  --act-plate: url("/assets/buttons/red.png");
+}
+
+/*
+ * Replay — WYŁĄCZNIE "Zagraj ponownie" w podsumowaniu partii. Ta sama
+ * plakietka co .act-finish (bronze-wood.png / Bronze-wood-new), ale osobna
+ * nazwa — ten sam wzorzec co .act-newPlay/.act-endPlay dzielące plakietkę
+ * z .act-play/.act-danger pod inną nazwą.
+ */
+.act-replay {
+  --act-rgb: 168, 108, 58;
+  --act-deep: #5c3a1c;
+  --act-bright: #ddb98c;
+  --act-ink: #5c3a1c;
+  --act-plate: url("/assets/buttons/bronze-wood.png");
+}
+
+/*
+ * Session — WYŁĄCZNIE przełącznik równoległych wieczorów
+ * (TableSessionSwitcher), gdy trwa więcej niż jedno spotkanie naraz. Jasna
+ * plakietka (white.png, znormalizowana wcześniej z White-button-new.png,
+ * dotąd bez żadnego wołającego w ActionVariant). Jedyny primary wariant
+ * z jasnym (kremowym) tłem: --act-bright — jedyny konsument to `color:
+ * var(--act-bright)` w bazowym .action-btn — niesie tu CIEMNY atrament,
+ * nie jasny odcień, żeby tekst był czytelny na jasnej plakietce (dokładnie
+ * ta sama rola co --act-ink przy pergaminie, tylko że ten wariant zawsze
+ * używa primary, nie secondary).
+ */
+.act-session {
+  --act-rgb: 196, 164, 106;
+  --act-deep: #6b5636;
+  --act-bright: #4a3a22;
+  --act-ink: #4a3a22;
+  --act-plate: url("/assets/buttons/white.png");
+}
+
+/*
+ * Odróżnienie aktywnej (obecnie wyświetlanej) pozycji przełącznika od
+ * pozostałych. Świadomie przez filter (brightness/drop-shadow), NIE
+ * box-shadow: box-shadow projektuje się od prostokątnego border-boxa,
+ * niezależnie od ściętych rogów plakietki (patrz obszerny komentarz przy
+ * .action-btn wyżej) — to jest ten sam, już rozwiązany problem, dokładnie
+ * ta sama metoda naprawy. Nieaktywne pozycje są przygaszone (brightness/
+ * saturate w dół) tak, żeby aktywna WYRAŹNIE wybijała się na tle reszty,
+ * a nie odwrotnie.
+ */
+.table-session-option:not(.is-active) {
+  filter: brightness(0.88) saturate(0.85);
+}
+
+.table-session-option.is-active {
+  filter: brightness(1.05) drop-shadow(0 0 16px rgba(var(--act-rgb), 0.5))
+    drop-shadow(0 0 30px rgba(var(--act-rgb), 0.24));
 }
 
 /*
  * Poziom prezentacji, niezależny od barwy domenowej:
- *   primary   — wypełnienie, główna akcja na danej powierzchni,
- *   secondary — jasna pergaminowa płytka, akcja drugorzędna,
- *   ghost     — sam tekst, do lekkich kontrolek na ciemnym tle.
+ *   primary   — plakietka 9-slice w barwie domeny (--act-plate), główna
+ *               akcja na danej powierzchni,
+ *   secondary — plakietka pergaminowa, taka sama niezależnie od domeny —
+ *               akcja drugorzędna,
+ *   ghost     — sam tekst, bez plakietki, do lekkich kontrolek na ciemnym
+ *               tle.
+ *
+ * JEDNA warstwa obrazu robi WSZYSTKO — ramę i środek — to jest czwarta
+ * iteracja tego mechanizmu, po trzech nieudanych (każda kolejna próbowała
+ * naprawić poprzednią dokładając COŚ, co samo stawało się nowym problemem):
+ *   1) border-image BEZ `fill` + sztuczny gradient koloru na środku —
+ *      środek nie pokazywał żadnej prawdziwej faktury ("złota rama +
+ *      jednolity kolor").
+ *   2) border-image Z `fill` i `border-image-repeat: round` — prawdziwa
+ *      faktura wróciła, ale `round` kafelkuje środek jako kilka pełnych,
+ *      powtórzonych kopii przy szerokich przyciskach (najbardziej rażące
+ *      na Orange).
+ *   3) border-image BEZ `fill` + OSOBNA warstwa `background-image: var(
+ *      --act-fill)` (przycięty wycinek środka) — dwie geometrie na raz
+ *      (kształt ramy z PNG vs. prostokąt tła, nawet po próbie wyrównania
+ *      przez background-origin) dawały efekt "button w buttonie": widoczny
+ *      szew/panel w środku, a poprawka `background-origin: border-box`
+ *      pogorszyła sprawę jeszcze bardziej — pociągnęła teksturę POZA
+ *      właściwą plakietkę, w przezroczyste ścięte narożniki.
+ * Rozwiązanie: WRACAMY do `border-image-slice: 92 fill`, ale z
+ * `border-image-repeat: stretch` (nie `round`) — środkowy fragment źródła
+ * (456×456, czyli wszystko poza 92-pikselową obwódką) jest rozciągany jako
+ * JEDEN kawałek, bez powtórzeń. To rozwiązuje (2), bo nic się nie kafelkuje.
+ * Brak osobnej warstwy tła rozwiązuje (3) definitywnie — jest tylko jedna
+ * warstwa obrazu, więc nie ma jak powstać dwóm różnym geometriom. `Stretch`
+ * na bardzo szerokim przycisku rozciąga środek w poziomie mocniej niż
+ * w pionie (naturalna konsekwencja różnych proporcji źródła 640×640 vs.
+ * bardzo szerokiego, niskiego przycisku) — świadomie zaakceptowany
+ * kompromis, bo nowe assety mają dużo subtelniejszy, mniej kierunkowy
+ * wzór niż stare (zweryfikowane wizualnie), więc rozciąganie nie smuży
+ * w sposób, który był problemem przy starych assetach.
+ *
+ * `background: transparent` — ŻADNEJ koloru ani obrazu pod ramą. Tam, gdzie
+ * asset ma prawdziwą przezroczystość (ścięte rogi plakietki), ma być
+ * NAPRAWDĘ przezroczyście — widać to, co jest za przyciskiem, nie żaden
+ * fallback.
+ *
+ * Kolorystyczny blask na hover/focus/active idzie przez `filter:
+ * drop-shadow(...)`, NIE `box-shadow`. To jest świadoma różnica: box-shadow
+ * projektuje cień od border-boxa — PROSTOKĄTA, niezależnie od tego, co
+ * border-image naprawdę narysował — więc przy ściętych ogee-rogach plakietki
+ * dawał widoczne, kwadratowe halo tam, gdzie róg jest w rzeczywistości
+ * przezroczysty. drop-shadow liczy cień od KANAŁU ALFA faktycznie
+ * wyrenderowanej zawartości elementu (ramy z border-image + treści), więc
+ * automatycznie podąża za ściętym kształtem — zero halo poza plakietką.
+ * Dwa spiętrzone drop-shadow (bliższy, mocniejszy + dalszy, subtelniejszy)
+ * odtwarzają dokładnie ten sam dwuwarstwowy blask, co dawny box-shadow,
+ * tą samą matematyką (--action-glow, var(--act-rgb)) — patrz reguły stanów
+ * niżej. brightness/saturate na całym elemencie zostają bez zmian
+ * (jednorodnie jaśniejszy/ciemniejszy render tego, co faktycznie narysował
+ * border-image, nie nowa warstwa nad nim). Bazowy box-shadow zostaje tylko
+ * z dwóch NIEREAGUJĄCYCH na --action-glow składowych (cienka linijka
+ * światła na górnej krawędzi, delikatny cień "uniesienia") — obie małe,
+ * blisko krawędzi, wizualnie nieszkodliwe nawet w rogu, bo nie są tym,
+ * co ktokolwiek odbierał jako "prostokątną poświatę".
+ *
+ * Pergamin (.action-emph-secondary) ma OSOBNE, nietknięte tło (cream
+ * gradient) — jedyny wyjątek, świadomie zachowany jako wzorzec jakości;
+ * dostaje prawdziwą fakturę pergaminu z border-image fill NAD tym
+ * gradientem, więc gradient działa jako niewidoczna podkładka pod
+ * półprzezroczyste piksele assetu, nie jako główna powierzchnia. Jego
+ * własny box-shadow miał TEN SAM błąd (reaktywny człon glow rysowany jako
+ * prostokąt) — usunięty z tego samego powodu; blask sekundarnych
+ * przycisków płynie teraz z tych samych, współdzielonych reguł
+ * :hover/:active/:focus-visible poniżej (dziedziczonych normalnie, bo
+ * .action-emph-secondary nie nadpisuje filter poza stanem active, gdzie
+ * dostaje własną kopię formuły, żeby drop-shadow nie zniknął).
+ *
+ * Kształt narożnika: WYŁĄCZNIE ogee samej plakietki. Bez border-radius na
+ * .action-size-* (usunięty w poprzedniej iteracji, zostaje usunięty) —
+ * border-image z definicji ignoruje border-radius, więc każdy promień
+ * tworzyłby drugi, niepasujący kształt tam, gdzie teraz jest tylko jedna
+ * warstwa obrazu.
+ *
+ * border-width i border-image-width mają CELOWO tę samą wartość
+ * (var(--action-frame)) — to jest dokładnie wzorzec z .nav-tile niżej w tym
+ * pliku: gdy oba się różnią, przeglądarka renderuje obraz ramki w innej
+ * grubości niż ta zarezerwowana w layoucie, więc rama albo nachodzi na
+ * treść, albo zostawia szczelinę.
+ *
+ * Osiem plakietek (public/assets/buttons/*.png) zostało znormalizowanych
+ * jednorazowo: przycięte do granic realnej grafiki i wyśrodkowanych na
+ * wspólnym płótnie 640×640, więc JEDEN border-image-slice działa dla
+ * wszystkich bez deformacji rogów. border-image-slice: 92 fill to ok. 14%
+ * płótna na ramę — zmierzony zasięg ornamentu ogee we wszystkich ośmiu
+ * plikach mieści się w 11–16%, więc każdy narożnik wchodzi w slice
+ * w całości, z zapasem; reszta (456×456 środka) to realna faktura,
+ * pokazywana przez `fill`. Osobne pliki *-fill.png z poprzedniej iteracji
+ * (public/assets/buttons/*-fill.png) NIE są już używane przez żadną
+ * regułę CSS — zostały na dysku jako nieużywana pozostałość, do
+ * ewentualnego uprzątnięcia osobno.
  */
 
 .action-btn {
@@ -1399,7 +2086,15 @@ a {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  border: 1px solid rgba(var(--act-rgb), calc(0.42 + 0.24 * var(--action-glow)));
+  border-style: solid;
+  border-color: transparent;
+  border-width: var(--action-frame);
+  border-image-source: var(--act-plate, none);
+  border-image-slice: 92 fill;
+  border-image-width: var(--action-frame);
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  background: transparent;
   font-family: inherit;
   font-weight: 600;
   line-height: 1.15;
@@ -1409,27 +2104,19 @@ a {
   cursor: pointer;
   overflow: hidden;
   --action-glow: 0;
-  background: linear-gradient(
-    180deg,
-    color-mix(
-      in srgb,
-      var(--act-deep) calc(34% + 18% * var(--action-glow)),
-      #2a1f19
-    ),
-    color-mix(
-      in srgb,
-      var(--act-deep) calc(22% + 14% * var(--action-glow)),
-      #201713
-    )
-  );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 1px 2px rgba(0, 0, 0, 0.28),
-    0 0 calc(26px * var(--action-glow))
-      rgba(var(--act-rgb), calc(0.58 * var(--action-glow))),
-    0 0 calc(52px * var(--action-glow))
-      rgba(var(--act-rgb), calc(0.26 * var(--action-glow)));
+    0 1px 2px rgba(0, 0, 0, 0.28);
+  filter: drop-shadow(
+      0 0 calc(26px * var(--action-glow))
+        rgba(var(--act-rgb), calc(0.58 * var(--action-glow)))
+    )
+    drop-shadow(
+      0 0 calc(52px * var(--action-glow))
+        rgba(var(--act-rgb), calc(0.26 * var(--action-glow)))
+    );
   transition:
+    filter 150ms ease,
     box-shadow 150ms ease,
     transform 150ms ease,
     color 180ms ease,
@@ -1437,28 +2124,29 @@ a {
     --action-glow 200ms ease;
 }
 
-.action-btn::before {
-  position: absolute;
-  inset: 1px;
-  z-index: 0;
-  border-radius: inherit;
-  background: url("/textures/wood-dark-texture.webp") center / 180px auto;
-  pointer-events: none;
-  content: "";
-  filter: brightness(1.3) contrast(1.35);
-  opacity: 0.46;
-  transition: opacity 180ms ease;
-}
-
-.action-btn:hover:not(:disabled)::before {
-  opacity: 0.56;
-}
-
+/*
+ * width: 100% + justify-content: center TUTAJ (nie tylko na .action-btn)
+ * naprawia asymetryczne wyśrodkowanie ikony+tekstu w wąskich, pełnej
+ * szerokości przyciskach (np. "Zaczynamy grać" w połowie rzędu CTA na
+ * Stole, gdzie 2x powiększona ikona + dwuwierszowy tekst bywają szersze niż
+ * dostępne miejsce). Bez width: 100% ta etykieta jest shrink-to-fit — gdy
+ * jej naturalna (nadmiarowa) szerokość przekracza dostępną przestrzeń,
+ * zewnętrzne justify-content: center na .action-btn centruje ją względem
+ * SWOJEJ WŁASNEJ, potencjalnie szerszej niż widoczna, ramki, co dawało
+ * wizualnie nierówne marginesy przy przycięciu przez overflow: hidden.
+ * Wymuszenie width: 100% tutaj gwarantuje, że pudełko etykiety ZAWSZE
+ * dokładnie pokrywa się z widocznym obszarem treści przycisku, więc
+ * centrowanie ikony+tekstu wewnątrz niej jest symetryczne z definicji.
+ * Neutralne dla przycisków, które i tak mieszczą się bez nadwyżki (identyczny
+ * efekt wizualny jak wcześniej).
+ */
 .action-btn-label {
   position: relative;
   z-index: 1;
   display: inline-flex;
+  width: 100%;
   align-items: center;
+  justify-content: center;
   gap: inherit;
   min-width: 0;
 }
@@ -1493,30 +2181,69 @@ a {
   }
 }
 
+/*
+ * Stany BEZ zmiany geometrii: hover/active czytelne wyłącznie ze światła,
+ * cienia i jasności/nasycenia przycisku, nigdy ze scale() ani ze zmiany
+ * rozmiaru pudełka. translateY(±1px) jest jedynym przesunięciem — nie
+ * zmienia zajmowanej przez layout przestrzeni (przycisk jest position:
+ * relative, sąsiedzi się nie przesuwają).
+ */
 .action-btn:hover:not(:disabled) {
   --action-glow: 1;
+  filter: brightness(1.1) saturate(1.08)
+    drop-shadow(
+      0 0 calc(26px * var(--action-glow))
+        rgba(var(--act-rgb), calc(0.58 * var(--action-glow)))
+    )
+    drop-shadow(
+      0 0 calc(52px * var(--action-glow))
+        rgba(var(--act-rgb), calc(0.26 * var(--action-glow)))
+    );
   transform: translateY(-1px);
 }
 
 .action-btn:not(:disabled):active {
   --action-glow: 0.7;
+  filter: brightness(0.86) saturate(0.96)
+    drop-shadow(
+      0 0 calc(26px * var(--action-glow))
+        rgba(var(--act-rgb), calc(0.58 * var(--action-glow)))
+    )
+    drop-shadow(
+      0 0 calc(52px * var(--action-glow))
+        rgba(var(--act-rgb), calc(0.26 * var(--action-glow)))
+    );
   transform: translateY(1px);
-  box-shadow:
-    inset 0 2px 4px rgba(0, 0, 0, 0.4),
-    0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
+/*
+ * Focus dostaje NIECO mocniejszy --action-glow (1.15 zamiast 1) niż hover —
+ * ta sama formuła drop-shadow skaluje się automatycznie, więc "trochę
+ * wyraźniejszy" nie wymaga osobnych stałych. outline zostaje jako
+ * podstawowy, gwarantowany wskaźnik fokusu (dostępność — działa nawet
+ * w trybie wysokiego kontrastu, gdzie filter bywa ignorowany); drop-shadow
+ * dokłada się do niego, podążając za ściętym kształtem plakietki zamiast
+ * być kolejnym prostokątem.
+ */
 .action-btn:focus-visible {
+  --action-glow: 1.15;
   outline: 2px solid var(--gold);
-  outline-offset: 2px;
+  outline-offset: 3px;
+  filter: drop-shadow(
+      0 0 calc(26px * var(--action-glow))
+        rgba(var(--act-rgb), calc(0.58 * var(--action-glow)))
+    )
+    drop-shadow(
+      0 0 calc(52px * var(--action-glow))
+        rgba(var(--act-rgb), calc(0.26 * var(--action-glow)))
+    );
 }
 
 .action-btn:disabled {
   cursor: not-allowed;
-  opacity: 0.45;
-  filter: grayscale(0.4);
+  filter: grayscale(0.55) brightness(0.75);
+  opacity: 0.62;
   transform: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .action-btn-icon {
@@ -1526,9 +2253,19 @@ a {
   opacity: 0.9;
 }
 
-/* Jasna płytka — akcja drugorzędna, czyta się na drewnie i na pergaminie */
+/*
+ * Jasna płytka — akcja drugorzędna, taka sama plakietka (Pergamin)
+ * niezależnie od domeny akcji: to dopasowanie border-image-source
+ * bezpośrednio (nie przez --act-plate) celowo wygrywa z barwą domeny —
+ * "Wróć"/"Anuluj" w Kronice ma wyglądać identycznie jak w Kalendarium.
+ * Tło i kolor tekstu (--act-ink) zostają NIETKNIĘTE względem stanu przed
+ * tą zmianą — to jest dokładnie ten wariant, który miał już dobrą
+ * proporcję i czytelność, więc jedyna zmiana to dodanie ramy w miejscu
+ * dawnego jednolitego obramowania.
+ */
 
 .action-emph-secondary {
+  border-image-source: url("/assets/buttons/pergamin.png");
   border-color: rgba(var(--act-rgb), calc(0.45 + 0.3 * var(--action-glow)));
   color: var(--act-ink);
   background: linear-gradient(
@@ -1538,16 +2275,19 @@ a {
   );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.7),
-    0 1px 2px rgba(66, 45, 24, 0.16),
-    0 0 calc(9px * var(--action-glow))
-      rgba(var(--act-rgb), calc(0.22 * var(--action-glow)));
-}
-
-.action-emph-secondary::before {
-  display: none;
+    0 1px 2px rgba(66, 45, 24, 0.16);
 }
 
 .action-emph-secondary:not(:disabled):active {
+  filter: brightness(0.96)
+    drop-shadow(
+      0 0 calc(26px * var(--action-glow))
+        rgba(var(--act-rgb), calc(0.58 * var(--action-glow)))
+    )
+    drop-shadow(
+      0 0 calc(52px * var(--action-glow))
+        rgba(var(--act-rgb), calc(0.26 * var(--action-glow)))
+    );
   box-shadow: inset 0 2px 4px rgba(96, 72, 42, 0.24);
 }
 
@@ -1555,9 +2295,11 @@ a {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
-/* Duch — sam tekst, do lekkich kontrolek na ciemnym tle */
+/* Duch — sam tekst, bez plakietki, do lekkich kontrolek na ciemnym tle */
 
 .action-emph-ghost {
+  border-image-source: none;
+  border-width: 1.5px;
   border-color: rgba(var(--act-rgb), calc(0.28 * var(--action-glow)));
   color: var(--act-bright);
   background: rgba(var(--act-rgb), calc(0.12 * var(--action-glow)));
@@ -1574,72 +2316,107 @@ a {
 }
 
 /*
- * Wyjątek od wyciszenia: akcja destrukcyjna ma się rzucać w oczy, więc
- * dostaje pełne czerwone wypełnienie i mocniejsze obramowanie. Dotyczy
- * wyłącznie poziomu primary — secondary i ghost zostają spokojne.
+ * Neutralny na poziomie primary (dwa niskostawkowe linki "Otwórz →" bez
+ * jawnego emphasis) świadomie zostaje BEZ plakietki — --act-plate nie jest
+ * ustawiony dla .act-neutral, więc border-image-source dziedziczy `none`
+ * z bazowego fallbacku i przycisk wraca do dawnego, cienkiego,
+ * jednokolorowego obramowania. To jest decyzja, nie przeoczenie: "Wróć" na
+ * poziomie secondary (zdecydowana większość użyć neutral) i tak dostaje
+ * plakietkę pergaminową z reguły wyżej.
  */
-.action-btn.act-danger:not(.action-emph-secondary):not(.action-emph-ghost) {
-  border-color: rgba(var(--act-rgb), calc(0.72 + 0.28 * var(--action-glow)));
-  color: #ffeae3;
-  background: linear-gradient(
-    180deg,
-    color-mix(
-      in srgb,
-      var(--act-deep) calc(88% + 12% * var(--action-glow)),
-      #2a1f19
-    ),
-    color-mix(
-      in srgb,
-      var(--act-deep) calc(70% + 14% * var(--action-glow)),
-      #201713
-    )
-  );
+.act-neutral:not(.action-emph-secondary):not(.action-emph-ghost) {
+  border-width: 1.5px;
+  border-color: rgba(var(--act-rgb), calc(0.42 + 0.24 * var(--action-glow)));
 }
 
-/* Rozmiary — mobile najpierw, sm: to desktop */
+/*
+ * Wyjątek od wyciszenia: akcja destrukcyjna ma się rzucać w oczy, więc
+ * dostaje jaśniejszy, bardziej nasycony tekst niż reszta domen. Dotyczy
+ * wyłącznie poziomu primary — secondary i ghost zostają spokojne (i dostają
+ * odpowiednio pergaminową albo bezplakietkową ramę z reguł wyżej, mimo że
+ * .act-danger ustawia --act-plate na czerwoną plakietkę — ta zmienna jest
+ * konsumowana tylko przez bazowe .action-btn, więc emphasis="secondary"/
+ * "ghost" bezpiecznie ją nadpisują swoim własnym border-image-source). Tło
+ * nie ma już własnej, specjalnej wersji koloru — border-image z `fill`
+ * z bazowego .action-btn sam niesie właściwą, nasyconą czerwień assetu,
+ * bez żadnej warstwy tła pod spodem.
+ */
+.action-btn.act-danger:not(.action-emph-secondary):not(.action-emph-ghost) {
+  color: #ffeae3;
+}
+
+/*
+ * Rozmiary — mobile najpierw, sm: to desktop. --action-frame steruje
+ * jednocześnie border-width i border-image-width (patrz komentarz przy
+ * .action-btn). Grubość ramy i min-height rosną razem: grubsza rama
+ * odgryza przestrzeń na tekst z tego samego pudełka, więc każdy rozmiar
+ * dostał kilka pikseli więcej wysokości względem stanu przed plakietkami,
+ * żeby etykieta miała tyle samo oddechu co wcześniej.
+ */
 
 .action-size-compact {
-  min-height: 40px;
-  padding: 0 14px;
+  --action-frame: 6px;
+  min-height: 44px;
+  padding: 0 16px;
   gap: 8px;
-  border-radius: 15px;
   font-size: 0.8125rem;
 }
 
 .action-size-default {
-  min-height: 44px;
-  padding: 0 18px;
+  --action-frame: 7px;
+  min-height: 48px;
+  padding: 0 20px;
   gap: 10px;
-  border-radius: 18px;
   font-size: 0.875rem;
 }
 
 .action-size-large {
-  min-height: 50px;
-  padding: 0 24px;
+  --action-frame: 8px;
+  min-height: 54px;
+  padding: 0 26px;
   gap: 10px;
-  border-radius: 20px;
   font-size: 0.9375rem;
 }
 
 /*
- * Kafel hero Stołu: etykieta ma prawo do dwóch linii, ikona stoi w rzędzie
- * obok tekstu. Zachowuje zwarty rozmiar i dziedziczy wspólną poświatę hover.
+ * Kafel hero Stołu: podniesiony z 42px do 64px na wyraźne życzenie — to są
+ * flagowe CTA (Zapisz wynik gry / Dodaj grę do Półki / Zorganizuj
+ * spotkanie), mają wyglądać reprezentacyjnie, nie jak reszta drobnych
+ * kontrolek. Nadal position: relative + translateY na hover/active, więc
+ * siatka 3 kolumn na Stole się nie przesuwa. Wysokość (64px) zostaje.
+ *
+ * Układ IKONA NAD TEKSTEM (nie obok, jak reszta rozmiarów) — .action-btn-
+ * -label dostaje flex-direction: column tylko tutaj. text-shadow to
+ * jedyny dozwolony sposób na dodanie "ciężaru" bez nowej, zasłaniającej
+ * warstwy (patrz komentarz przy .action-btn) — subtelny, nie panel pod
+ * tekstem. text-wrap: balance na .action-btn-text dba o to, żeby
+ * dwuwierszowa etykieta ("Dodaj grę do / Półki") łamała się w świadomym
+ * miejscu, a nie tam, gdzie akurat zabraknie miejsca w wierszu.
  */
 .action-size-hero {
-  min-height: 42px;
-  padding: 6px 8px;
-  gap: 6px;
+  --action-frame: 11px;
+  min-height: 64px;
+  padding: 10px 12px;
+  gap: 8px;
   width: 100%;
-  border-radius: 16px;
-  border-color: rgba(var(--act-rgb), calc(0.3 + 0.2 * var(--action-glow)));
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   font-weight: 700;
+  line-height: 1.28;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.action-size-hero .action-btn-label {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.action-size-hero .action-btn-text {
+  text-wrap: balance;
 }
 
 .action-size-hero .action-btn-icon {
-  width: 15px;
-  height: 15px;
+  width: 20px;
+  height: 20px;
 }
 
 /* Kapsułka — tylko dla małych kontrolek nawigacyjnych i filtrów */
@@ -1650,19 +2427,22 @@ a {
 
 @media (min-width: 640px) {
   .action-size-compact {
-    min-height: 36px;
-    padding: 0 12px;
+    --action-frame: 5px;
+    min-height: 38px;
+    padding: 0 14px;
   }
 
   .action-size-default {
-    min-height: 42px;
-    padding: 0 16px;
+    --action-frame: 6px;
+    min-height: 44px;
+    padding: 0 18px;
     font-size: 0.84rem;
   }
 
   .action-size-large {
-    min-height: 46px;
-    padding: 0 20px;
+    --action-frame: 7px;
+    min-height: 48px;
+    padding: 0 22px;
     font-size: 0.9rem;
   }
 }
@@ -1671,6 +2451,12 @@ a {
  * Wąski przycisk chowa symbol zamiast zwijać etykietę do trzeciej linii
  * albo zmniejszać font — pełna czytelność nazwy akcji jest ważniejsza niż
  * ikona. Wysokość zostaje ta sama, bo pilnuje jej min-height rozmiaru.
+ * WYJĄTEK: hero (jedyny dziś konsument .action-fit — kafle Stołu) ma ikonę
+ * NAD tekstem, nie obok niego, więc wąski kontener już jej nie zagraża —
+ * kafel ma teraz zawsze pokazywać ikonę, to była wyraźna prośba ("obecne
+ * duże przyciski wyglądają zbyt pusto"). Selektor z .action-size-hero ma
+ * wyższą specyficzność niż sam .action-btn-icon, więc wygrywa niezależnie
+ * od kolejności w tym bloku.
  */
 .action-fit {
   container-type: inline-size;
@@ -1680,10 +2466,14 @@ a {
   .action-btn-icon {
     display: none;
   }
+
+  .action-size-hero .action-btn-icon {
+    display: block;
+  }
 }
 
 /*
- * Redukcja ruchu: bez przejść i przesunięć, ale zmiana koloru na hover
+ * Redukcja ruchu: bez przejść i przesunięć, ale zmiana jasności na hover
  * zostaje — spójnie z .cta-glow i .quest-glow wyżej. Spinner zwalnia,
  * ale się nie zatrzymuje, bo jest wskaźnikiem stanu, nie dekoracją.
  */

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState, useTransition } from "react";
+import type { ActionVariant } from "@/components/ui/action-button-styles";
 import type { CurrentMember } from "@/features/auth/types";
 import { fetchBggGameDetails } from "./actions";
 import {
@@ -29,6 +30,11 @@ type GameFormProps = {
   submitLabel: string;
   pendingLabel: string;
   canTransferOwner: boolean;
+  // Domyślnie GameSubmitButton zostaje przy "shelf" (Bronze) — pasuje do
+  // edycji istniejącego egzemplarza. Formularz tworzenia nowego egzemplarza
+  // (gry/nowa) przekazuje "library" (Green): dodawanie do kolekcji ma inną
+  // barwę niż edytowanie tego, co już tam jest.
+  submitAction?: ActionVariant;
 };
 
 type LocalExpansion = GameExpansionFormValue & {
@@ -277,6 +283,7 @@ export function GameForm({
   submitLabel,
   pendingLabel,
   canTransferOwner,
+  submitAction,
 }: GameFormProps) {
   const [state, formAction] = useActionState(action, INITIAL_GAME_FORM_STATE);
   const formRef = useRef<HTMLFormElement>(null);
@@ -636,7 +643,7 @@ export function GameForm({
       )}
 
       <div className="flex flex-wrap gap-3 md:justify-end">
-        <GameSubmitButton pendingLabel={pendingLabel}>
+        <GameSubmitButton pendingLabel={pendingLabel} action={submitAction}>
           {submitLabel}
         </GameSubmitButton>
       </div>

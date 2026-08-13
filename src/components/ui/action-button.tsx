@@ -21,6 +21,31 @@ const iconPaths: Record<ActionVariant, string> = {
   neutral: "M19 12H5M11 18l-6-6 6-6",
   danger:
     "M4 7h16M10 11v6M14 11v6M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M9 7V4h6v3",
+  // Ten sam plus co shelf — to jest osobna barwa tej samej akcji (dodanie
+  // gry), nie inna czynność, więc dostaje ten sam symbol.
+  library: "M12 5v14M5 12h14",
+  // Skrzyżowane miecze — start właściwej rozgrywki, nie samo "play" ogólnego
+  // odtwarzacza. Dwa ostrza w X plus dwie krótkie jelce bliżej środka.
+  play: "M5 19L19 5M19 19L5 5M8 13.5L10.5 16M13.5 16L16 13.5",
+  // Zakończ spotkanie — prosty ptaszek. Przycisk używa tej akcji z
+  // withIcon={false}, ale Record<ActionVariant, string> wymaga wpisu.
+  finish: "M5 13l4 4L19 7",
+  // Płomień — pokazywany wyłącznie przy pozycji przełącznika równoległych
+  // wieczorów, przy której faktycznie trwa partia (isLive).
+  session:
+    "M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z",
+  // Kostka (kwadrat + trzy oczka) — "Wybierz kolejną grę" w podsumowaniu
+  // partii. Jedyny inny konsument tej akcji ("Nowa partia" w
+  // ContinuePrompt) renderuje ją z withIcon={false}, więc ta ikona jest
+  // w praktyce widoczna wyłącznie przy wyborze kolejnej gry.
+  newPlay:
+    "M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1ZM8 8h.01M12 12h.01M16 16h.01",
+  // Ten sam ptaszek co finish — "Zakończ partię" nie jest destrukcyjne
+  // (wynik zostaje uzupełniony później), więc dostaje symbol zakończenia,
+  // nie kosza. Ikona nie jest dziś włączana (withIcon={false}).
+  endPlay: "M5 13l4 4L19 7",
+  // Strzałka w okrąg (replay) — "Zagraj ponownie" w podsumowaniu partii.
+  replay: "M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6",
 };
 
 export function ActionIcon({ action }: { action: ActionVariant }) {
@@ -67,7 +92,7 @@ export function ActionBody({
         }
       >
         {withIcon ? <ActionIcon action={action} /> : null}
-        <span>{children}</span>
+        <span className="action-btn-text">{children}</span>
       </span>
       {loading ? (
         <>

@@ -295,16 +295,38 @@ type TableSessionMeetingRow = Pick<
 
 const TABLE_SESSION_MEETING_COLUMNS = "id, starts_at, ends_at";
 
-function toTableSessionMember(member: {
-  id: string;
-  displayName: string;
-  avatarUrl: string | null;
-}): TableSessionMember {
+function toTableSessionMember(
+  member: {
+    id: string;
+    displayName: string;
+    avatarUrl: string | null;
+  },
+  viewerId: string,
+): TableSessionMember {
   return {
     id: member.id,
     displayName: member.displayName,
     avatarUrl: member.avatarUrl,
+    isViewer: member.id === viewerId,
+    // Uzupełniane w getDashboardData z tego samego get_leaderboard, którego
+    // już woła podgląd rankingu — getTableSession nie dubluje tego zapytania.
+    points: 0,
   };
+}
+
+/**
+ * Dopisuje Renomę do uczestników Stołu z rankingu pobranego RÓWNOLEGLE w
+ * getDashboardData (get_leaderboard) — bez osobnego zapytania w
+ * getTableSession, które i tak biegnie w tym samym Promise.all.
+ */
+function withParticipantPoints(
+  members: TableSessionMember[],
+  pointsByUserId: Map<string, number>,
+): TableSessionMember[] {
+  return members.map((member) => ({
+    ...member,
+    points: pointsByUserId.get(member.id) ?? member.points,
+  }));
 }
 
 function toEndedPlay(
@@ -605,14 +627,16 @@ async function getTableSession(
 
   const confirmedMembers = details.attendanceRows
     .filter((row) => row.response === true)
-    .map((row) => toTableSessionMember(row.member));
+    .map((row) => toTableSessionMember(row.member, viewerId));
   const participants = livePlaySource
     ? livePlaySource.participants.map((participant) =>
-        toTableSessionMember(participant.member),
+        toTableSessionMember(participant.member, viewerId),
       )
     : confirmedMembers.length > 0
       ? confirmedMembers
-      : details.attendanceRows.map((row) => toTableSessionMember(row.member));
+      : details.attendanceRows.map((row) =>
+          toTableSessionMember(row.member, viewerId),
+        );
 
   const leadingVote =
     details.gameVotes.find((vote) => vote.yesCount > 0) ?? null;
@@ -683,7 +707,7 @@ async function getTableSession(
           accumulatedMinutes: livePlaySource.durationMinutes,
           isContinuation: (livePlaySource.durationMinutes ?? 0) > 0,
           players: livePlaySource.participants.map((participant) =>
-            toTableSessionMember(participant.member),
+            toTableSessionMember(participant.member, viewerId),
           ),
           resultHref: `/kronika/${livePlaySource.id}/edytuj?powrot=stol`,
         }
@@ -747,10 +771,7 @@ export async function getDashboardData(
       .order("ends_at", { ascending: false })
       .limit(4),
     supabase.from("ratings").select("game_id").eq("user_id", member.id),
-    supabase
-      .from("games")
-      .select("owner_id")
-      .is("archived_at", null),
+    supabase.from("games").select("owner_id").is("archived_at", null),
     supabase.rpc("get_leaderboard"),
     getUserPointBalanceResult(member.id),
     getRecentPlayPreviews(supabase),
@@ -769,8 +790,6 @@ export async function getDashboardData(
     supabase.rpc("get_public_player_profiles"),
   ]);
 
-  const tableSession = tableSessionResult.session;
-
   if (
     availableMeetingsResult.error ||
     finishedMeetingsResult.error ||
@@ -783,6 +802,30 @@ export async function getDashboardData(
   ) {
     throw new Error("Nie udało się zbudować danych Stołu.");
   }
+
+  const pointsByUserId = new Map(
+    (leaderboardResult.data ?? []).map(
+      (entry) => [entry.user_id, entry.total_points] as const,
+    ),
+  );
+  const tableSession = tableSessionResult.session
+    ? {
+        ...tableSessionResult.session,
+        participants: withParticipantPoints(
+          tableSessionResult.session.participants,
+          pointsByUserId,
+        ),
+        livePlay: tableSessionResult.session.livePlay
+          ? {
+              ...tableSessionResult.session.livePlay,
+              players: withParticipantPoints(
+                tableSessionResult.session.livePlay.players,
+                pointsByUserId,
+              ),
+            }
+          : null,
+      }
+    : null;
 
   const futureMeetings = (availableMeetingsResult.data ?? []) as MeetingRow[];
   const futureMeetingIds = futureMeetings.map((meeting) => meeting.id);

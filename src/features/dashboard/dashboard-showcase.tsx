@@ -24,15 +24,19 @@ import type { DashboardLeaderboardEntry } from "./types";
  * układu hero. Każdy kafel jest własnym kontenerem zapytań (action-fit),
  * więc przy wąskiej kolumnie chowa symbol zamiast zwijać etykietę do
  * trzeciej linii.
+ *
+ * Kolejność i barwa: Zapisz wynik gry (fioletowy, Kronika) | Dodaj grę do
+ * Półki (biały/srebrzysty — wariant "library", osobny od zwykłego
+ * act-shelf używanego gdzie indziej) | Zorganizuj spotkanie (brąz).
  */
 const HERO_ACTIONS = [
+  { action: "chronicle", href: "/kronika/nowa", label: "Zapisz wynik gry" },
+  { action: "library", href: "/gry/nowa", label: "Dodaj grę do Półki" },
   {
     action: "meeting",
     href: "/kalendarium/nowe",
     label: "Zorganizuj spotkanie",
   },
-  { action: "shelf", href: "/gry/nowa", label: "Dodaj grę do Półki" },
-  { action: "chronicle", href: "/kronika/nowa", label: "Zapisz wynik gry" },
 ] as const;
 
 function HeroActionTiles() {
@@ -268,6 +272,19 @@ export async function DashboardShowcase({
   // spotkanie” wraca więc do jednej roli: pokazuje NASTĘPNY wieczór i wygląda
   // dokładnie tak jak przed wdrożeniem.
   const tableSession = data.tableSession;
+  // Poświata modułu GRAMY! (PlayingSessionPanel): przy jednym spotkaniu
+  // (przełącznik się nie pokazuje) zawsze pomarańczowa — rozróżnienie
+  // lewe=niebieski/prawe=pomarańczowy ma sens dopiero, gdy przełącznik
+  // faktycznie pokazuje dwie pozycje do wyboru.
+  const sessionAccentIndex = data.tableSessionOptions.findIndex(
+    (option) => option.meetingId === tableSession?.meeting.id,
+  );
+  const sessionAccent: "blue" | "orange" =
+    data.tableSessionOptions.length < 2
+      ? "orange"
+      : sessionAccentIndex === 1
+        ? "orange"
+        : "blue";
   const upcoming = data.upcomingMeeting;
   const upcomingVisual = upcoming
     ? getUpcomingMeetingPanelClasses(upcoming.visualState)
@@ -464,38 +481,43 @@ export async function DashboardShowcase({
   return (
     <div className="space-y-2 sm:space-y-3">
       <div className="space-y-2 sm:hidden">
-        <Panel
-          style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
-          className="anim-rise-in-fast table-wood-panel fire-glow overflow-hidden p-3 text-[#fff1dc] shadow-[inset_0_0_0_1px_rgba(255,233,184,0.08),0_14px_30px_rgba(24,9,5,0.28)]"
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,198,105,0.18),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.08),transparent_18%)]" />
-          <div className="relative space-y-2">
-            <div className="text-center">
-              <h1 className="font-display truncate text-[1.32rem] leading-tight font-semibold text-[#fff1dc]">
-                {data.summary.title}
-              </h1>
-              <p className="mt-0.5 truncate text-[0.86rem] font-semibold text-[#e6c79f]">
-                {data.summary.subtitle}
-              </p>
+        {/* JEDEN moduł Stołu: bez aktywnego spotkania - nagłówek + 3 CTA jak
+            dawniej. Z aktywnym - wyłącznie sekcja "wieczoru przy stole", bez
+            nagłówka i bez trzech kafli akcji. table-sheet maluje
+            table-background.png jako prawdziwy 9-slice border-image, nie
+            zwykłe tło (patrz komentarz w globals.css). */}
+        <div className="table-sheet-shell">
+          <Panel
+            style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+            className="anim-rise-in-fast table-sheet p-3 text-[#fff1dc]"
+          >
+            <div className="relative space-y-2">
+              {tableSession ? (
+                <>
+                  <TableSessionSwitcher options={data.tableSessionOptions} />
+                  <TableSessionPanel
+                    session={tableSession}
+                    autoOpenGamePicker={autoOpenGamePicker}
+                    sessionAccent={sessionAccent}
+                  />
+                </>
+              ) : (
+                <>
+                  <div className="text-center">
+                    <h1 className="font-display truncate text-[1.32rem] leading-tight font-semibold text-[#fff1dc]">
+                      {data.summary.title}
+                    </h1>
+                    <p className="mt-0.5 truncate text-[0.86rem] font-semibold text-[#e6c79f]">
+                      {data.summary.subtitle}
+                    </p>
+                  </div>
+
+                  <HeroActionTiles />
+                </>
+              )}
             </div>
-
-            <HeroActionTiles />
-          </div>
-        </Panel>
-
-        {/* Wieczór, który właśnie trwa, jest najważniejszą rzeczą na Stole —
-            zaraz pod hero, przed resztą kafli. Gdy nic nie trwa, dashboard
-            wygląda dokładnie tak jak dotąd. */}
-        {tableSession ? (
-          <div>
-            <TableSessionSwitcher options={data.tableSessionOptions} />
-            <TableSessionPanel
-              session={tableSession}
-              entranceIndex={1}
-              autoOpenGamePicker={autoOpenGamePicker}
-            />
-          </div>
-        ) : null}
+          </Panel>
+        </div>
 
         <div className="grid grid-cols-2 items-start gap-2">
           <Panel
@@ -658,51 +680,57 @@ export async function DashboardShowcase({
 
       <div className="grid gap-3 sm:items-start sm:gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(17.5rem,0.9fr)] xl:gap-5">
         <div className="flex flex-col gap-[18px]">
+          {/* JEDEN moduł Stołu — patrz analogiczny komentarz w gałęzi mobile
+              wyżej: bez aktywnego spotkania nagłówek + Renoma + 3 CTA jak
+              dawniej; z aktywnym wyłącznie sekcja "wieczoru przy stole". */}
           <div className="hidden sm:block">
-            <Panel
-              style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
-              className="anim-rise-in-fast table-wood-panel fire-glow overflow-hidden p-3.5 text-[#fff1dc] shadow-[inset_0_0_0_1px_rgba(255,233,184,0.08),0_24px_54px_rgba(24,9,5,0.32)] sm:p-4"
-            >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,198,105,0.18),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(255,255,255,0.08),transparent_18%)]" />
-              <div className="relative flex flex-col gap-2.5 lg:flex-row lg:items-stretch lg:gap-5">
-                <div className="min-w-0 flex-1 space-y-2.5">
-                  <div className="space-y-1">
-                    <p className="text-[0.58rem] font-bold tracking-[0.18em] text-[#e2b578] uppercase">
-                      Stół
-                    </p>
-                    <h1 className="font-display text-[2.1rem] leading-tight font-semibold text-[#fff1dc] sm:text-[2.3rem]">
-                      {data.summary.title}
-                    </h1>
-                    <p className="text-[0.95rem] font-semibold text-[#e6c79f] sm:text-[1.05rem]">
-                      {data.summary.subtitle}
-                    </p>
+            <div className="table-sheet-shell">
+              <Panel
+                style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+                className="anim-rise-in-fast table-sheet p-3.5 text-[#fff1dc] sm:p-4"
+              >
+                {tableSession ? (
+                  <div className="relative">
+                    <TableSessionSwitcher options={data.tableSessionOptions} />
+                    <TableSessionPanel
+                      session={tableSession}
+                      autoOpenGamePicker={autoOpenGamePicker}
+                      sessionAccent={sessionAccent}
+                    />
                   </div>
+                ) : (
+                  <div className="relative flex flex-col gap-2.5 lg:flex-row lg:items-stretch lg:gap-5">
+                    <div className="min-w-0 flex-1 space-y-2.5">
+                      <div className="space-y-1">
+                        <p className="text-[0.58rem] font-bold tracking-[0.18em] text-[#e2b578] uppercase">
+                          Stół
+                        </p>
+                        <h1 className="font-display text-[2.1rem] leading-tight font-semibold text-[#fff1dc] sm:text-[2.3rem]">
+                          {data.summary.title}
+                        </h1>
+                        <p className="text-[0.95rem] font-semibold text-[#e6c79f] sm:text-[1.05rem]">
+                          {data.summary.subtitle}
+                        </p>
+                      </div>
 
-                  <HeroActionTiles />
-                </div>
+                      <HeroActionTiles />
+                    </div>
 
-                <div className="hidden w-fit shrink-0 self-stretch rounded-[1.2rem] border border-white/12 bg-[linear-gradient(145deg,rgba(19,10,7,0.32),rgba(31,17,11,0.18))] px-3.5 py-3 text-center shadow-[0_18px_36px_rgba(17,8,5,0.22)] lg:ml-auto lg:flex lg:min-h-full lg:flex-col lg:items-center lg:justify-center">
-                  <p className="text-center text-[0.58rem] font-bold tracking-[0.16em] text-[#d7b486] uppercase">
-                    Twoja Renoma
-                  </p>
-                  <p className="font-display mt-1 text-center text-[1.95rem] font-semibold text-[#fff1dc]">
-                    {data.pointsSummary.currentPoints.toLocaleString("pl-PL")}
-                  </p>
-                </div>
-              </div>
-            </Panel>
-          </div>
-
-          {tableSession ? (
-            <div className="hidden sm:block">
-              <TableSessionSwitcher options={data.tableSessionOptions} />
-              <TableSessionPanel
-                session={tableSession}
-                entranceIndex={1}
-                autoOpenGamePicker={autoOpenGamePicker}
-              />
+                    <div className="hidden w-fit shrink-0 self-stretch rounded-[1.2rem] border border-white/12 bg-[linear-gradient(145deg,rgba(19,10,7,0.32),rgba(31,17,11,0.18))] px-3.5 py-3 text-center shadow-[0_18px_36px_rgba(17,8,5,0.22)] lg:ml-auto lg:flex lg:min-h-full lg:flex-col lg:items-center lg:justify-center">
+                      <p className="text-center text-[0.58rem] font-bold tracking-[0.16em] text-[#d7b486] uppercase">
+                        Twoja Renoma
+                      </p>
+                      <p className="font-display mt-1 text-center text-[1.95rem] font-semibold text-[#fff1dc]">
+                        {data.pointsSummary.currentPoints.toLocaleString(
+                          "pl-PL",
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </Panel>
             </div>
-          ) : null}
+          </div>
 
           <section
             aria-labelledby="quests-heading"
