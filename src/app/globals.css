@@ -2390,16 +2390,26 @@ a {
  * jedyny dozwolony sposób na dodanie "ciężaru" bez nowej, zasłaniającej
  * warstwy (patrz komentarz przy .action-btn) — subtelny, nie panel pod
  * tekstem. text-wrap: balance na .action-btn-text dba o to, żeby
- * dwuwierszowa etykieta ("Dodaj grę do / Półki") łamała się w świadomym
- * miejscu, a nie tam, gdzie akurat zabraknie miejsca w wierszu.
+ * wielowierszowa etykieta łamała się w świadomym miejscu, a nie tam, gdzie
+ * akurat zabraknie miejsca w wierszu.
+ *
+ * Poziomy padding ZMNIEJSZONY względem pierwotnego strojenia (było 12px):
+ * po dodaniu prawdziwej, 9-slice'owej ramy .table-sheet (border-image o
+ * zmiennej, sporej szerokości) dostępna szerokość jednego z trzech kafli na
+ * wąskim telefonie skurczyła się na tyle, że dłuższe etykiety ("Dodaj grę
+ * do Półki") łamały się na TRZY wiersze zamiast zamierzonych dwóch.
+ * Na telefonie odzyskujemy miejsce z poziomego paddingu i minimalnie
+ * kondensujemy tekst. --action-frame oraz ikony zachowują dotychczasową
+ * skalę, a jawny podział etykiet na dwa wiersze pilnuje równej wysokości
+ * wszystkich trzech kafli także przy 390 px.
  */
 .action-size-hero {
   --action-frame: 11px;
   min-height: 64px;
-  padding: 10px 12px;
-  gap: 8px;
+  padding: 10px 0;
+  gap: 6px;
   width: 100%;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   line-height: 1.28;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
@@ -2414,6 +2424,14 @@ a {
   text-wrap: balance;
 }
 
+.dashboard-hero-action-copy {
+  display: grid;
+  justify-items: center;
+  line-height: inherit;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
 .action-size-hero .action-btn-icon {
   width: 20px;
   height: 20px;
@@ -2426,6 +2444,11 @@ a {
 }
 
 @media (min-width: 640px) {
+  .action-size-hero {
+    padding: 10px 6px;
+    font-size: 0.82rem;
+  }
+
   .action-size-compact {
     --action-frame: 5px;
     min-height: 38px;

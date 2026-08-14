@@ -30,22 +30,34 @@ import type { DashboardLeaderboardEntry } from "./types";
  * act-shelf używanego gdzie indziej) | Zorganizuj spotkanie (brąz).
  */
 const HERO_ACTIONS = [
-  { action: "chronicle", href: "/kronika/nowa", label: "Zapisz wynik gry" },
-  { action: "library", href: "/gry/nowa", label: "Dodaj grę do Półki" },
+  {
+    action: "chronicle",
+    href: "/kronika/nowa",
+    labelLines: ["Zapisz", "wynik gry"],
+  },
+  {
+    action: "library",
+    href: "/gry/nowa",
+    labelLines: ["Dodaj grę", "do Półki"],
+  },
   {
     action: "meeting",
     href: "/kalendarium/nowe",
-    label: "Zorganizuj spotkanie",
+    labelLines: ["Zorganizuj", "spotkanie"],
   },
 ] as const;
 
 function HeroActionTiles() {
   return (
-    <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+    <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
       {HERO_ACTIONS.map((tile) => (
         <div key={tile.action} className="action-fit min-w-0">
           <ActionLink action={tile.action} size="hero" href={tile.href}>
-            {tile.label}
+            <span className="dashboard-hero-action-copy">
+              {tile.labelLines.map((line) => (
+                <span key={line}>{line}</span>
+              ))}
+            </span>
           </ActionLink>
         </div>
       ))}
