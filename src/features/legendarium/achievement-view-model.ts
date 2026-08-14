@@ -134,6 +134,16 @@ export function mapAchievementCatalog(
     .map((definition): AchievementView => {
       const awardedAt = ownAwards.get(definition.achievementKey) ?? null;
       const hidden = definition.isSecret && !awardedAt;
+      const mappedProgress = progressByKey[definition.achievementKey] ?? null;
+      const visibleProgress =
+        awardedAt && mappedProgress
+          ? {
+              current: mappedProgress.target,
+              target: mappedProgress.target,
+              label: `${mappedProgress.target}/${mappedProgress.target}`,
+              isComplete: true,
+            }
+          : mappedProgress;
 
       return {
         key: definition.achievementKey,
@@ -151,7 +161,7 @@ export function mapAchievementCatalog(
         progress:
           hidden || definition.isManual
             ? null
-            : (progressByKey[definition.achievementKey] ?? null),
+            : visibleProgress,
         sortOrder: definition.sortOrder,
       };
     })

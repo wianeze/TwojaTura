@@ -2114,6 +2114,46 @@ export type Database = {
           user_id: string
         }[]
       }
+      preview_legendarium_stage1_reconciliation: {
+        Args: never
+        Returns: {
+          achievements_to_revoke: number
+          achievements_to_unlock: number
+          current_achievement_renown: number
+          display_name: string
+          projected_achievement_renown: number
+          renown_delta: number
+          user_id: string
+        }[]
+      }
+      preview_legendarium_stage2a_reconciliation: {
+        Args: never
+        Returns: {
+          achievement_key: string
+          achievement_name: string
+          current_renown: number
+          display_name: string
+          projected_renown: number
+          proposed_change: string
+          reason: string
+          renown_delta: number
+          user_id: string
+        }[]
+      }
+      preview_legendarium_stage2b_reconciliation: {
+        Args: never
+        Returns: {
+          achievement_key: string
+          achievement_name: string
+          current_renown: number
+          display_name: string
+          projected_renown: number
+          proposed_change: string
+          reason: string
+          renown_delta: number
+          user_id: string
+        }[]
+      }
       propose_meeting_game: {
         Args: { p_game_id: string; p_meeting_id: string }
         Returns: {

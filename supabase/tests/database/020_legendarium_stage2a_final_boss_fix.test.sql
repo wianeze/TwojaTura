@@ -96,13 +96,14 @@ select ok(
 
 -- Nieukończona trzecia gra nie może wypełnić warunku.
 insert into public.plays (
-  id, game_id, created_by, played_at, created_at, status, mode
+  id, game_id, created_by, played_at, created_at, status, mode, state_note
 )
 values (
   'e9310000-0000-4000-8000-000000000005',
   'e9300000-0000-4000-8000-000000000003',
   '10000000-0000-0000-0000-000000000006',
-  '2026-01-05', '2026-01-05', 'in_progress', 'competitive'
+  '2026-01-05', '2026-01-05', 'in_progress', 'competitive',
+  'Testowa partia nadal trwa'
 );
 
 insert into public.play_participants (play_id, user_id, placement, is_winner)

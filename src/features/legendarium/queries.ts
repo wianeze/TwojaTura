@@ -218,7 +218,9 @@ export async function getAchievementClassData(
     ownParticipantPlayIds.length > 0
       ? supabase
           .from("plays")
-          .select("id, meeting_id, played_at, created_at, mode, team_result")
+          .select(
+            "id, game_id, meeting_id, played_at, created_at, mode, team_result",
+          )
           .in("id", ownParticipantPlayIds)
           .eq("status", "completed")
       : Promise.resolve({ data: [], error: null }),
@@ -236,6 +238,23 @@ export async function getAchievementClassData(
     allParticipantsResult.error
   ) {
     throw new Error("Nie udaÅ‚o siÄ™ obliczyÄ‡ progresu odznak.");
+  }
+
+  const completedGameIds = Array.from(
+    new Set(
+      (ownCompletedPlaysResult.data ?? []).map((play) => play.game_id),
+    ),
+  );
+  const playedGamesResult =
+    completedGameIds.length > 0
+      ? await supabase
+          .from("games")
+          .select("id, bgg_weight")
+          .in("id", completedGameIds)
+      : { data: [], error: null };
+
+  if (playedGamesResult.error) {
+    throw new Error("Nie udało się obliczyć progresu trudnych gier.");
   }
 
   // Only completed plays may feed result-based achievement progress
@@ -262,6 +281,12 @@ export async function getAchievementClassData(
   }
   const playsById = new Map(
     (ownCompletedPlaysResult.data ?? []).map((play) => [play.id, play]),
+  );
+  const weightByGameId = new Map(
+    (playedGamesResult.data ?? []).map((game) => [
+      game.id,
+      game.bgg_weight === null ? null : Number(game.bgg_weight),
+    ]),
   );
   const ownResults = (ownParticipantsResult.data ?? [])
     .filter((participant) =>
@@ -342,6 +367,25 @@ export async function getAchievementClassData(
       (participant) => participant.play?.meeting_id === null,
     ),
     currentWinStreak,
+    heavyGamesPlayed: new Set(
+      ownResults
+        .filter(
+          (participant) =>
+            participant.play &&
+            (weightByGameId.get(participant.play.game_id) ?? 0) >= 3.5,
+        )
+        .map((participant) => participant.play!.game_id),
+    ).size,
+    heavyGamesWon: new Set(
+      ownResults
+        .filter(
+          (participant) =>
+            participant.is_winner &&
+            participant.play &&
+            (weightByGameId.get(participant.play.game_id) ?? 0) >= 4,
+        )
+        .map((participant) => participant.play!.game_id),
+    ).size,
   });
   const achievements = mapAchievementCatalog(
     definitions,

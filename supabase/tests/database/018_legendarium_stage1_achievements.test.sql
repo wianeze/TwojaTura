@@ -63,9 +63,9 @@ select results_eq(
       ('chosen_of_the_table', 'planned'),
       ('dice_speak', 'secret'),
       ('hot_streak', 'secret'),
-      ('redemption_arc', 'planned')
+      ('redemption_arc', 'automatic')
   $$,
-  '4. badge do repurpose zostają w bezpiecznym stanie planned/secret'
+  '4. Stage 2B aktywuje Redemption Arc, a pozostałe badge zachowują planned/secret'
 );
 
 -- 5–10. Zwołanie Drużyny: komplet eligibility, admin, observer i inactive.

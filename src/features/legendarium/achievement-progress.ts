@@ -20,6 +20,8 @@ export type AchievementProgressMetrics = {
   hasSoloPlay: boolean;
   hasSideQuest: boolean;
   currentWinStreak: number;
+  heavyGamesPlayed: number;
+  heavyGamesWon: number;
 };
 
 export function isRealLastPlace(
@@ -69,5 +71,8 @@ export function buildAchievementProgressMap(
     lone_wolf: progress(Number(metrics.hasSoloPlay), 1),
     side_quest: progress(Number(metrics.hasSideQuest), 1),
     dark_urge: progress(metrics.currentWinStreak, 3),
+    candlekeep_sage: progress(metrics.heavyGamesPlayed, 10),
+    final_boss: progress(metrics.heavyGamesWon, 3),
+    hot_streak: progress(metrics.currentWinStreak, 5),
   };
 }

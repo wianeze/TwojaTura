@@ -242,6 +242,36 @@ test("achievement catalog maps acquired and locked definitions", () => {
   assert.equal(catalog[1]?.state, "locked");
 });
 
+test("acquired achievement keeps a complete counter after its live streak resets", () => {
+  const catalog = mapAchievementCatalog(
+    achievementDefinitions,
+    [
+      {
+        userId: "member-1",
+        achievementKey: "common-one",
+        awardedAt: "2026-07-20T10:00:00Z",
+      },
+    ],
+    "member-1",
+    2,
+    {
+      "common-one": {
+        current: 0,
+        target: 5,
+        label: "0/5",
+        isComplete: false,
+      },
+    },
+  );
+
+  assert.deepEqual(catalog[0]?.progress, {
+    current: 5,
+    target: 5,
+    label: "5/5",
+    isComplete: true,
+  });
+});
+
 test("unearned secret achievement becomes a safe placeholder", () => {
   const catalog = mapAchievementCatalog(
     achievementDefinitions,
@@ -273,6 +303,8 @@ test("achievement progress maps the supported read-only counters", () => {
     hasSoloPlay: false,
     hasSideQuest: true,
     currentWinStreak: 2,
+    heavyGamesPlayed: 6,
+    heavyGamesWon: 1,
   });
 
   assert.deepEqual(progress.initiative_master, {
@@ -299,6 +331,9 @@ test("achievement progress maps the supported read-only counters", () => {
     label: "2/3",
     isComplete: false,
   });
+  assert.equal(progress.candlekeep_sage?.label, "6/10");
+  assert.equal(progress.final_boss?.label, "1/3");
+  assert.equal(progress.hot_streak?.label, "2/5");
 });
 
 test("natural_one progress requires three last-place finishes", () => {
@@ -316,6 +351,8 @@ test("natural_one progress requires three last-place finishes", () => {
     hasSoloPlay: false,
     hasSideQuest: false,
     currentWinStreak: 0,
+    heavyGamesPlayed: 0,
+    heavyGamesWon: 0,
   };
 
   assert.equal(
