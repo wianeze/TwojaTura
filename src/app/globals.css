@@ -1383,38 +1383,329 @@ a {
 }
 
 /*
- * Delikatniejszy wariant poświaty dla aktywnych, klikalnych kafli
- * questów — świadomie słabszy niż .cta-glow (mniejszy blur/spread,
- * niższe opacity, brak cienia "wciśnięcia" na active).
+ * Karta questa JEST assetem ramy — nie „karta z nałożoną ramką”. Prawdziwy
+ * 9-slice na samym <Link> (border-width = border-image-width, więc layout
+ * treści zaczyna się za narysowaną ramą, jak w .action-btn) — róg, krawędź
+ * i ŚRODEK to trzy strefy TEGO SAMEGO obrazu (border-image-slice ... fill),
+ * bez osobnego tła i bez wymuszonego border-radius.
+ *
+ * ŹRÓDŁO: public/assets/quests/{color}-quest-frame.png — pochodna
+ * dostarczonych masterów *-quest-poprawione.png, generowana jednym skryptem.
+ * Skrypt robi dokładnie trzy rzeczy i nic więcej:
+ *
+ *  1. SPŁASZCZA WSZYSTKIE 4 PASY KRAWĘDZI. Pas górny/dolny dostaje jedną
+ *     medianę na wiersz (każda kolumna pasa identyczna), pas lewy/prawy jedną
+ *     medianę na kolumnę (każdy wiersz identyczny). Rozciąganie czegoś
+ *     jednolitego wzdłuż własnej osi jest z definicji niewidoczne — stąd zero
+ *     szwów, zero powtórzeń i zero „dziwnego stretchu boków" (to ostatnie
+ *     jest realnym problemem tylko dlatego, że karta jest niska: pas boczny
+ *     ściska się pionowo ~2× mocniej niż poziomo, co miażdżyło klejnot na
+ *     środku boku). Przy narożnikach 90-pikselowy crossfade wtapia oryginał
+ *     w płaski pas, więc wić z rogu wygasa płynnie zamiast urywać się ostro.
+ *  2. USUWA TŁO SPOZA RAMY (flood fill od krawędzi obrazu): czerń w białym/
+ *     zielonym/fioletowym, płaska szarość w niebieskim. Pomarańczowy nie ma
+ *     tła — złoto dochodzi do krawędzi — więc zostaje w pełni nieprzezroczysty.
+ *  3. NIC WIĘCEJ. Rogi i cała ich ornamentyka są nietknięte.
+ *
+ * SLICE jest mierzony per asset i wjeżdża jako `--quest-frame-slice`, bo
+ * mastery mają realnie różne rozmiary (1254×1254 oraz 1536×1024) i różny
+ * zasięg motywu narożnika. Slice MUSI obejmować cały motyw rogu: gdy go
+ * przecina, ogon motywu ląduje w pasie krawędzi, który jest skalowany zupełnie
+ * inaczej niż blok rogu — i ten skok skali to właśnie mechanizm „posklejanych"
+ * krawędzi z poprzedniej wersji.
+ *
+ * `fill` jest kluczowe: bez niego środek zostałby pusty. Ze spłaszczonymi
+ * pasami wewnętrzna krawędź pasa ma dokładnie kolor sąsiadującego pergaminu,
+ * więc środek nie odcina się od ramy.
+ *
+ * border-image-repeat: `stretch` na OBU osiach — NIGDY `round`/`repeat`.
+ * Kafelkowanie było źródłem „sznura" identycznych ozdób; przy jednolitym
+ * pasie `stretch` jest jedynym poprawnym trybem.
+ *
+ * ŻADNYCH osobnych akcentów: rama ma wyglądać dobrze sama z siebie.
+ */
+.quest-card-frame {
+  position: relative;
+  z-index: 0;
+  box-sizing: border-box;
+  /*
+   * Grubość ramy, mobile-first. Na telefonie rama ma być WYRAŹNIE grubsza:
+   * poprzednie `clamp(1.25rem, 3.5vw, 2.2rem)` na wąskim ekranie i tak zawsze
+   * lądowało na dolnym progu (3.5vw to przy 375px zaledwie 13px), więc realnie
+   * dawało stałe 20px — nieproporcjonalnie cienko do reszty karty.
+   *
+   * Ta jedna zmienna wystarczy: `border-width`, `border-image-width`, sylwetka
+   * poświaty (.quest-glow::before) i zaczep wykrzyknika w action-card.tsx
+   * wszystkie liczą się z niej przez dziedziczenie, więc ikona i cień
+   * automatycznie idą za grubszą ramą — nie trzeba ich korygować osobno.
+   */
+  --quest-frame-band: clamp(1.75rem, 7.5vw, 2.125rem);
+  border-style: solid;
+  border-color: transparent;
+  border-width: var(--quest-frame-band);
+  border-image-source: var(--quest-frame-asset, none);
+  border-image-slice: var(--quest-frame-slice, 320) fill;
+  border-image-width: var(--quest-frame-band);
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  background: transparent;
+}
+
+/* Od `sm` wzwyż bez zmian — dokładnie ta sama wartość co dotychczas. */
+@media (min-width: 640px) {
+  .quest-card-frame {
+    --quest-frame-band: clamp(1.25rem, 3.5vw, 2.2rem);
+  }
+}
+
+/*
+ * Ozdobne akcenty na górnej i dolnej krawędzi ramki: DOKŁADNIE trzy na
+ * krawędź — mały / duży (środek) / mały, tym samym plikiem co centralny
+ * (`variant.accentAsset`), więc żadnego nowego mapowania assetów. Dolny rząd
+ * to te same trzy pliki obrócone przez scaleY(-1). Żadnego dalszego
+ * powielania wzdłuż krawędzi poza tą szóstką.
+ *
+ * Czysty overlay dekoracyjny: `position: absolute` wyjmuje każdy z flow, więc
+ * nie mogą zmienić wysokości karty ani rozepchnąć ramki (karta ma
+ * `overflow-visible`, a `pointer-events: none` zdejmuje je z interakcji).
+ *
+ * Kotwiczone na ŚRODKU pasa ramy, nie na krawędzi border-boxa: `top` liczy się
+ * od padding-boxa, czyli od wewnętrznego lica ramy, więc -0.5 * band trafia
+ * dokładnie w połowę jej grubości — niezależnie od rozmiaru obrazka (dzięki
+ * temu duży i małe akcenty mają środek na tej samej linii, mimo różnej
+ * wysokości). Ornament siada wtedy okrakiem na ramie — połowa na niej, połowa
+ * poza — tak jak klejnot w oryginalnej grafice.
+ *
+ * Rozmiar i pozycja wiązane z `--quest-frame-band`/`--quest-accent-scale`,
+ * więc skalują się razem z ramą i tak samo działają na mobile i desktopie —
+ * bez osobnych breakpointów.
+ */
+.quest-card-accent {
+  position: absolute;
+  left: 50%;
+  z-index: 2;
+  display: block;
+  pointer-events: none;
+  height: calc(var(--quest-accent-scale, 1.15) * var(--quest-frame-band));
+  width: auto;
+  max-width: none;
+}
+
+/*
+ * Boczne akcenty: mniejsze od środkowego (73.3% jego wysokości — 55% było za
+ * drobne, 110% za duże, to wypośrodkowanie między nimi) i przesunięte o
+ * ćwierć szerokości karty w stronę każdej krawędzi — czyli dokładnie w
+ * połowie odległości między środkowym akcentem a bokiem, z dala od
+ * narożników (blok narożnika = --quest-frame-band, ~35px, więc 25%
+ * szerokości karty zawsze zostawia spory zapas nawet na najwęższym mobile).
+ * Mnożnik liczony od `--quest-accent-scale`, nie od stałej — więc boczne
+ * akcenty automatycznie skalują się razem ze środkowym per rarity, bez
+ * osobnego pola w configu.
+ */
+.quest-card-accent--sm {
+  height: calc(0.733 * var(--quest-accent-scale, 1.15) * var(--quest-frame-band));
+}
+
+/*
+ * `- 10px` / `+ 10px` odsuwają boczne akcenty dalej w stronę swojej krawędzi
+ * (poza bazowe 25%/75%) — ten sam kierunek co nazwa klasy sugeruje, więc bez
+ * odwróconego znaku jak przy `top`/`bottom` (tam offset liczy się od
+ * przeciwnej krawędzi, tu `left` liczy się od tej samej, lewej).
+ */
+.quest-card-accent--left {
+  left: calc(25% - 10px);
+}
+
+.quest-card-accent--right {
+  left: calc(75% + 10px);
+}
+
+/*
+ * `--quest-accent-offset` odsuwa akcent na ZEWNĄTRZ karty (per rarity, patrz
+ * accentOffset w quest-variants.ts). Ten sam znak po obu stronach, mimo że
+ * przesuwają się przeciwnie: przy `top` bardziej ujemna wartość podnosi
+ * element w górę, a przy `bottom` — opuszcza w dół, bo offset liczy się tam
+ * od przeciwnej krawędzi.
+ */
+.quest-card-accent--top {
+  top: calc(-0.5 * var(--quest-frame-band) - var(--quest-accent-offset, 3px));
+  transform: translate(-50%, -50%);
+}
+
+.quest-card-accent--bottom {
+  bottom: calc(
+    -0.5 * var(--quest-frame-band) - var(--quest-accent-offset, 3px)
+  );
+  transform: translate(-50%, 50%) scaleY(-1);
+}
+
+/*
+ * Boczne akcenty mają WŁASNY offset (`--quest-accent-offset-sm`, patrz
+ * accentOffsetSm w quest-variants.ts) — domyślnie równy offsetowi dużego
+ * (fallback do `--quest-accent-offset`), ale regulowalny osobno, gdy ten sam
+ * dystans co duży wizualnie sadza mniejszy ornament za blisko ramy. Selektor
+ * łączący dwie klasy (`--sm--top`) ma wyższą specyficzność niż samo `--top`
+ * powyżej, więc nadpisuje `top`/`bottom` bez ruszania `transform`.
+ */
+.quest-card-accent--sm.quest-card-accent--top {
+  top: calc(
+    -0.5 * var(--quest-frame-band) -
+      var(--quest-accent-offset-sm, var(--quest-accent-offset, 3px))
+  );
+}
+
+.quest-card-accent--sm.quest-card-accent--bottom {
+  bottom: calc(
+    -0.5 * var(--quest-frame-band) -
+      var(--quest-accent-offset-sm, var(--quest-accent-offset, 3px))
+  );
+}
+
+/*
+ * Plakietka nagrody „+X Renomy” — TA SAMA plakietka co ActionButton
+ * (public/assets/buttons/{white,green,blue,purple,orange}.png, czyli
+ * znormalizowane *-button-new), renderowana TYM SAMYM, sprawdzonym
+ * w produkcji mechanizmem 9-slice co .action-btn: `border-image-slice: 92
+ * fill` na wspólnym płótnie 640×640. Zero derived assetów, zero rysowania
+ * kształtu w CSS/SVG.
+ *
+ * Jedyna różnica wobec .action-btn to SKALA: 124×36 przy border-width 6px.
+ * To jest sedno — poprzednie podejście brało tę samą plakietkę, ale przy
+ * 140×48 i obwódce 8px, przez co ścięte rogi robiły się duże i całość
+ * czytała się jak „wielki oktagon ActionButtona", a nie jak mała plakietka.
+ * Przy 6px ścięcie ma 6px: kompaktowo, poziomo, subtelnie.
+ *
+ * `border-image` maluje sylwetkę z kanału alfa PNG, więc nie ma tu żadnej
+ * drugiej obwódki ani prostokątnego tła — plakietka ma dokładnie jeden,
+ * własny złoty brzeg, ten sam co wszystkie przyciski w aplikacji.
+ */
+.quest-reward-badge {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 6.75rem;
+  height: 2rem;
+  border-style: solid;
+  border-color: transparent;
+  border-width: 0.3125rem;
+  border-image-source: var(--quest-badge-plate, none);
+  border-image-slice: 92 fill;
+  border-image-width: 0.3125rem;
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  filter: drop-shadow(0 0.1rem 0.18rem rgba(35, 18, 8, 0.42));
+}
+
+@media (min-width: 640px) {
+  .quest-reward-badge {
+    right: 0.875rem;
+    width: 7.75rem;
+    height: 2.25rem;
+    border-width: 0.375rem;
+    border-image-width: 0.375rem;
+  }
+}
+
+.quest-reward-badge__text {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+ * Poświata dla aktywnych, klikalnych kafli questów.
+ *
+ * POPRZEDNIA wersja rysowała `box-shadow` na samym <Link> — czyli od jego
+ * PROSTOKĄTNEGO border-boxa, niezależnie od tego, że .quest-card-frame
+ * (ta sama karta, patrz wyżej) ma naprawdę postrzępioną sylwetkę z
+ * przezroczystymi narożnikami. Efekt: widoczna, kwadratowa poświata tam,
+ * gdzie asset jest w rzeczywistości przezroczysty — dokładnie ten sam błąd,
+ * co opisany przy .action-btn niżej w tym pliku (dlatego te przyciski od
+ * dawna używają drop-shadow, nie box-shadow).
+ *
+ * Rozwiązanie: `::before` renderuje DRUGĄ kopię DOKŁADNIE tego samego
+ * 9-slice (ten sam --quest-frame-asset, ten sam slice/repeat/width — muszą
+ * być identyczne, inaczej sylwetka poświaty nie pokryje się z prawdziwą
+ * ramą), po czym `filter: drop-shadow(...)` liczy cień od jej KANAŁU ALFA —
+ * automatycznie podąża za ściętymi narożnikami i wystającymi klejnotami,
+ * zero halo w przezroczystych narożnikach. Realna karta (border-image na
+ * samym .quest-card-frame) i treść (tytuł/opis/CTA/plakietka, dalsze dzieci
+ * w DOM) renderują się NAD tą warstwą w normalnej kolejności malowania —
+ * ::before to zawsze pierwsze, najgłębsze dziecko — więc drop-shadow nigdy
+ * nie dotyka tekstu ani wykrzyknika (osobny, prawdziwy element DOM, poza tym
+ * ::before).
+ *
+ * `inset: calc(-1 * var(--quest-frame-band))` kompensuje to, że `position:
+ * absolute` liczy się od PADDING-boxa .quest-card-frame (czyli już za jego
+ * border-image), a ta warstwa ma pokryć się z jego border-boxem — bez tego
+ * duplikat byłby węższy o dwie szerokości ramki i nie pokrywał się z
+ * oryginałem. `z-index: 0` na .quest-card-frame + `z-index: -1` tutaj
+ * trzymają warstwę poświaty pod resztą treści, we WŁASNYM kontekście
+ * stakowania karty (nie ucieka pod sąsiednie karty w gridzie).
+ *
+ * Dwie warstwy drop-shadow (bliższa/mocniejsza + dalsza/miększa) to ta sama
+ * technika co --action-glow przy .action-btn; kolor z rarity przez
+ * --quest-glow-strong/--quest-glow-soft (quest-variants.ts, te same barwy co
+ * reszta palety danego rarity — nie nowe, wymyślone kolory). border-image-*
+ * tutaj MUSI być identyczne jak w .quest-card-frame (ten sam slice/width/
+ * repeat) — inaczej sylwetka poświaty przestaje pokrywać się z prawdziwą
+ * ramą.
+ *
+ * Hover/focus dostają WŁASNE, jaśniejsze kolory (--quest-glow-strong-hover/
+ * --quest-glow-soft-hover, wyższa alfa w quest-variants.ts), nie tylko
+ * większy blur — na życzenie wyraźniejsza reakcja na najechanie, bez
+ * zmieniania samej sylwetki.
  */
 .quest-glow {
   position: relative;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-  transition:
-    box-shadow 150ms ease,
-    transform 150ms ease;
+  transition: transform 150ms ease;
+}
+
+.quest-glow::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--quest-frame-band));
+  z-index: -1;
+  pointer-events: none;
+  box-sizing: border-box;
+  border-style: solid;
+  border-color: transparent;
+  border-width: var(--quest-frame-band);
+  border-image-source: var(--quest-frame-asset, none);
+  border-image-slice: var(--quest-frame-slice, 320) fill;
+  border-image-width: var(--quest-frame-band);
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  filter:
+    drop-shadow(0 2px 6px var(--quest-glow-strong, transparent))
+    drop-shadow(0 8px 22px var(--quest-glow-soft, transparent));
+  transition: filter 150ms ease;
 }
 
 .quest-glow:hover {
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 230, 183, 0.28),
-    0 0 10px 1px rgba(223, 106, 53, 0.28),
-    0 0 20px 4px rgba(214, 160, 68, 0.18);
   transform: translateY(-1px);
 }
 
-.quest-glow:focus-visible {
-  outline: 2px solid var(--gold);
-  outline-offset: 2px;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 230, 183, 0.28),
-    0 0 10px 1px rgba(223, 106, 53, 0.24),
-    0 0 20px 4px rgba(214, 160, 68, 0.16);
+.quest-glow:hover::before,
+.quest-glow:focus-visible::before {
+  filter:
+    drop-shadow(0 4px 12px var(--quest-glow-strong-hover, var(--quest-glow-strong, transparent)))
+    drop-shadow(0 12px 34px var(--quest-glow-soft-hover, var(--quest-glow-soft, transparent)));
 }
 
 .quest-glow:active {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   transform: translateY(0);
+}
+
+.quest-glow:active::before {
+  filter:
+    drop-shadow(0 2px 6px var(--quest-glow-strong, transparent))
+    drop-shadow(0 8px 22px var(--quest-glow-soft, transparent));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2352,10 +2643,20 @@ a {
  * odgryza przestrzeń na tekst z tego samego pudełka, więc każdy rozmiar
  * dostał kilka pikseli więcej wysokości względem stanu przed plakietkami,
  * żeby etykieta miała tyle samo oddechu co wcześniej.
+ *
+ * --action-frame podniesiony o ok. 30% na każdym rozmiarze/breakpoincie
+ * (świadome, jednolite żądanie „o 25–35%, mięsiściej i premium") — WYŁĄCZNIE
+ * ta zmienna. border-image-slice zostaje na 92 (patrz komentarz przy
+ * .action-btn): róg skaluje się proporcjonalnie do border-image-width
+ * niezależnie od jego wartości (to jest istota 9-slice — narożnik to zawsze
+ * to samo wycięcie źródła, tylko renderowane w innym rozmiarze), więc
+ * pogrubienie ramy nie odkształca ornamentu ani nie wymaga korekty slice.
+ * min-height/padding celowo NIE ruszone — grubsza rama odgryza swoje
+ * dodatkowe kilka pikseli z tego samego pudełka zamiast go powiększać.
  */
 
 .action-size-compact {
-  --action-frame: 6px;
+  --action-frame: 7.8px;
   min-height: 44px;
   padding: 0 16px;
   gap: 8px;
@@ -2363,7 +2664,7 @@ a {
 }
 
 .action-size-default {
-  --action-frame: 7px;
+  --action-frame: 9.1px;
   min-height: 48px;
   padding: 0 20px;
   gap: 10px;
@@ -2371,7 +2672,7 @@ a {
 }
 
 .action-size-large {
-  --action-frame: 8px;
+  --action-frame: 10.4px;
   min-height: 54px;
   padding: 0 26px;
   gap: 10px;
@@ -2404,7 +2705,7 @@ a {
  * wszystkich trzech kafli także przy 390 px.
  */
 .action-size-hero {
-  --action-frame: 11px;
+  --action-frame: 14.3px;
   min-height: 64px;
   padding: 10px 0;
   gap: 6px;
@@ -2450,20 +2751,20 @@ a {
   }
 
   .action-size-compact {
-    --action-frame: 5px;
+    --action-frame: 6.5px;
     min-height: 38px;
     padding: 0 14px;
   }
 
   .action-size-default {
-    --action-frame: 6px;
+    --action-frame: 7.8px;
     min-height: 44px;
     padding: 0 18px;
     font-size: 0.84rem;
   }
 
   .action-size-large {
-    --action-frame: 7px;
+    --action-frame: 9.1px;
     min-height: 48px;
     padding: 0 22px;
     font-size: 0.9rem;
