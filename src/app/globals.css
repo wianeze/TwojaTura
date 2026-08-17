@@ -861,6 +861,536 @@ body {
  * jest tu wyłączony: druga, sztuczna ramka w środku prawdziwej drewnianej
  * ramy wyglądałaby jak dwie nakładające się ramki.
  */
+
+/*
+ * Tablica rankingu "Legendy przy Stole" — prawdziwy 9-slice border-image na
+ * public/assets/legendarum-background.png (portret 1024×1536, ciemne
+ * wnętrze + złoto-miedziana rama z klejnotami na środku każdej krawędzi),
+ * ten sam mechanizm co .table-sheet powyżej.
+ *
+ * slice: 250 fill, NIE 140. Zmierzone osobno górne i dolne rogi (zoom
+ * 340×356 na dolny-lewy): górny róg to tylko łagodna krzywizna listwy,
+ * zasięg ok. 110px — ale dolny róg ma DODATKOWO duży zdobny "kieł"
+ * (diamentowy ornament wbity w narożnik), sięgający ok. 210–230px od
+ * krawędzi. Jeden wspólny slice musi objąć WIĘKSZY z dwóch (dolny), inaczej
+ * kieł ląduje w rozciąganym pasie krawędzi i wychodzi rozjechany — to był
+ * dokładnie zgłoszony błąd "dolne rogi źle zeskalowane" przy slice:140.
+ * Celowo NADAL jedna wspólna wartość (nie 4 różne per-strona): przy różnych
+ * slice per oś source-rect narożnika przestaje być kwadratowy, a mapowanie
+ * na kwadratowy render (jedno border-image-width) zniekształcałoby go od
+ * nowa, tylko w drugą stronę. 250px to margines nad zmierzonym zasięgiem
+ * (230px), środek nadal jest jednolity, więc hojny slice niczego nie psuje.
+ *
+ * MUSI stać PO .premium-edge (patrz komentarz przy .table-sheet-shell
+ * wyżej — `border: 0` z .premium-edge inaczej wygrywa w kaskadzie i kasuje
+ * border-image, bo oba selektory mają tę samą specyficzność, a wygrywa
+ * kolejność w arkuszu).
+ *
+ * WSZYSTKIE ornamenty — narożniki, klejnot na środku góry/dołu i boczne
+ * diamenty — pochodzą z tego jednego assetu przez border-image. Klejnot
+ * góra/dół miał kiedyś osobne nakładki <Image>, bo w cienkiej ramie
+ * wychodził rozpłaszczony; nakładki zostały usunięte, bo miały stały
+ * rozmiar niezależny od grubości ramy. Rozciąganie w pasie krawędzi to
+ * fizyczne ograniczenie 9-slice, ale jego SIŁA zależy od grubości ramy
+ * (patrz wyliczenie przy --legend-frame niżej) — im grubsza rama, tym
+ * bliżej proporcji oryginału, więc lekarstwem jest --legend-frame, a nie
+ * osobne grafiki.
+ *
+ * `.legend-board-shell` dostarcza kontekst container-type: inline-size, bo
+ * `--legend-frame` skaluje się przez cqi względem WŁASNEJ szerokości panelu
+ * — ten sam wzorzec co .table-sheet-shell, więc JEDEN komponent wygląda
+ * dobrze i w wąskiej kolumnie mobile (grid 2 kolumny), i w szerszym
+ * sidebarze desktopu, bez osobnych wariantów na breakpoint.
+ *
+ * --legend-frame dopasowany do .table-sheet (clamp(18px, 9cqi, 50px)) —
+ * te same wartości, na wyraźną prośbę "grubsze ramki, tak jak przy stole".
+ * Wcześniejsze, skromniejsze clamp(13px, 7cqi, 34px) wynikało z obawy o
+ * ciasną kolumnę mobile (2 kolumny grida) — po weryfikacji przez realny
+ * pomiar layoutu (nie samą wizualną ocenę zrzutu ekranu) CTA nadal mieści
+ * się w jednej linii przy tej grubszej ramie, więc nie było powodu do
+ * kompromisu.
+ */
+.legend-board-shell {
+  container-type: inline-size;
+  width: 100%;
+}
+
+.legend-board {
+  /*
+   * Skala CAŁEJ ramy. Przy 9-slice ornamenty (narożniki, klejnot na środku
+   * góry/dołu, boczne diamenty) nie mają własnego rozmiaru — są tym
+   * grubsze, im większe jest border-image-width. Poprzednie 15cqi (~24.7px
+   * przy kolumnie 175px) renderowało 250px źródła w 24.7px, czyli
+   * 10-krotne pomniejszenie: ornamenty schodziły do poziomu cienkiego
+   * obrysu, zamiast wyglądać jak miniatura oryginalnej tablicy.
+   *
+   * 18.3cqi ≈ 32px przy tej samej kolumnie. Poza samym powiększeniem
+   * ornamentów naprawia to też ich PROPORCJE: pas górnej/dolnej krawędzi
+   * rozciąga się poziomo o (W - 2F)/524 i pionowo o F/250, więc im cieńsza
+   * rama, tym mocniej klejnot na środku jest rozpłaszczany w poziomie.
+   * Zmierzone: przy 24.7px rozciągnięcie wynosiło 2.43x, przy 32px spada do
+   * 1.65x. Pełna zgodność proporcji wypadłaby dopiero przy ~42.7px
+   * (F = 250·W/1024), ale tam ranking traci już tyle szerokości, że imiona
+   * zaczynają się skracać wielokropkiem — 32px to najgrubsza rama, przy
+   * której wszystkie imiona i jednoliniowe CTA nadal się mieszczą
+   * (sprawdzone pomiarem scrollWidth/clientWidth na żywym widoku).
+   */
+  /*
+   * DOKŁADNIE ta sama formuła co --meeting-frame — oba kafle dzielą tę samą
+   * kolumnę grida (~175px na mobile), więc ta sama formuła daje im tę samą
+   * grubość layoutową, to samo pole treści i tę samą wysokość. Bez tego
+   * Legendy (wcześniej 18.3cqi ≈ 32px vs 15cqi ≈ 26px w kaflu spotkania)
+   * wyglądały cięższe i bardziej "napompowane" niż sąsiad.
+   */
+  --legend-frame: clamp(20px, 15cqi, 46px);
+
+  /*
+   * Grubość MALOWANEJ ramy, celowo ODCZEPIONA od --legend-frame.
+   *
+   * `border-width` wyznacza content-box (czyli gdzie zaczyna się treść),
+   * a `border-image-width` wyłącznie to, jak grubo rysowany jest sam obraz
+   * ramy. Rozdzielenie ich pozwala pogrubić ramę wizualnie 2x, nie zabierając
+   * rankingowi ani piksela: layout dalej liczy się od 32px, więc nagłówek,
+   * puchary, imiona, punkty i CTA zostają dokładnie tam, gdzie były
+   * (zweryfikowane porównaniem getBoundingClientRect przed/po — panel, imię
+   * i CTA co do piksela identyczne).
+   *
+   * Rysunek 9-slice'a jest kotwiczony do ZEWNĘTRZNEJ krawędzi, a w źródle
+   * złota listwa zajmuje zewnętrzne ~92px z 250px slice'a — przy 64px
+   * malowania wychodzi ~23.6px złota zamiast ~11.8px, narożniki i klejnoty
+   * góra/dół rosną 2x. Wewnętrzna resztka pasa (poza złotem) to jednolita
+   * ciemna skóra, identyczna z wypełnieniem środka, więc mimo że sięga pod
+   * treść, nie widać żadnego szwu ani zmiany tła pod tekstem.
+   *
+   * Świadomie BEZ border-image-outset: rama rosnąca na zewnątrz zderzyłaby
+   * się z sąsiadem — do kafla "Najbliższe spotkanie" jest tylko 8px odstępu,
+   * a do krawędzi ekranu 16px (zmierzone), więc wylałaby się na oba. Rośnie
+   * więc do środka, po jednolitej skórze.
+   *
+   * Mnożnik 1.63 (było 2.0) to zmniejszenie rysunku ramy o ~1/3: 64px -> 43px,
+   * czyli złota listwa 23.6px -> 15.7px. Ta wartość jest przy okazji punktem,
+   * w którym ornamenty przestają być zniekształcone: pas krawędzi rozciąga
+   * się poziomo o (W - 2P)/524 i pionowo o P/250, więc proporcje są 1:1 przy
+   * P = 250·W/1024 ≈ 42.7px dla kolumny 175px. Zmierzone: przy 64px klejnot
+   * był ściskany w poziomie (0.35), teraz wychodzi 1.03, czyli praktycznie
+   * bez deformacji.
+   */
+  --legend-frame-paint: calc(var(--legend-frame) * 1.63);
+
+  /*
+   * O ile ozdobna rama WYCHODZI POZA box panelu, osobno w poziomie i w
+   * pionie. 0 = zachowanie jak dotąd (rama rośnie do środka, po jednolitej
+   * skórze). Wartość > 0 przesuwa ramę na zewnątrz, więc ciemne pole panelu
+   * staje się większe, a outer box i pole treści zostają nietknięte.
+   *
+   * Rozdzielone na trzy niezależne wartości (poziom + góra + dół), bo zapas
+   * miejsca jest wszędzie inny: w poziomie limituje odstęp między kaflami
+   * (4px), a w pionie jest go więcej (~8px nad i pod), przy czym dół i góra
+   * są strojone osobno — dzięki temu rama może "dosiadać" panel u dołu bardziej
+   * niż u góry. Ustawiane tylko na mobile — patrz @media niżej; desktop zostaje
+   * na 0, czyli renderuje się identycznie jak przed wydzieleniem warstwy.
+   */
+  --legend-frame-overhang-x: 0px;
+  --legend-frame-overhang-top: 0px;
+  --legend-frame-overhang-bottom: 0px;
+
+  position: relative;
+  border-style: solid;
+  border-color: transparent;
+  border-width: var(--legend-frame);
+
+  /*
+   * Fallback zanim/gdyby asset się nie wczytał — patrz .table-sheet.
+   * `background-image: none` zdejmuje trzy warstwy z .material-panel
+   * (Panel), w tym biało-kremowy linear-gradient i teksturę papieru —
+   * ta sama poprawka co w .meeting-board.
+   *
+   * `background-clip: border-box` (nie padding-box): ciemne tło musi sięgać
+   * pod cały pas ramy, bo rysunek ramy przeniósł się na .legend-frame-overlay
+   * i przy dodatnim overhangu jego wewnętrzna krawędź cofa się na zewnątrz —
+   * bez tego między ramą a treścią prześwitywałoby tło strony.
+   */
+  background-image: none;
+  background-color: #1c130d;
+  background-clip: border-box;
+  border-radius: 0.6rem;
+}
+
+/*
+ * Ozdobna rama Legend jako OSOBNA, absolutna warstwa (a nie border-image na
+ * samym panelu). Sens: przy ujemnym `inset` gruba rama rośnie NA ZEWNĄTRZ
+ * boxa, zamiast zjadać pole treści. Assety obu kafli mają różne proporcje i
+ * różny udział dekoracji (Najbliższe spotkanie 1122×1402, legendarum
+ * 1024×1536, gdzie rama zajmuje znacznie większą część kadru), więc przy
+ * identycznym outer boxie ciemne wnętrze Legend wychodziło mniejsze — ta
+ * warstwa rozwiązuje to bez ruszania gridu i bez zwężania sąsiada.
+ *
+ * `border-image-slice: 250` i grubość rysunku są PRZENIESIONE 1:1 z
+ * poprzedniej reguły .legend-board, więc masa wizualna ramy się nie zmienia.
+ */
+.legend-frame-overlay {
+  position: absolute;
+  /*
+   * `inset` elementu absolutnego liczy się od PADDING-boxa kontenera, a nie
+   * od border-boxa — a .legend-board ma pas bordera (--legend-frame) pełniący
+   * rolę wcięcia treści. Żeby warstwa pokryła cały panel i wyszła jeszcze
+   * `--legend-frame-overhang` na zewnątrz, trzeba cofnąć ją o SUMĘ obu.
+   * Samo `-1 * overhang` dawało warstwę schowaną ~16px w środku panelu.
+   *
+   * Trzy wartości w `inset` = góra, poziom, dół — stąd osobne overhangi.
+   */
+  inset: calc(-1 * (var(--legend-frame) + var(--legend-frame-overhang-top)))
+    calc(-1 * (var(--legend-frame) + var(--legend-frame-overhang-x)))
+    calc(-1 * (var(--legend-frame) + var(--legend-frame-overhang-bottom)));
+  z-index: 0;
+  pointer-events: none;
+  border-style: solid;
+  border-color: transparent;
+  border-width: var(--legend-frame-paint);
+  border-image-source: url("/assets/legendarum-background.png");
+  border-image-slice: 250 fill;
+  border-image-width: var(--legend-frame-paint);
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  border-radius: 0.6rem;
+}
+
+/* Treść nad warstwą ramy — sama rama ma pointer-events: none, więc linki
+   i tak są klikalne, ale z-index pilnuje kolejności malowania. */
+.legend-board-content {
+  position: relative;
+  z-index: 1;
+}
+
+.legend-board.premium-edge {
+  box-shadow:
+    inset 0 1px 0 rgba(250, 220, 164, 0.1),
+    0 20px 46px rgba(17, 8, 5, 0.32);
+}
+
+.legend-board.premium-edge::after {
+  content: none;
+}
+
+/*
+ * Klejnot górnej/dolnej krawędzi NIE jest już osobnym <Image> nałożonym na
+ * ramę. Wcześniejsze nakładki (legendarum-ornament-top/-bottom.png) powstały
+ * po to, żeby ukryć rozpłaszczony klejnot z rozciąganego pasa krawędzi —
+ * ale miały własny, stały rozmiar niezależny od --legend-frame, więc
+ * przestawały pasować do ramy przy każdej zmianie jej grubości. Zamiast
+ * tego wszystkie ornamenty (narożniki, klejnot góra/dół, boczne diamenty)
+ * pochodzą teraz wprost z legendarum-background.png przez border-image, a o
+ * ich czytelność dba odpowiednio gruba rama — patrz --legend-frame wyżej.
+ */
+
+/*
+ * Separator między wierszami rankingu — bardzo subtelna linia (na wyraźną
+ * prośbę "jak w scr1": tam separatorów praktycznie nie widać, odstęp
+ * między wierszami robi sama przerwa). Ostatni wiersz dostaje
+ * `border-bottom: 0` bezpośrednio w JSX (patrz LegendBoardRow), żeby nie
+ * kończyć listy podwójną krawędzią z paddingiem tablicy pod spodem.
+ */
+.legend-board-row {
+  border-bottom: 1px solid rgba(240, 202, 143, 0.07);
+}
+
+/*
+ * Nazwa gracza jako "wygrawerowana" w metalowej płycie: cieplejszy odcień
+ * złota niż zwykły kremowy tekst + text-shadow imitujący relief (ciemny
+ * cień pod literą, jasny prześwit nad nią) zamiast płaskiego koloru.
+ */
+.legend-board-name {
+  color: #f2d9ad;
+  text-shadow:
+    0 1px 0 rgba(8, 4, 2, 0.7),
+    0 -1px 0 rgba(255, 238, 205, 0.2);
+}
+
+/*
+ * CTA "Zobacz ranking" — bliźniak .meeting-board-cta: ta sama rodzina
+ * plakietek (menu-tile-*), ta sama geometria i ta sama wartość slice: 120
+ * (zmierzona w .nav-tile, który używa tych samych plików). Różni je tylko
+ * wariant: tu ZŁOTY menu-tile-active.png, w kaflu spotkania ciemny
+ * menu-tile-inactive.png — stąd tutaj ciemny atrament, a tam jasny.
+ *
+ * Poprzednio: menu-light-button.png ze slice: 230. Ten plik ma ~100px
+ * przezroczystej poświaty dookoła płytki i róg kończący się dopiero ~240px
+ * (zmierzone) — przy ramce 0.55rem (8.8px) całe 230px źródła wciskało się w
+ * 8.8px, czyli 26-krotne pomniejszenie: sam bevel płytki schodził poniżej
+ * 2px, a ~4px z każdej strony przycisku zajmowała niewidoczna poświata.
+ * Efekt: płaski, "zeskalowany" prostokąt zamiast wyraźnej plakietki.
+ * menu-tile-active.png wypełnia swoje płótno prawie w całości, więc przy
+ * slice: 120 kompresja spada do ~14x — dokładnie tyle, ile ma CTA kafla
+ * spotkania, które wygląda dobrze.
+ *
+ * `flex-wrap: wrap` zostaje jako zabezpieczenie na wypadek najwęższej kolumny
+ * — ma się złamać normalnie, a nie clipować, gdyby jednak zabrakło miejsca.
+ */
+.legend-board-cta {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  /*
+   * Szerokość z treści, nie na siłę 100% — pełna szerokość robiła z przycisku
+   * "długą belkę" przez całą kartę, a na desktopie (szerszy sidebar) efekt był
+   * jeszcze mocniejszy. `fit-content` + auto-marginesy dają naturalne
+   * proporcje i wyśrodkowanie, `max-width` pilnuje, żeby przy najwęższej
+   * kolumnie przycisk nadal nie wystawał poza pole treści.
+   */
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem 0.3rem;
+  box-sizing: border-box;
+  border-style: solid;
+  border-color: transparent;
+  border-width: 0.55rem;
+  border-image-source: url("/assets/menu-tile-active.png");
+  border-image-slice: 120 fill;
+  border-image-width: 0.55rem;
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  color: #4a3a22;
+  filter: drop-shadow(0 0.1rem 0.16rem rgba(20, 10, 5, 0.4));
+  transition: filter 150ms ease;
+}
+
+.legend-board-cta:hover {
+  filter: drop-shadow(0 0.14rem 0.22rem rgba(20, 10, 5, 0.5)) brightness(1.04);
+}
+
+/*
+ * Wyrównanie mobilnej PARY kafli "Najbliższe spotkanie" + "Legendy przy
+ * stole" (grid 2 kolumny). Wszystko sprowadza się do jednego: oba kafle
+ * dostają IDENTYCZNE pole treści, czyli tę samą layoutową grubość ramy.
+ * Z tego wynika naraz: tytuły startują z tej samej linii, CTA mają tę samą
+ * szerokość, a odstęp CTA od dołu panelu jest ten sam.
+ *
+ * Sztuczka polega na tym, że w .legend-board layout (`border-width`) jest
+ * odczepiony od rysunku (`border-image-width`). Dzięki temu można zmniejszyć
+ * layoutową ramę Legend do wartości kafla spotkania — czyli PODNIEŚĆ tytuł i
+ * poszerzyć pole treści — nie zmieniając ani o piksel tego, jak gruba rama
+ * jest NARYSOWANA. Mnożnik jest tu przeliczony tak, żeby rysunek został na
+ * tych samych ~42.8px co przed zmianą.
+ *
+ * Tylko mobile: powyżej sm cała ta para nie istnieje (blok ma sm:hidden), a
+ * .legend-board jest współdzielony z sidebarem desktopu — tam obowiązują
+ * wartości z reguły bazowej, więc desktop zostaje nietknięty.
+ */
+@media (max-width: 639px) {
+  .legend-board {
+    --legend-frame: clamp(15px, 11.1cqi, 35px);
+    --legend-frame-paint: calc(var(--legend-frame) * 2.18);
+
+    /*
+     * X = 3px: limitem jest odstęp między kaflami (4px) — przy 3px między
+     * ramami zostaje jeszcze ~0.7px, więcej i rama Legend nachodziłaby na
+     * kafel spotkania.
+     * TOP = 6px, BOTTOM = 9px: w pionie zapas jest większy (~8px nad i pod),
+     * więc rama może wychodzić dalej i optycznie lepiej wypełniać wysokość
+     * panelu. Dół dostaje o 3px więcej niż góra — na wyraźną prośbę, żeby
+     * dolna listwa z klejnotem "dosiadała" panel mocniej. Outer box,
+     * content-box, tytuł, ranking i CTA zostają nietknięte — rośnie wyłącznie
+     * rysunek ramy poza obrysem.
+     */
+    --legend-frame-overhang-x: 3px;
+    --legend-frame-overhang-top: 6px;
+    --legend-frame-overhang-bottom: 9px;
+  }
+}
+
+/*
+ * Kafel "Najbliższe spotkanie" na mobile — 9-slice z ORYGINALNEGO
+ * public/assets/Najbliższe-stpotkanie.png (1122×1402), bez żadnego
+ * pochodnego assetu, tą samą techniką i tą samą formułą grubości co
+ * .legend-board (border-width = border-image-width, transparent
+ * border-color, fill).
+ *
+ * Dlaczego znów 9-slice, a nie jedna rozciągnięta warstwa <Image>:
+ * rozciąganie całego PNG (`object-fit: fill`) z proporcji 1122:1402 (0.80)
+ * do proporcji kafla ~168:302 (0.55) deformuje narożniki o ~45% w pionie —
+ * dokładnie to było widać jako "rozciągnięte rogi". W 9-slice kwadratowy
+ * fragment źródła (115×115) trafia w kwadratowy narożnik ramy, więc skaluje
+ * się RÓWNOMIERNIE w obu osiach: nigdy się nie deformuje. Przy okazji
+ * skalowanie 115px→~25px zmniejsza samo ścięcie narożnika, czyli rogi są
+ * też "mniej wcięte".
+ *
+ * Wcześniejsze podejścia 9-slice wyglądały źle nie przez samą technikę,
+ * tylko przez biały prostokąt pod spodem — malowała go DRUGA warstwa
+ * `background-image` klasy `.material-panel`:
+ * `linear-gradient(145deg, rgba(255,255,255,0.72), rgba(255,249,238,0.54))`.
+ * `background-color: transparent` nie mógł jej zdjąć, bo kolor i obraz tła
+ * to osobne właściwości — stąd tutaj SKRÓT `background`, który resetuje
+ * wszystkie longhandy naraz. Poza kształtem samego PNG widać ciemne tło
+ * Stołu, nic więcej.
+ */
+.meeting-board-shell {
+  container-type: inline-size;
+  width: 100%;
+  background: transparent;
+}
+
+.meeting-board {
+  /*
+   * ~20% mniej niż poprzednie clamp(20px, 15cqi, 46px) — ta sama technika co
+   * przy zmniejszaniu ramy Legend: schodzi wyłącznie SKALA rysunku 9-slice,
+   * przy nietkniętym assecie i nietkniętym `slice`, więc kształt narożników
+   * i cała stylistyka zostają bez zmian. Realnie 26px -> 21px przy kolumnie
+   * 175px. Treść zyskuje przy tym 10px szerokości, więc nic się nie zawija,
+   * a fonty nie musiały schodzić (czytelność była tu priorytetem).
+   */
+  --meeting-frame: clamp(15px, 11.1cqi, 35px);
+
+  position: relative;
+  background: transparent;
+  border-style: solid;
+  border-color: transparent;
+  border-width: var(--meeting-frame);
+  border-image-source: url("/assets/Najbliższe-stpotkanie.png");
+  border-image-slice: 115 fill;
+  border-image-width: var(--meeting-frame);
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+}
+
+/*
+ * CTA kafla "Najbliższe spotkanie" — geometria 1:1 z .legend-board-cta
+ * (ta sama grubość ramy, te same paddingi/typografia po stronie JSX).
+ *
+ * Plakietka: DOKŁADNIE ten sam produkcyjny asset i te same parametry
+ * 9-slice co przycisk "Zorganizuj spotkanie" na Stole, czyli
+ * public/assets/buttons/bronze.png + `slice: 92 fill` + `repeat: stretch`.
+ * Tam ustawia go `--act-plate` w `.act-meeting`, a rysuje `.action-btn`
+ * (odczytane z żywego przycisku, nie z domysłu). Bronze-button-new.png to
+ * surowe źródło, z którego ten znormalizowany plik już powstał — dlatego nic
+ * tu nie normalizuję ani nie kopiuję po raz drugi.
+ *
+ * `slice` MUSI być 92, nie 120: to wartość właściwa dla znormalizowanych
+ * plakietek buttons/*.png (menu-tile-* mają inny margines i stąd 120).
+ * Grubość ramy (0.55rem) i cała geometria boxa zostają nietknięte.
+ */
+.meeting-board-cta {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem 0.3rem;
+  box-sizing: border-box;
+  border-style: solid;
+  border-color: transparent;
+  border-width: 0.55rem;
+  border-image-source: url("/assets/buttons/bronze.png");
+  border-image-slice: 92 fill;
+  border-image-width: 0.55rem;
+  border-image-outset: 0;
+  border-image-repeat: stretch;
+  color: #f1ca8f;
+  filter: drop-shadow(0 0.1rem 0.16rem rgba(20, 10, 5, 0.4));
+  transition: filter 150ms ease;
+}
+
+.meeting-board-cta:hover {
+  filter: drop-shadow(0 0.14rem 0.22rem rgba(20, 10, 5, 0.5)) brightness(1.08);
+}
+
+/*
+ * Wspólny token rozmiaru OBU mobilnych CTA. Wartości to ZMIERZONY box
+ * przycisku "Zorganizuj spotkanie" (138.33 × 36.84px przy kolumnie 177px),
+ * który jest tu wzorcem.
+ *
+ * Szerokość jako TWARDE 138px, nie 100% i nie min(...): 100% wiązałoby
+ * rozmiar przycisku z polem treści, więc każda przyszła zmiana ramy jednego
+ * kafla znów rozjechałaby CTA; z kolei `min(138.33px, 100%)` dawało różnicę
+ * 0.01px między kaflami na samym rozwiązywaniu funkcji. Stała wartość daje
+ * wynik bit-dokładnie identyczny. `max-width: 100%` jest zabezpieczeniem na
+ * węższe telefony, gdzie 138px by nie weszło — tam oba kafle też dostaną tę
+ * samą liczbę, bo pola treści są równe.
+ *
+ * Wysokość przypięta na sztywno, żeby identyczność nie była przypadkowa:
+ * assety obu przycisków mają inne przezroczyste marginesy, ale kompensuje to
+ * renderowanie border-image WEWNĄTRZ boxa — zewnętrzny box zostaje ten sam.
+ *
+ * Blok MUSI stać PO regułach .meeting-board-cta / .legend-board-cta: media
+ * query nie podnosi specyficzności, a oba selektory są jednoklasowe, więc o
+ * wyniku decyduje kolejność w arkuszu. Wcześniej ten blok był wyżej i
+ * `width: 100%` z .meeting-board-cta wygrywało, przez co przycisk spotkania
+ * ignorował token (138.33 vs 138px).
+ */
+@media (max-width: 639px) {
+  .meeting-board-shell,
+  .legend-board-shell {
+    --mobile-board-cta-width: 138px;
+    --mobile-board-cta-height: 36.84px;
+  }
+
+  .meeting-board-cta,
+  .legend-board-cta {
+    width: var(--mobile-board-cta-width);
+    max-width: 100%;
+    height: var(--mobile-board-cta-height);
+    margin-inline: auto;
+  }
+
+  /*
+   * Plakietka CTA "Zobacz ranking" na mobile: ten sam produkcyjny,
+   * znormalizowany asset i ten sam mechanizm 9-slice, którym aplikacja rysuje
+   * przyciski akcji — public/assets/buttons/orange.png + `slice: 92 fill` +
+   * `repeat: stretch` (tak samo jak `--act-plate` w .act-* i jak bronze.png w
+   * .meeting-board-cta). Orange-button-new.png to surowe źródło, z którego ten
+   * plik już powstał, więc nic tu nie normalizuję ponownie.
+   *
+   * Zmienia się WYŁĄCZNIE źródło i slice — grubość ramy (0.55rem), paddingi,
+   * typografia i cały box <a> zostają nietknięte. Slice musi być 92, bo taka
+   * jest wartość dla znormalizowanych plakietek buttons/*.png (120 dotyczyło
+   * menu-tile-*, które mają zupełnie inny margines).
+   *
+   * Zniknęła też wcześniejsza kompensacja na ::before. Istniała tylko po to,
+   * żeby zniwelować RÓŻNICĘ przezroczystych marginesów między menu-tile-inactive
+   * (34px u góry) i menu-tile-active (7px). Oba przyciski używają teraz
+   * znormalizowanych plakietek buttons/*.png, których marginesy są zerowe
+   * (zmierzone: bronze 2/3/2/3, orange 7/6/2/2 na płótnie 640×640, czyli
+   * poniżej 0.7px po przeskalowaniu) — kompensacja nie ma już czego równać, a
+   * utrzymana wciskałaby płytkę o ~2px i przycisk znów byłby niższy od
+   * sąsiada. Płytka wraca więc na sam element, dokładnie jak na desktopie.
+   */
+  .legend-board-cta {
+    border-image-source: url("/assets/buttons/orange.png");
+    border-image-slice: 92 fill;
+    /*
+     * Atrament: dokładnie ten sam odcień co nazwy graczy w tym panelu
+     * (#f2d9ad z .legend-board-name) — bazowy #4a3a22 był dobrany pod ZŁOTĄ
+     * płytkę (menu-tile-active, desktop) i na pomarańczowej dawał słaby
+     * kontrast przy foncie 7.68px, a czysta biel była z kolei za jasna.
+     * Cień pod literami zostaje, bo odcina tekst od jaśniejszych partii
+     * plakietki.
+     */
+    color: #f2d9ad;
+    text-shadow: 0 1px 1px rgba(74, 30, 6, 0.55);
+  }
+}
+
+/*
+ * Bazowe .premium-edge (Panel) niesie box-shadow z kilkoma jasnymi
+ * inset-ringami oraz pseudoelement ::after z kolejnym jasnym ringiem
+ * (z-index: 30, czyli NAD treścią) — zaprojektowane dla płaskiego,
+ * prostokątnego panelu z własnym tłem. Tutaj kartę rysuje wyłącznie PNG,
+ * którego kształt (wcięte narożniki) NIE pokrywa się z prostokątem
+ * `border-radius` panelu, więc każdy taki ring/cień obrysowywałby inny
+ * kształt niż sam asset — dokładnie stąd brały się jasne obwódki wokół
+ * karty. Zerujemy oba: widać ma być sam asset, nic dorysowanego.
+ */
+.meeting-board.premium-edge {
+  box-shadow: none;
+}
+
+.meeting-board.premium-edge::after {
+  content: none;
+}
+
 .table-sheet-shell {
   container-type: inline-size;
   width: 100%;
@@ -882,6 +1412,21 @@ body {
   background-color: #2a1a12;
   background-clip: padding-box;
   border-radius: 0.6rem;
+}
+
+/*
+ * Telefon: rama o 5px węższa z każdej strony (przesunięcie w dół całej
+ * krzywej `clamp`, nie przeskalowanie — tempo wzrostu względem cqi zostaje
+ * to samo, zmienia się tylko punkt startowy/pułap). Uwalnia dokładnie tyle
+ * miejsca, ile kafle Stołu (HeroActionTiles) dostają z powrotem jako gap
+ * między przyciskami, więc same przyciski nie zmieniają szerokości — patrz
+ * `!gap-[5px]` w dashboard-showcase.tsx. Tylko mobile: od `sm` wzwyż
+ * `.table-sheet` wraca do bazowej ramy z reguły wyżej.
+ */
+@media (max-width: 639px) {
+  .table-sheet {
+    --table-frame: clamp(13px, calc(9cqi - 5px), 45px);
+  }
 }
 
 .table-sheet.premium-edge {
@@ -1383,238 +1928,101 @@ a {
 }
 
 /*
- * Karta questa JEST assetem ramy — nie „karta z nałożoną ramką”. Prawdziwy
- * 9-slice na samym <Link> (border-width = border-image-width, więc layout
- * treści zaczyna się za narysowaną ramą, jak w .action-btn) — róg, krawędź
- * i ŚRODEK to trzy strefy TEGO SAMEGO obrazu (border-image-slice ... fill),
- * bez osobnego tła i bez wymuszonego border-radius.
+ * Karta questa JEST assetem pergaminu — nie „karta z nałożoną ramką”.
+ * Prawdziwy 9-slice na samym <Link> (border-width = border-image-width,
+ * więc layout treści zaczyna się za narysowanym brzegiem, jak w .action-btn)
+ * — róg, krawędź i ŚRODEK to trzy strefy TEGO SAMEGO obrazu
+ * (border-image-slice ... fill), bez osobnego tła i bez wymuszonego
+ * border-radius.
  *
- * ŹRÓDŁO: public/assets/quests/{color}-quest-frame.png — pochodna
- * dostarczonych masterów *-quest-poprawione.png, generowana jednym skryptem.
- * Skrypt robi dokładnie trzy rzeczy i nic więcej:
+ * ŹRÓDŁO: public/assets/zlecenie-bacground.png (Zlecenie) i
+ * public/assets/misja-card-background.png (Misja, przycięta pochodna
+ * dostarczonego misja-background.png — patrz komentarz przy
+ * QUEST_CARD_BACKGROUND w quest-variants.ts). Oba to zwykłe, spokojne
+ * pergaminy z postrzępioną krawędzią i jedną ozdobną linią u góry/dołu —
+ * jeden asset na WSZYSTKIE rarity danego rodzaju karty, w przeciwieństwie do
+ * poprzedniego systemu ramek fantasy (5 osobnych plików). Rzadkość różni już
+ * tylko poświata (.quest-glow niżej) i kolory tekstu (quest-variants.ts).
  *
- *  1. SPŁASZCZA WSZYSTKIE 4 PASY KRAWĘDZI. Pas górny/dolny dostaje jedną
- *     medianę na wiersz (każda kolumna pasa identyczna), pas lewy/prawy jedną
- *     medianę na kolumnę (każdy wiersz identyczny). Rozciąganie czegoś
- *     jednolitego wzdłuż własnej osi jest z definicji niewidoczne — stąd zero
- *     szwów, zero powtórzeń i zero „dziwnego stretchu boków" (to ostatnie
- *     jest realnym problemem tylko dlatego, że karta jest niska: pas boczny
- *     ściska się pionowo ~2× mocniej niż poziomo, co miażdżyło klejnot na
- *     środku boku). Przy narożnikach 90-pikselowy crossfade wtapia oryginał
- *     w płaski pas, więc wić z rogu wygasa płynnie zamiast urywać się ostro.
- *  2. USUWA TŁO SPOZA RAMY (flood fill od krawędzi obrazu): czerń w białym/
- *     zielonym/fioletowym, płaska szarość w niebieskim. Pomarańczowy nie ma
- *     tła — złoto dochodzi do krawędzi — więc zostaje w pełni nieprzezroczysty.
- *  3. NIC WIĘCEJ. Rogi i cała ich ornamentyka są nietknięte.
+ * `--quest-frame-slice` to jedna wspólna wartość (QUEST_CARD_SLICE, 200px
+ * źródła) — hojna z rozmysłem: musi objąć zarówno ozdobną linię (~85–105px
+ * od krawędzi), jak i klejnot na jej końcu (~165–180px od boku), a środek
+ * obu assetów jest jednolitym pergaminem, więc większy niż konieczny slice
+ * niczego nie psuje (nie ma tu powtarzalnego wzoru, który rozjechałoby
+ * rozciąganie).
  *
- * SLICE jest mierzony per asset i wjeżdża jako `--quest-frame-slice`, bo
- * mastery mają realnie różne rozmiary (1254×1254 oraz 1536×1024) i różny
- * zasięg motywu narożnika. Slice MUSI obejmować cały motyw rogu: gdy go
- * przecina, ogon motywu ląduje w pasie krawędzi, który jest skalowany zupełnie
- * inaczej niż blok rogu — i ten skok skali to właśnie mechanizm „posklejanych"
- * krawędzi z poprzedniej wersji.
- *
- * `fill` jest kluczowe: bez niego środek zostałby pusty. Ze spłaszczonymi
- * pasami wewnętrzna krawędź pasa ma dokładnie kolor sąsiadującego pergaminu,
- * więc środek nie odcina się od ramy.
- *
- * border-image-repeat: `stretch` na OBU osiach — NIGDY `round`/`repeat`.
- * Kafelkowanie było źródłem „sznura" identycznych ozdób; przy jednolitym
- * pasie `stretch` jest jedynym poprawnym trybem.
- *
- * ŻADNYCH osobnych akcentów: rama ma wyglądać dobrze sama z siebie.
+ * `fill` jest kluczowe: bez niego środek zostałby pusty.
+ * border-image-repeat: `stretch` na OBU osiach — jednolity pergamin nie ma
+ * czego kafelkować.
  */
 .quest-card-frame {
   position: relative;
   z-index: 0;
   box-sizing: border-box;
   /*
-   * Grubość ramy, mobile-first. Na telefonie rama ma być WYRAŹNIE grubsza:
-   * poprzednie `clamp(1.25rem, 3.5vw, 2.2rem)` na wąskim ekranie i tak zawsze
-   * lądowało na dolnym progu (3.5vw to przy 375px zaledwie 13px), więc realnie
-   * dawało stałe 20px — nieproporcjonalnie cienko do reszty karty.
-   *
-   * Ta jedna zmienna wystarczy: `border-width`, `border-image-width`, sylwetka
-   * poświaty (.quest-glow::before) i zaczep wykrzyknika w action-card.tsx
-   * wszystkie liczą się z niej przez dziedziczenie, więc ikona i cień
-   * automatycznie idą za grubszą ramą — nie trzeba ich korygować osobno.
+   * Grubość „ramy” (czyli pasa pergaminu zarezerwowanego pod postrzępioną
+   * krawędź + ozdobną linię). Jedna zmienna steruje border-width,
+   * border-image-width, sylwetką poświaty (.quest-glow::before) i zaczepem
+   * wykrzyknika w action-card.tsx — więc wszystko skaluje się razem.
    */
-  --quest-frame-band: clamp(1.75rem, 7.5vw, 2.125rem);
+  --quest-frame-band: clamp(1.35rem, 6vw, 1.7rem);
   border-style: solid;
   border-color: transparent;
   border-width: var(--quest-frame-band);
   border-image-source: var(--quest-frame-asset, none);
-  border-image-slice: var(--quest-frame-slice, 320) fill;
+  border-image-slice: var(--quest-frame-slice, 200) fill;
   border-image-width: var(--quest-frame-band);
   border-image-outset: 0;
   border-image-repeat: stretch;
   background: transparent;
 }
 
-/* Od `sm` wzwyż bez zmian — dokładnie ta sama wartość co dotychczas. */
 @media (min-width: 640px) {
   .quest-card-frame {
-    --quest-frame-band: clamp(1.25rem, 3.5vw, 2.2rem);
+    --quest-frame-band: clamp(1.1rem, 2.75vw, 1.45rem);
   }
 }
 
 /*
- * Ozdobne akcenty na górnej i dolnej krawędzi ramki: DOKŁADNIE trzy na
- * krawędź — mały / duży (środek) / mały, tym samym plikiem co centralny
- * (`variant.accentAsset`), więc żadnego nowego mapowania assetów. Dolny rząd
- * to te same trzy pliki obrócone przez scaleY(-1). Żadnego dalszego
- * powielania wzdłuż krawędzi poza tą szóstką.
+ * Nagroda „+X Renomy” / „+X Tukatów” po prawej stronie karty — bez ciężkiej
+ * plakietki poprzedniego systemu (tamta renderowała plakietkę ActionButtona
+ * w miniaturze przez border-image). Tu to zwykły, wyśrodkowany blok tekstu.
  *
- * Czysty overlay dekoracyjny: `position: absolute` wyjmuje każdy z flow, więc
- * nie mogą zmienić wysokości karty ani rozepchnąć ramki (karta ma
- * `overflow-visible`, a `pointer-events: none` zdejmuje je z interakcji).
- *
- * Kotwiczone na ŚRODKU pasa ramy, nie na krawędzi border-boxa: `top` liczy się
- * od padding-boxa, czyli od wewnętrznego lica ramy, więc -0.5 * band trafia
- * dokładnie w połowę jej grubości — niezależnie od rozmiaru obrazka (dzięki
- * temu duży i małe akcenty mają środek na tej samej linii, mimo różnej
- * wysokości). Ornament siada wtedy okrakiem na ramie — połowa na niej, połowa
- * poza — tak jak klejnot w oryginalnej grafice.
- *
- * Rozmiar i pozycja wiązane z `--quest-frame-band`/`--quest-accent-scale`,
- * więc skalują się razem z ramą i tak samo działają na mobile i desktopie —
- * bez osobnych breakpointów.
+ * Zwykła (nie `absolute`) trzecia kolumna wiersza flex w action-card.tsx —
+ * `self-center` centruje ją pionowo względem CAŁEJ karty niezależnie od
+ * wysokości tytułu/opisu obok, a przeglądarka sama rezerwuje dokładnie tyle
+ * miejsca po prawej, ile blok faktycznie potrzebuje (żadnego ręcznie
+ * dobranego, stałego paddingu na treści, patrz komentarz przy `pr-` w
+ * action-card.tsx — go tam już nie ma).
  */
-.quest-card-accent {
-  position: absolute;
-  left: 50%;
-  z-index: 2;
-  display: block;
-  pointer-events: none;
-  height: calc(var(--quest-accent-scale, 1.15) * var(--quest-frame-band));
-  width: auto;
-  max-width: none;
+.quest-card-reward {
+  filter: drop-shadow(0 0.08rem 0.14rem rgba(35, 18, 8, 0.28));
 }
 
 /*
- * Boczne akcenty: mniejsze od środkowego (73.3% jego wysokości — 55% było za
- * drobne, 110% za duże, to wypośrodkowanie między nimi) i przesunięte o
- * ćwierć szerokości karty w stronę każdej krawędzi — czyli dokładnie w
- * połowie odległości między środkowym akcentem a bokiem, z dala od
- * narożników (blok narożnika = --quest-frame-band, ~35px, więc 25%
- * szerokości karty zawsze zostawia spory zapas nawet na najwęższym mobile).
- * Mnożnik liczony od `--quest-accent-scale`, nie od stałej — więc boczne
- * akcenty automatycznie skalują się razem ze środkowym per rarity, bez
- * osobnego pola w configu.
+ * Delikatny poziomy ornament nad/pod „+X / Renomy” — nawiązanie do
+ * referencji zamiast plakietki: cienka linia z małym rombem na środku,
+ * kolorem tekstu nagrody (currentColor), więc podąża za paletą rarity bez
+ * osobnego pola w konfiguracji.
  */
-.quest-card-accent--sm {
-  height: calc(0.733 * var(--quest-accent-scale, 1.15) * var(--quest-frame-band));
+.quest-reward__rule {
+  position: relative;
+  width: 2.75rem;
+  height: 1px;
+  margin: 0.2rem 0;
+  background: currentColor;
+  opacity: 0.4;
 }
 
-/*
- * `- 10px` / `+ 10px` odsuwają boczne akcenty dalej w stronę swojej krawędzi
- * (poza bazowe 25%/75%) — ten sam kierunek co nazwa klasy sugeruje, więc bez
- * odwróconego znaku jak przy `top`/`bottom` (tam offset liczy się od
- * przeciwnej krawędzi, tu `left` liczy się od tej samej, lewej).
- */
-.quest-card-accent--left {
-  left: calc(25% - 10px);
-}
-
-.quest-card-accent--right {
-  left: calc(75% + 10px);
-}
-
-/*
- * `--quest-accent-offset` odsuwa akcent na ZEWNĄTRZ karty (per rarity, patrz
- * accentOffset w quest-variants.ts). Ten sam znak po obu stronach, mimo że
- * przesuwają się przeciwnie: przy `top` bardziej ujemna wartość podnosi
- * element w górę, a przy `bottom` — opuszcza w dół, bo offset liczy się tam
- * od przeciwnej krawędzi.
- */
-.quest-card-accent--top {
-  top: calc(-0.5 * var(--quest-frame-band) - var(--quest-accent-offset, 3px));
-  transform: translate(-50%, -50%);
-}
-
-.quest-card-accent--bottom {
-  bottom: calc(
-    -0.5 * var(--quest-frame-band) - var(--quest-accent-offset, 3px)
-  );
-  transform: translate(-50%, 50%) scaleY(-1);
-}
-
-/*
- * Boczne akcenty mają WŁASNY offset (`--quest-accent-offset-sm`, patrz
- * accentOffsetSm w quest-variants.ts) — domyślnie równy offsetowi dużego
- * (fallback do `--quest-accent-offset`), ale regulowalny osobno, gdy ten sam
- * dystans co duży wizualnie sadza mniejszy ornament za blisko ramy. Selektor
- * łączący dwie klasy (`--sm--top`) ma wyższą specyficzność niż samo `--top`
- * powyżej, więc nadpisuje `top`/`bottom` bez ruszania `transform`.
- */
-.quest-card-accent--sm.quest-card-accent--top {
-  top: calc(
-    -0.5 * var(--quest-frame-band) -
-      var(--quest-accent-offset-sm, var(--quest-accent-offset, 3px))
-  );
-}
-
-.quest-card-accent--sm.quest-card-accent--bottom {
-  bottom: calc(
-    -0.5 * var(--quest-frame-band) -
-      var(--quest-accent-offset-sm, var(--quest-accent-offset, 3px))
-  );
-}
-
-/*
- * Plakietka nagrody „+X Renomy” — TA SAMA plakietka co ActionButton
- * (public/assets/buttons/{white,green,blue,purple,orange}.png, czyli
- * znormalizowane *-button-new), renderowana TYM SAMYM, sprawdzonym
- * w produkcji mechanizmem 9-slice co .action-btn: `border-image-slice: 92
- * fill` na wspólnym płótnie 640×640. Zero derived assetów, zero rysowania
- * kształtu w CSS/SVG.
- *
- * Jedyna różnica wobec .action-btn to SKALA: 124×36 przy border-width 6px.
- * To jest sedno — poprzednie podejście brało tę samą plakietkę, ale przy
- * 140×48 i obwódce 8px, przez co ścięte rogi robiły się duże i całość
- * czytała się jak „wielki oktagon ActionButtona", a nie jak mała plakietka.
- * Przy 6px ścięcie ma 6px: kompaktowo, poziomo, subtelnie.
- *
- * `border-image` maluje sylwetkę z kanału alfa PNG, więc nie ma tu żadnej
- * drugiej obwódki ani prostokątnego tła — plakietka ma dokładnie jeden,
- * własny złoty brzeg, ten sam co wszystkie przyciski w aplikacji.
- */
-.quest-reward-badge {
+.quest-reward__rule::before {
+  content: "";
   position: absolute;
   top: 50%;
-  right: 0.75rem;
-  transform: translateY(-50%);
-  z-index: 10;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  width: 6.75rem;
-  height: 2rem;
-  border-style: solid;
-  border-color: transparent;
-  border-width: 0.3125rem;
-  border-image-source: var(--quest-badge-plate, none);
-  border-image-slice: 92 fill;
-  border-image-width: 0.3125rem;
-  border-image-outset: 0;
-  border-image-repeat: stretch;
-  filter: drop-shadow(0 0.1rem 0.18rem rgba(35, 18, 8, 0.42));
-}
-
-@media (min-width: 640px) {
-  .quest-reward-badge {
-    right: 0.875rem;
-    width: 7.75rem;
-    height: 2.25rem;
-    border-width: 0.375rem;
-    border-image-width: 0.375rem;
-  }
-}
-
-.quest-reward-badge__text {
-  position: relative;
-  z-index: 1;
+  left: 50%;
+  width: 0.25rem;
+  height: 0.25rem;
+  background: currentColor;
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 
 /*
@@ -1677,12 +2085,11 @@ a {
   border-color: transparent;
   border-width: var(--quest-frame-band);
   border-image-source: var(--quest-frame-asset, none);
-  border-image-slice: var(--quest-frame-slice, 320) fill;
+  border-image-slice: var(--quest-frame-slice, 200) fill;
   border-image-width: var(--quest-frame-band);
   border-image-outset: 0;
   border-image-repeat: stretch;
-  filter:
-    drop-shadow(0 2px 6px var(--quest-glow-strong, transparent))
+  filter: drop-shadow(0 2px 6px var(--quest-glow-strong, transparent))
     drop-shadow(0 8px 22px var(--quest-glow-soft, transparent));
   transition: filter 150ms ease;
 }
@@ -1693,9 +2100,14 @@ a {
 
 .quest-glow:hover::before,
 .quest-glow:focus-visible::before {
-  filter:
-    drop-shadow(0 4px 12px var(--quest-glow-strong-hover, var(--quest-glow-strong, transparent)))
-    drop-shadow(0 12px 34px var(--quest-glow-soft-hover, var(--quest-glow-soft, transparent)));
+  filter: drop-shadow(
+      0 4px 12px
+        var(--quest-glow-strong-hover, var(--quest-glow-strong, transparent))
+    )
+    drop-shadow(
+      0 12px 34px
+        var(--quest-glow-soft-hover, var(--quest-glow-soft, transparent))
+    );
 }
 
 .quest-glow:active {
@@ -1703,8 +2115,7 @@ a {
 }
 
 .quest-glow:active::before {
-  filter:
-    drop-shadow(0 2px 6px var(--quest-glow-strong, transparent))
+  filter: drop-shadow(0 2px 6px var(--quest-glow-strong, transparent))
     drop-shadow(0 8px 22px var(--quest-glow-soft, transparent));
 }
 
@@ -2714,6 +3125,21 @@ a {
   font-weight: 700;
   line-height: 1.28;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/*
+ * Telefon: kafle Stołu 10px niższe, ścięte konkretnie od góry — zero
+ * paddingu nad ikoną zamiast równych 10px góra/dół, dolny padding
+ * nietknięty. min-height schodzi o te same 10px, żeby podłoga wysokości
+ * podążała za realną (treść i tak trzyma wysokość przez ikonę+tekst).
+ * Tylko mobile: od `sm` wzwyż `.action-size-hero` wraca do bazowego
+ * `padding: 10px 0` z reguły wyżej.
+ */
+@media (max-width: 639px) {
+  .action-size-hero {
+    min-height: 54px;
+    padding-top: 0;
+  }
 }
 
 .action-size-hero .action-btn-label {

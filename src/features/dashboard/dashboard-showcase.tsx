@@ -6,7 +6,6 @@ import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { canUseNextImageOptimization } from "@/lib/image-sources";
 import { profileServerOperation } from "@/lib/server-performance";
 import {
-  getActiveClassBackdropGradient,
   getLeaderboardRankAsset,
   getLeaderboardRankLabel,
 } from "@/features/legendarium/leaderboard-presentation";
@@ -47,9 +46,9 @@ const HERO_ACTIONS = [
   },
 ] as const;
 
-function HeroActionTiles() {
+function HeroActionTiles({ className = "" }: { className?: string }) {
   return (
-    <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+    <div className={`grid grid-cols-3 gap-2 sm:gap-2.5 ${className}`}>
       {HERO_ACTIONS.map((tile) => (
         <div key={tile.action} className="action-fit min-w-0">
           <ActionLink action={tile.action} size="hero" href={tile.href}>
@@ -142,130 +141,118 @@ function getUpcomingMeetingPanelClasses(
   };
 }
 
-function getRankGlowClass(rank: number) {
-  if (rank === 1) return "rank-glow-gold";
-  if (rank === 2) return "rank-glow-silver";
-  if (rank === 3) return "rank-glow-bronze";
-  return "";
-}
-
-function CompactLeaderboardEntry({
+/*
+ * Wiersz tablicy rankingu — puchar (już niesie kolor i numer miejsca na
+ * medalionie, patrz /brand/{1..5}th-place-nobg.png) | nazwa gracza
+ * (skraca się przez truncate, gdy zabraknie miejsca) | punkty. Separator
+ * między wierszami przez `.legend-board-row` (patrz globals.css) — ostatni
+ * wiersz go nie dostaje, żeby nie dublować się z paddingiem tablicy pod
+ * spodem.
+ */
+function LegendBoardRow({
   entry,
-  index,
+  isLast,
 }: {
   entry: DashboardLeaderboardEntry;
-  index: number;
+  isLast: boolean;
 }) {
   const rankAsset = getLeaderboardRankAsset(entry.rank);
-  const isPodium = entry.rank <= 3;
-  // Statyczna, stała poświata podium — ten sam wzorzec co ranking w
-  // Legendarium (.rank-glow-*): bez animacji/sheenu/pulsowania.
-  const rankGlow = getRankGlowClass(entry.rank);
-  const classBackdropGradient = entry.activeClass
-    ? getActiveClassBackdropGradient(entry.activeClass.key)
-    : null;
 
   return (
     <li
-      style={{ animationDelay: `${getEntranceStaggerDelayMs(index)}ms` }}
-      className={`anim-rise-in-fast relative isolate flex items-center gap-3 overflow-visible rounded-[1.05rem] px-3 py-2.5 ${
-        isPodium
-          ? `border border-white/12 bg-[rgba(33,18,14,0.5)] ${rankGlow}`
-          : "border border-white/8 bg-[rgba(33,18,14,0.36)]"
-      }`}
-    >
-      {entry.activeClass?.iconPath ? (
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-[inherit]"
-        >
-          <span
-            className="absolute top-1/2 right-[-1.6rem] h-[170%] w-24 -translate-y-1/2 rounded-full blur-2xl"
-            style={{ backgroundImage: classBackdropGradient ?? undefined }}
-          />
-          <span className="absolute top-1/2 right-[-1.1rem] h-[135%] w-20 -translate-y-1/2 opacity-25">
-            <Image
-              src={entry.activeClass.iconPath}
-              alt=""
-              fill
-              sizes="80px"
-              className="object-contain object-right"
-            />
-          </span>
-        </span>
-      ) : null}
-
-      {rankAsset ? (
-        <span className="ml-2 flex size-12 shrink-0 items-center justify-center">
-          <Image
-            src={rankAsset}
-            alt={getLeaderboardRankLabel(entry.rank)}
-            width={36}
-            height={36}
-            className="size-16 max-w-none object-contain"
-          />
-        </span>
-      ) : (
-        <span className="ml-2 grid size-12 shrink-0 place-items-center rounded-full bg-black/24 text-xs font-bold text-[#ffe2ad]">
-          {entry.rank}
-        </span>
-      )}
-
-      <div className="min-w-0 flex-1">
-        {entry.activeClass ? (
-          <p className="truncate text-[0.65rem] font-bold tracking-[0.1em] text-[#f0c978] uppercase">
-            {entry.activeClass.name}
-          </p>
-        ) : null}
-        <p className="truncate text-base font-semibold text-[#fff2dc]">
-          {entry.displayName}
-        </p>
-        <p className="text-sm text-[#f2d8b8]">
-          {entry.totalPoints.toLocaleString("pl-PL")} pkt
-        </p>
-      </div>
-
-      <span className="shrink-0 text-sm text-[#f0cf9f]">
-        {entry.rank}. miejsce
-      </span>
-    </li>
-  );
-}
-
-function MobileLeaderboardRow({ entry }: { entry: DashboardLeaderboardEntry }) {
-  const rankAsset = getLeaderboardRankAsset(entry.rank);
-  const isPodium = entry.rank <= 3;
-  const iconSizeClass = isPodium ? "size-12" : "size-10";
-  const rankGlow = getRankGlowClass(entry.rank);
-
-  return (
-    <li
-      className={`relative flex min-h-[2.7rem] items-center gap-1.5 overflow-visible rounded-[0.65rem] py-1.5 pr-1.5 ${isPodium ? `border border-white/12 bg-[rgba(33,18,14,0.5)] pl-14 ${rankGlow}` : "border border-white/8 bg-[rgba(33,18,14,0.36)] pl-14"}`}
+      className={`flex items-center gap-2.5 py-2 first:pt-0 last:pb-0 ${isLast ? "" : "legend-board-row"}`}
     >
       {rankAsset ? (
         <Image
           src={rankAsset}
           alt={getLeaderboardRankLabel(entry.rank)}
-          width={40}
-          height={40}
-          className={`absolute top-1/2 left-7 ${iconSizeClass} shrink-0 -translate-x-1/2 -translate-y-1/2 object-contain`}
+          width={36}
+          height={36}
+          className="size-7 shrink-0 object-contain sm:size-8"
         />
       ) : (
-        <span
-          className={`absolute top-1/2 left-7 ${iconSizeClass} grid shrink-0 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/24 text-[0.6rem] font-bold text-[#ffe2ad]`}
-        >
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-black/30 text-[0.62rem] font-bold text-[#f0cf9f] sm:size-8">
           {entry.rank}
         </span>
       )}
-      <div className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left">
-        <p className="line-clamp-2 min-w-0 text-[0.9rem] leading-tight font-semibold text-[#fff2dc]">
-          {entry.displayName}
-        </p>
-        <p className="shrink-0 text-[0.78rem] leading-tight font-bold text-[#f2d8b8]">
-          {entry.totalPoints.toLocaleString("pl-PL")} pkt
-        </p>
-      </div>
+
+      <p className="legend-board-name min-w-0 flex-1 truncate text-[0.78rem] font-semibold sm:text-[0.86rem]">
+        {entry.displayName}
+      </p>
+
+      <p className="shrink-0 text-[0.76rem] font-bold text-[#f2d8b8] sm:text-[0.84rem]">
+        {entry.totalPoints.toLocaleString("pl-PL")}
+      </p>
     </li>
+  );
+}
+
+/*
+ * "Legendy przy Stole" jako jedna, wspólna tablica rankingu dla mobile i
+ * desktopu — poprzednio dwa osobne komponenty (CompactLeaderboardEntry na
+ * desktopie, MobileLeaderboardRow na mobile) z dwoma różnymi stylami kart.
+ * `.legend-board`/`.legend-board-shell` (globals.css) skalują się przez cqi
+ * względem WŁASNEJ szerokości panelu, więc TEN SAM komponent dobrze
+ * wygląda i w wąskiej kolumnie mobilnego grida, i w szerszym sidebarze
+ * desktopu — bez rozdzielania na warianty per-breakpoint.
+ */
+function LegendBoard({
+  entries,
+  viewerRank,
+  href,
+  animationDelayMs,
+  className = "",
+}: {
+  entries: DashboardLeaderboardEntry[];
+  viewerRank: number | null;
+  href: string;
+  animationDelayMs: number;
+  className?: string;
+}) {
+  return (
+    <div className={`legend-board-shell ${className}`}>
+      <Panel
+        style={{ animationDelay: `${animationDelayMs}ms` }}
+        className="anim-rise-in-fast legend-board flex h-full flex-col px-0 py-1 text-[#fff6ea] sm:p-3.5"
+      >
+        {/*
+          Ozdobna rama jako OSOBNA warstwa, nie border na samym panelu — dzięki
+          temu może rosnąć na zewnątrz boxa (ujemny inset) zamiast zabierać
+          miejsce polu treści. Sterowanie: --legend-frame-overhang w
+          globals.css. Leży pod treścią i nie łapie zdarzeń.
+        */}
+        <span className="legend-frame-overlay" aria-hidden="true" />
+
+        <div className="legend-board-content flex flex-1 flex-col">
+          <p className="text-center text-[0.58rem] font-bold tracking-[0.1em] text-[#f1ca8f] uppercase sm:text-left">
+            Legendy przy Stole
+          </p>
+
+          <ol className="mt-2 flex-1">
+            {entries.map((entry, index) => (
+              <LegendBoardRow
+                key={entry.userId}
+                entry={entry}
+                isLast={index === entries.length - 1}
+              />
+            ))}
+          </ol>
+
+          {viewerRank && viewerRank > entries.length ? (
+            <p className="mt-1.5 text-center text-[0.6rem] text-[#f2d8b8]">
+              Twoje miejsce: {viewerRank}.
+            </p>
+          ) : null}
+
+          <Link
+            href={href}
+            className="legend-board-cta mt-[20px] px-0 py-1 text-center text-[0.48rem] font-bold tracking-[0.01em] uppercase sm:text-[0.62rem]"
+          >
+            Zobacz ranking →
+          </Link>
+        </div>
+      </Panel>
+    </div>
   );
 }
 
@@ -309,48 +296,12 @@ export async function DashboardShowcase({
     : null;
 
   const leaderboardSection = (
-    <Panel
-      style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
-      className="anim-rise-in-fast leaderboard-rug-panel p-4 text-[#fff6ea] shadow-[inset_0_0_0_1px_rgba(255,230,184,0.08),0_18px_42px_rgba(22,9,5,0.24)] sm:p-4.5"
-    >
-      <div className="space-y-3">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="text-[0.68rem] font-bold tracking-[0.18em] text-[#f1ca8f] uppercase">
-              Legendy przy Stole
-            </p>
-            <h2 className="font-display mt-1 text-[1.3rem] font-semibold text-[#fff3e0]">
-              Ranking drużyny
-            </h2>
-          </div>
-          <ActionLink
-            action="neutral"
-            size="default"
-            withIcon={false}
-            href="/legendarium"
-          >
-            Otwórz →
-          </ActionLink>
-        </div>
-
-        <ol className="space-y-2">
-          {data.leaderboard.entries.map((entry, index) => (
-            <CompactLeaderboardEntry
-              key={entry.userId}
-              entry={entry}
-              index={index}
-            />
-          ))}
-        </ol>
-
-        {data.leaderboard.viewerRank &&
-        data.leaderboard.viewerRank > data.leaderboard.entries.length ? (
-          <p className="text-xs text-[#f2d8b8]">
-            Twoje miejsce: {data.leaderboard.viewerRank}.
-          </p>
-        ) : null}
-      </div>
-    </Panel>
+    <LegendBoard
+      entries={data.leaderboard.entries}
+      viewerRank={data.leaderboard.viewerRank}
+      href="/legendarium"
+      animationDelayMs={getEntranceStaggerDelayMs(1)}
+    />
   );
 
   const upcomingMeetingSection = (
@@ -501,7 +452,7 @@ export async function DashboardShowcase({
         <div className="table-sheet-shell">
           <Panel
             style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
-            className="anim-rise-in-fast table-sheet p-3 text-[#fff1dc]"
+            className="anim-rise-in-fast table-sheet px-0 py-1.5 text-[#fff1dc]"
           >
             <div className="relative space-y-2">
               {tableSession ? (
@@ -524,169 +475,159 @@ export async function DashboardShowcase({
                     </p>
                   </div>
 
-                  <HeroActionTiles />
+                  <HeroActionTiles className="!gap-[5px]" />
                 </>
               )}
             </div>
           </Panel>
         </div>
 
-        <div className="grid grid-cols-2 items-start gap-2">
-          <Panel
-            style={{ animationDelay: `${getEntranceStaggerDelayMs(3)}ms` }}
-            className={`anim-rise-in-fast ${upcomingVisual?.panel ?? "paper-wash shadow-[0_12px_26px_rgba(32,16,8,0.14)]"} min-w-0 overflow-hidden p-2.5`}
-          >
-            <p className="text-accent text-center text-[0.66rem] font-bold tracking-[0.12em] uppercase">
-              Najbliższe spotkanie
-            </p>
-
-            {upcoming && upcomingRange ? (
-              <div className="mt-0.5">
-                <h3 className="font-display truncate text-center text-[1rem] leading-tight font-bold text-[#4c3528]">
-                  {upcoming.title}
-                </h3>
-
-                <div className="mt-1 flex flex-nowrap items-center justify-center gap-0.5">
-                  <span
-                    className={`inline-flex items-center rounded-full px-1 py-0.5 text-[0.46rem] font-bold whitespace-nowrap ${upcomingVisual?.attendees ?? "bg-[#f4ead3] text-[#705338]"}`}
-                  >
-                    {upcoming.confirmedAttendeesCount} osób potwierdziło
-                  </span>
-                  <MeetingStatusBadge
-                    label={
-                      upcoming.visualLabel === "Do ustalenia"
-                        ? "Niepotwierdzone"
-                        : upcoming.visualLabel
-                    }
-                    state={upcoming.visualState}
-                    compact
-                  />
-                </div>
-
-                <div className="mt-1.5 space-y-1">
-                  <div
-                    className={`min-w-0 rounded-[0.55rem] border px-1.5 py-1 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${upcomingVisual?.tile ?? "border-[#e6cfb1] bg-[linear-gradient(145deg,rgba(255,252,247,0.92),rgba(245,234,216,0.82))]"}`}
-                  >
-                    <p
-                      className={`text-[0.48rem] font-bold tracking-[0.1em] uppercase ${upcomingVisual?.tileLabel ?? "text-[#b4764a]"}`}
-                    >
-                      Termin
-                    </p>
-                    <p
-                      className={`truncate text-[0.66rem] font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
-                    >
-                      {`${upcomingRange.startDate} · ${upcomingRange.startTime}`}
-                    </p>
-                  </div>
-                  <div
-                    className={`min-w-0 rounded-[0.55rem] border px-1.5 py-1 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${upcomingVisual?.tile ?? "border-[#e6cfb1] bg-[linear-gradient(145deg,rgba(255,252,247,0.92),rgba(245,234,216,0.82))]"}`}
-                  >
-                    <p
-                      className={`text-[0.48rem] font-bold tracking-[0.1em] uppercase ${upcomingVisual?.tileLabel ?? "text-[#b4764a]"}`}
-                    >
-                      Miejsce
-                    </p>
-                    <p
-                      className={`truncate text-[0.66rem] font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
-                    >
-                      {upcoming.location ?? "Do ustalenia"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-1.5 flex items-stretch gap-1.5">
-                  <div
-                    className={`flex min-w-0 flex-1 flex-col justify-center rounded-[0.55rem] border px-1.5 py-1 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${upcomingVisual?.tile ?? "border-[#e6cfb1] bg-[linear-gradient(145deg,rgba(255,252,247,0.92),rgba(245,234,216,0.82))]"}`}
-                  >
-                    <p
-                      className={`text-[0.48rem] font-bold tracking-[0.1em] uppercase ${upcomingVisual?.tileLabel ?? "text-[#b4764a]"}`}
-                    >
-                      Prowadzi
-                    </p>
-                    <p
-                      className={`line-clamp-2 text-[0.66rem] leading-tight font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
-                    >
-                      {upcoming.leadingGame
-                        ? upcoming.leadingGame.title
-                        : "Jeszcze bez lidera"}
-                    </p>
-                  </div>
-
-                  <div
-                    className={`flex shrink-0 items-center justify-center rounded-[0.7rem] border p-1 ${upcomingVisual?.coverFrame ?? "border-[#d6b188] bg-[linear-gradient(145deg,rgba(255,251,244,0.96),rgba(237,223,201,0.9))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55),0_8px_18px_rgba(58,31,12,0.16)]"}`}
-                  >
-                    {upcoming.leadingGame?.coverUrl ? (
-                      <Image
-                        src={upcoming.leadingGame.coverUrl}
-                        alt={upcoming.leadingGame.title}
-                        width={72}
-                        height={72}
-                        unoptimized={
-                          !canUseNextImageOptimization(
-                            upcoming.leadingGame.coverUrl,
-                          )
-                        }
-                        className={`h-[4.5rem] w-[4.5rem] rounded-[0.5rem] border object-cover shadow-[0_4px_10px_rgba(61,34,16,0.18)] ${upcomingVisual?.coverBorder ?? "border-[#dcc3a1] bg-[#f6ecdd]"}`}
-                      />
-                    ) : (
-                      <div
-                        className={`flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[0.5rem] border border-dashed px-1 text-center text-[0.5rem] font-semibold ${upcomingVisual?.coverFallback ?? "border-[#d2ba99] bg-[#f5ead9] text-[#8a6749]"}`}
-                      >
-                        Brak okładki
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <Link
-                  href={upcoming.href}
-                  className={`mt-1.5 flex w-full items-center justify-center rounded-[0.6rem] border px-2 py-1.5 text-[0.62rem] font-bold ${upcomingVisual?.action ?? "border-[#d8b3b9] bg-[#fff7f8] text-[#b14833]"}`}
-                >
-                  Przejdź →
-                </Link>
-              </div>
-            ) : (
-              <div className="mt-1 flex flex-col items-center gap-1.5 text-center">
-                <p className="text-[0.68rem] text-[#5f4738]">
-                  Nie ma jeszcze kolejnego wieczoru.
-                </p>
-                <ActionLink
-                  action="meeting"
-                  size="compact"
-                  emphasis="secondary"
-                  href="/kalendarium/nowe"
-                >
-                  Zorganizuj spotkanie
-                </ActionLink>
-              </div>
-            )}
-          </Panel>
-
-          <Panel
-            style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
-            className="anim-rise-in-fast leaderboard-rug-panel flex h-full min-w-0 flex-col p-2.5 text-[#fff6ea] shadow-[inset_0_0_0_1px_rgba(255,230,184,0.08),0_12px_26px_rgba(22,9,5,0.22)]"
-          >
-            <h2 className="font-display truncate text-center text-[0.9rem] font-semibold text-[#fff3e0]">
-              Legendy przy Stole
-            </h2>
-
-            <ol className="mt-1.5 flex-1 space-y-1">
-              {data.leaderboard.entries.map((entry) => (
-                <MobileLeaderboardRow key={entry.userId} entry={entry} />
-              ))}
-            </ol>
-
-            <ActionLink
-              action="neutral"
-              size="compact"
-              withIcon={false}
-              fullWidth
-              href="/legendarium"
-              className="mt-1.5"
+        {/* Równe kolumny (1fr 1fr) — jedyne źródło różnicy wizualnej między
+            kaflami mają być same assety ramek, nie różne wymiary paneli.
+            Wcześniejsza próba wyrównania "optycznego" szerszą kolumną Legend
+            została wycofana, bo psuła symetrię całego duetu. */}
+        <div className="grid grid-cols-2 gap-1">
+          <div className="meeting-board-shell min-w-0">
+            <Panel
+              style={{ animationDelay: `${getEntranceStaggerDelayMs(3)}ms` }}
+              className="anim-rise-in-fast meeting-board flex h-full flex-col px-0 py-1"
             >
-              Otwórz →
-            </ActionLink>
-          </Panel>
+              <div className="flex flex-1 flex-col">
+                <p className="text-accent text-center text-[0.58rem] font-bold tracking-[0.1em] uppercase">
+                  Najbliższe spotkanie
+                </p>
+
+                {upcoming && upcomingRange ? (
+                  <div className="mt-0.5 flex flex-1 flex-col">
+                    <h3 className="font-display truncate text-center text-[1rem] leading-tight font-bold text-[#4c3528]">
+                      {upcoming.title}
+                    </h3>
+
+                    <div className="mt-1 flex flex-nowrap items-center justify-center gap-0.5">
+                      <span
+                        className={`inline-flex items-center rounded-full px-1 py-0.5 text-[0.46rem] font-bold whitespace-nowrap ${upcomingVisual?.attendees ?? "bg-[#f4ead3] text-[#705338]"}`}
+                      >
+                        {upcoming.confirmedAttendeesCount} osób potwierdziło
+                      </span>
+                      <MeetingStatusBadge
+                        label={
+                          upcoming.visualLabel === "Do ustalenia"
+                            ? "Niepotwierdzone"
+                            : upcoming.visualLabel
+                        }
+                        state={upcoming.visualState}
+                        compact
+                      />
+                    </div>
+
+                    <div className="mt-1.5 space-y-1">
+                      <div
+                        className={`min-w-0 rounded-[0.55rem] border px-1.5 py-1 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${upcomingVisual?.tile ?? "border-[#e6cfb1] bg-[linear-gradient(145deg,rgba(255,252,247,0.92),rgba(245,234,216,0.82))]"}`}
+                      >
+                        <p
+                          className={`text-[0.48rem] font-bold tracking-[0.1em] uppercase ${upcomingVisual?.tileLabel ?? "text-[#b4764a]"}`}
+                        >
+                          Termin
+                        </p>
+                        <p
+                          className={`truncate text-[0.66rem] font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
+                        >
+                          {`${upcomingRange.startDate} · ${upcomingRange.startTime}`}
+                        </p>
+                      </div>
+                      <div
+                        className={`min-w-0 rounded-[0.55rem] border px-1.5 py-1 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${upcomingVisual?.tile ?? "border-[#e6cfb1] bg-[linear-gradient(145deg,rgba(255,252,247,0.92),rgba(245,234,216,0.82))]"}`}
+                      >
+                        <p
+                          className={`text-[0.48rem] font-bold tracking-[0.1em] uppercase ${upcomingVisual?.tileLabel ?? "text-[#b4764a]"}`}
+                        >
+                          Miejsce
+                        </p>
+                        <p
+                          className={`truncate text-[0.66rem] font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
+                        >
+                          {upcoming.location ?? "Do ustalenia"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-1.5 flex items-stretch gap-1.5">
+                      <div
+                        className={`flex min-w-0 flex-1 flex-col justify-center rounded-[0.55rem] border px-1.5 py-1 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.38)] ${upcomingVisual?.tile ?? "border-[#e6cfb1] bg-[linear-gradient(145deg,rgba(255,252,247,0.92),rgba(245,234,216,0.82))]"}`}
+                      >
+                        <p
+                          className={`text-[0.48rem] font-bold tracking-[0.1em] uppercase ${upcomingVisual?.tileLabel ?? "text-[#b4764a]"}`}
+                        >
+                          Prowadzi
+                        </p>
+                        <p
+                          className={`line-clamp-2 text-[0.66rem] leading-tight font-semibold ${upcomingVisual?.tileValue ?? "text-[#5d4334]"}`}
+                        >
+                          {upcoming.leadingGame
+                            ? upcoming.leadingGame.title
+                            : "Jeszcze bez lidera"}
+                        </p>
+                      </div>
+
+                      <div
+                        className={`flex shrink-0 items-center justify-center rounded-[0.7rem] border p-1 ${upcomingVisual?.coverFrame ?? "border-[#d6b188] bg-[linear-gradient(145deg,rgba(255,251,244,0.96),rgba(237,223,201,0.9))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.55),0_8px_18px_rgba(58,31,12,0.16)]"}`}
+                      >
+                        {upcoming.leadingGame?.coverUrl ? (
+                          <Image
+                            src={upcoming.leadingGame.coverUrl}
+                            alt={upcoming.leadingGame.title}
+                            width={72}
+                            height={72}
+                            unoptimized={
+                              !canUseNextImageOptimization(
+                                upcoming.leadingGame.coverUrl,
+                              )
+                            }
+                            className={`h-[4.5rem] w-[4.5rem] rounded-[0.5rem] border object-cover shadow-[0_4px_10px_rgba(61,34,16,0.18)] ${upcomingVisual?.coverBorder ?? "border-[#dcc3a1] bg-[#f6ecdd]"}`}
+                          />
+                        ) : (
+                          <div
+                            className={`flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[0.5rem] border border-dashed px-1 text-center text-[0.5rem] font-semibold ${upcomingVisual?.coverFallback ?? "border-[#d2ba99] bg-[#f5ead9] text-[#8a6749]"}`}
+                          >
+                            Brak okładki
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <Link
+                      href={upcoming.href}
+                      className="meeting-board-cta mt-[20px] px-0 py-1 text-center text-[0.48rem] font-bold tracking-normal uppercase"
+                    >
+                      Przejdź →
+                    </Link>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mt-1 flex flex-1 flex-col items-center justify-center text-center">
+                      <p className="text-[0.68rem] text-[#5f4738]">
+                        Nie ma jeszcze kolejnego wieczoru.
+                      </p>
+                    </div>
+                    <Link
+                      href="/kalendarium/nowe"
+                      className="meeting-board-cta mt-[20px] px-0 py-1 text-center text-[0.48rem] font-bold tracking-normal uppercase"
+                    >
+                      Zorganizuj spotkanie
+                    </Link>
+                  </>
+                )}
+              </div>
+            </Panel>
+          </div>
+
+          <LegendBoard
+            entries={data.leaderboard.entries}
+            viewerRank={data.leaderboard.viewerRank}
+            href="/legendarium"
+            animationDelayMs={getEntranceStaggerDelayMs(1)}
+            className="min-w-0"
+          />
         </div>
       </div>
 
@@ -751,7 +692,11 @@ export async function DashboardShowcase({
           >
             <h2
               id="quests-heading"
-              className="font-display text-[1.9rem] font-semibold text-[#fff1dc] sm:text-[2.05rem]"
+              // Na mobile ten sam rozmiar co nagłówek "Witaj przy stole" w
+              // module Stołu (text-[1.32rem] wyżej w tym pliku) — wcześniejsze
+              // 1.9rem było wyraźnie większe od niego. Desktop (sm:) zostaje
+              // bez zmian, tam nagłówek Stołu jest większy niż "Zlecenia".
+              className="font-display text-center text-[1.32rem] font-semibold text-[#fff1dc] sm:text-left sm:text-[2.05rem]"
             >
               Zlecenia
             </h2>
@@ -795,63 +740,86 @@ export async function DashboardShowcase({
 
           <div className="hidden sm:block">{upcomingMeetingSection}</div>
 
-          <Panel
-            style={{ animationDelay: `${getEntranceStaggerDelayMs(4)}ms` }}
-            className="anim-rise-in-fast paper-wash p-3.5 sm:p-4"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-accent text-[0.58rem] font-bold tracking-[0.18em] uppercase">
+          {/*
+            Ten sam pergaminowy 9-slice co karta wpisu w Kronice — dosłownie ta
+            sama klasa `.chronicle-page` i ten sam asset chronicle-page-frame.png
+            (slice 101 fill, border-image-width = --frame, repeat stretch),
+            zamiast wcześniejszej jasnej karty `paper-wash`. `.chronicle-feed`
+            to jedyna istniejąca klasa dająca sam `container-type: inline-size`,
+            której potrzebuje `--frame` (skaluje się przez cqw) — świadomie NIE
+            `.chronicle-page-shell`, bo ta niesie jeszcze hover/active karty
+            będącej linkiem, a ten moduł linkiem nie jest.
+          */}
+          <div className="chronicle-feed">
+            <section
+              style={{ animationDelay: `${getEntranceStaggerDelayMs(4)}ms` }}
+              className="anim-rise-in-fast chronicle-page"
+            >
+              {/*
+                Link "Pełna Kronika" siedzi w JEDNYM rzędzie z nadtytułem
+                "Ostatnio przy Stole", a nie obok właściwego nagłówka — dzięki
+                temu "Świeże wpisy z Kroniki" dostaje całą szerokość pola treści
+                i mieści się w jednej linii (przy ramie Kroniki zostaje jej
+                ~266px, a wcześniej link zabierał z tego ~90px).
+              */}
+              <div className="flex items-baseline justify-between gap-2">
+                {/* Rozmiar (0.58rem) był już taki sam jak w nagłówku "Legendy
+                    przy Stole"; różnił je tylko tracking (0.18em vs 0.1em),
+                    przez co ten napis wyglądał szerzej. Teraz oba mają 0.1em. */}
+                <p className="text-accent text-[0.58rem] font-bold tracking-[0.1em] uppercase">
                   Ostatnio przy Stole
                 </p>
-                <h2 className="font-display mt-1 text-[1.1rem] font-semibold text-[#4c3528]">
-                  Świeże wpisy z Kroniki
-                </h2>
-              </div>
-              <Link
-                href="/kronika"
-                className="text-accent text-xs font-bold underline decoration-[#b37a46]/40 underline-offset-4"
-              >
-                Pełna Kronika →
-              </Link>
-            </div>
-
-            {data.recentPlays.length === 0 ? (
-              <div className="mt-2.5 space-y-2">
-                <p className="text-sm text-[#5f4738]">
-                  Jeszcze nic nie zapisano w Kronice.
-                </p>
-                <ActionLink
-                  action="chronicle"
-                  size="compact"
-                  emphasis="secondary"
-                  href="/kronika/nowa"
+                <Link
+                  href="/kronika"
+                  className="text-accent shrink-0 text-[0.62rem] font-bold whitespace-nowrap underline decoration-[#b37a46]/40 underline-offset-4"
                 >
-                  Zapisz wynik gry
-                </ActionLink>
+                  Pełna Kronika →
+                </Link>
               </div>
-            ) : (
-              <div className="mt-2.5 space-y-1.5">
-                {data.recentPlays.map((play) => (
-                  <Link key={play.id} href={play.href} className="block">
-                    <div className="rounded-[0.95rem] bg-white/70 px-3 py-2 transition hover:bg-white/85">
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <p className="font-semibold text-[#4d3528]">
-                          {play.gameTitle}
+
+              {/* Ten sam rozmiar co tytuł karty Zlecenia
+                  ("Zaproponuj spotkanie", text-[0.95rem] w action-card.tsx). */}
+              <h2 className="font-display mt-1 text-[0.95rem] font-semibold text-[#4c3528]">
+                Świeże wpisy z Kroniki
+              </h2>
+
+              {data.recentPlays.length === 0 ? (
+                <div className="mt-2.5 space-y-2">
+                  <p className="text-sm text-[#5f4738]">
+                    Jeszcze nic nie zapisano w Kronice.
+                  </p>
+                  <ActionLink
+                    action="chronicle"
+                    size="compact"
+                    emphasis="secondary"
+                    href="/kronika/nowa"
+                  >
+                    Zapisz wynik gry
+                  </ActionLink>
+                </div>
+              ) : (
+                <div className="mt-2.5 space-y-1.5">
+                  {data.recentPlays.map((play) => (
+                    <Link key={play.id} href={play.href} className="block">
+                      <div className="rounded-[0.95rem] bg-white/70 px-3 py-2 transition hover:bg-white/85">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <p className="font-semibold text-[#4d3528]">
+                            {play.gameTitle}
+                          </p>
+                          <span className="text-[#6a4d36]">
+                            {formatPlayShortDate(play.playedAt)}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-[#5f4738]">
+                          {play.winnerLabel} · {play.playersCount} graczy
                         </p>
-                        <span className="text-[#6a4d36]">
-                          {formatPlayShortDate(play.playedAt)}
-                        </span>
                       </div>
-                      <p className="mt-1 text-xs text-[#5f4738]">
-                        {play.winnerLabel} · {play.playersCount} graczy
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </Panel>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
 
           <FeedbackSubmitPanel />
         </div>
