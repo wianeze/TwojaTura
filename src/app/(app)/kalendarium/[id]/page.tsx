@@ -16,13 +16,15 @@ import {
   getMeetingDateBadgeParts,
 } from "@/features/meetings/formatting";
 import { MeetingAvailabilityForm } from "@/features/meetings/meeting-availability-form";
-import { MeetingContinuationSummary } from "@/features/meetings/meeting-continuation-summary";
 import { MeetingGameProposals } from "@/features/meetings/meeting-game-proposals";
 import {
   canManageMeetingConfirmation,
   getMeetingConfirmationActionLabel,
 } from "@/features/meetings/meeting-status";
-import { getMeetingDetails } from "@/features/meetings/queries";
+import {
+  getMeetingDetails,
+  listContinuablePlays,
+} from "@/features/meetings/queries";
 
 /*
   Cienka linia działowa na pergaminie — ciemniejszy włos + jasny refleks pod
@@ -70,7 +72,10 @@ export default async function MeetingDetailsPage({
   if (memberState.status !== "active-member") notFound();
 
   const { id } = await params;
-  const meeting = await getMeetingDetails(id);
+  const [meeting, continuablePlays] = await Promise.all([
+    getMeetingDetails(id),
+    listContinuablePlays(null, { includeRunning: false }),
+  ]);
   if (!meeting) notFound();
 
   const schedule = formatMeetingDateRange({
@@ -348,25 +353,21 @@ export default async function MeetingDetailsPage({
           />
         </div>
 
-        {/* SEKCJA 3 — gry na wieczór. Miejsce i szkielet są stałe, zmienia się
-            wyłącznie treść: spotkanie z kontynuacją ma grę już ustaloną, więc
-            zamiast propozycji i głosowania pokazuje kontynuowaną partię.
-            Wcześniejsze propozycje zostają w bazie nietknięte i wracają razem z
-            tą sekcją, gdy ktoś zdejmie kontynuację w edycji spotkania. */}
+        {/* SEKCJA 3 — wspólny plan wieczoru. Wybrana wcześniej kontynuacja nie
+            ukrywa pozostałych gier ani głosowania. */}
         <div
           style={{ animationDelay: `${getEntranceStaggerDelayMs(4)}ms` }}
           className="anim-rise-in-fast"
         >
-          {meeting.continuedPlay ? (
-            <MeetingContinuationSummary play={meeting.continuedPlay} />
-          ) : (
-            <MeetingGameProposals
-              meetingId={meeting.id}
-              games={meeting.gameVotes}
-              availableGames={meeting.availableGames}
-              recommendedGames={meeting.recommendedGames}
-            />
-          )}
+          <MeetingGameProposals
+            meetingId={meeting.id}
+            games={meeting.gameVotes}
+            continuationVotes={meeting.continuationVotes}
+            selectedContinuation={meeting.continuedPlay}
+            availableGames={meeting.availableGames}
+            recommendedGames={meeting.recommendedGames}
+            continuablePlays={continuablePlays}
+          />
         </div>
       </section>
     </div>

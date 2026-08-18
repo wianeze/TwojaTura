@@ -5,12 +5,20 @@ import { createPortal } from "react-dom";
 import { ActionButton } from "@/components/ui/action-button";
 import { GameCover } from "@/components/ui/game-cover";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
-import { proposeMeetingGameAction } from "./actions";
-import { formatMeetingGameResponseCounts } from "./formatting";
+import {
+  proposeMeetingContinuationAction,
+  proposeMeetingGameAction,
+} from "./actions";
+import {
+  formatMeetingContinuationSubtitle,
+  formatMeetingGameResponseCounts,
+} from "./formatting";
 import { getMeetingRecommendationLabel } from "./game-recommendations";
 import { MeetingGameResponseToggle } from "./meeting-game-response-toggle";
 import type {
   MeetingGameCandidateOption,
+  MeetingContinuationVoteItem,
+  MeetingContinuablePlay,
   MeetingGameRecommendation,
   MeetingGameVoteItem,
 } from "./types";
@@ -18,15 +26,21 @@ import type {
 type MeetingGameProposalsProps = {
   meetingId: string;
   games: MeetingGameVoteItem[];
+  continuationVotes: MeetingContinuationVoteItem[];
+  selectedContinuation: MeetingContinuablePlay | null;
   availableGames: MeetingGameCandidateOption[];
   recommendedGames: MeetingGameRecommendation[];
+  continuablePlays: MeetingContinuablePlay[];
 };
 
 export function MeetingGameProposals({
   meetingId,
   games,
+  continuationVotes,
+  selectedContinuation,
   availableGames,
   recommendedGames,
+  continuablePlays,
 }: MeetingGameProposalsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -41,6 +55,14 @@ export function MeetingGameProposals({
       game.title.toLocaleLowerCase("pl-PL").includes(normalizedQuery),
     );
   }, [availableGames, query]);
+  const filteredContinuablePlays = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase("pl-PL");
+    if (!normalizedQuery) return continuablePlays;
+
+    return continuablePlays.filter((play) =>
+      play.gameTitle.toLocaleLowerCase("pl-PL").includes(normalizedQuery),
+    );
+  }, [continuablePlays, query]);
 
   const handlePropose = (gameId: string) => {
     startTransition(async () => {
@@ -54,6 +76,26 @@ export function MeetingGameProposals({
     });
   };
 
+  const handleProposeContinuation = (playId: string) => {
+    startTransition(async () => {
+      const result = await proposeMeetingContinuationAction(meetingId, playId);
+      setMessage(result.status === "error" ? (result.message ?? null) : null);
+
+      if (result.status === "success") {
+        setIsOpen(false);
+        setQuery("");
+      }
+    });
+  };
+
+  const proposedContinuationIds = useMemo(
+    () => new Set(continuationVotes.map((proposal) => proposal.playId)),
+    [continuationVotes],
+  );
+  const selectedContinuationIsProposed = selectedContinuation
+    ? proposedContinuationIds.has(selectedContinuation.playId)
+    : false;
+
   return (
     <div className="space-y-3">
       <div className="space-y-2.5">
@@ -63,7 +105,7 @@ export function MeetingGameProposals({
               Wieczór przy stole
             </p>
             <h2 className="font-display mt-1 text-[1.35rem] font-semibold text-[#4a3018] sm:text-[1.5rem]">
-              Propozycje gier
+              Plan wieczoru
             </h2>
           </div>
 
@@ -82,13 +124,98 @@ export function MeetingGameProposals({
         />
       </div>
 
-      {games.length > 0 ? (
+      {games.length > 0 ||
+      continuationVotes.length > 0 ||
+      selectedContinuation ? (
         <div className="space-y-0">
+          {selectedContinuation && !selectedContinuationIsProposed ? (
+            <div
+              style={{ borderBottomColor: "rgba(139, 103, 67, 0.65)" }}
+              className="anim-rise-in-fast flex items-center gap-3 border-b py-2.5 last:border-b-0"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="shrink-0 rounded-full bg-[#8b5b27]/16 px-1.5 py-0.5 text-[0.52rem] font-extrabold tracking-[0.08em] text-[#70431d] uppercase">
+                    Wybrana kontynuacja
+                  </span>
+                  <p className="truncate text-sm font-semibold text-[#4e3528]">
+                    {selectedContinuation.gameTitle}
+                  </p>
+                </div>
+                <p className="text-muted mt-0.5 line-clamp-2 text-[0.66rem]">
+                  {formatMeetingContinuationSubtitle(selectedContinuation)}
+                </p>
+              </div>
+
+              <div className="w-[4.625rem] shrink-0 min-[375px]:w-[5.125rem]">
+                <GameCover
+                  title={selectedContinuation.gameTitle}
+                  coverUrl={selectedContinuation.coverUrl}
+                  size="micro"
+                  fitParent
+                  className="w-full"
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {continuationVotes.map((proposal, index) => (
+            <div
+              key={`continuation:${proposal.playId}`}
+              style={{
+                animationDelay: `${getEntranceStaggerDelayMs(index)}ms`,
+                borderBottomColor: "rgba(139, 103, 67, 0.65)",
+              }}
+              className="anim-rise-in-fast flex items-center gap-3 border-b py-2.5 last:border-b-0"
+            >
+              <MeetingGameResponseToggle
+                meetingId={meetingId}
+                gameId={proposal.gameId}
+                continuedPlayId={proposal.playId}
+                ownResponse={proposal.ownResponse}
+              />
+
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="shrink-0 rounded-full bg-[#6f7d45]/14 px-1.5 py-0.5 text-[0.52rem] font-extrabold tracking-[0.08em] text-[#53612f] uppercase">
+                    {selectedContinuation?.playId === proposal.playId
+                      ? "Wybrana kontynuacja"
+                      : "Odłożona partia"}
+                  </span>
+                  <p className="truncate text-sm font-semibold text-[#4e3528]">
+                    {proposal.title}
+                  </p>
+                </div>
+                <p className="text-muted mt-0.5 line-clamp-2 text-[0.66rem]">
+                  {formatMeetingContinuationSubtitle(proposal)}
+                </p>
+                <p className="mt-0.5 text-[0.62rem] font-semibold text-[#75552e]">
+                  {formatMeetingGameResponseCounts(
+                    proposal.yesCount,
+                    proposal.noCount,
+                  )}
+                </p>
+              </div>
+
+              <div className="w-[4.625rem] shrink-0 min-[375px]:w-[5.125rem]">
+                <GameCover
+                  title={proposal.title}
+                  coverUrl={proposal.coverUrl}
+                  size="micro"
+                  fitParent
+                  className="w-full"
+                />
+              </div>
+            </div>
+          ))}
+
           {games.map((game, index) => (
             <div
               key={game.gameId}
               style={{
-                animationDelay: `${getEntranceStaggerDelayMs(index)}ms`,
+                animationDelay: `${getEntranceStaggerDelayMs(
+                  continuationVotes.length + index,
+                )}ms`,
                 // Kolor musi iść przez inline style — patrz komentarz przy
                 // SEPARATOR_LINE_COLOR w page.tsx: nielayerowana reguła
                 // `* { border-color: var(--border) }` bije Tailwindowe
@@ -190,7 +317,7 @@ export function MeetingGameProposals({
                         Półka spotkania
                       </p>
                       <h3 className="font-display mt-1 text-2xl leading-tight font-bold text-[#fbeed9] [text-shadow:0_2px_5px_rgba(10,5,2,0.92)] sm:text-[1.85rem]">
-                        Wybierz grę do propozycji
+                        Zaproponuj plan wieczoru
                       </h3>
                     </div>
 
@@ -212,6 +339,79 @@ export function MeetingGameProposals({
                 </div>
 
                 <div className="max-h-[52vh] space-y-2 overflow-y-auto p-4 sm:p-5">
+                  {filteredContinuablePlays.length > 0 ? (
+                    <section className="mb-4 rounded-[1rem] border border-[#9ab36f]/50 bg-[linear-gradient(135deg,rgba(39,65,34,0.88),rgba(22,39,22,0.84))] p-3 shadow-[0_0_18px_rgba(114,150,76,0.2)]">
+                      <div className="mb-2.5">
+                        <p className="text-[0.67rem] font-extrabold tracking-[0.14em] text-[#d8eba9] uppercase">
+                          Odłożone partie
+                        </p>
+                        <p className="mt-0.5 text-[0.7rem] text-[#d5dfc0]">
+                          Zaproponuj powrót do konkretnej rozpoczętej partii.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        {filteredContinuablePlays.map((play) => {
+                          const isAlreadyProposed =
+                            proposedContinuationIds.has(play.playId);
+
+                          return (
+                            <div
+                              key={play.playId}
+                              className="flex min-w-0 items-center gap-2.5 rounded-xl border border-white/18 bg-black/22 p-2"
+                            >
+                              <div className="w-11 shrink-0 sm:w-12">
+                                <GameCover
+                                  title={play.gameTitle}
+                                  coverUrl={play.coverUrl}
+                                  size="micro"
+                                  fitParent
+                                  className="w-full"
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-xs font-bold text-[#f5f0dc]">
+                                  {play.gameTitle}
+                                </p>
+                                <p className="mt-0.5 line-clamp-2 text-[0.6rem] leading-tight text-[#cbd7b5]">
+                                  {formatMeetingContinuationSubtitle(play)}
+                                </p>
+                                {play.assignedMeeting ? (
+                                  <p className="mt-0.5 truncate text-[0.58rem] font-semibold text-[#e5c978]">
+                                    Przypisana: {play.assignedMeeting.title}
+                                  </p>
+                                ) : play.isRunning ? (
+                                  <p className="mt-0.5 text-[0.58rem] font-semibold text-[#e5c978]">
+                                    Trwa teraz przy Stole
+                                  </p>
+                                ) : null}
+                              </div>
+                              <div className="w-[7rem] shrink-0">
+                                <ActionButton
+                                  type="button"
+                                  action="chronicle"
+                                  size="compact"
+                                  withIcon={false}
+                                  fullWidth
+                                  disabled={pending}
+                                  loading={pending}
+                                  loadingLabel="Zgłaszam…"
+                                  onClick={() =>
+                                    handleProposeContinuation(play.playId)
+                                  }
+                                >
+                                  {isAlreadyProposed
+                                    ? "Chcę grać"
+                                    : "Zaproponuj dokończenie"}
+                                </ActionButton>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ) : null}
+
                   {recommendedGames.length > 0 && query.trim() === "" ? (
                     <section className="mb-4 rounded-[1rem] border border-[#efbd65]/45 bg-[linear-gradient(135deg,rgba(94,47,18,0.84),rgba(42,20,12,0.78))] p-3 shadow-[0_0_18px_rgba(218,142,48,0.2)]">
                       <div className="mb-2.5 flex items-end justify-between gap-3">
@@ -351,7 +551,8 @@ export function MeetingGameProposals({
                     </div>
                   ))}
 
-                  {filteredGames.length === 0 ? (
+                  {filteredGames.length === 0 &&
+                  filteredContinuablePlays.length === 0 ? (
                     <div className="rounded-[1rem] border border-dashed border-white/30 bg-white/12 px-4 py-5 text-sm text-[#fbeed9] backdrop-blur-[3px] [text-shadow:0_1px_3px_rgba(10,5,2,0.85)]">
                       Nic nie pasuje do wyszukiwania. Spróbuj wpisać krótszy
                       tytuł.

@@ -762,6 +762,95 @@ export type Database = {
           },
         ]
       }
+      meeting_continuation_proposals: {
+        Row: {
+          continued_play_id: string
+          created_at: string
+          meeting_id: string
+          proposed_by: string
+        }
+        Insert: {
+          continued_play_id: string
+          created_at?: string
+          meeting_id: string
+          proposed_by: string
+        }
+        Update: {
+          continued_play_id?: string
+          created_at?: string
+          meeting_id?: string
+          proposed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_continuation_proposals_continued_play_id_fkey"
+            columns: ["continued_play_id"]
+            isOneToOne: false
+            referencedRelation: "plays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_continuation_proposals_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_continuation_proposals_proposed_by_fkey"
+            columns: ["proposed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_continuation_responses: {
+        Row: {
+          continued_play_id: string
+          created_at: string
+          meeting_id: string
+          user_id: string
+          wants_to_play: boolean
+        }
+        Insert: {
+          continued_play_id: string
+          created_at?: string
+          meeting_id: string
+          user_id: string
+          wants_to_play: boolean
+        }
+        Update: {
+          continued_play_id?: string
+          created_at?: string
+          meeting_id?: string
+          user_id?: string
+          wants_to_play?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_continuation_responses_meeting_id_continued_play_id_fkey"
+            columns: ["meeting_id", "continued_play_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_continuation_proposals"
+            referencedColumns: ["meeting_id", "continued_play_id"]
+          },
+          {
+            foreignKeyName: "meeting_continuation_responses_meeting_id_continued_play_id_fkey"
+            columns: ["meeting_id", "continued_play_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_continuation_rankings"
+            referencedColumns: ["meeting_id", "continued_play_id"]
+          },
+          {
+            foreignKeyName: "meeting_continuation_responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_game_proposals: {
         Row: {
           created_at: string
@@ -1678,6 +1767,30 @@ export type Database = {
           },
         ]
       }
+      meeting_continuation_rankings: {
+        Row: {
+          continued_play_id: string | null
+          meeting_id: string | null
+          no_count: number | null
+          yes_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_continuation_proposals_continued_play_id_fkey"
+            columns: ["continued_play_id"]
+            isOneToOne: false
+            referencedRelation: "plays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_continuation_proposals_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_game_rankings: {
         Row: {
           game_id: string | null
@@ -2023,6 +2136,18 @@ export type Database = {
         }
         Returns: string
       }
+      create_meeting_plan_with_invitations: {
+        Args: {
+          p_description?: string
+          p_ends_at: string
+          p_invited_user_ids: string[]
+          p_location?: string
+          p_proposed_continued_play_id?: string
+          p_starts_at: string
+          p_title: string
+        }
+        Returns: string
+      }
       create_play_with_participants: {
         Args: {
           p_comment?: string
@@ -2053,6 +2178,14 @@ export type Database = {
         Args: {
           p_play_id: string
           p_result_pending?: boolean
+          p_state_note?: string
+        }
+        Returns: string
+      }
+      pause_meeting_play: {
+        Args: {
+          p_meeting_id: string
+          p_play_id: string
           p_state_note?: string
         }
         Returns: string
@@ -2162,6 +2295,14 @@ export type Database = {
           points: number
         }[]
       }
+      propose_meeting_continuation: {
+        Args: { p_continued_play_id: string; p_meeting_id: string }
+        Returns: {
+          awarded: boolean
+          point_event_id: string
+          points: number
+        }[]
+      }
       reorder_play_photos: {
         Args: { p_photo_ids: string[]; p_play_id: string }
         Returns: undefined
@@ -2188,6 +2329,18 @@ export type Database = {
       set_meeting_game_response: {
         Args: {
           p_game_id: string
+          p_meeting_id: string
+          p_wants_to_play: boolean
+        }
+        Returns: {
+          awarded: boolean
+          point_event_id: string
+          points: number
+        }[]
+      }
+      set_meeting_continuation_response: {
+        Args: {
+          p_continued_play_id: string
           p_meeting_id: string
           p_wants_to_play: boolean
         }
@@ -2235,6 +2388,19 @@ export type Database = {
           p_invited_user_ids: string[]
           p_location?: string
           p_meeting_id: string
+          p_starts_at: string
+          p_title: string
+        }
+        Returns: string
+      }
+      update_meeting_plan_with_invitations: {
+        Args: {
+          p_description?: string
+          p_ends_at: string
+          p_invited_user_ids: string[]
+          p_location?: string
+          p_meeting_id: string
+          p_proposed_continued_play_id?: string
           p_starts_at: string
           p_title: string
         }
@@ -2436,4 +2602,3 @@ export const Constants = {
     },
   },
 } as const
-

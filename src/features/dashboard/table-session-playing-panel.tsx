@@ -214,6 +214,15 @@ export function PlayingSessionPanel({
           canManage={session.canManagePlays}
           isContinuation={livePlay.isContinuation}
         />
+
+        <div className="text-center">
+          <Link
+            href={`/kronika/${livePlay.playId}`}
+            className="text-[0.62rem] font-semibold text-[#e0c8a8] underline decoration-[#e0c8a8]/35 underline-offset-4"
+          >
+            Szczegóły wpisu
+          </Link>
+        </div>
       </div>
     </div>
   );

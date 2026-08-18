@@ -23,11 +23,8 @@ import type { DashboardTableSession, TableSessionMember } from "./types";
  * siebie. Stąd brak tła/border-radius/cienia tutaj — to wszystko należy
  * teraz do rodzica.
  *
- * Logika i akcje są niedotknięte: to samo TableSessionGamePicker (ta sama
- * startMeetingPlayAction pod spodem) i ten sam FinishMeetingButton (ta sama
- * finishMeetingAction) — zmienia się wyłącznie ich zewnętrzna warstwa
- * wizualna przez propy renderIdleButton / variant / showTopChoicesPreview,
- * które nie ruszają domyślnego wyglądu używanego przez pozostałe stany.
+ * Wszystkie wieczory używają tego samego pickera. Wybrana wcześniej
+ * kontynuacja pozostaje jedną z opcji i nie ukrywa zwykłych gier.
  */
 
 function GatheringHeroes({ members }: { members: TableSessionMember[] }) {
@@ -135,11 +132,6 @@ export function GatheringSessionPanel({
           idleLabel="Zaczynamy grać"
           showTopChoicesPreview
           renderIdleButton={(onClick) => (
-            // Dolne 2 główne przyciski: lewo Zakończ spotkanie (drugorzędne,
-            // bronze-wood), prawo Zaczynamy grać (Orange, skrzyżowane
-            // miecze) — kliknięcie dalej otwiera picker przez onClick, tak
-            // samo jak wcześniej. table-cta-row = scoped, wyższy wariant
-            // "large" (patrz globals.css) tylko dla tych dwóch przycisków.
             <div
               className={
                 session.canFinishMeeting

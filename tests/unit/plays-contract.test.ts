@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   buildPlaySessions,
@@ -24,6 +25,7 @@ import {
 import { awardPlayPointsAfterSave } from "../../src/features/plays/play-points.ts";
 import { awardPlayResultAchievementsAfterSave } from "../../src/features/plays/play-achievements.ts";
 import { awardCampHostAfterPlaySave } from "../../src/features/plays/meeting-achievements.ts";
+import { findActiveTableMeetingForPlay } from "../../src/features/plays/active-table.ts";
 import {
   addParticipantDraft,
   applyTeamResultToDrafts,
@@ -33,6 +35,194 @@ import {
 
 const MEMBER_A = "10000000-0000-0000-0000-000000000002";
 const MEMBER_B = "10000000-0000-0000-0000-000000000003";
+
+test("an in-progress Chronicle entry exposes the existing completion form", () => {
+  const source = readFileSync(
+    new URL("../../src/features/plays/play-details-card.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /play\.status === "in_progress"/);
+  assert.match(source, /Dokończ partię/);
+  assert.match(source, /href=\{`\/kronika\/\$\{play\.id\}\/edytuj`\}/);
+  assert.doesNotMatch(source, /kronika\/nowa/);
+});
+
+test("a result-pending Chronicle entry uses the same completion action", () => {
+  const source = readFileSync(
+    new URL("../../src/features/plays/play-details-card.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /const isUnfinished = isUnfinishedPlay\(play\)/);
+  assert.match(source, /isUnfinished \? "Dokończ partię" : "Edytuj"/);
+  assert.doesNotMatch(source, /play\.resultPending\s*\?\s*"Uzupełnij wynik"/);
+});
+
+test("an in-progress Chronicle entry links back to its active Table", () => {
+  const meetingId = "20000000-0000-0000-0000-000000000001";
+  const playId = "30000000-0000-0000-0000-000000000001";
+  const activeMeetingId = findActiveTableMeetingForPlay({
+    play: {
+      id: playId,
+      meetingId,
+      status: "in_progress",
+      liveStartedAt: "2026-08-09T17:00:00.000Z",
+      liveEndedAt: null,
+      resultPending: false,
+    },
+    meetings: [
+      {
+        id: meetingId,
+        startsAt: "2026-08-09T16:00:00.000Z",
+        endsAt: "2026-08-09T21:00:00.000Z",
+        status: "confirmed",
+        continuedPlayId: null,
+        deletedAt: null,
+      },
+    ],
+    viewerMeetingIds: new Set([meetingId]),
+    now: new Date("2026-08-09T18:00:00.000Z"),
+  });
+
+  assert.equal(activeMeetingId, meetingId);
+
+  const detailsCard = readFileSync(
+    new URL("../../src/features/plays/play-details-card.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(detailsCard, /Dokończ przy Stole/);
+  assert.match(detailsCard, /href=\{play\.activeTableHref\}/);
+
+  const query = readFileSync(
+    new URL("../../src/features/plays/queries.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(query, /`\/\?meeting=\$\{activeTableMeetingId\}`/);
+  assert.match(query, /\.is\("deleted_at", null\)/);
+});
+
+test("a result-pending Chronicle entry still links back to its active Table", () => {
+  const meetingId = "20000000-0000-0000-0000-000000000001";
+
+  assert.equal(
+    findActiveTableMeetingForPlay({
+      play: {
+        id: "30000000-0000-0000-0000-000000000001",
+        meetingId,
+        status: "in_progress",
+        liveStartedAt: "2026-08-09T17:00:00.000Z",
+        liveEndedAt: "2026-08-09T18:00:00.000Z",
+        resultPending: true,
+      },
+      meetings: [
+        {
+          id: meetingId,
+          startsAt: "2026-08-09T16:00:00.000Z",
+          endsAt: "2026-08-09T21:00:00.000Z",
+          status: "confirmed",
+          continuedPlayId: null,
+          deletedAt: null,
+        },
+      ],
+      viewerMeetingIds: new Set([meetingId]),
+      now: new Date("2026-08-09T18:30:00.000Z"),
+    }),
+    meetingId,
+  );
+});
+
+test("a continuation meeting links the same Chronicle entry back to its Table", () => {
+  const playId = "30000000-0000-0000-0000-000000000001";
+  const continuationMeetingId = "20000000-0000-0000-0000-000000000002";
+
+  assert.equal(
+    findActiveTableMeetingForPlay({
+      play: {
+        id: playId,
+        meetingId: "20000000-0000-0000-0000-000000000001",
+        status: "in_progress",
+        liveStartedAt: "2026-08-09T17:00:00.000Z",
+        liveEndedAt: null,
+        resultPending: false,
+      },
+      meetings: [
+        {
+          id: continuationMeetingId,
+          startsAt: "2026-08-09T16:00:00.000Z",
+          endsAt: "2026-08-09T21:00:00.000Z",
+          status: "confirmed",
+          continuedPlayId: playId,
+          deletedAt: null,
+        },
+      ],
+      viewerMeetingIds: new Set([continuationMeetingId]),
+      now: new Date("2026-08-09T18:00:00.000Z"),
+    }),
+    continuationMeetingId,
+  );
+});
+
+test("a soft-deleted meeting never creates a Chronicle-to-Table link", () => {
+  const meetingId = "20000000-0000-0000-0000-000000000001";
+
+  assert.equal(
+    findActiveTableMeetingForPlay({
+      play: {
+        id: "30000000-0000-0000-0000-000000000001",
+        meetingId,
+        status: "in_progress",
+        liveStartedAt: "2026-08-09T17:00:00.000Z",
+        liveEndedAt: null,
+        resultPending: false,
+      },
+      meetings: [
+        {
+          id: meetingId,
+          startsAt: "2026-08-09T16:00:00.000Z",
+          endsAt: "2026-08-09T21:00:00.000Z",
+          status: "confirmed",
+          continuedPlayId: null,
+          deletedAt: "2026-08-09T17:30:00.000Z",
+        },
+      ],
+      viewerMeetingIds: new Set([meetingId]),
+      now: new Date("2026-08-09T18:00:00.000Z"),
+    }),
+    null,
+  );
+});
+
+test("a future continuation is not exposed as an active Table", () => {
+  const playId = "30000000-0000-0000-0000-000000000001";
+  const futureMeetingId = "20000000-0000-0000-0000-000000000003";
+
+  assert.equal(
+    findActiveTableMeetingForPlay({
+      play: {
+        id: playId,
+        meetingId: null,
+        status: "in_progress",
+        liveStartedAt: "2026-08-09T17:00:00.000Z",
+        liveEndedAt: null,
+        resultPending: false,
+      },
+      meetings: [
+        {
+          id: futureMeetingId,
+          startsAt: "2026-08-10T16:00:00.000Z",
+          endsAt: "2026-08-10T21:00:00.000Z",
+          status: "confirmed",
+          continuedPlayId: playId,
+          deletedAt: null,
+        },
+      ],
+      viewerMeetingIds: new Set([futureMeetingId]),
+      now: new Date("2026-08-09T18:00:00.000Z"),
+    }),
+    null,
+  );
+});
 
 test("adding the first participant to a completed play marks them as winner", () => {
   const drafts = addParticipantDraft(

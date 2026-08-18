@@ -84,12 +84,12 @@ export function SummarySessionPanel({
     lastPlay.phase === "completed"
       ? lastPlay.resultLabel
       : lastPlay.phase === "awaiting-result"
-        ? "✓ PARTIA ZAKOŃCZONA"
+        ? "⏳ WYNIK DO UZUPEŁNIENIA"
         : "⏸ PARTIA ODŁOŻONA";
 
   const subtext =
     lastPlay.phase === "awaiting-result"
-      ? "Wynik możesz uzupełnić później."
+      ? "Możecie dokończyć partię albo od razu uzupełnić wynik."
       : lastPlay.phase === "paused"
         ? "Wrócicie do niej na kolejnej sesji."
         : "Wynik zapisany w Kronice.";
@@ -184,19 +184,17 @@ export function SummarySessionPanel({
           <SessionInfoTile label="Gracze" value={`${lastPlay.playersCount}`} />
         </div>
 
-        {/* Hierarchia akcji: główne CTA (uzupełnienie wyniku) pełną
-            szerokością nad parą akcji pobocznych, "Zakończ spotkanie"
+        {/* Hierarchia akcji: dla każdego nierozliczonego wpisu główne CTA
+            wraca do TEGO SAMEGO play_id. Wynik oczekujący na uzupełnienie
+            nadal można rozliczyć bez wznawiania. "Zakończ spotkanie"
             osobno na samym dole jako domknięcie wieczoru — nie obok reszty. */}
         <div className="space-y-1.5">
           {lastPlay.phase === "awaiting-result" ? (
-            <ActionLink
-              href={lastPlay.resultHref}
-              action="chronicle"
-              size="large"
-              fullWidth
-            >
-              Uzupełnij wynik teraz
-            </ActionLink>
+            <ResumePlayButton
+              meetingId={session.meeting.id}
+              playId={lastPlay.playId}
+              label="Wznów partię"
+            />
           ) : null}
 
           {/* Dopóki lista wyboru gry jest zamknięta: "Zagraj ponownie"/"Wznów
@@ -220,7 +218,17 @@ export function SummarySessionPanel({
               <ResumePlayButton
                 meetingId={session.meeting.id}
                 playId={lastPlay.playId}
+                label="Wznów partię"
               />
+            ) : lastPlay.phase === "awaiting-result" ? (
+              <ActionLink
+                href={lastPlay.resultHref}
+                action="chronicle"
+                size="large"
+                fullWidth
+              >
+                Zapisz wynik
+              </ActionLink>
             ) : (
               <PlayAgainButton
                 meetingId={session.meeting.id}

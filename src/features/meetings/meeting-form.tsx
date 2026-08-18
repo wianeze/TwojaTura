@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { TimeInput } from "@/components/ui/time-input";
 import { INITIAL_MEETING_FORM_STATE } from "./form-state";
 import { MeetingContinuationField } from "./meeting-continuation-field";
 import { MeetingDateField } from "./meeting-date-field";
@@ -106,24 +107,20 @@ export function MeetingForm({
         <div className="grid min-w-0 grid-cols-2 gap-2.5 sm:gap-4">
           <label className="block min-w-0 text-sm font-semibold text-[#503828]">
             Od
-            <input
+            <TimeInput
               className={inputClass}
               name="startTime"
               defaultValue={values.startTime}
-              placeholder="HH:mm"
-              inputMode="numeric"
             />
             <FieldError error={state.fieldErrors?.startTime} />
           </label>
 
           <label className="block min-w-0 text-sm font-semibold text-[#503828]">
             Do
-            <input
+            <TimeInput
               className={inputClass}
               name="endTime"
               defaultValue={values.endTime}
-              placeholder="HH:mm"
-              inputMode="numeric"
             />
             <FieldError error={state.fieldErrors?.endTime} />
           </label>

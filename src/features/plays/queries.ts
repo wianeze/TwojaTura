@@ -4,6 +4,7 @@ import { getViewerMeetingParticipation } from "@/features/meetings/participation
 import { createClient } from "@/lib/supabase/server";
 import { toPublicStorageUrl } from "@/lib/supabase/env";
 import type { Tables } from "@/types/database.generated";
+import { findActiveTableMeetingForPlay } from "./active-table";
 import {
   buildPlaySessions,
   getPlayFormValues,
@@ -41,6 +42,17 @@ type GameRow = Pick<Tables<"games">, "id" | "title" | "cover_url" | "owner_id">;
 type MeetingRow = Pick<
   Tables<"meetings">,
   "id" | "title" | "starts_at" | "ends_at" | "location"
+>;
+type LinkedMeetingRow = Pick<
+  Tables<"meetings">,
+  | "id"
+  | "title"
+  | "starts_at"
+  | "ends_at"
+  | "location"
+  | "status"
+  | "continued_play_id"
+  | "deleted_at"
 >;
 
 function toMember(profile: ProfileRow): PlayMember {
@@ -144,20 +156,20 @@ async function hydratePlayItems(
 
   const [participantsResult, gamesResult, meetingsResult, continuationsResult] =
     await Promise.all([
-    supabase
-      .from("play_participants")
-      .select("play_id, user_id, placement, score, is_winner")
-      .in("play_id", playIds),
-    supabase
-      .from("games")
-      .select("id, title, cover_url, owner_id")
-      .in("id", gameIds),
+      supabase
+        .from("play_participants")
+        .select("play_id, user_id, placement, score, is_winner")
+        .in("play_id", playIds),
+      supabase
+        .from("games")
+        .select("id, title, cover_url, owner_id")
+        .in("id", gameIds),
       meetingIds.length > 0
-      ? supabase
-          .from("meetings")
-          .select("id, title, starts_at, ends_at, location")
-          .in("id", meetingIds)
-          .is("deleted_at", null)
+        ? supabase
+            .from("meetings")
+            .select("id, title, starts_at, ends_at, location")
+            .in("id", meetingIds)
+            .is("deleted_at", null)
         : Promise.resolve({ data: [], error: null }),
       viewer
         ? supabase
@@ -374,35 +386,71 @@ export async function getPlayDetails(
   const [item] = await hydratePlayItems([data as PlayRow], viewer);
   if (!item) return null;
 
-  // Spotkania, na których grupa wracała do tej partii. Wpis Kroniki zostaje
-  // jeden — to wyłącznie jego oś czasu.
-  const [photos, continuationsResult] = await Promise.all([
+  // Jednym odczytem pobieramy spotkanie startowe i wszystkie kontynuacje.
+  // Wpis Kroniki zostaje jeden — spotkania są wyłącznie jego osią czasu oraz
+  // podstawą opcjonalnego linku z powrotem do aktualnego Stołu.
+  const linkedMeetingFilters = [`continued_play_id.eq.${playId}`];
+  if (data.meeting_id) linkedMeetingFilters.push(`id.eq.${data.meeting_id}`);
+
+  const [photos, linkedMeetingsResult] = await Promise.all([
     getPlayPhotos(supabase, playId),
     supabase
       .from("meetings")
-      .select("id, title, starts_at, ends_at, location")
-      .eq("continued_play_id", playId)
+      .select(
+        "id, title, starts_at, ends_at, location, status, continued_play_id, deleted_at",
+      )
+      .or(linkedMeetingFilters.join(","))
       .is("deleted_at", null),
   ]);
 
-  if (continuationsResult.error) {
+  if (linkedMeetingsResult.error) {
     throw new Error("Nie udało się pobrać kolejnych sesji partii.");
   }
 
-  const continuationMeetings = (
-    (continuationsResult.data ?? []) as MeetingRow[]
-  ).map((meeting) => ({
-    id: meeting.id,
-    title: meeting.title,
-    startsAt: meeting.starts_at,
-    endsAt: meeting.ends_at,
-    location: meeting.location,
-  }));
+  const linkedMeetings = (linkedMeetingsResult.data ??
+    []) as LinkedMeetingRow[];
+  const continuationMeetings = linkedMeetings
+    .filter((meeting) => meeting.continued_play_id === playId)
+    .map((meeting) => ({
+      id: meeting.id,
+      title: meeting.title,
+      startsAt: meeting.starts_at,
+      endsAt: meeting.ends_at,
+      location: meeting.location,
+    }));
+
+  const linkedMeetingIds = linkedMeetings.map((meeting) => meeting.id);
+  const viewerMeetingIds = viewer
+    ? await getViewerMeetingParticipation(supabase, viewer.id, linkedMeetingIds)
+    : new Set<string>();
+  const activeTableMeetingId = findActiveTableMeetingForPlay({
+    play: {
+      id: item.id,
+      meetingId: data.meeting_id,
+      status: item.status,
+      liveStartedAt: item.liveStartedAt,
+      liveEndedAt: item.liveEndedAt,
+      resultPending: item.resultPending,
+    },
+    meetings: linkedMeetings.map((meeting) => ({
+      id: meeting.id,
+      startsAt: meeting.starts_at,
+      endsAt: meeting.ends_at,
+      status: meeting.status,
+      continuedPlayId: meeting.continued_play_id,
+      deletedAt: meeting.deleted_at,
+    })),
+    viewerMeetingIds,
+    now: new Date(),
+  });
 
   return {
     ...item,
     photos,
     sessions: buildPlaySessions(item.meeting, continuationMeetings),
+    activeTableHref: activeTableMeetingId
+      ? `/?meeting=${activeTableMeetingId}`
+      : null,
   };
 }
 

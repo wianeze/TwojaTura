@@ -1679,6 +1679,33 @@ body {
   text-wrap: balance;
 }
 
+/*
+ * Wyrównanie wysokości pary przycisków w tym wierszu: lewy ("Wznów partię" /
+ * "Dokończ partię z Kroniki" — ResumePlayButton albo PlayAgainButton) do
+ * prawego ("Wybierz kolejną grę"), który jest wysoki, bo ma ikonę NAD
+ * dwuwierszowym tekstem.
+ *
+ * Grid rozciąga tylko OPAKOWANIA (oba lewe komponenty renderują <div> z
+ * przyciskiem i miejscem na ActionMessage), a sam przycisk ma wyłącznie
+ * min-height z .action-size-large — dlatego zostawał wyraźnie niższy.
+ * Opakowanie staje się kolumną flex, przycisk w niej rośnie, a komunikat
+ * nadal ląduje pod nim.
+ *
+ * Celowo `:first-child`, nie `> *`: prawy slot (TableSessionGamePicker) ma
+ * własną strukturę z rozwijaną listą i nie wolno mu narzucać flex-kolumny.
+ * Reguła działa też tylko w układzie dwukolumnowym — po otwarciu pickera
+ * wiersz traci klasę .table-icon-stack (patrz isPickerOpen w
+ * table-session-summary-panel.tsx), więc nic tam nie rozciąga.
+ */
+.table-icon-stack > :first-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.table-icon-stack > :first-child > .action-btn {
+  flex: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .table-top-cover,
   .table-picker-collapse {

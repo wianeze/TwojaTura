@@ -16,6 +16,58 @@ export type PatchNotesRelease = {
  */
 export const PATCH_NOTES: readonly PatchNotesRelease[] = [
   {
+    date: "17 sierpnia 2026",
+    title: "Wielki buff oprawy Stołu",
+    categories: [
+      {
+        category: "Stół",
+        items: [
+          "Zlecenia i Misje dostały nowe, pergaminowe karty — emblemat rzadkości po lewej, a nagroda w Renomie albo Tukatach wyraźnie odcięta po prawej.",
+          "„Legendy przy Stole” to teraz prawdziwa tablica rankingowa: ciemna płyta w złoto-miedzianej ramie, puchary za miejsca i czytelne wyniki.",
+          "Kafle „Najbliższe spotkanie” i „Legendy przy Stole” zostały zestawione w równą parę — ta sama wysokość, szerokość i wspólna linia nagłówków.",
+          "Przyciski „Zorganizuj spotkanie” i „Zobacz ranking” mają jednakowy rozmiar i plakietki spójne z resztą Stołu.",
+          "Sekcja „Świeże wpisy z Kroniki” siedzi teraz na tej samej pergaminowej karcie, co wpisy w samej Kronice.",
+          "Uporządkowano nagłówki na telefonie — „Zlecenia” są wyśrodkowane i zestrojone z powitaniem przy Stole.",
+          "W podsumowaniu wieczoru „Wznów partię” i „Wybierz kolejną grę” mają wreszcie równą wysokość.",
+        ],
+      },
+    ],
+  },
+  {
+    date: "15 sierpnia 2026",
+    title: "Zlecenia w kolorach rzadkości",
+    categories: [
+      {
+        category: "Stół",
+        items: [
+          "Karty Zleceń mają własne ramy i akcenty zależne od rzadkości — od zwykłych po legendarne.",
+          "Poświata karty podkreśla najpilniejsze zadanie, a nagroda za Zlecenie jest widoczna od pierwszego spojrzenia.",
+        ],
+      },
+    ],
+  },
+  {
+    date: "14 sierpnia 2026",
+    title: "Odznaki nabijają się same",
+    categories: [
+      {
+        category: "Legendarium",
+        items: [
+          "Kolejna paczka osiągnięć przyznaje się automatycznie — m.in. Hot Streak, Glass Cannon, Git Gud, Redemption Arc, Hot Take i Candlekeep Sage.",
+          "Każde z tych osiągnięć ma teraz jasno opisany warunek zdobycia.",
+          "Doszły paski postępu dla odznak zależnych od serii zwycięstw i cięższych gier, a zdobyta odznaka pokazuje pełny, ukończony pasek.",
+          "Osiągnięcia oparte na niepewnych danych o grach zostały oznaczone jako planowane — żeby nie obiecywać czegoś, czego system nie umie jeszcze policzyć.",
+        ],
+      },
+      {
+        category: "Stół",
+        items: [
+          "Dopracowano przyciski akcji na telefonie — równiejsze odstępy i czytelniejsze etykiety.",
+        ],
+      },
+    ],
+  },
+  {
     date: "13 sierpnia 2026",
     title: "Porządek w podsumowaniu wieczoru",
     categories: [

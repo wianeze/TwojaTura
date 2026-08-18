@@ -4,6 +4,7 @@ import { useActionState, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useCanWrite } from "@/features/auth/member-role-context";
 import { MeetingDateField } from "@/features/meetings/meeting-date-field";
+import { TimeInput } from "@/components/ui/time-input";
 import { getMeetingOptionDisplayLabel } from "./formatting";
 import { INITIAL_PLAY_FORM_STATE } from "./form-state";
 import { PlayParticipantsField } from "./play-participants-field";
@@ -438,12 +439,10 @@ export function PlayForm(props: PlayFormProps) {
           <label className="block text-sm font-semibold text-[#503828]">
             Godzina
             <div className="relative mt-1.5">
-              <input
+              <TimeInput
                 className={`${inputClass} mt-0`}
                 name="playedOnTime"
                 defaultValue={values.playedOnTime}
-                placeholder="HH:mm"
-                inputMode="numeric"
               />
             </div>
             <FieldError error={formState.fieldErrors?.playedOnTime} />

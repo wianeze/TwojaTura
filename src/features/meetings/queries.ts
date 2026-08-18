@@ -6,10 +6,15 @@ import {
   getMeetingFormValues,
   normalizeMeetingLocationSuggestions,
 } from "./formatting";
+import {
+  hasUsableContinuationContext,
+  isMeetingContinuationCandidate,
+} from "./continuation";
 import { buildMeetingGameRecommendations } from "./game-recommendations";
 import type {
   MeetingAttendanceRow,
   MeetingCardItem,
+  MeetingContinuationVoteItem,
   MeetingContinuablePlay,
   MeetingDetails,
   MeetingGameCandidateOption,
@@ -26,12 +31,15 @@ import {
 type MeetingRow = Tables<"meetings">;
 type MeetingAvailabilityRow = Tables<"meeting_availability">;
 type MeetingResponseRow = Tables<"meeting_game_responses">;
+type MeetingContinuationResponseRow =
+  Tables<"meeting_continuation_responses">;
 type GameRow = Tables<"games">;
 type ProfileRow = Pick<
   Tables<"profiles">,
   "id" | "display_name" | "avatar_url"
 >;
 type RankingRow = Tables<"meeting_game_rankings">;
+type ContinuationRankingRow = Tables<"meeting_continuation_rankings">;
 type RatingRow = Tables<"ratings">;
 
 function mapMember(profile: ProfileRow): MeetingMember {
@@ -236,13 +244,13 @@ function buildConfirmedCounts(
 }
 
 /*
- * Partie, do których grupa może wrócić: wpisy Kroniki ze statusem
- * `in_progress`, które nie są ani grane w tej chwili, ani zakończone i czekające
- * wyłącznie na wynik. Obejmuje to zarówno partię odłożoną ręcznie w Kronice
- * (bez znacznika live), jak i odłożoną przy stole przyciskiem „Odłóż partię”.
- * Lustro `private.is_continuable_play`; bazę pilnuje ta sama reguła w
- * assert_valid_continued_play. Lista jest z natury krótka, więc nie ma limitu
- * ani paginacji.
+ * Wspólna lista istniejących wpisów Kroniki ze statusem `in_progress` — zarówno
+ * utworzonych ręcznie, jak i przez Stół. Formularz i modal mogą pokazać także
+ * wpis biegnący teraz, bo zapisują/otwierają ten sam play_id. `result_pending`
+ * nadal jest `in_progress`, więc również pozostaje na liście. Picker drugiego
+ * Stołu przekazuje `includeRunning: false`, ponieważ dopiero faktyczne wznowienie
+ * musi spełnić `private.is_continuable_play`. Jednoznacznie zakończona partia
+ * nie jest nowym kandydatem.
  *
  * `includePlayId` obsługuje jeden przypadek brzegowy edycji: spotkanie
  * wskazuje partię, którą w międzyczasie zamknięto. Bez tego pozycja zniknęłaby
@@ -251,50 +259,119 @@ function buildConfirmedCounts(
  */
 export async function listContinuablePlays(
   includePlayId?: string | null,
+  options: { includeRunning?: boolean } = {},
 ): Promise<MeetingContinuablePlay[]> {
   const supabase = await createClient();
-  const baseQuery = supabase
+  let playsQuery = supabase
     .from("plays")
-    .select("id, game_id, played_at, state_note, duration_minutes")
-    // Partia grana właśnie przy stole (start bez końca) oraz taka, która czeka
-    // wyłącznie na wynik, nie są niczym, do czego można „wrócić”.
-    .eq("result_pending", false)
-    .or("live_started_at.is.null,live_ended_at.not.is.null")
-    .order("played_at", { ascending: false });
+    .select(
+      "id, game_id, meeting_id, status, played_at, state_note, duration_minutes, live_started_at, live_ended_at, result_pending",
+    );
 
-  const { data, error } = await (includePlayId
-    ? baseQuery.or(`status.eq.in_progress,id.eq.${includePlayId}`)
-    : baseQuery.eq("status", "in_progress"));
+  playsQuery = includePlayId
+    ? playsQuery.or(`status.eq.in_progress,id.eq.${includePlayId}`)
+    : playsQuery.eq("status", "in_progress");
+
+  const { data, error } = await playsQuery.order("played_at", {
+    ascending: false,
+  });
 
   if (error) {
     throw new Error("Nie udało się pobrać rozpoczętych partii.");
   }
 
-  const rows = data ?? [];
+  const rows = (data ?? []).filter((row) =>
+    isMeetingContinuationCandidate(
+      {
+        id: row.id,
+        meetingId: row.meeting_id,
+        status: row.status,
+        resultPending: row.result_pending,
+        liveStartedAt: row.live_started_at,
+        liveEndedAt: row.live_ended_at,
+      },
+      { includePlayId, includeRunning: options.includeRunning },
+    ),
+  );
   if (rows.length === 0) return [];
 
-  const { data: games, error: gamesError } = await supabase
-    .from("games")
-    .select("id, title, cover_url")
-    .in("id", [...new Set(rows.map((row) => row.game_id))]);
+  const playIds = rows.map((row) => row.id);
+  const startMeetingIds = [
+    ...new Set(
+      rows
+        .map((row) => row.meeting_id)
+        .filter((meetingId): meetingId is string => Boolean(meetingId)),
+    ),
+  ];
+  const [gamesResult, startMeetingsResult, assignmentsResult] =
+    await Promise.all([
+      supabase
+        .from("games")
+        .select("id, title, cover_url")
+        .in("id", [...new Set(rows.map((row) => row.game_id))]),
+      startMeetingIds.length > 0
+        ? supabase
+            .from("meetings")
+            .select("id")
+            .in("id", startMeetingIds)
+            .is("deleted_at", null)
+        : Promise.resolve({ data: [], error: null }),
+      supabase
+        .from("meetings")
+        .select("id, title, status, starts_at, continued_play_id")
+        .in("continued_play_id", playIds)
+        .is("deleted_at", null)
+        .neq("status", "completed")
+        .order("starts_at", { ascending: true }),
+    ]);
 
-  if (gamesError) {
+  if (
+    gamesResult.error ||
+    startMeetingsResult.error ||
+    assignmentsResult.error
+  ) {
     throw new Error("Nie udało się pobrać tytułów rozpoczętych partii.");
   }
 
-  const gamesById = new Map((games ?? []).map((game) => [game.id, game]));
+  const gamesById = new Map(
+    (gamesResult.data ?? []).map((game) => [game.id, game]),
+  );
+  const visibleStartMeetingIds = new Set(
+    (startMeetingsResult.data ?? []).map((meeting) => meeting.id),
+  );
+  const assignmentsByPlayId = new Map<string, { id: string; title: string }>();
+  for (const meeting of assignmentsResult.data ?? []) {
+    if (!meeting.continued_play_id) continue;
+    assignmentsByPlayId.set(meeting.continued_play_id, {
+      id: meeting.id,
+      title: meeting.title,
+    });
+  }
 
-  return rows.map((row) => ({
-    playId: row.id,
-    gameId: row.game_id,
-    gameTitle: gamesById.get(row.game_id)?.title ?? "Nieznana gra",
-    coverUrl: gamesById.get(row.game_id)?.cover_url ?? null,
-    playedAt: row.played_at,
-    stateNote: row.state_note,
-    // Łączny czas dotychczasowych sesji — „wracamy do partii, w której mamy
-    // już 3 godziny” to zupełnie inna decyzja niż start czegoś nowego.
-    accumulatedMinutes: row.duration_minutes,
-  }));
+  return rows
+    .filter((row) =>
+      hasUsableContinuationContext({
+        startMeetingId: row.meeting_id,
+        startMeetingExists:
+          row.meeting_id !== null && visibleStartMeetingIds.has(row.meeting_id),
+        hasAssignedMeeting: assignmentsByPlayId.has(row.id),
+      }),
+    )
+    .map((row) => ({
+      playId: row.id,
+      gameId: row.game_id,
+      gameTitle: gamesById.get(row.game_id)?.title ?? "Nieznana gra",
+      coverUrl: gamesById.get(row.game_id)?.cover_url ?? null,
+      status: row.status,
+      startMeetingId: row.meeting_id,
+      isRunning: row.live_started_at !== null && row.live_ended_at === null,
+      assignedMeeting: assignmentsByPlayId.get(row.id) ?? null,
+      playedAt: row.played_at,
+      stateNote: row.state_note,
+      // Łączny czas dotychczasowych sesji — „wracamy do partii, w której mamy
+      // już 3 godziny” to zupełnie inna decyzja niż start czegoś nowego.
+      accumulatedMinutes: row.duration_minutes,
+    }));
 }
 
 export async function listMeetings(): Promise<MeetingCardItem[]> {
@@ -382,6 +459,8 @@ export async function getMeetingDetails(
     availabilityResult,
     votesResult,
     rankingResult,
+    continuationResponsesResult,
+    continuationRankingsResult,
     gamesResult,
     relatedPlaysResult,
   ] = await Promise.all([
@@ -402,6 +481,16 @@ export async function getMeetingDetails(
       .select("meeting_id, game_id, yes_count, no_count")
       .eq("meeting_id", meetingId),
     supabase
+      .from("meeting_continuation_responses")
+      .select("meeting_id, continued_play_id, user_id, wants_to_play")
+      .eq("meeting_id", meetingId),
+    supabase
+      .from("meeting_continuation_rankings")
+      .select(
+        "meeting_id, continued_play_id, yes_count, no_count",
+      )
+      .eq("meeting_id", meetingId),
+    supabase
       .from("games")
       .select("id, title, cover_url, owner_id, archived_at")
       .is("archived_at", null)
@@ -417,6 +506,8 @@ export async function getMeetingDetails(
     availabilityResult.error ||
     votesResult.error ||
     rankingResult.error ||
+    continuationResponsesResult.error ||
+    continuationRankingsResult.error ||
     gamesResult.error ||
     relatedPlaysResult.error
   ) {
@@ -484,6 +575,90 @@ export async function getMeetingDetails(
     ownResponses,
     gameOwners,
   );
+
+  const continuationOwnResponses = new Map(
+    ((continuationResponsesResult.data ??
+      []) as MeetingContinuationResponseRow[])
+      .filter((row) => row.user_id === actor?.id)
+      .map(
+        (row) => [row.continued_play_id, row.wants_to_play] as const,
+      ),
+  );
+  const continuationRankings = (continuationRankingsResult.data ??
+    []) as ContinuationRankingRow[];
+  const continuationPlayIds = continuationRankings
+    .map((row) => row.continued_play_id)
+    .filter((id): id is string => Boolean(id));
+  let continuationVotes: MeetingContinuationVoteItem[] = [];
+
+  if (continuationPlayIds.length > 0) {
+    const { data: continuationPlayRows, error: continuationPlayError } =
+      await supabase
+        .from("plays")
+        .select(
+          "id, game_id, status, played_at, state_note, duration_minutes",
+        )
+        .in("id", continuationPlayIds)
+        .eq("status", "in_progress");
+
+    if (continuationPlayError) {
+      throw new Error("Nie udało się pobrać propozycji kontynuacji.");
+    }
+
+    const proposedGameIds = [
+      ...new Set((continuationPlayRows ?? []).map((play) => play.game_id)),
+    ];
+    const continuationGamesResult =
+      proposedGameIds.length > 0
+        ? await supabase
+            .from("games")
+            .select("id, title, cover_url")
+            .in("id", proposedGameIds)
+        : { data: [], error: null };
+
+    if (continuationGamesResult.error) {
+      throw new Error("Nie udało się pobrać gier kontynuowanych partii.");
+    }
+
+    const continuationGamesById = new Map(
+      (continuationGamesResult.data ?? []).map((game) => [game.id, game]),
+    );
+    const rankingsByPlayId = new Map(
+      continuationRankings.map((ranking) => [
+        ranking.continued_play_id,
+        ranking,
+      ]),
+    );
+
+    continuationVotes = (continuationPlayRows ?? [])
+      .flatMap((play) => {
+        const ranking = rankingsByPlayId.get(play.id);
+        if (!ranking) return [];
+        const game = continuationGamesById.get(play.game_id);
+
+        return [
+          {
+            playId: play.id,
+            gameId: play.game_id,
+            title: game?.title ?? "Nieznana gra",
+            coverUrl: game?.cover_url ?? null,
+            playedAt: play.played_at,
+            stateNote: play.state_note,
+            accumulatedMinutes: play.duration_minutes,
+            yesCount: Number(ranking.yes_count ?? 0),
+            noCount: Number(ranking.no_count ?? 0),
+            ownResponse: continuationOwnResponses.get(play.id) ?? null,
+          } satisfies MeetingContinuationVoteItem,
+        ];
+      })
+      .sort(
+        (left, right) =>
+          right.yesCount - left.yesCount ||
+          left.noCount - right.noCount ||
+          new Date(right.playedAt).getTime() -
+            new Date(left.playedAt).getTime(),
+      );
+  }
 
   // Rekomendacje dotyczą faktycznej ekipy: organizatora oraz osób, które
   // odpowiedziały TAK. Osoby niezdecydowane i RSVP NIE nie wpływają na wynik.
@@ -557,7 +732,9 @@ export async function getMeetingDetails(
   if (meeting.continued_play_id) {
     const { data: playRow, error: playError } = await supabase
       .from("plays")
-      .select("id, game_id, played_at, state_note, duration_minutes")
+      .select(
+        "id, game_id, meeting_id, status, played_at, state_note, duration_minutes, live_started_at, live_ended_at",
+      )
       .eq("id", meeting.continued_play_id)
       .maybeSingle();
 
@@ -577,6 +754,11 @@ export async function getMeetingDetails(
         gameId: playRow.game_id,
         gameTitle: gameRow?.title ?? "Nieznana gra",
         coverUrl: gameRow?.cover_url ?? null,
+        status: playRow.status,
+        startMeetingId: playRow.meeting_id,
+        isRunning:
+          playRow.live_started_at !== null && playRow.live_ended_at === null,
+        assignedMeeting: { id: meeting.id, title: meeting.title },
         playedAt: playRow.played_at,
         stateNote: playRow.state_note,
         accumulatedMinutes: playRow.duration_minutes,
@@ -600,6 +782,7 @@ export async function getMeetingDetails(
     attendanceRows,
     invitedUserIds,
     gameVotes,
+    continuationVotes,
     availableGames,
     recommendedGames,
   };
@@ -612,7 +795,9 @@ export async function getMeetingFormData(meetingId: string) {
   const supabase = await createClient();
   const [invitableMembers, continuablePlays] = await Promise.all([
     getInvitableMembers(supabase, details.createdBy.id),
-    listContinuablePlays(details.continuedPlay?.playId),
+    // Wybrana/wznowiona kontynuacja nie wraca do formularza jako nowa
+    // propozycja. Picker pokazuje tylko partie, które można dopiero zgłosić.
+    listContinuablePlays(),
   ]);
 
   return {

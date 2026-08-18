@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ActionLink } from "@/components/ui/action-button";
 import { GameCover } from "@/components/ui/game-cover";
+import { isUnfinishedPlay } from "@/features/meetings/continuation";
 import { deletePlayAction } from "./actions";
 import { DeletePlayButton } from "./delete-play-button";
 import {
@@ -294,6 +295,7 @@ function GalleryPhoto({ photo, wide }: { photo: PlayPhoto; wide: boolean }) {
 }
 
 export function PlayDetailsCard({ play }: { play: PlayDetails }) {
+  const isUnfinished = isUnfinishedPlay(play);
   const participants = sortPlayParticipants(play.participants);
   const playDate = getPlayDateBadgeParts(play.playedAt);
   const durationLabel = formatPlayDuration(play.durationMinutes);
@@ -339,12 +341,17 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
               emphasis="secondary"
               href={`/kronika/${play.id}/edytuj`}
             >
-              {play.resultPending
-                ? "Uzupełnij wynik"
-                : play.status === "in_progress"
-                  ? "Wznów grę"
-                  : "Edytuj"}
+              {isUnfinished ? "Dokończ partię" : "Edytuj"}
             </ActionLink>
+            {isUnfinished && play.activeTableHref ? (
+              <ActionLink
+                action="play"
+                size="compact"
+                href={play.activeTableHref}
+              >
+                Dokończ przy Stole
+              </ActionLink>
+            ) : null}
           </div>
         ) : null}
       </div>

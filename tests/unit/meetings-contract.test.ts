@@ -28,6 +28,10 @@ import {
   MEETING_WITH_CHRONICLE_DELETE_ERROR,
 } from "../../src/features/meetings/meeting-deletion.ts";
 import {
+  hasUsableContinuationContext,
+  isMeetingContinuationCandidate,
+} from "../../src/features/meetings/continuation.ts";
+import {
   DEFAULT_MEETING_STATUS,
   formatDateKeyForDisplay,
   formatMeetingGameResponseCounts,
@@ -292,6 +296,49 @@ test("meeting validation rejects an end earlier than start", () => {
     validation.fieldErrors.endTime,
     "Koniec spotkania musi być późniejszy niż początek.",
   );
+});
+
+test("meeting validation accepts native time values in HH:mm format", () => {
+  const validation = validateMeetingFormData(
+    buildFormData({
+      startDate: "18/07/2026",
+      endDate: "18/07/2026",
+      startTime: "18:00",
+      endTime: "23:00",
+    }),
+  );
+
+  assert.equal(validation.ok, true);
+  if (!validation.ok) return;
+
+  assert.equal(validation.data.startsAt, "2026-07-18T16:00:00.000Z");
+  assert.equal(validation.data.endsAt, "2026-07-18T21:00:00.000Z");
+});
+
+test("all clock fields use the shared native minute picker", () => {
+  const timeInput = readFileSync(
+    new URL("../../src/components/ui/time-input.tsx", import.meta.url),
+    "utf8",
+  );
+  const meetingForm = readFileSync(
+    new URL("../../src/features/meetings/meeting-form.tsx", import.meta.url),
+    "utf8",
+  );
+  const playForm = readFileSync(
+    new URL("../../src/features/plays/play-form.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(timeInput, /type="time"/);
+  assert.match(timeInput, /step=\{60\}/);
+  assert.match(timeInput, /min-w-0 max-w-full/);
+  assert.equal((meetingForm.match(/<TimeInput/g) ?? []).length, 2);
+  assert.match(meetingForm, /name="startTime"/);
+  assert.match(meetingForm, /name="endTime"/);
+  assert.equal((playForm.match(/<TimeInput/g) ?? []).length, 1);
+  assert.match(playForm, /name="playedOnTime"/);
+  assert.doesNotMatch(meetingForm, /placeholder="HH:mm"/);
+  assert.doesNotMatch(playForm, /placeholder="HH:mm"/);
 });
 
 test("meeting validation preserves submitted values after a validation error", () => {
@@ -752,7 +799,7 @@ test("a proposed game stays a candidate with no responses at all", () => {
   );
 });
 
-// --- Kontynuacja rozpoczętej partii (meetings.continued_play_id) -----------
+// --- Propozycja dokończenia i późniejszy wybór przy Stole -----------------
 
 const CONTINUED_PLAY_ID = "9f6f1d0c-3b3a-4d63-9c1e-2f0a5b7c8d91";
 
@@ -764,7 +811,7 @@ test("meeting without the continuation checkbox saves no play pointer", () => {
   assert.equal(validation.data.continuedPlayId, null);
 });
 
-test("meeting continuation carries the selected play id to the RPC payload", () => {
+test("meeting continuation carries the selected play id as a proposal", () => {
   const validation = validateMeetingFormData(
     buildFormData({ continuesPlay: "1", continuedPlayId: CONTINUED_PLAY_ID }),
   );
@@ -772,6 +819,153 @@ test("meeting continuation carries the selected play id to the RPC payload", () 
   assert.equal(validation.ok, true);
   if (!validation.ok) return;
   assert.equal(validation.data.continuedPlayId, CONTINUED_PLAY_ID);
+});
+
+test("meeting mutations save a proposal through plan RPCs, never as the active pointer", () => {
+  const actions = readFileSync(
+    new URL("../../src/features/meetings/actions.ts", import.meta.url),
+    "utf8",
+  );
+  const createAction = actions.slice(
+    actions.indexOf("export async function createMeetingAction"),
+    actions.indexOf("export async function updateMeetingAction"),
+  );
+  const updateAction = actions.slice(
+    actions.indexOf("export async function updateMeetingAction"),
+    actions.indexOf("export async function saveMeetingAvailabilityAction"),
+  );
+
+  assert.match(createAction, /create_meeting_plan_with_invitations/);
+  assert.match(createAction, /p_proposed_continued_play_id/);
+  assert.doesNotMatch(createAction, /p_continued_play_id:/);
+  assert.match(updateAction, /update_meeting_plan_with_invitations/);
+  assert.match(updateAction, /p_proposed_continued_play_id/);
+  assert.doesNotMatch(updateAction, /p_continued_play_id:/);
+});
+
+test("continuation metadata never changes the meeting interval", () => {
+  const formData = buildFormData({
+    continuesPlay: "1",
+    continuedPlayId: CONTINUED_PLAY_ID,
+    startDate: "20/08/2026",
+    endDate: "20/08/2026",
+    startTime: "18:15",
+    endTime: "22:45",
+  });
+
+  formData.set("playedAt", "2024-01-01T05:00:00.000Z");
+  formData.set("durationMinutes", "9999");
+  formData.set("liveStartedAt", "2024-01-01T05:00:00.000Z");
+  formData.set("resultPending", "true");
+
+  const validation = validateMeetingFormData(formData);
+  assert.equal(validation.ok, true);
+  if (!validation.ok) return;
+
+  assert.equal(validation.data.startsAt, "2026-08-20T16:15:00.000Z");
+  assert.equal(validation.data.endsAt, "2026-08-20T20:45:00.000Z");
+  assert.equal(validation.data.continuedPlayId, CONTINUED_PLAY_ID);
+});
+
+test("clearing continued_play_id leaves the meeting interval unchanged", () => {
+  const withContinuation = validateMeetingFormData(
+    buildFormData({
+      continuesPlay: "1",
+      continuedPlayId: CONTINUED_PLAY_ID,
+      startDate: "20/08/2026",
+      endDate: "20/08/2026",
+      startTime: "18:15",
+      endTime: "22:45",
+    }),
+  );
+  const cleared = validateMeetingFormData(
+    buildFormData({
+      continuesPlay: "",
+      continuedPlayId: "",
+      startDate: "20/08/2026",
+      endDate: "20/08/2026",
+      startTime: "18:15",
+      endTime: "22:45",
+    }),
+  );
+
+  assert.equal(withContinuation.ok, true);
+  assert.equal(cleared.ok, true);
+  if (!withContinuation.ok || !cleared.ok) return;
+
+  assert.equal(cleared.data.startsAt, withContinuation.data.startsAt);
+  assert.equal(cleared.data.endsAt, withContinuation.data.endsAt);
+  assert.equal(cleared.data.continuedPlayId, null);
+});
+
+test("manual and Table-created in-progress plays are both continuation candidates", () => {
+  const common = {
+    id: CONTINUED_PLAY_ID,
+    status: "in_progress" as const,
+    resultPending: false,
+    liveEndedAt: null,
+  };
+
+  assert.equal(
+    isMeetingContinuationCandidate({
+      ...common,
+      meetingId: null,
+      liveStartedAt: null,
+    }),
+    true,
+  );
+  assert.equal(
+    isMeetingContinuationCandidate({
+      ...common,
+      meetingId: "20000000-0000-0000-0000-000000000001",
+      liveStartedAt: "2026-08-17T17:00:00.000Z",
+    }),
+    true,
+  );
+});
+
+test("completed plays are excluded, while result-pending plays remain continuable", () => {
+  assert.equal(
+    isMeetingContinuationCandidate({
+      id: CONTINUED_PLAY_ID,
+      meetingId: null,
+      status: "completed",
+      resultPending: false,
+      liveStartedAt: null,
+      liveEndedAt: null,
+    }),
+    false,
+  );
+  assert.equal(
+    isMeetingContinuationCandidate({
+      id: CONTINUED_PLAY_ID,
+      meetingId: "20000000-0000-0000-0000-000000000001",
+      status: "in_progress",
+      resultPending: true,
+      liveStartedAt: "2026-08-17T17:00:00.000Z",
+      liveEndedAt: "2026-08-17T19:00:00.000Z",
+    }),
+    true,
+  );
+});
+
+test("a play tied only to a soft-deleted meeting is hidden from continuation UI", () => {
+  assert.equal(
+    hasUsableContinuationContext({
+      startMeetingId: "20000000-0000-0000-0000-000000000001",
+      startMeetingExists: false,
+      hasAssignedMeeting: false,
+    }),
+    false,
+  );
+  assert.equal(
+    hasUsableContinuationContext({
+      startMeetingId: "20000000-0000-0000-0000-000000000001",
+      startMeetingExists: false,
+      hasAssignedMeeting: true,
+    }),
+    true,
+  );
 });
 
 test("continuation checked without a chosen play is a field error, not a silent save", () => {
@@ -783,7 +977,7 @@ test("continuation checked without a chosen play is a field error, not a silent 
   if (validation.ok) return;
   assert.equal(
     validation.fieldErrors.continuedPlayId,
-    "Wybierz partię, do której wracacie, albo odznacz kontynuację.",
+    "Wybierz odłożoną partię albo wyczyść propozycję.",
   );
 });
 
@@ -795,7 +989,7 @@ test("a play id that is not an identifier never reaches the RPC", () => {
   assert.equal(values.continuedPlayId, "");
 });
 
-test("meeting form values prefill the currently continued play", () => {
+test("meeting form does not turn an already selected continuation into a proposal", () => {
   const values = getMeetingFormValues({
     ...createMeeting({ id: "meeting-1" }),
     canEdit: true,
@@ -806,6 +1000,10 @@ test("meeting form values prefill the currently continued play", () => {
       gameId: "game-1",
       gameTitle: "Gloomhaven",
       coverUrl: null,
+      status: "in_progress",
+      startMeetingId: null,
+      isRunning: false,
+      assignedMeeting: null,
       playedAt: "2026-08-01T16:00:00.000Z",
       stateNote: "Runda 3 z 5",
       accumulatedMinutes: 180,
@@ -815,11 +1013,12 @@ test("meeting form values prefill the currently continued play", () => {
     attendanceRows: [],
     invitedUserIds: [],
     gameVotes: [],
+    continuationVotes: [],
     availableGames: [],
     recommendedGames: [],
   });
 
-  assert.equal(values.continuedPlayId, CONTINUED_PLAY_ID);
+  assert.equal(values.continuedPlayId, "");
 });
 
 test("continuation deletion guard keeps the message coming from the database", () => {
@@ -876,7 +1075,7 @@ test("available candidates render the field even without an assigned play", () =
   assert.equal(shouldRenderContinuationField(2, ""), true);
 });
 
-test("the edit form loads the assigned play regardless of its status", () => {
+test("the edit form keeps the selected play out of the proposal picker", () => {
   const source = readFileSync(
     new URL("../../src/features/meetings/queries.ts", import.meta.url),
     "utf8",
@@ -891,15 +1090,23 @@ test("the edit form loads the assigned play regardless of its status", () => {
     /\.eq\("status", "in_progress"\)/,
   );
 
-  // ...a lista wyboru dokłada bieżącą partię obok kandydatów in_progress.
+  // Ogólny read helper potrafi jawnie dołączyć wskazany wpis dla zgodności
+  // legacy, ale formularz nie zapisuje aktywnego wyboru drugi raz jako
+  // propozycji.
   assert.match(
     source,
-    /\.or\(\s*`status\.eq\.in_progress,id\.eq\.\$\{includePlayId\}`\s*\)/,
+    /playsQuery\.or\(`status\.eq\.in_progress,id\.eq\.\$\{includePlayId\}`\)/,
   );
   assert.match(
     source,
-    /listContinuablePlays\(details\.continuedPlay\?\.playId\)/,
+    /\{ includePlayId, includeRunning: options\.includeRunning \}/,
   );
+  const editFormData = source.slice(
+    source.indexOf("export async function getMeetingFormData"),
+    source.indexOf("export async function getMeetingCreateFormData"),
+  );
+  assert.match(editFormData, /listContinuablePlays\(\)/);
+  assert.doesNotMatch(editFormData, /details\.continuedPlay\?\.playId/);
 });
 
 test("a new meeting can only pick plays that are still in progress", () => {
@@ -917,12 +1124,132 @@ test("a new meeting can only pick plays that are still in progress", () => {
   assert.doesNotMatch(createFormData, /listContinuablePlays\([^)]+\)/);
 });
 
-/*
- * Sekcja gier na kartce spotkania ma dwa warianty treści w JEDNYM miejscu:
- * propozycje + głosowanie dla zwykłego spotkania, kontynuowana partia dla
- * spotkania z continued_play_id. Testy pilnują rozgałęzienia i tego, czego w
- * wariancie kontynuacji być NIE MOŻE.
- */
+test("continuable play query includes Table-created rows and filters deleted context", () => {
+  const source = readFileSync(
+    new URL("../../src/features/meetings/queries.ts", import.meta.url),
+    "utf8",
+  );
+  const query = source.slice(
+    source.indexOf("export async function listContinuablePlays"),
+    source.indexOf("export async function listMeetings"),
+  );
+
+  assert.match(query, /meeting_id/);
+  assert.match(query, /live_started_at/);
+  assert.match(query, /isMeetingContinuationCandidate/);
+  assert.match(query, /hasUsableContinuationContext/);
+  assert.doesNotMatch(query, /\.eq\("result_pending", false\)/);
+  assert.doesNotMatch(
+    query,
+    /live_started_at\.is\.null,live_ended_at\.not\.is\.null/,
+  );
+  assert.doesNotMatch(query, /\.is\("meeting_id", null\)/);
+  assert.doesNotMatch(query, /\.eq\("meeting_id", null\)/);
+});
+
+test("the resume action never describes result-pending as a blocking state", () => {
+  const actions = readFileSync(
+    new URL("../../src/features/meetings/actions.ts", import.meta.url),
+    "utf8",
+  );
+  const migration = readFileSync(
+    new URL(
+      "../../supabase/migrations/20260817121000_meeting_continuation_result_pending_fix.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.doesNotMatch(actions, /czeka tylko na wynik/);
+  assert.match(migration, /play\.status = 'in_progress'/);
+  assert.doesNotMatch(migration, /play\.result_pending\s*=\s*false/);
+});
+
+test("pausing preserves the selected continuation and resume can switch play_id", () => {
+  const switchMigration = readFileSync(
+    new URL(
+      "../../supabase/migrations/20260817123000_pause_and_switch_meeting_continuation.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const planFlowMigration = readFileSync(
+    new URL(
+      "../../supabase/migrations/20260817124000_meeting_continuation_plan_flow.sql",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(
+    planFlowMigration,
+    /create or replace function public\.pause_meeting_play/,
+  );
+  assert.match(planFlowMigration, /perform public\.finish_meeting_play/);
+  assert.doesNotMatch(planFlowMigration, /set continued_play_id = null/);
+  assert.match(switchMigration, /set continued_play_id = p_play_id/);
+  assert.doesNotMatch(
+    switchMigration,
+    /This meeting already continues another play/,
+  );
+  assert.doesNotMatch(planFlowMigration, /insert into public\.plays/);
+});
+
+test("meeting action maps the time error only from the actual time constraint", () => {
+  const actions = readFileSync(
+    new URL("../../src/features/meetings/actions.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(actions, /message\.includes\("meetings_time_check"\)/);
+  assert.doesNotMatch(
+    actions,
+    /case "23514":\s*return "Koniec spotkania musi być późniejszy niż początek\."/,
+  );
+});
+
+test("same-game continuations stay as separate play_id choices in form and modal", () => {
+  const field = readFileSync(
+    new URL(
+      "../../src/features/meetings/meeting-continuation-field.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const modal = readFileSync(
+    new URL(
+      "../../src/features/meetings/meeting-game-proposals.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const formatting = readFileSync(
+    new URL("../../src/features/meetings/formatting.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(field, /plays\.map\(\(play\) =>/);
+  assert.match(field, /key=\{play\.playId\}/);
+  assert.match(modal, /filteredContinuablePlays\.map\(\(play\) =>/);
+  assert.match(modal, /key=\{play\.playId\}/);
+  assert.match(formatting, /continuationDateTimeFormatter/);
+  assert.match(formatting, /stateNote/);
+});
+
+test("unchecking the continuation clears the hidden play id", () => {
+  const source = readFileSync(
+    new URL(
+      "../../src/features/meetings/meeting-continuation-field.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(source, /if \(!event\.target\.checked\) setSelectedId\(""\)/);
+  assert.match(source, /value=\{isOpen \? selectedId : ""\}/);
+});
+
+/* Sekcja planu zawsze łączy zwykłe gry i odłożone partie. */
 
 function readMeetingDetailsPage() {
   return readFileSync(
@@ -931,17 +1258,12 @@ function readMeetingDetailsPage() {
   );
 }
 
-test("the games section switches content instead of disappearing", () => {
+test("the meeting always renders one shared plan for games and continuations", () => {
   const source = readMeetingDetailsPage();
 
-  // Oba warianty żyją w tym samym gnieździe sekcji — jedno rozgałęzienie,
-  // jeden animowany kontener, ta sama pozycja na kartce.
-  assert.match(
-    source,
-    /\{meeting\.continuedPlay \? \(\s*<MeetingContinuationSummary play=\{meeting\.continuedPlay\} \/>\s*\) : \(\s*<MeetingGameProposals/,
-  );
+  assert.match(source, /selectedContinuation=\{meeting\.continuedPlay\}/);
   assert.equal(source.match(/<MeetingGameProposals/g)?.length, 1);
-  assert.equal(source.match(/<MeetingContinuationSummary/g)?.length, 1);
+  assert.doesNotMatch(source, /<MeetingContinuationSummary/);
 });
 
 test("a plain meeting keeps proposals, voting and the propose button", () => {
@@ -953,9 +1275,74 @@ test("a plain meeting keeps proposals, voting and the propose button", () => {
     "utf8",
   );
 
-  assert.match(proposals, /Propozycje gier/);
+  assert.match(proposals, /Plan wieczoru/);
   assert.match(proposals, /Proponuj grę/);
   assert.match(proposals, /<MeetingGameResponseToggle/);
+});
+
+test("the propose-game modal records a continuation proposal instead of finishing the play", () => {
+  const proposals = readFileSync(
+    new URL(
+      "../../src/features/meetings/meeting-game-proposals.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const page = readMeetingDetailsPage();
+
+  assert.match(proposals, /filteredContinuablePlays/);
+  assert.match(proposals, /Odłożone partie/);
+  assert.match(
+    proposals,
+    /proposeMeetingContinuationAction\(meetingId, playId\)/,
+  );
+  assert.match(proposals, /Zaproponuj/);
+  assert.doesNotMatch(proposals, /resumeMeetingPlayAction/);
+  assert.doesNotMatch(proposals, /`\/kronika\/\$\{play\.playId\}\/edytuj`/);
+  assert.doesNotMatch(proposals, /startMeetingPlayAction/);
+  assert.match(page, /continuablePlays=\{continuablePlays\}/);
+  assert.match(page, /continuationVotes=\{meeting\.continuationVotes\}/);
+});
+
+test("continuation proposals render beside games with the same yes/no control", () => {
+  const proposals = readFileSync(
+    new URL(
+      "../../src/features/meetings/meeting-game-proposals.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const toggle = readFileSync(
+    new URL(
+      "../../src/features/meetings/meeting-game-response-toggle.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(proposals, /continuationVotes\.map/);
+  assert.match(proposals, /continuedPlayId=\{proposal\.playId\}/);
+  assert.match(proposals, /Odłożona partia/);
+  assert.match(toggle, /setMeetingContinuationResponseAction/);
+  assert.match(toggle, /label="Chcę grać"/);
+  assert.match(toggle, /label="Nie chcę grać"/);
+});
+
+test("continuation proposal actions use play_id and never create a Chronicle row", () => {
+  const actions = readFileSync(
+    new URL("../../src/features/meetings/actions.ts", import.meta.url),
+    "utf8",
+  );
+  const proposalAction = actions.slice(
+    actions.indexOf("export async function proposeMeetingContinuationAction"),
+    actions.indexOf("export async function setMeetingGameResponseAction"),
+  );
+
+  assert.match(proposalAction, /propose_meeting_continuation/);
+  assert.match(proposalAction, /p_continued_play_id: playId/);
+  assert.doesNotMatch(proposalAction, /from\("plays"\)/);
+  assert.doesNotMatch(proposalAction, /startMeetingPlayAction/);
+  assert.doesNotMatch(proposalAction, /redirect\(/);
 });
 
 // Asercje negatywne patrzą na sam kod: komentarze w tych plikach z natury
@@ -965,29 +1352,39 @@ function withoutComments(source: string) {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
 }
 
-test("the continuation variant shows the play and never offers a duplicate entry", () => {
-  const summary = readFileSync(
+test("a selected continuation is shown inside the shared plan without a large Chronicle CTA", () => {
+  const proposals = readFileSync(
     new URL(
-      "../../src/features/meetings/meeting-continuation-summary.tsx",
+      "../../src/features/meetings/meeting-game-proposals.tsx",
       import.meta.url,
     ),
     "utf8",
   );
-  const code = withoutComments(summary);
+  const page = readMeetingDetailsPage();
+  const code = withoutComments(proposals);
 
-  assert.match(code, /Kontynuujemy partię/);
-  assert.match(code, /Dokańczamy rozpoczętą partię/);
-  assert.match(code, /\{stateNote\}/);
-  assert.match(code, /Wróć do partii/);
-  assert.match(code, /size="card"/);
-  assert.match(code, /href=\{`\/kronika\/\$\{play\.playId\}`\}/);
-
-  // Czego w tej sekcji być nie może: głosowania, zgłaszania gier i jakiejkolwiek
-  // ścieżki tworzącej nowy wpis Kroniki.
-  assert.doesNotMatch(code, /MeetingGameResponseToggle/);
-  assert.doesNotMatch(code, /Proponuj grę/);
-  assert.doesNotMatch(code, /proposeMeetingGameAction/);
+  assert.match(code, /selectedContinuation/);
+  assert.match(code, /Wybrana kontynuacja/);
+  assert.match(code, /formatMeetingContinuationSubtitle\(selectedContinuation\)/);
+  assert.match(page, /selectedContinuation=\{meeting\.continuedPlay\}/);
+  assert.doesNotMatch(code, /Dokończ partię z Kroniki/);
   assert.doesNotMatch(code, /kronika\/nowa/);
+});
+
+test("a legacy selected continuation stays readable without replacing voting", () => {
+  const proposals = readFileSync(
+    new URL(
+      "../../src/features/meetings/meeting-game-proposals.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const code = withoutComments(proposals);
+
+  assert.match(code, /selectedContinuation && !selectedContinuationIsProposed/);
+  assert.match(code, /continuationVotes\.map/);
+  assert.match(code, /games\.map/);
+  assert.match(code, /<MeetingGameResponseToggle/);
 });
 
 test("the continuation summary reads existing data and mutates nothing", () => {

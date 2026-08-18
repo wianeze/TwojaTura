@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   buildDashboardHeroSummary,
@@ -305,6 +306,154 @@ test("chronicle task appears only after the meeting end", () => {
   assert.ok(
     afterMeeting.some((quest) => quest.id === "missing-play:meeting-finished"),
   );
+});
+
+test("dashboard meeting reads exclude soft-deleted meetings before quest generation", () => {
+  const source = readFileSync(
+    new URL("../../src/features/dashboard/queries.ts", import.meta.url),
+    "utf8",
+  );
+  const availableSelect =
+    '.select("id, title, location, status, starts_at, ends_at")';
+  const availableMeetingRead = source.slice(
+    source.indexOf(availableSelect) - 80,
+    source.indexOf(availableSelect) + 300,
+  );
+  const finishedMeetingRead = source.slice(
+    source.indexOf(
+      '.select("id, title, status, starts_at, ends_at, continued_play_id")',
+    ) - 80,
+    source.indexOf(
+      '.select("id, title, status, starts_at, ends_at, continued_play_id")',
+    ) + 300,
+  );
+
+  assert.match(availableMeetingRead, /\.is\("deleted_at", null\)/);
+  assert.match(finishedMeetingRead, /\.is\("deleted_at", null\)/);
+});
+
+test("continued meetings are excluded from the new Chronicle-entry quest source", () => {
+  const source = readFileSync(
+    new URL("../../src/features/dashboard/queries.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    source,
+    /!meetingsWithPlays\.has\(meeting\.id\) && !meeting\.continued_play_id/,
+  );
+});
+
+test("a selected continuation stays inside the shared Table game picker", () => {
+  const panel = readFileSync(
+    new URL(
+      "../../src/features/dashboard/table-session-gathering-panel.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const query = readFileSync(
+    new URL("../../src/features/dashboard/queries.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(panel, /<TableSessionGamePicker/);
+  assert.doesNotMatch(panel, /session\.continuedPlay\s*\?/);
+  assert.doesNotMatch(panel, /Dokończ partię z Kroniki/);
+  assert.match(
+    query,
+    /continuationVotes: details\.continuationVotes\.map/,
+  );
+});
+
+test("an active Table play exposes pause, finish and only a secondary Chronicle link", () => {
+  const playingPanel = readFileSync(
+    new URL(
+      "../../src/features/dashboard/table-session-playing-panel.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const summaryPanel = readFileSync(
+    new URL(
+      "../../src/features/dashboard/table-session-summary-panel.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(playingPanel, /<LivePlayControls/);
+  assert.match(playingPanel, /Szczegóły wpisu/);
+  assert.match(playingPanel, /`\/kronika\/\$\{livePlay\.playId\}`/);
+  assert.doesNotMatch(playingPanel, /Dokończ partię z Kroniki/);
+  assert.match(summaryPanel, /label="Wznów partię"/);
+  assert.doesNotMatch(playingPanel, /kronika\/nowa/);
+});
+
+test("a result-pending Table play can be resumed without creating a new Chronicle entry", () => {
+  const summaryPanel = readFileSync(
+    new URL(
+      "../../src/features/dashboard/table-session-summary-panel.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(summaryPanel, /lastPlay\.phase === "awaiting-result"/);
+  assert.match(summaryPanel, /label="Wznów partię"/);
+  assert.match(summaryPanel, /playId=\{lastPlay\.playId\}/);
+  assert.doesNotMatch(summaryPanel, /kronika\/nowa/);
+});
+
+test("pausing releases the Table slot while finishing opens the existing result form", () => {
+  const controls = readFileSync(
+    new URL(
+      "../../src/features/dashboard/table-session-controls.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const actions = readFileSync(
+    new URL("../../src/features/meetings/actions.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(actions, /options\.keepForLater\s*\? await access\.supabase\.rpc\("pause_meeting_play"/);
+  assert.match(actions, /p_meeting_id: meetingId/);
+  assert.match(controls, /Odłóż partię/);
+  assert.match(controls, /Zakończ partię/);
+  assert.match(controls, /router\.push\(`\/kronika\/\$\{playId\}\/edytuj\?powrot=stol`\)/);
+});
+
+test("selecting an exact continuation proposal resumes its play_id instead of starting a new play", () => {
+  const controls = readFileSync(
+    new URL(
+      "../../src/features/dashboard/table-session-controls.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const selectHandler = controls.slice(
+    controls.indexOf("const select = (choice: TableSessionGameChoice)"),
+    controls.indexOf("if (pendingChoice)"),
+  );
+
+  assert.match(selectHandler, /choice\.isContinuationProposal/);
+  assert.match(selectHandler, /resume\(choice\.continuablePlay\.playId\)/);
+  assert.ok(
+    selectHandler.indexOf("resume(choice.continuablePlay.playId)") <
+      selectHandler.indexOf("startNew(choice.gameId)"),
+  );
+});
+
+test("any existing play linked by meeting_id suppresses the new Chronicle-entry quest", () => {
+  const source = readFileSync(
+    new URL("../../src/features/dashboard/queries.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /\.from\("plays"\)\s*\.select\("meeting_id"\)/);
+  assert.match(source, /!meetingsWithPlays\.has\(meeting\.id\)/);
 });
 
 test("shelf onboarding no longer produces dashboard tasks", () => {

@@ -1,0 +1,611 @@
+/*
+ * TYMCZASOWY podgląd porównawczy typografii — trasa /lab/typografia.
+ * Wczytywany WYŁĄCZNIE przez typography-lab-switcher.tsx, nigdy przez
+ * globals.css. Nic tu nie nadpisuje definicji produkcyjnych klas
+ * (.action-btn, .font-display, .quest-card-frame, ...) — są używane
+ * tylko jako selektory, żeby dociągnąć font-family/font-weight do
+ * realnej treści Stołu bez dopisywania choćby jednej klasy w
+ * dashboard-showcase.tsx czy innych komponentach.
+ *
+ * Trzy warstwy:
+ *  1) generyczne haki strukturalne → zmienne warstwy (--fx-*), wspólne dla
+ *     wszystkich wariantów;
+ *  2) pięć bloków [data-font-variant="…"], które podstawiają pod te
+ *     zmienne konkretny --font-lab-* + grubość/styl danego wariantu;
+ *  3) optyczne korekty font-size na tych samych hakach — Lora jest
+ *     benchmarkiem (scale 1.00), reszta dostaje mnożnik per warstwa, żeby
+ *     wyrównać RZECZYWISTĄ optyczną wielkość (nie nominalny font-size —
+ *     różne kroje mają różny stosunek wysokości liter do em-square, więc
+ *     przy identycznym font-size wyglądają różnej wielkości). Każdy
+ *     mnożnik mnoży ISTNIEJĄCY, oryginalny rozmiar Tailwind (przez
+ *     calc(<oryginalny rem> * var(--fx-*-scale))) — sam rozmiar bazowy,
+ *     jego breakpointy (sm: 640px) i wszystko inne w komponencie zostaje
+ *     nietknięte, zmienia się wyłącznie wynikowy font-size tych samych
+ *     selektorów co w warstwie 1/2.
+ *
+ * Nie zawiera żadnej zmiany layoutu/spacingu/koloru/wymiarów kontenerów —
+ * wyłącznie font-family, font-weight, font-style, font-size i (tylko tam,
+ * gdzie hierarchia z planu tego wymaga — Cinzel i Lora w warstwie button)
+ * text-transform.
+ */
+
+/* ---------- Warstwa 1: haki strukturalne ---------- */
+
+/* Domyślna (najniższa) warstwa: "zwykły UI / dane / statystyki". Dziedziczy
+   ją wszystko, co nie trafia w żaden bardziej szczegółowy selektor niżej —
+   nazwy graczy, tytuły gier poza nagłówkami, liczby, punkty, karty wyboru
+   gry w GRAMY!/podsumowaniu itd. */
+[data-font-variant] {
+  font-family: var(--fx-body-family);
+  font-weight: var(--fx-body-weight);
+}
+
+/* Display/branding — jedyny prawdziwy <h1> na stronie (tytuł Stołu, oba
+   warianty mobile/desktop dashboard-showcase.tsx). */
+[data-font-variant] h1.font-display {
+  font-family: var(--fx-display-family);
+  font-weight: var(--fx-display-weight);
+}
+
+/* Section heading — "Zlecenia" (#quests-heading), kafel "Najbliższe
+   spotkanie" na desktopie (jedyny inny <h2> poza tym w .chronicle-page),
+   "Drużyna jest przy stole" (.table-legend-title) i nagłówki
+   GRAMY!/WIECZÓR TRWA w module playing/summary (.playing-module h2). */
+[data-font-variant] #quests-heading,
+[data-font-variant] .table-legend-title,
+[data-font-variant] .playing-module h2,
+[data-font-variant] h2:not(.chronicle-page h2) {
+  font-family: var(--fx-section-family);
+  font-weight: var(--fx-section-weight);
+}
+
+/* Card heading — tytuły Zleceń/Misji (.quest-card-frame .font-display),
+   "Świeże wpisy z Kroniki" (jedyny <h2> w .chronicle-page), tytuł
+   spotkania na karcie mobile (.meeting-board h3) i tytuł gry w module
+   GRAMY!/podsumowaniu (.playing-module .font-display, poza samym h2). */
+[data-font-variant] .chronicle-page h2,
+[data-font-variant] .quest-card-frame .font-display,
+[data-font-variant] .meeting-board h3,
+[data-font-variant] .playing-module .font-display {
+  font-family: var(--fx-card-family);
+  font-weight: var(--fx-card-weight);
+}
+
+/* Odłap — Tailwindowa klasa .font-display bywa doklejona bezpośrednio na
+   elemencie (np. liczba "Twoja Renoma" w dashboard-showcase.tsx), więc
+   dziedziczenie z korzenia jej nie dotyczy: bezpośrednia reguła zawsze
+   wygrywa z odziedziczoną wartością, niezależnie od specyficzności. Niższy
+   priorytet niż selektory h1/h2 wyżej (mniejsza specyficzność: sam
+   ".font-display" bez tagu/id), więc tamte przypadki zostają na
+   display/section — to wyłącznie siatka bezpieczeństwa dla reszty. */
+[data-font-variant] .font-display {
+  font-family: var(--fx-card-family);
+  font-weight: var(--fx-card-weight);
+}
+
+/* Button/label — jedna wspólna klasa dla WSZYSTKICH przycisków w całej
+   apce (.action-btn, patrz action-button-styles.ts), dwa niestandardowe
+   CTA bez własnego <button> (.legend-board-cta, .meeting-board-cta) i
+   krótkie, kapitalikowe etykiety (.uppercase — plakietki Zlecenie/Misja,
+   Renomy/Tukatów, CTA "Przejdź →"). .action-btn ma w globals.css
+   font-family: inherit + font-weight: 600 wprost na klasie, więc trzeba
+   go tu jawnie nadpisać (nie wystarczy samo dziedziczenie z rodzica). */
+[data-font-variant] .action-btn,
+[data-font-variant] .legend-board-cta,
+[data-font-variant] .meeting-board-cta,
+[data-font-variant] .uppercase {
+  font-family: var(--fx-button-family);
+  font-weight: var(--fx-button-weight);
+  font-style: var(--fx-button-style, normal);
+  text-transform: var(--fx-button-transform, none);
+}
+
+/* Secondary/opis — opisy kart Zlecenie/Misja (jedyny line-clamp-1 w
+   .quest-card-frame). Reszta drobnych, pomocniczych zdań bez własnej
+   stabilnej klasy (np. "Wynik możesz uzupełnić później...") świadomie
+   dziedziczy warstwę body zamiast ryzykownych selektorów po rozmiarze. */
+[data-font-variant] .quest-card-frame [class*="line-clamp-1"] {
+  font-family: var(--fx-secondary-family);
+  font-weight: var(--fx-secondary-weight);
+  font-style: var(--fx-secondary-style, normal);
+}
+
+/* Utility-haki WYŁĄCZNIE dla własnego UI switcher-a (legenda, próbka
+   polskich znaków) — realna treść Stołu ich nie używa. */
+[data-font-variant] .lab-fx-display {
+  font-family: var(--fx-display-family);
+  font-weight: var(--fx-display-weight);
+}
+[data-font-variant] .lab-fx-section {
+  font-family: var(--fx-section-family);
+  font-weight: var(--fx-section-weight);
+}
+[data-font-variant] .lab-fx-card {
+  font-family: var(--fx-card-family);
+  font-weight: var(--fx-card-weight);
+}
+[data-font-variant] .lab-fx-button {
+  font-family: var(--fx-button-family);
+  font-weight: var(--fx-button-weight);
+  font-style: var(--fx-button-style, normal);
+  text-transform: var(--fx-button-transform, none);
+}
+[data-font-variant] .lab-fx-body {
+  font-family: var(--fx-body-family);
+  font-weight: var(--fx-body-weight);
+}
+[data-font-variant] .lab-fx-secondary {
+  font-family: var(--fx-secondary-family);
+  font-weight: var(--fx-secondary-weight);
+  font-style: var(--fx-secondary-style, normal);
+}
+
+/* ---------- Warstwa 2: pięć wariantów ---------- */
+
+/* Alegreya SC nie ma wagi 600 (statyczne cięcia: 400/500/700/800/900) —
+   branding/section/card idą 900/800/700 zamiast dosłownie Bold/SemiBold,
+   żeby zachować trzy WYRAŹNIE różne, malejące stopnie zamiast dwóch
+   identycznych. */
+[data-font-variant="alegreya"] {
+  --fx-display-family: var(--font-lab-alegreya-sc);
+  --fx-display-weight: 900;
+  --fx-section-family: var(--font-lab-alegreya-sc);
+  --fx-section-weight: 800;
+  --fx-card-family: var(--font-lab-alegreya-sc);
+  --fx-card-weight: 700;
+  --fx-button-family: var(--font-lab-alegreya-sc);
+  --fx-button-weight: 500;
+  --fx-body-family: var(--font-lab-alegreya);
+  --fx-body-weight: 500;
+  --fx-secondary-family: var(--font-lab-alegreya);
+  --fx-secondary-weight: 400;
+  /* Zmierzone (Canvas actualBoundingBox na realnych stringach: "Witaj przy
+     stole", "Zlecenia", "Zaproponuj spotkanie", "Zorganizuj spotkanie",
+     "Marta 1080 pkt", opis Zlecenia) względem Lory przy tym samym
+     font-size — patrz podsumowanie w odpowiedzi. Alegreya SC szczególnie
+     "czyta się mało" w wersalikowych warstwach (display/card/button). */
+  --fx-display-scale: 1.31;
+  --fx-section-scale: 1.16;
+  --fx-card-scale: 1.34;
+  --fx-button-scale: 1.34;
+  --fx-body-scale: 1.03;
+  --fx-secondary-scale: 1.05;
+}
+
+/* Cinzel nie ma kursywy w całej rodzinie i nie ma czytelnej odmiany
+   tekstowej (Cinzel Decorative nie ma nawet subsetu latin-ext) — body/
+   secondary niesie EB Garamond, klasyczne, sprawdzone zestawienie z
+   Cinzelem. Button dostaje text-transform: uppercase (sam Cinzel jest już
+   z natury kapitałowo-inskrypcyjny, więc to naturalne dopełnienie, nie
+   sztuczny zabieg). */
+[data-font-variant="cinzel"] {
+  --fx-display-family: var(--font-lab-cinzel);
+  --fx-display-weight: 800;
+  --fx-section-family: var(--font-lab-cinzel);
+  --fx-section-weight: 700;
+  --fx-card-family: var(--font-lab-cinzel);
+  --fx-card-weight: 600;
+  --fx-button-family: var(--font-lab-cinzel);
+  --fx-button-weight: 500;
+  --fx-button-transform: uppercase;
+  --fx-body-family: var(--font-lab-eb-garamond);
+  --fx-body-weight: 500;
+  --fx-secondary-family: var(--font-lab-eb-garamond-secondary);
+  --fx-secondary-weight: 400;
+  --fx-secondary-style: italic;
+  --fx-display-scale: 1.16;
+  --fx-section-scale: 1.06;
+  --fx-card-scale: 1.16;
+  --fx-button-scale: 1.16;
+  --fx-body-scale: 1.05;
+  --fx-secondary-scale: 1.03;
+}
+
+/* Cormorant: trzy człony tej samej nadrodziny (SC dla nagłówków/przycisku,
+   Garamond dla karty/opisu, Infant — cięcie zaprojektowane specjalnie do
+   drobnego tekstu UI — dla warstwy danych/statystyk). */
+[data-font-variant="cormorant"] {
+  --fx-display-family: var(--font-lab-cormorant-sc);
+  --fx-display-weight: 700;
+  --fx-section-family: var(--font-lab-cormorant-sc);
+  --fx-section-weight: 600;
+  --fx-card-family: var(--font-lab-cormorant-garamond);
+  --fx-card-weight: 600;
+  --fx-button-family: var(--font-lab-cormorant-sc);
+  --fx-button-weight: 500;
+  --fx-body-family: var(--font-lab-cormorant-infant);
+  --fx-body-weight: 500;
+  --fx-secondary-family: var(--font-lab-cormorant-garamond-secondary);
+  --fx-secondary-weight: 400;
+  --fx-secondary-style: italic;
+  /* Card i secondary idą przez Cormorant Garamond (nie SC), więc są dużo
+     bliżej Lory niż wersalikowe display/section/button (Cormorant SC). */
+  --fx-display-scale: 1.29;
+  --fx-section-scale: 1.16;
+  --fx-card-scale: 1.03;
+  --fx-button-scale: 1.24;
+  --fx-body-scale: 1.02;
+  --fx-secondary-scale: 1.03;
+}
+
+/* Spectral / Spectral SC: obie odmiany mają kompletny zakres 200–800, więc
+   to najbogatsza drabinka wag z całej piątki — bez żadnego kompana. */
+[data-font-variant="spectral"] {
+  --fx-display-family: var(--font-lab-spectral-sc);
+  --fx-display-weight: 800;
+  --fx-section-family: var(--font-lab-spectral-sc);
+  --fx-section-weight: 700;
+  --fx-card-family: var(--font-lab-spectral-sc);
+  --fx-card-weight: 600;
+  --fx-button-family: var(--font-lab-spectral-sc);
+  --fx-button-weight: 500;
+  --fx-body-family: var(--font-lab-spectral);
+  --fx-body-weight: 500;
+  --fx-secondary-family: var(--font-lab-spectral-secondary);
+  --fx-secondary-weight: 400;
+  --fx-secondary-style: italic;
+  --fx-display-scale: 1.26;
+  --fx-section-scale: 1.14;
+  --fx-card-scale: 1.26;
+  --fx-button-scale: 1.26;
+  --fx-body-scale: 1.05;
+  --fx-secondary-scale: 1.06;
+}
+
+/* Lora: jedna rodzina, tylko 4 czyste stopnie wagi (400/500/600/700) na
+   6 warstw — button ponownie używa 700 (jak display), ale w małej skali i
+   UPPERCASE, więc wizualnie nie myli się z brandingiem. Uczciwy wybór przy
+   realnie dostępnym zakresie, nie pomyłka. */
+[data-font-variant="lora"] {
+  --fx-display-family: var(--font-lab-lora);
+  --fx-display-weight: 700;
+  --fx-section-family: var(--font-lab-lora);
+  --fx-section-weight: 600;
+  --fx-card-family: var(--font-lab-lora);
+  --fx-card-weight: 500;
+  --fx-button-family: var(--font-lab-lora);
+  --fx-button-weight: 700;
+  --fx-button-transform: uppercase;
+  --fx-body-family: var(--font-lab-lora);
+  --fx-body-weight: 400;
+  --fx-secondary-family: var(--font-lab-lora-secondary);
+  --fx-secondary-weight: 400;
+  --fx-secondary-style: italic;
+  /* Lora to benchmark 100% — brak korekt, wszystkie skale = 1. */
+  --fx-display-scale: 1;
+  --fx-section-scale: 1;
+  --fx-card-scale: 1;
+  --fx-button-scale: 1;
+  --fx-body-scale: 1;
+  --fx-secondary-scale: 1;
+}
+
+/* ---------- Druga fala: 5 wariantów fantasy/gotyckich ----------
+ * Cztery z pięciu (Pirata One, Berkshire Swash, Piedra, Quintessential) mają
+ * w Google Fonts DOKŁADNIE jedną wagę (400) — prawdziwe jednowagowe fonty
+ * dekoracyjne. Niosą więc wyłącznie warstwę display (jedyny <h1> na
+ * stronie), czyli dokładnie tam, gdzie realnie użyłoby się takiego kroju.
+ * Pozostałych 5 warstw dostaje osobnego, czytelnego kompana z latin-ext —
+ * wszystkie zweryfikowane w font-data.json Next.js, żadna nie jest tu
+ * fallbackiem "bo nie ma polskich znaków", tylko świadomym wyborem
+ * czytelnego tekstowego kroju do UI/opisów. Grenze Gotisch jest wyjątkiem:
+ * to variable font 100–900 z pełnym subsetem, więc sam niesie 4 górne
+ * warstwy (jak Cinzel) — gotyk i tak słabo się czyta w cienkim tekście,
+ * więc body/secondary dostają Cardo. */
+
+/* Grenze Gotisch → dark fantasy / gotycki manuskrypt. Kompan: Cardo
+   (klasycystyczna/manuskryptowa antykwa, ten sam nastrój "starego tomu"). */
+[data-font-variant="grenzegotisch"] {
+  --fx-display-family: var(--font-lab-grenze-gotisch);
+  --fx-display-weight: 800;
+  --fx-section-family: var(--font-lab-grenze-gotisch);
+  --fx-section-weight: 700;
+  --fx-card-family: var(--font-lab-grenze-gotisch);
+  --fx-card-weight: 600;
+  --fx-button-family: var(--font-lab-grenze-gotisch);
+  --fx-button-weight: 500;
+  --fx-button-transform: uppercase;
+  --fx-body-family: var(--font-lab-cardo);
+  --fx-body-weight: 400;
+  --fx-secondary-family: var(--font-lab-cardo-secondary);
+  --fx-secondary-weight: 400;
+  --fx-secondary-style: italic;
+  /* Zmierzone Canvasem (realne stringi z listy: "Witaj przy stole",
+     "Zlecenia", "Zaproponuj spotkanie", "Zorganizuj spotkanie", "Marta 1080
+     pkt", opis Zlecenia). Body/secondary (Cardo) < 1 — Cardo czyta się
+     odrobinę WIĘKSZE niż Lora przy tym samym rozmiarze, więc go delikatnie
+     zmniejszam zamiast powiększać. */
+  --fx-display-scale: 1.15;
+  --fx-section-scale: 1.09;
+  --fx-card-scale: 1.17;
+  --fx-button-scale: 1.19;
+  --fx-body-scale: 0.92;
+  --fx-secondary-scale: 0.93;
+}
+
+/* Pirata One → karczma / przygodowe fantasy / planszówkowy charakter.
+   Kompan: Vollkorn (sturdy, rustykalny, czytelny nawet w drobnym tekście —
+   ma pełny zakres wag 400–900, więc niesie WSZYSTKIE 5 pozostałych
+   warstw). */
+[data-font-variant="pirataone"] {
+  --fx-display-family: var(--font-lab-pirata-one);
+  --fx-display-weight: 400;
+  --fx-section-family: var(--font-lab-vollkorn);
+  --fx-section-weight: 800;
+  --fx-card-family: var(--font-lab-vollkorn);
+  --fx-card-weight: 700;
+  --fx-button-family: var(--font-lab-vollkorn);
+  --fx-button-weight: 600;
+  --fx-button-transform: uppercase;
+  --fx-body-family: var(--font-lab-vollkorn);
+  --fx-body-weight: 500;
+  --fx-secondary-family: var(--font-lab-vollkorn-secondary);
+  --fx-secondary-weight: 400;
+  --fx-secondary-style: italic;
+  /* Vollkorn czyta się bardzo blisko Lory na wszystkich 5 warstw (1.06–1.08
+     — najmniejszy rozrzut ze wszystkich kompanów w tej rundzie). */
+  --fx-display-scale: 1.06;
+  --fx-section-scale: 1.06;
+  --fx-card-scale: 1.08;
+  --fx-button-scale: 1.08;
+  --fx-body-scale: 1.06;
+  --fx-secondary-scale: 1.06;
+}
+
+/* Berkshire Swash → magia / baśń / ozdobna kronika. Kompan: Crimson Pro
+   (elegancki krój książkowy, zakres 200–900, dobrze czyta się jako
+   "storybook" body text). */
+[data-font-variant="berkshireswash"] {
+  --fx-display-family: var(--font-lab-berkshire-swash);
+  --fx-display-weight: 400;
+  --fx-section-family: var(--font-lab-crimson-pro);
+  --fx-section-weight: 800;
+  --fx-card-family: var(--font-lab-crimson-pro);
+  --fx-card-weight: 700;
+  --fx-button-family: var(--font-lab-crimson-pro);
+  --fx-button-weight: 600;
+  --fx-body-family: var(--font-lab-crimson-pro);
+  --fx-body-weight: 500;
+  --fx-secondary-family: var(--font-lab-crimson-pro-secondary);
+  --fx-secondary-weight: 400;
+  --fx-secondary-style: italic;
+  --fx-display-scale: 1.03;
+  --fx-section-scale: 1.11;
+  --fx-card-scale: 1.14;
+  --fx-button-scale: 1.14;
+  --fx-body-scale: 1.14;
+  --fx-secondary-scale: 1.14;
+}
+
+/* Piedra → ciężkie / kamienne / krasnoludzkie fantasy. Kompan: Domine
+   (geometryczny, "ciosany" krój tekstowy — bez kursywy w ogóle, więc
+   secondary różni się od body tylko wagą/rozmiarem, nie stylem). */
+[data-font-variant="piedra"] {
+  --fx-display-family: var(--font-lab-piedra);
+  --fx-display-weight: 400;
+  --fx-section-family: var(--font-lab-domine);
+  --fx-section-weight: 700;
+  --fx-card-family: var(--font-lab-domine);
+  --fx-card-weight: 600;
+  --fx-button-family: var(--font-lab-domine);
+  --fx-button-weight: 700;
+  --fx-button-transform: uppercase;
+  --fx-body-family: var(--font-lab-domine);
+  --fx-body-weight: 500;
+  --fx-secondary-family: var(--font-lab-domine);
+  --fx-secondary-weight: 400;
+  /* Piedra samo czyta się WIĘKSZE niż Lora przy tym samym rozmiarze (duży
+     x-height "kamiennego" kroju) — jedyny wariant w całej piątce, gdzie
+     display idzie w DÓŁ, nie w górę. Zweryfikowane: to nie błąd pomiaru
+     (dopasowanie do fallbacku było przypadkowe, potwierdzone osobnym
+     porównaniem glifu "W" i document.fonts.check()). */
+  --fx-display-scale: 0.93;
+  --fx-section-scale: 0.98;
+  --fx-card-scale: 1.06;
+  --fx-button-scale: 1.06;
+  --fx-body-scale: 1.06;
+  --fx-secondary-scale: 1.03;
+}
+
+/* Quintessential → rękopis / old-school RPG / kronika. Kompan: Crimson Text
+   (klasyczny krój książkowy, tylko 3 statyczne cięcia — button ponownie
+   używa 700, jak section, różnicowane przez UPPERCASE, tak jak w Lorze). */
+[data-font-variant="quintessential"] {
+  --fx-display-family: var(--font-lab-quintessential);
+  --fx-display-weight: 400;
+  --fx-section-family: var(--font-lab-crimson-text);
+  --fx-section-weight: 700;
+  --fx-card-family: var(--font-lab-crimson-text);
+  --fx-card-weight: 600;
+  --fx-button-family: var(--font-lab-crimson-text);
+  --fx-button-weight: 700;
+  --fx-button-transform: uppercase;
+  --fx-body-family: var(--font-lab-crimson-text-body);
+  --fx-body-weight: 400;
+  --fx-secondary-family: var(--font-lab-crimson-text-secondary);
+  --fx-secondary-weight: 400;
+  --fx-secondary-style: italic;
+  /* Quintessential (kursywny rękopis ze sporymi zawijasami) mierzy się jako
+     WYRAŹNIE większe niż Lora nawet przy tym samym nominalnym rozmiarze —
+     stąd jedyna tak mocna korekta w dół w całym zestawie. */
+  --fx-display-scale: 0.81;
+  --fx-section-scale: 1.11;
+  --fx-card-scale: 1.16;
+  --fx-button-scale: 1.16;
+  --fx-body-scale: 1.12;
+  --fx-secondary-scale: 1.16;
+}
+
+/* ---------- Warstwa 3: optyczne korekty font-size (benchmark: Lora) ----------
+ *
+ * Każda reguła niżej mnoży JEDEN, konkretny, oryginalny rozmiar Tailwind
+ * tego elementu (odczytany wprost z dashboard-showcase.tsx / action-card.tsx
+ * / table-session-*.tsx / action-button-styles.ts — cytowany w komentarzu
+ * przy każdej grupie) przez --fx-*-scale danego wariantu. Tam, gdzie
+ * oryginał ma responsywny sm: (640px, breakpoint Tailwindowego "sm"),
+ * dokładam DRUGĄ regułę w @media (min-width: 640px) z DRUGIM oryginalnym
+ * rozmiarem — sam breakpoint i to, co się na nim dzieje w layoucie
+ * (padding/gap/kolumny), zostaje wyłącznie sprawą oryginalnych klas
+ * Tailwind, ja tylko podmieniam font-size na TYM SAMYM breakpoincie.
+ * Fallback ", 1" w każdym var() = brak zmiany, gdyby jakiś wariant nie
+ * zdefiniował danej skali.
+ */
+
+/* Display: h1 (mobile 1.32rem / desktop sm:2.3rem) + liczba "Twoja Renoma"
+   (p.font-display.text-center, stałe 1.95rem, poza .playing-module). */
+[data-font-variant] h1.font-display {
+  font-size: calc(1.32rem * var(--fx-display-scale, 1));
+}
+[data-font-variant] p.font-display.text-center {
+  font-size: calc(1.95rem * var(--fx-display-scale, 1));
+}
+@media (min-width: 640px) {
+  [data-font-variant] h1.font-display {
+    font-size: calc(2.3rem * var(--fx-display-scale, 1));
+  }
+}
+
+/* Tłumik na mobile WYŁĄCZNIE dla h1 — jedyne miejsce, gdzie pełna optyczna
+   korekta realnie nie mieści się. Zmierzone Canvasem (realny string "Witaj
+   przy stole, Przemek", dostępna szerokość kontenera mobile = 293px):
+   Lora bez korekty i tak zajmuje WSZYSTKIE 293px (zero zapasu w
+   oryginalnym projekcie, nie coś, co wprowadzam) — Cinzel (296px) i
+   Spectral SC (314px) są szersze od tego kontenera już przy skali 1.0,
+   zanim jeszcze dołożę jakąkolwiek korektę, więc żadna skala ≥1 tego nie
+   naprawi (a skala <1 zrobiłaby ten wariant MNIEJSZYM niż benchmark, co
+   mija się z celem). Dla Alegreyi/Cormorantu pełna skala (1.31/1.29)
+   naprawdę by tu przycięła "Przemka" — tłumię do bezpiecznego zapasu.
+   Twoja Renoma (druga reguła --fx-display-scale) jest widoczna dopiero od
+   1024px, więc ta zmienna jej tu w ogóle nie dotyczy. */
+@media (max-width: 639.98px) {
+  [data-font-variant="alegreya"] {
+    --fx-display-scale: 1.05;
+  }
+  [data-font-variant="cinzel"] {
+    --fx-display-scale: 1;
+  }
+  [data-font-variant="cormorant"] {
+    --fx-display-scale: 1.08;
+  }
+  [data-font-variant="spectral"] {
+    --fx-display-scale: 1;
+  }
+}
+
+/* Section: "Zlecenia" (1.32/sm:2.05), "Drużyna jest przy stole"
+   (1.55/sm:1.85), GRAMY!/WIECZÓR TRWA (1.55/sm:1.8), "Najbliższe
+   spotkanie" na desktopowym kaflu (jedyny pozostały h2, stałe 1.25rem). */
+[data-font-variant] #quests-heading {
+  font-size: calc(1.32rem * var(--fx-section-scale, 1));
+}
+[data-font-variant] .table-legend-title {
+  font-size: calc(1.55rem * var(--fx-section-scale, 1));
+}
+[data-font-variant] .playing-module h2 {
+  font-size: calc(1.55rem * var(--fx-section-scale, 1));
+}
+[data-font-variant]
+  h2:not(#quests-heading):not(.chronicle-page h2):not(.table-legend-title):not(
+    .playing-module h2
+  ) {
+  font-size: calc(1.25rem * var(--fx-section-scale, 1));
+}
+@media (min-width: 640px) {
+  [data-font-variant] #quests-heading {
+    font-size: calc(2.05rem * var(--fx-section-scale, 1));
+  }
+  [data-font-variant] .table-legend-title {
+    font-size: calc(1.85rem * var(--fx-section-scale, 1));
+  }
+  [data-font-variant] .playing-module h2 {
+    font-size: calc(1.8rem * var(--fx-section-scale, 1));
+  }
+}
+
+/* Card: "Świeże wpisy z Kroniki" (stałe 0.95rem), tytuł Zlecenia/Misji
+   (stałe 0.95rem), tytuł spotkania na mobile board (stałe 1rem), tytuł
+   gry w GRAMY! (1.35/sm:1.55, p.font-display.text-center WEWNĄTRZ
+   .playing-module — wygrywa nad regułą display dzięki wyższej
+   specyficzności) i w podsumowaniu (1.15/sm:1.3, p.font-display.truncate). */
+[data-font-variant] .chronicle-page h2 {
+  font-size: calc(0.95rem * var(--fx-card-scale, 1));
+}
+[data-font-variant] .quest-card-frame .font-display {
+  font-size: calc(0.95rem * var(--fx-card-scale, 1));
+}
+[data-font-variant] .meeting-board h3 {
+  font-size: calc(1rem * var(--fx-card-scale, 1));
+}
+[data-font-variant] .playing-module p.font-display.text-center {
+  font-size: calc(1.35rem * var(--fx-card-scale, 1));
+}
+[data-font-variant] .playing-module p.font-display.truncate {
+  font-size: calc(1.15rem * var(--fx-card-scale, 1));
+}
+@media (min-width: 640px) {
+  [data-font-variant] .playing-module p.font-display.text-center {
+    font-size: calc(1.55rem * var(--fx-card-scale, 1));
+  }
+  [data-font-variant] .playing-module p.font-display.truncate {
+    font-size: calc(1.3rem * var(--fx-card-scale, 1));
+  }
+}
+
+/* Button: 4 rozmiary ActionButton/ActionLink (action-button-styles.ts →
+   .action-size-compact/default/large/hero w globals.css) + dwa CTA bez
+   .action-btn (.legend-board-cta 0.48/sm:0.62, .meeting-board-cta stałe
+   0.48). .uppercase (etykiety/plakietki) świadomie BEZ korekty rozmiaru —
+   zbyt różnorodny zestaw bazowych rozmiarów, żeby dało się to zrobić bez
+   ryzykownych, kruchych selektorów po wartości arbitralnej. */
+[data-font-variant] .action-size-compact {
+  font-size: calc(0.8125rem * var(--fx-button-scale, 1));
+}
+[data-font-variant] .action-size-default {
+  font-size: calc(0.875rem * var(--fx-button-scale, 1));
+}
+[data-font-variant] .action-size-large {
+  font-size: calc(0.9375rem * var(--fx-button-scale, 1));
+}
+[data-font-variant] .action-size-hero {
+  font-size: calc(0.78rem * var(--fx-button-scale, 1));
+}
+[data-font-variant] .legend-board-cta {
+  font-size: calc(0.48rem * var(--fx-button-scale, 1));
+}
+[data-font-variant] .meeting-board-cta {
+  font-size: calc(0.48rem * var(--fx-button-scale, 1));
+}
+@media (min-width: 640px) {
+  [data-font-variant] .action-size-default {
+    font-size: calc(0.84rem * var(--fx-button-scale, 1));
+  }
+  [data-font-variant] .action-size-large {
+    font-size: calc(0.9rem * var(--fx-button-scale, 1));
+  }
+  [data-font-variant] .action-size-hero {
+    font-size: calc(0.82rem * var(--fx-button-scale, 1));
+  }
+  [data-font-variant] .legend-board-cta {
+    font-size: calc(0.62rem * var(--fx-button-scale, 1));
+  }
+}
+
+/* Body: nazwa gracza na tablicy wyników (.legend-board-name, 0.78/sm:0.86)
+   — jedyny reprezentant tej warstwy z jednym, znanym, stabilnym rozmiarem
+   bazowym w całym komponencie (reszta "zwykłego UI" dziedziczy sam
+   font-family/weight z warstwy 1, bez korekty rozmiaru — zbyt wiele
+   różnych, niepowiązanych miejsc, żeby to zrobić bezpiecznie). */
+[data-font-variant] .legend-board-name {
+  font-size: calc(0.78rem * var(--fx-body-scale, 1));
+}
+@media (min-width: 640px) {
+  [data-font-variant] .legend-board-name {
+    font-size: calc(0.86rem * var(--fx-body-scale, 1));
+  }
+}
+
+/* Secondary: opis Zlecenia/Misji (stałe 0.63rem, jedyny line-clamp-1 w
+   .quest-card-frame). */
+[data-font-variant] .quest-card-frame [class*="line-clamp-1"] {
+  font-size: calc(0.63rem * var(--fx-secondary-scale, 1));
+}

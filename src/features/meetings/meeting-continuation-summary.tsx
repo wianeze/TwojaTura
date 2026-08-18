@@ -12,9 +12,8 @@ type MeetingContinuationSummaryProps = {
   jego szkielet nagłówka (eyebrow + tytuł + włos separatora), bo z perspektywy
   kartki spotkania to wciąż ta sama sekcja — zmienia się tylko jej treść.
 
-  Świadomie NIE ma tu głosowania ani „Proponuj grę”: gra na ten wieczór jest już
-  ustalona. Wcześniejsze propozycje zostają nietknięte w bazie — po zdjęciu
-  kontynuacji w edycji spotkania standardowa sekcja wraca razem z nimi.
+  Komponent pozostaje jako zgodność dla starszych placementów, ale nie jest już
+  główną sekcją szczegółów spotkania. Tam wszystkie opcje są pokazywane razem.
 
   Brak własnego panelu/karty pod spodem: treść leży wprost na pergaminie
   (.meeting-form-sheet), a jedynym mocnym elementem jest okładka. Dlatego
@@ -25,6 +24,7 @@ export function MeetingContinuationSummary({
   play,
 }: MeetingContinuationSummaryProps) {
   const stateNote = play.stateNote?.trim();
+  const canFinishPlay = play.status === "in_progress";
 
   return (
     <div className="space-y-3">
@@ -76,9 +76,13 @@ export function MeetingContinuationSummary({
             <ActionLink
               action="chronicle"
               size="compact"
-              href={`/kronika/${play.playId}`}
+              href={
+                canFinishPlay
+                  ? `/kronika/${play.playId}/edytuj`
+                  : `/kronika/${play.playId}`
+              }
             >
-              Wróć do partii
+              Szczegóły wpisu
             </ActionLink>
           </div>
         </div>

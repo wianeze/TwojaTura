@@ -52,6 +52,13 @@ function mapMeetingDatabaseError(error: DatabaseErrorLike) {
     return "To spotkanie jest początkiem tej partii — nie może być własną kontynuacją.";
   }
 
+  if (
+    message.includes("meetings_time_check") ||
+    message.includes("ends_at > starts_at")
+  ) {
+    return "Koniec spotkania musi być późniejszy niż początek.";
+  }
+
   switch (error.code) {
     case "42501":
       return "Nie masz uprawnień do tej operacji.";
@@ -61,7 +68,7 @@ function mapMeetingDatabaseError(error: DatabaseErrorLike) {
       // efekt: zero wierszy), więc zostaje ten sam komunikat co 42501.
       return "Nie udało się zapisać tego spotkania. Być może nie masz do niego uprawnień.";
     case "23514":
-      return "Koniec spotkania musi być późniejszy niż początek.";
+      return "Nie udało się zapisać spotkania z wybraną kontynuacją. Odśwież stronę i spróbuj ponownie.";
     default:
       return "Nie udało się zapisać spotkania. Spróbuj ponownie.";
   }
@@ -82,7 +89,7 @@ export async function createMeetingAction(
   }
 
   const { data: meetingId, error } = await access.supabase.rpc(
-    "create_meeting_with_invitations",
+    "create_meeting_plan_with_invitations",
     {
       p_title: validation.data.title,
       // Kolumny są nullable, ale RPC (jak każda funkcja Postgresa) nie ma
@@ -95,7 +102,8 @@ export async function createMeetingAction(
       p_starts_at: validation.data.startsAt,
       p_ends_at: validation.data.endsAt,
       p_invited_user_ids: validation.data.invitedUserIds,
-      p_continued_play_id: validation.data.continuedPlayId ?? undefined,
+      p_proposed_continued_play_id:
+        validation.data.continuedPlayId ?? undefined,
     },
   );
 
@@ -152,7 +160,7 @@ export async function updateMeetingAction(
   }
 
   const { data, error } = await access.supabase.rpc(
-    "update_meeting_with_invitations",
+    "update_meeting_plan_with_invitations",
     {
       p_meeting_id: meetingId,
       p_title: validation.data.title,
@@ -161,9 +169,10 @@ export async function updateMeetingAction(
       p_starts_at: validation.data.startsAt,
       p_ends_at: validation.data.endsAt,
       p_invited_user_ids: validation.data.invitedUserIds,
-      // Brak wyboru = wyzerowanie wskaźnika (RPC ma `default null`), czyli
-      // odznaczenie kontynuacji jest zwykłą edycją spotkania.
-      p_continued_play_id: validation.data.continuedPlayId ?? undefined,
+      // To kandydat do głosowania, nie aktywna partia. RPC zachowuje każdy
+      // istniejący continued_play_id (legacy albo wznowienie przy Stole).
+      p_proposed_continued_play_id:
+        validation.data.continuedPlayId ?? undefined,
     },
   );
 
@@ -328,6 +337,40 @@ export async function proposeMeetingGameAction(
   return { status: "success" };
 }
 
+/**
+ * Zgłoszenie konkretnego, istniejącego wpisu Kroniki do dokończenia na
+ * spotkaniu. To wyłącznie propozycja + głos TAK — nie uruchamia partii i nie
+ * przechodzi do formularza wyniku.
+ */
+export async function proposeMeetingContinuationAction(
+  meetingId: string,
+  playId: string,
+): Promise<MeetingVoteState> {
+  const access = await requireWriteAccess();
+  if (!access.ok) {
+    return { status: "error", message: access.message };
+  }
+
+  const pointAward = await awardMeetingVotePointsAfterSave(() =>
+    access.supabase.rpc("propose_meeting_continuation", {
+      p_meeting_id: meetingId,
+      p_continued_play_id: playId,
+    }),
+  );
+
+  if (!pointAward.ok) {
+    return {
+      status: "error",
+      message: "Nie udało się zaproponować dokończenia partii.",
+    };
+  }
+
+  revalidatePath("/kalendarium");
+  revalidatePath(`/kalendarium/${meetingId}`);
+  revalidatePath("/");
+  return { status: "success" };
+}
+
 export async function setMeetingGameResponseAction(
   meetingId: string,
   gameId: string,
@@ -352,6 +395,37 @@ export async function setMeetingGameResponseAction(
 
   revalidatePath("/kalendarium");
   revalidatePath(`/kalendarium/${meetingId}`);
+  return { status: "success" };
+}
+
+export async function setMeetingContinuationResponseAction(
+  meetingId: string,
+  playId: string,
+  wantsToPlay: boolean,
+): Promise<MeetingVoteState> {
+  const access = await requireWriteAccess();
+  if (!access.ok) {
+    return { status: "error", message: access.message };
+  }
+
+  const pointAward = await awardMeetingVotePointsAfterSave(() =>
+    access.supabase.rpc("set_meeting_continuation_response", {
+      p_meeting_id: meetingId,
+      p_continued_play_id: playId,
+      p_wants_to_play: wantsToPlay,
+    }),
+  );
+
+  if (!pointAward.ok) {
+    return {
+      status: "error",
+      message: "Nie udało się zapisać odpowiedzi na kontynuację.",
+    };
+  }
+
+  revalidatePath("/kalendarium");
+  revalidatePath(`/kalendarium/${meetingId}`);
+  revalidatePath("/");
   return { status: "success" };
 }
 
@@ -389,7 +463,7 @@ function mapTableSessionError(error: DatabaseErrorLike) {
   }
 
   if (message.includes("paused play in progress can be resumed")) {
-    return "Tej partii nie da się wznowić — jest już rozliczona albo czeka tylko na wynik.";
+    return "Tej partii nie da się wznowić — nie ma już statusu „W toku”.";
   }
 
   if (message.includes("running at the table can be cancelled")) {
@@ -470,9 +544,8 @@ export async function resumeMeetingPlayAction(
 
 /**
  * „Zakończ partię” i „Odłóż partię”. Obie zatrzymują zegar i dopisują minuty do
- * łącznego czasu rozgrywki; różni je tylko to, czy partia czeka teraz na wynik,
- * czy na kolejną sesję. Żadna z nich NIE prowadzi do formularza Kroniki i żadna
- * nie nalicza nagród.
+ * łącznego czasu rozgrywki. Odłożenie dodatkowo zwalnia aktywny slot Stołu, aby
+ * można było wznowić inną partię bez przepinania lub duplikowania wpisu Kroniki.
  */
 export async function finishMeetingPlayAction(
   meetingId: string,
@@ -484,11 +557,17 @@ export async function finishMeetingPlayAction(
     return { status: "error", message: access.message };
   }
 
-  const { data, error } = await access.supabase.rpc("finish_meeting_play", {
-    p_play_id: playId,
-    p_result_pending: !options.keepForLater,
-    ...(options.stateNote ? { p_state_note: options.stateNote } : {}),
-  });
+  const { data, error } = options.keepForLater
+    ? await access.supabase.rpc("pause_meeting_play", {
+        p_meeting_id: meetingId,
+        p_play_id: playId,
+        ...(options.stateNote ? { p_state_note: options.stateNote } : {}),
+      })
+    : await access.supabase.rpc("finish_meeting_play", {
+        p_play_id: playId,
+        p_result_pending: true,
+        ...(options.stateNote ? { p_state_note: options.stateNote } : {}),
+      });
 
   if (error || !data) {
     return { status: "error", message: mapTableSessionError(error ?? {}) };

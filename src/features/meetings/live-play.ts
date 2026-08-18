@@ -2,6 +2,7 @@
 // (tests/unit), a resolver ESM Node'a nie dokleja rozszerzeń. Ta sama konwencja
 // co w features/dashboard/formatting.ts.
 import { getMeetingRecommendationLabel } from "./game-recommendations.ts";
+import { isUnfinishedPlay } from "./continuation.ts";
 
 /*
  * Stan „GRAMY!” — czysta logika sekcji spotkania na Stole.
@@ -79,12 +80,14 @@ export function getPlayTablePhase(play: PlayTableState): PlayTablePhase {
 
 /**
  * Czy do tej rozgrywki można wrócić na kolejnej sesji. Ukończona partia jest
- * historią i nigdy nie wraca; partia czekająca na wynik też nie — jej rozgrywka
- * już się skończyła, brakuje wyłącznie rozliczenia. Lustro
- * `private.is_continuable_play` z bazy.
+ * historią i nigdy nie wraca. Każdy wpis `in_progress` po zamknięciu bieżącej
+ * sesji pozostaje do dokończenia — także ten oznaczony jako „wynik do
+ * uzupełnienia”. Lustro `private.is_continuable_play` z bazy.
  */
 export function isContinuablePlay(play: PlayTableState) {
-  return getPlayTablePhase(play) === "paused";
+  const isRunning = play.liveStartedAt !== null && play.liveEndedAt === null;
+
+  return isUnfinishedPlay(play) && !isRunning;
 }
 
 /*
@@ -101,11 +104,15 @@ export type TableSessionContinuablePlay = {
 };
 
 export type TableSessionGameChoice = {
+  choiceKey: string;
   gameId: string;
   title: string;
   coverUrl: string | null;
   badge: string | null;
   isLeading: boolean;
+  /** Głos dotyczy dokładnie istniejącego wpisu Kroniki, nie tylko gry. */
+  isContinuationProposal: boolean;
+  continuablePlays: TableSessionContinuablePlay[];
   continuablePlay: TableSessionContinuablePlay | null;
 };
 
@@ -328,6 +335,10 @@ type TableSessionGame = {
 export type TableSessionContinuableGame = TableSessionContinuablePlay &
   TableSessionGame;
 
+type TableSessionContinuationVote = TableSessionContinuableGame & {
+  yesCount: number;
+};
+
 /**
  * Lista gier do wyboru przy stole: najpierw to, co drużyna sama przegłosowała,
  * potem podpowiedzi istniejącego sugerowacza dla tej konkretnej ekipy, na końcu
@@ -345,23 +356,32 @@ export function buildTableSessionGameChoices(input: {
   otherGames?: TableSessionGame[];
   /** Odłożone rozgrywki, z których każda wskazuje swoją grę. */
   continuablePlays?: TableSessionContinuableGame[];
+  /** Konkretne wpisy Kroniki zaproponowane przez drużynę do dokończenia. */
+  continuationVotes?: TableSessionContinuationVote[];
 }): TableSessionGameChoice[] {
   const leadingGameId =
     input.votes.find((vote) => vote.yesCount > 0)?.gameId ?? null;
-  const continuableByGame = new Map<string, TableSessionContinuablePlay>();
+  const proposedContinuationIds = new Set(
+    (input.continuationVotes ?? []).map((vote) => vote.playId),
+  );
+  const continuableByGame = new Map<string, TableSessionContinuablePlay[]>();
   for (const play of input.continuablePlays ?? []) {
-    const current = continuableByGame.get(play.gameId);
-    if (
-      !current ||
-      new Date(play.playedAt).getTime() > new Date(current.playedAt).getTime()
-    ) {
-      continuableByGame.set(play.gameId, {
-        playId: play.playId,
-        stateNote: play.stateNote,
-        playedAt: play.playedAt,
-        accumulatedMinutes: play.accumulatedMinutes,
-      });
-    }
+    if (proposedContinuationIds.has(play.playId)) continue;
+    const current = continuableByGame.get(play.gameId) ?? [];
+    current.push({
+      playId: play.playId,
+      stateNote: play.stateNote,
+      playedAt: play.playedAt,
+      accumulatedMinutes: play.accumulatedMinutes,
+    });
+    continuableByGame.set(play.gameId, current);
+  }
+  for (const plays of continuableByGame.values()) {
+    plays.sort(
+      (left, right) =>
+        new Date(right.playedAt).getTime() -
+        new Date(left.playedAt).getTime(),
+    );
   }
 
   const seen = new Set<string>();
@@ -370,17 +390,27 @@ export function buildTableSessionGameChoices(input: {
     game: TableSessionGame,
     badge: string | null,
     isLeading: boolean,
+    proposedPlay?: TableSessionContinuablePlay,
   ) => {
-    if (seen.has(game.gameId)) return;
-    seen.add(game.gameId);
+    const choiceKey = proposedPlay
+      ? `continuation:${proposedPlay.playId}`
+      : `game:${game.gameId}`;
+    if (seen.has(choiceKey)) return;
+    seen.add(choiceKey);
 
+    const savedPlays = proposedPlay
+      ? [proposedPlay]
+      : (continuableByGame.get(game.gameId) ?? []);
     choices.push({
+      choiceKey,
       gameId: game.gameId,
       title: game.title,
       coverUrl: game.coverUrl,
       badge,
       isLeading,
-      continuablePlay: continuableByGame.get(game.gameId) ?? null,
+      isContinuationProposal: Boolean(proposedPlay),
+      continuablePlays: savedPlays,
+      continuablePlay: savedPlays[0] ?? null,
     });
   };
 
@@ -389,6 +419,20 @@ export function buildTableSessionGameChoices(input: {
       vote,
       vote.yesCount > 0 ? `${vote.yesCount} chce grać` : null,
       vote.gameId === leadingGameId,
+    );
+  }
+
+  for (const vote of input.continuationVotes ?? []) {
+    push(
+      vote,
+      vote.yesCount > 0 ? `${vote.yesCount} chce dokończyć` : "Kontynuacja",
+      false,
+      {
+        playId: vote.playId,
+        stateNote: vote.stateNote,
+        playedAt: vote.playedAt,
+        accumulatedMinutes: vote.accumulatedMinutes,
+      },
     );
   }
 
@@ -407,6 +451,7 @@ export function buildTableSessionGameChoices(input: {
   // Odłożona rozgrywka nie może wypaść z listy tylko dlatego, że jej gra
   // zniknęła z Półki albo z głosowania — inaczej nie dałoby się do niej wrócić.
   for (const play of input.continuablePlays ?? []) {
+    if (proposedContinuationIds.has(play.playId)) continue;
     push(play, null, false);
   }
 

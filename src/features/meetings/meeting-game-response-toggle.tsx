@@ -2,7 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useCanWrite } from "@/features/auth/member-role-context";
-import { setMeetingGameResponseAction } from "./actions";
+import {
+  setMeetingContinuationResponseAction,
+  setMeetingGameResponseAction,
+} from "./actions";
 import { segmentedOptionClasses, segmentedOptionStyle } from "./segmented-tone";
 import type { MeetingGameResponse } from "./types";
 
@@ -47,10 +50,12 @@ function ResponseOption({
 export function MeetingGameResponseToggle({
   meetingId,
   gameId,
+  continuedPlayId,
   ownResponse,
 }: {
   meetingId: string;
   gameId: string;
+  continuedPlayId?: string | null;
   ownResponse: MeetingGameResponse;
 }) {
   const [pending, startTransition] = useTransition();
@@ -60,11 +65,17 @@ export function MeetingGameResponseToggle({
 
   const respond = (wantsToPlay: boolean) => {
     startTransition(async () => {
-      const result = await setMeetingGameResponseAction(
-        meetingId,
-        gameId,
-        wantsToPlay,
-      );
+      const result = continuedPlayId
+        ? await setMeetingContinuationResponseAction(
+            meetingId,
+            continuedPlayId,
+            wantsToPlay,
+          )
+        : await setMeetingGameResponseAction(
+            meetingId,
+            gameId,
+            wantsToPlay,
+          );
       setMessage(result.status === "error" ? (result.message ?? null) : null);
     });
   };

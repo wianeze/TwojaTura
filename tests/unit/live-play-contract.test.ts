@@ -457,7 +457,7 @@ test("finishing without a result is neither running nor completed", () => {
   assert.equal(play.status, "in_progress");
 });
 
-test("a paused play and a play awaiting its result are not the same thing", () => {
+test("paused and result-pending entries have distinct labels but are both continuable", () => {
   const paused = buildPlayState({ liveEndedAt: "2026-08-09T20:57:00.000Z" });
   const awaiting = buildPlayState({
     liveEndedAt: "2026-08-09T20:57:00.000Z",
@@ -467,11 +467,22 @@ test("a paused play and a play awaiting its result are not the same thing", () =
   assert.equal(getPlayTablePhase(paused), "paused");
   assert.equal(getPlayTablePhase(awaiting), "awaiting-result");
   assert.equal(isContinuablePlay(paused), true);
-  assert.equal(isContinuablePlay(awaiting), false);
+  assert.equal(isContinuablePlay(awaiting), true);
 });
 
 test("a play parked from the Chronicle, with no live marker at all, stays continuable", () => {
   const parked = buildPlayState({ liveStartedAt: null });
+
+  assert.equal(getPlayTablePhase(parked), "paused");
+  assert.equal(isContinuablePlay(parked), true);
+});
+
+test("a play parked from the Table is continuable after its live session ends", () => {
+  const parked = buildPlayState({
+    liveStartedAt: "2026-08-09T18:00:00.000Z",
+    liveEndedAt: "2026-08-09T20:57:00.000Z",
+    resultPending: false,
+  });
 
   assert.equal(getPlayTablePhase(parked), "paused");
   assert.equal(isContinuablePlay(parked), true);
@@ -601,7 +612,7 @@ test("a game with a parked play is flagged, but never auto-continued", () => {
   assert.equal(heat?.continuablePlay, null);
 });
 
-test("the freshest parked play wins when a game has more than one", () => {
+test("same-game parked plays stay separate and the freshest is shown first", () => {
   const choices = buildTableSessionGameChoices({
     votes: [],
     recommendations: [],
@@ -629,6 +640,10 @@ test("the freshest parked play wins when a game has more than one", () => {
 
   assert.equal(choices.length, 1);
   assert.equal(choices[0]?.continuablePlay?.playId, "newer");
+  assert.deepEqual(
+    choices[0]?.continuablePlays.map((play) => play.playId),
+    ["newer", "older"],
+  );
 });
 
 test("a parked play stays reachable even when its game left the shelf", () => {
@@ -652,6 +667,63 @@ test("a parked play stays reachable even when its game left the shelf", () => {
   assert.equal(choices.length, 1);
   assert.equal(choices[0]?.title, "Gloomhaven");
   assert.equal(choices[0]?.continuablePlay?.playId, "play-gloomhaven");
+});
+
+test("a voted continuation keeps its exact play_id in the Table picker", () => {
+  const choices = buildTableSessionGameChoices({
+    votes: [],
+    recommendations: [],
+    continuablePlays: [
+      {
+        gameId: "frostpunk",
+        title: "Frostpunk",
+        coverUrl: null,
+        playId: "older-play",
+        stateNote: "Stary zapis",
+        playedAt: "2026-07-01T18:00:00.000Z",
+        accumulatedMinutes: 90,
+      },
+      {
+        gameId: "frostpunk",
+        title: "Frostpunk",
+        coverUrl: null,
+        playId: "proposed-play",
+        stateNote: "Generator naprawiony",
+        playedAt: "2026-08-01T18:00:00.000Z",
+        accumulatedMinutes: 180,
+      },
+    ],
+    continuationVotes: [
+      {
+        gameId: "frostpunk",
+        title: "Frostpunk",
+        coverUrl: null,
+        playId: "proposed-play",
+        stateNote: "Generator naprawiony",
+        playedAt: "2026-08-01T18:00:00.000Z",
+        accumulatedMinutes: 180,
+        yesCount: 3,
+      },
+    ],
+  });
+
+  const proposal = choices.find(
+    (choice) => choice.choiceKey === "continuation:proposed-play",
+  );
+  assert.equal(proposal?.badge, "3 chce dokończyć");
+  assert.equal(proposal?.isContinuationProposal, true);
+  assert.deepEqual(
+    proposal?.continuablePlays.map((play) => play.playId),
+    ["proposed-play"],
+  );
+  assert.equal(
+    choices.filter((choice) =>
+      choice.continuablePlays.some(
+        (play) => play.playId === "proposed-play",
+      ),
+    ).length,
+    1,
+  );
 });
 
 test("with no votes at all the whole shelf is still reachable", () => {

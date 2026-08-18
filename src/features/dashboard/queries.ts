@@ -602,9 +602,10 @@ async function getTableSession(
   const [details, plays, continuablePlays] = await Promise.all([
     getMeetingDetails(picked.meeting.id),
     listMeetingPlays(picked.meeting.id),
-    // Odłożone rozgrywki z całej Kroniki — picker musi wiedzieć, że wybór
-    // Frostpunka może oznaczać powrót do partii sprzed tygodnia.
-    listContinuablePlays(),
+    // Picker Stołu oferuje wyłącznie wpisy, które można teraz wznowić. Pełna
+    // lista (wraz z partiami już biegnącymi) pozostaje w formularzach i modalu
+    // Kalendarium, ale nie może próbować uruchomić jej przy drugim Stole.
+    listContinuablePlays(null, { includeRunning: false }),
   ]);
 
   // Spotkanie zamknięte (albo usunięte) między dwoma zapytaniami przestaje być
@@ -685,6 +686,16 @@ async function getTableSession(
     participants,
     gameChoices: buildTableSessionGameChoices({
       votes: details.gameVotes,
+      continuationVotes: details.continuationVotes.map((proposal) => ({
+        gameId: proposal.gameId,
+        title: proposal.title,
+        coverUrl: proposal.coverUrl,
+        playId: proposal.playId,
+        stateNote: proposal.stateNote,
+        playedAt: proposal.playedAt,
+        accumulatedMinutes: proposal.accumulatedMinutes,
+        yesCount: proposal.yesCount,
+      })),
       recommendations: details.recommendedGames,
       otherGames: details.availableGames,
       continuablePlays: continuablePlays.map((play) => ({
@@ -697,6 +708,14 @@ async function getTableSession(
         accumulatedMinutes: play.accumulatedMinutes,
       })),
     }),
+    continuedPlay: details.continuedPlay
+      ? {
+          playId: details.continuedPlay.playId,
+          gameTitle: details.continuedPlay.gameTitle,
+          status: details.continuedPlay.status,
+          resultHref: `/kronika/${details.continuedPlay.playId}/edytuj?powrot=stol`,
+        }
+      : null,
     livePlay: livePlaySource?.liveStartedAt
       ? {
           playId: livePlaySource.id,
@@ -705,7 +724,9 @@ async function getTableSession(
           coverUrl: livePlaySource.game.coverUrl,
           startedAt: livePlaySource.liveStartedAt,
           accumulatedMinutes: livePlaySource.durationMinutes,
-          isContinuation: (livePlaySource.durationMinutes ?? 0) > 0,
+          isContinuation:
+            details.continuedPlay?.playId === livePlaySource.id ||
+            (livePlaySource.durationMinutes ?? 0) > 0,
           players: livePlaySource.participants.map((participant) =>
             toTableSessionMember(participant.member, viewerId),
           ),
@@ -721,8 +742,7 @@ async function getTableSession(
     // to private.is_meeting_participant po stronie bazy.
     canManagePlays:
       details.canEdit ||
-      details.attendanceRows.some((row) => row.member.id === viewerId) ||
-      participants.some((member) => member.id === viewerId),
+      details.attendanceRows.some((row) => row.member.id === viewerId),
     canFinishMeeting: details.canEdit,
   };
 

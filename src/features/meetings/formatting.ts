@@ -18,6 +18,14 @@ const compactDateFormatter = new Intl.DateTimeFormat("pl-PL", {
   timeZone: "Europe/Warsaw",
 });
 
+const continuationDateTimeFormatter = new Intl.DateTimeFormat("pl-PL", {
+  day: "2-digit",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Europe/Warsaw",
+});
+
 const weekdayFormatter = new Intl.DateTimeFormat("pl-PL", {
   weekday: "long",
   timeZone: "Europe/Warsaw",
@@ -136,13 +144,14 @@ export function getMeetingDateBadgeParts(startsAt: string) {
 
 /*
  * Podpis pozycji na liście partii do dokończenia oraz kapsułki „Kontynuacja”
- * na karcie spotkania: data rozpoczęcia partii i — jeśli jest — notatka o
- * stanie gry, przycięta do jednej linii.
+ * na karcie spotkania: data i godzina rozpoczęcia partii oraz — jeśli jest —
+ * notatka o stanie gry, przycięta do jednej linii. Dzięki temu kilka wpisów
+ * tej samej gry pozostaje jednoznacznych.
  */
 export function formatMeetingContinuationSubtitle(
   play: Pick<MeetingContinuablePlay, "playedAt" | "stateNote">,
 ) {
-  const startedAt = compactDateFormatter
+  const startedAt = continuationDateTimeFormatter
     .format(new Date(play.playedAt))
     .replace(".", "");
   const note = play.stateNote?.trim();
@@ -198,7 +207,9 @@ export function getMeetingFormValues(
     startTime: `${startParts.hour}:${startParts.minute}`,
     endTime: `${endParts.hour}:${endParts.minute}`,
     invitedUserIds: meeting.invitedUserIds,
-    continuedPlayId: meeting.continuedPlay?.playId ?? "",
+    // Edycja planu nie przedstawia już wybranej/wznowionej kontynuacji jako
+    // nowej propozycji. Legacy continued_play_id zostaje w bazie nietknięte.
+    continuedPlayId: "",
   };
 }
 

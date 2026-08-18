@@ -12,10 +12,9 @@ type MeetingContinuationFieldProps = {
 };
 
 /*
-  „Czy chcecie dokończyć rozpoczętą grę?” — lekka sekcja na dole formularza,
-  domyślnie zwinięta i odznaczona. Zaznaczenie NIE tworzy żadnego wpisu w
-  Kronice: do submitu trafia wyłącznie identyfikator już istniejącej partii w
-  toku, a spotkanie zapisuje go jako wskaźnik (meetings.continued_play_id).
+  „Zaproponuj dokończenie” — lekka sekcja planu wieczoru, domyślnie zwinięta.
+  Wybrany play_id trafia do głosowania razem ze zwykłymi grami. Nie tworzy
+  nowego wpisu i nie ustawia meetings.continued_play_id.
 
   Lista jest z natury krótka (partie ze statusem „w toku”), więc nie ma tu ani
   wyszukiwarki, ani paginacji — gdy nie ma czego kontynuować, cała sekcja się
@@ -58,12 +57,12 @@ export function MeetingContinuationField({
         />
         <span className="min-w-0">
           <span className="block text-sm font-semibold text-[#503828]">
-            Czy chcecie dokończyć rozpoczętą grę?
+            Zaproponuj dokończenie
           </span>
           <span className="mt-0.5 block text-xs text-[#7a6048]">
             {isOpen
-              ? "Wybierz partię, do której wracacie — nie powstanie nowy wpis w Kronice."
-              : `W Kronice czeka ${formatWaitingPlaysLabel(plays.length)}.`}
+              ? "Wybierz odłożoną partię. Trafi do planu wieczoru i głosowania."
+              : `Czeka ${formatWaitingPlaysLabel(plays.length)}.`}
           </span>
         </span>
       </label>

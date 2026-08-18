@@ -20,8 +20,8 @@ export type MeetingFormValues = {
   startTime: string;
   endTime: string;
   invitedUserIds: string[];
-  // Pusty string = "nie kontynuujemy niczego" (domyślnie). Formularz nigdy nie
-  // tworzy wpisu w Kronice — to wyłącznie wskaźnik na już istniejącą partię.
+  // Pusty string = brak propozycji. Wybrany play_id jest kandydatem do
+  // głosowania; meetings.continued_play_id ustawia dopiero Stół przy wznowieniu.
   continuedPlayId: string;
 };
 
@@ -101,6 +101,19 @@ export type MeetingGameVoteItem = {
   ownResponse: MeetingGameResponse;
 };
 
+export type MeetingContinuationVoteItem = {
+  playId: string;
+  gameId: string;
+  title: string;
+  coverUrl: string | null;
+  playedAt: string;
+  stateNote: string | null;
+  accumulatedMinutes: number | null;
+  yesCount: number;
+  noCount: number;
+  ownResponse: MeetingGameResponse;
+};
+
 export type MeetingGameCandidateOption = {
   gameId: string;
   title: string;
@@ -121,6 +134,13 @@ export type MeetingContinuablePlay = {
   gameId: string;
   gameTitle: string;
   coverUrl: string | null;
+  status: "in_progress" | "completed";
+  /** Spotkanie, na którym powstał wpis; null dla wpisu ręcznego. */
+  startMeetingId: string | null;
+  /** Bieżąca sesja Stołu nadal trwa. */
+  isRunning: boolean;
+  /** Istniejące, nieusunięte spotkanie wskazujące tę samą kontynuację. */
+  assignedMeeting: { id: string; title: string } | null;
   playedAt: string;
   stateNote: string | null;
   /** Łączny czas dotychczasowych sesji tej rozgrywki. */
@@ -141,6 +161,7 @@ export type MeetingDetails = MeetingCardItem & {
   attendanceRows: MeetingAttendanceRow[];
   invitedUserIds: string[];
   gameVotes: MeetingGameVoteItem[];
+  continuationVotes: MeetingContinuationVoteItem[];
   availableGames: MeetingGameCandidateOption[];
   recommendedGames: MeetingGameRecommendation[];
 };

@@ -121,6 +121,8 @@ export type PlaySession = {
 export type PlayDetails = PlayListItem & {
   photos: PlayPhoto[];
   sessions: PlaySession[];
+  /** Aktywny Stół związany z tym samym wpisem, nigdy nowa partia. */
+  activeTableHref: string | null;
 };
 
 export type ChronicleMonthGroup = {

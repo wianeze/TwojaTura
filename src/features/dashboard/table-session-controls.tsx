@@ -18,6 +18,7 @@ import {
   formatPlayDurationLabel,
   type TableSessionGameChoice,
 } from "@/features/meetings/live-play";
+import { formatMeetingContinuationSubtitle } from "@/features/meetings/formatting";
 
 /*
  * Klienckie sterowanie sekcją „GRAMY!”. Cała reszta panelu jest serwerowa —
@@ -99,9 +100,16 @@ function GameChoiceTile({
         <span className="block truncate text-[0.78rem] leading-tight font-bold text-[#5b3418]">
           {choice.title}
         </span>
-        {choice.continuablePlay ? (
+        {choice.isContinuationProposal ? (
           <span className="mt-0.5 block truncate text-[0.6rem] leading-tight font-bold text-[#5c7a3f]">
-            ▶ Macie zapisaną partię
+            ▶ Wznów partię{choice.badge ? ` · ${choice.badge}` : ""}
+          </span>
+        ) : choice.continuablePlays.length > 0 ? (
+          <span className="mt-0.5 block truncate text-[0.6rem] leading-tight font-bold text-[#5c7a3f]">
+            ▶{" "}
+            {choice.continuablePlays.length === 1
+              ? "Macie zapisaną partię"
+              : `Macie ${choice.continuablePlays.length} zapisane partie`}
           </span>
         ) : choice.badge ? (
           <span className="mt-0.5 block truncate text-[0.6rem] leading-tight font-semibold text-[#9a5117]">
@@ -128,7 +136,7 @@ function ContinuePrompt({
 }: {
   choice: TableSessionGameChoice;
   isPending: boolean;
-  onContinue: () => void;
+  onContinue: (playId: string) => void;
   onStartNew: () => void;
   onCancel: () => void;
 }) {
@@ -150,18 +158,30 @@ function ContinuePrompt({
 
       {/* Obok siebie zawsze (nie dopiero od sm:), tak jak "Trwają N spotkania"
           w TableSessionSwitcher — Kontynuuj partię z lewej (pierwsza w DOM). */}
-      <div className="grid grid-cols-2 gap-1.5">
-        <ActionButton
-          type="button"
-          action="chronicle"
-          size="compact"
-          withIcon={false}
-          fullWidth
-          disabled={isPending}
-          onClick={onContinue}
-        >
-          ▶ Dokończ partię
-        </ActionButton>
+      <div className="space-y-1.5">
+        {choice.continuablePlays.map((play) => (
+          <div
+            key={play.playId}
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[0.7rem] border border-[#8aa06a]/45 bg-white/45 px-2 py-1.5"
+          >
+            <span className="min-w-0 text-[0.58rem] leading-tight text-[#4f6b39]">
+              {formatMeetingContinuationSubtitle(play)}
+            </span>
+            <ActionButton
+              type="button"
+              action="play"
+              size="compact"
+              withIcon={false}
+              disabled={isPending}
+              onClick={() => onContinue(play.playId)}
+            >
+              Wznów partię
+            </ActionButton>
+          </div>
+        ))}
+      </div>
+
+      <div>
         <ActionButton
           type="button"
           action="newPlay"
@@ -171,7 +191,7 @@ function ContinuePrompt({
           disabled={isPending}
           onClick={onStartNew}
         >
-          + Nowa partia
+          + Zacznij nową partię
         </ActionButton>
       </div>
 
@@ -276,7 +296,14 @@ export function TableSessionGamePicker({
   };
 
   const select = (choice: TableSessionGameChoice) => {
-    if (choice.continuablePlay) {
+    // Propozycja kontynuacji wskazuje konkretny play_id. Wybranie jej przy
+    // Stole ma wznowić właśnie ten wpis, bez pytania o utworzenie nowej partii.
+    if (choice.isContinuationProposal && choice.continuablePlay) {
+      resume(choice.continuablePlay.playId);
+      return;
+    }
+
+    if (choice.continuablePlays.length > 0) {
       setPendingChoice(choice);
       return;
     }
@@ -290,7 +317,7 @@ export function TableSessionGamePicker({
         <ContinuePrompt
           choice={pendingChoice}
           isPending={pending}
-          onContinue={() => resume(pendingChoice.continuablePlay?.playId ?? "")}
+          onContinue={resume}
           onStartNew={() => startNew(pendingChoice.gameId)}
           onCancel={() => setPendingChoice(null)}
         />
@@ -335,7 +362,7 @@ export function TableSessionGamePicker({
         <div className="grid gap-1.5 sm:grid-cols-2">
           {visible.map((choice) => (
             <GameChoiceTile
-              key={choice.gameId}
+              key={choice.choiceKey}
               choice={choice}
               isPending={pending}
               onSelect={() => select(choice)}
@@ -490,7 +517,14 @@ export function LivePlayControls({
   }
 
   const finish = (keepForLater: boolean) => {
-    run(() => finishMeetingPlayAction(meetingId, playId, { keepForLater }));
+    run(
+      () => finishMeetingPlayAction(meetingId, playId, { keepForLater }),
+      () => {
+        if (!keepForLater) {
+          router.push(`/kronika/${playId}/edytuj?powrot=stol`);
+        }
+      },
+    );
   };
 
   const changeGame = () => {
@@ -599,7 +633,7 @@ export function ResumePlayButton({
     <div className="space-y-1">
       <ActionButton
         type="button"
-        action="chronicle"
+        action="play"
         size="large"
         withIcon={false}
         fullWidth

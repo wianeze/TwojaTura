@@ -180,6 +180,13 @@ export type DashboardTableSession = {
   meeting: DashboardUpcomingMeeting;
   participants: TableSessionMember[];
   gameChoices: TableSessionGameChoice[];
+  /** Partia przypisana przez meetings.continued_play_id, nie nowy wpis. */
+  continuedPlay: {
+    playId: string;
+    gameTitle: string;
+    status: "in_progress" | "completed";
+    resultHref: string;
+  } | null;
   livePlay: TableSessionLivePlay | null;
   /** Ostatnio zamknięta sesja — podstawa ekranu podsumowania. */
   lastEndedPlay: TableSessionEndedPlay | null;

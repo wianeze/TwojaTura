@@ -165,8 +165,8 @@ const UUID_PATTERN =
 // Odsiewa wartości, które nie są w ogóle identyfikatorem, zanim trafią do RPC
 // (inaczej Postgres odpowiedziałby 22P02 i użytkownik dostałby komunikat
 // „nie udało się zapisać”, zamiast błędu przy właściwym polu). Realna
-// walidacja — czy partia istnieje, czy jest w toku i czy nie jest to
-// samo-kontynuacja — żyje w private.assert_valid_continued_play.
+// walidacja — czy partia istnieje i może zostać zaproponowana — żyje w
+// public.propose_meeting_continuation wywoływanym atomowo przez zapis planu.
 export function parseContinuedPlayId(formData: FormData) {
   const raw = value(formData, "continuedPlayId").trim();
   return UUID_PATTERN.test(raw) ? raw : "";
@@ -179,10 +179,8 @@ export function isContinuationRequested(formData: FormData) {
 /*
  * Sekcja kontynuacji montuje ukryte pola formularza tylko wtedy, gdy w ogóle
  * się renderuje. Dlatego brak kandydatów NIE może jej ukryć, jeśli spotkanie ma
- * już przypisaną kontynuację: bez tych pól submit nie niósłby continuedPlayId,
- * a zapis po cichu zdjąłby powiązanie — mimo że użytkownik poprawiał tylko
- * godzinę. Ten przypadek jest realny, bo lista kandydatów pokazuje wyłącznie
- * partie `in_progress`, a przypisana kontynuacja bywa już zakończona.
+ * Formularz pokazuje wyłącznie nowe propozycje. Istniejący continued_play_id
+ * jest aktywnym/historycznym wyborem Stołu i nie jest tym polem edytowany.
  */
 export function shouldRenderContinuationField(
   candidateCount: number,
@@ -258,13 +256,12 @@ export function validateMeetingFormData(
     pushError(fieldErrors, "title", "Tytuł spotkania jest wymagany.");
   }
 
-  // Zaznaczone „dokończymy rozpoczętą grę”, ale bez wskazanej partii — bez
-  // tego sprawdzenia spotkanie zapisałoby się po cichu bez kontynuacji.
+  // Otwarta sekcja propozycji bez wskazanej partii jest błędem formularza.
   if (isContinuationRequested(formData) && !submittedValues.continuedPlayId) {
     pushError(
       fieldErrors,
       "continuedPlayId",
-      "Wybierz partię, do której wracacie, albo odznacz kontynuację.",
+      "Wybierz odłożoną partię albo wyczyść propozycję.",
     );
   }
 
