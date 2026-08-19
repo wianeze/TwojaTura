@@ -58,7 +58,7 @@ export default async function CalendarPage({
         <p className="text-xs font-bold tracking-[0.22em] text-[#e3ae67] uppercase">
           Planowanie wieczorów
         </p>
-        <h1 className="font-display text-cream text-[2.1rem] font-semibold tracking-tight drop-shadow-[0_2px_12px_rgba(20,10,7,0.28)] sm:text-[2.65rem]">
+        <h1 className="font-display text-cream text-[2.1rem] font-extrabold tracking-tight drop-shadow-[0_2px_12px_rgba(20,10,7,0.28)] sm:text-[2.65rem]">
           Kalendarium
         </h1>
       </header>

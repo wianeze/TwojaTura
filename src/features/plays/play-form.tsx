@@ -144,7 +144,7 @@ function FormColumnHeading({
       <p className="text-accent text-[0.55rem] font-bold tracking-[0.16em] uppercase sm:text-[0.58rem] sm:tracking-[0.18em]">
         {eyebrow}
       </p>
-      <h2 className="font-display mt-0.5 text-[1.05rem] leading-tight font-semibold text-[#4c3528] sm:mt-1 sm:text-[1.3rem]">
+      <h2 className="font-display mt-0.5 text-[1.05rem] leading-tight font-bold text-[#4c3528] sm:mt-1 sm:text-[1.3rem]">
         {title}
       </h2>
     </div>

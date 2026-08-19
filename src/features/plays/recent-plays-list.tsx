@@ -71,7 +71,7 @@ export function RecentMemberPlaysPanel({
           <p className="text-accent text-[0.56rem] font-bold tracking-[0.18em] uppercase">
             Kronika
           </p>
-          <h2 className="font-display mt-1 text-[1.35rem] font-semibold text-[#4c3528]">
+          <h2 className="font-display mt-1 text-[1.35rem] font-bold text-[#4c3528]">
             {title}
           </h2>
         </div>

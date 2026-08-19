@@ -43,7 +43,7 @@ export function ProfileAchievementsPanel({
           <p className="text-accent text-[0.62rem] font-bold tracking-[0.17em] uppercase">
             Trofea bohatera
           </p>
-          <h2 className="font-display mt-1 text-2xl font-semibold">
+          <h2 className="font-display mt-1 text-2xl font-bold">
             Odznaki i klasy
           </h2>
         </div>

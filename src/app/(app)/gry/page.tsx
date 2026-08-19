@@ -53,7 +53,7 @@ export default async function GamesPage({
           <p className="text-xs font-bold tracking-[0.2em] text-[#e3ae67] uppercase">
             Wspólna kolekcja
           </p>
-          <h1 className="font-display text-cream mt-1.5 text-4xl font-semibold tracking-tight drop-shadow-[0_2px_12px_rgba(20,10,7,0.32)] sm:text-[2.8rem]">
+          <h1 className="font-display text-cream mt-1.5 text-4xl font-extrabold tracking-tight drop-shadow-[0_2px_12px_rgba(20,10,7,0.32)] sm:text-[2.8rem]">
             Półka
           </h1>
         </div>
@@ -92,7 +92,7 @@ export default async function GamesPage({
           <p className="text-accent text-[0.65rem] font-bold tracking-[0.18em] uppercase">
             Brak wyników
           </p>
-          <h2 className="font-display text-3xl font-semibold text-[#4d3528]">
+          <h2 className="font-display text-3xl font-bold text-[#4d3528]">
             Żadna gra nie pasuje do obecnych filtrów
           </h2>
           <p className="text-muted max-w-2xl text-sm leading-6">

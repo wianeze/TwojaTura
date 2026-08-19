@@ -108,7 +108,7 @@ function FrameDialog({
             <p className="text-accent text-[0.6rem] font-black tracking-[0.17em] uppercase">
               Karta Gracza
             </p>
-            <h2 className="font-display mt-1 text-2xl font-semibold text-[#452f24] sm:text-3xl">
+            <h2 className="font-display mt-1 text-2xl font-bold text-[#452f24] sm:text-3xl">
               {title}
             </h2>
             <p className="mt-1 text-sm text-[#78614f]">{subtitle}</p>

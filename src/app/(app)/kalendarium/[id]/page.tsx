@@ -336,7 +336,7 @@ export default async function MeetingDetailsPage({
           className="anim-rise-in-fast space-y-2.5"
         >
           <div className="flex items-baseline justify-between gap-2">
-            <h2 className="font-display text-[1.2rem] font-semibold text-[#4a3018] sm:text-[1.35rem]">
+            <h2 className="font-display text-[1.2rem] font-bold text-[#4a3018] sm:text-[1.35rem]">
               Kto będzie?
             </h2>
             <span className="text-[0.72rem] font-bold text-[#8a6a3d]">

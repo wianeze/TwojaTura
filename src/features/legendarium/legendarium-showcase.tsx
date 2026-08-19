@@ -147,7 +147,7 @@ function SectionTitle({
   return (
     <div className="flex items-end justify-between gap-3">
       <h2
-        className={`font-display text-2xl font-semibold ${
+        className={`font-display text-2xl font-bold ${
           dark ? "text-[#fff1dc]" : ""
         }`}
       >

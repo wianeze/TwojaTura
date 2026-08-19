@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ServiceWorkerRegistration } from "@/components/layout/service-worker-registration";
 import { getAppOrigin } from "@/lib/app-url";
+import { cinzel, ebGaramond } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -55,7 +56,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pl" className="h-full antialiased">
+    <html
+      lang="pl"
+      className={`h-full antialiased ${cinzel.variable} ${ebGaramond.variable}`}
+    >
       <body className="min-h-full">
         <ServiceWorkerRegistration />
         {children}

@@ -11,7 +11,7 @@ export function ClassCatalog({ classes }: { classes: CharacterClassView[] }) {
           <p className="text-[0.62rem] font-bold tracking-[0.18em] text-[#e8bd79] uppercase">
             Ścieżki bohaterów
           </p>
-          <h2 className="font-display mt-1 text-2xl font-semibold">
+          <h2 className="font-display mt-1 text-2xl font-bold">
             Klasy postaci
           </h2>
         </div>

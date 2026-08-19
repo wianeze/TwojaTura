@@ -65,7 +65,7 @@ function SheetHeading({
           {eyebrow}
         </p>
         {title ? (
-          <h2 className="font-display mt-0.5 text-[clamp(1.05rem,4.6cqi,1.3rem)] leading-tight font-semibold text-[#4a3018]">
+          <h2 className="font-display mt-0.5 text-[clamp(1.05rem,4.6cqi,1.3rem)] leading-tight font-bold text-[#4a3018]">
             {title}
           </h2>
         ) : null}

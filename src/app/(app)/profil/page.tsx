@@ -46,7 +46,7 @@ export default async function ProfilePage() {
           <p className="text-accent text-[0.62rem] font-bold tracking-[0.17em] uppercase">
             Ustawienia bohatera
           </p>
-          <h2 className="font-display mt-1 text-2xl font-semibold">
+          <h2 className="font-display mt-1 text-2xl font-bold">
             Dane Karty Gracza
           </h2>
           <ProfileForm member={member} />

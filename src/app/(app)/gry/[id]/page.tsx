@@ -334,7 +334,7 @@ export default async function GameDetailsPage({
           <p className="text-accent text-[0.56rem] font-bold tracking-[0.18em] uppercase">
             {ratingMode === "edit" ? "Twoja ocena" : "Oceń tę grę"}
           </p>
-          <h2 className="font-display mt-1 text-[1.5rem] font-semibold text-[#4c3528]">
+          <h2 className="font-display mt-1 text-[1.5rem] font-bold text-[#4c3528]">
             {ratingMode === "edit" ? "Zaktualizuj opinię" : "Dodaj ocenę"}
           </h2>
 
@@ -353,7 +353,7 @@ export default async function GameDetailsPage({
           <p className="text-accent text-[0.56rem] font-bold tracking-[0.18em] uppercase">
             Oceny grupy
           </p>
-          <h2 className="font-display mt-1 text-[1.5rem] font-semibold text-[#4c3528]">
+          <h2 className="font-display mt-1 text-[1.5rem] font-bold text-[#4c3528]">
             Opinie o tej grze
           </h2>
 
@@ -409,7 +409,7 @@ export default async function GameDetailsPage({
             <p className="text-accent text-[0.56rem] font-bold tracking-[0.18em] uppercase">
               Kronika
             </p>
-            <h2 className="font-display mt-1 text-[1.4rem] font-semibold text-[#4c3528]">
+            <h2 className="font-display mt-1 text-[1.4rem] font-bold text-[#4c3528]">
               Ostatnie partie
             </h2>
           </div>

@@ -467,7 +467,7 @@ export async function DashboardShowcase({
               ) : (
                 <>
                   <div className="text-center">
-                    <h1 className="font-display truncate text-[1.32rem] leading-tight font-semibold text-[#fff1dc]">
+                    <h1 className="font-display truncate text-[1.22rem] leading-tight font-extrabold text-[#fff1dc]">
                       {data.summary.title}
                     </h1>
                     <p className="mt-0.5 truncate text-[0.86rem] font-semibold text-[#e6c79f]">
@@ -658,7 +658,7 @@ export async function DashboardShowcase({
                         <p className="text-[0.58rem] font-bold tracking-[0.18em] text-[#e2b578] uppercase">
                           Stół
                         </p>
-                        <h1 className="font-display text-[2.1rem] leading-tight font-semibold text-[#fff1dc] sm:text-[2.3rem]">
+                        <h1 className="font-display text-[2.1rem] leading-tight font-extrabold text-[#fff1dc] sm:text-[2.3rem]">
                           {data.summary.title}
                         </h1>
                         <p className="text-[0.95rem] font-semibold text-[#e6c79f] sm:text-[1.05rem]">
@@ -696,7 +696,7 @@ export async function DashboardShowcase({
               // module Stołu (text-[1.32rem] wyżej w tym pliku) — wcześniejsze
               // 1.9rem było wyraźnie większe od niego. Desktop (sm:) zostaje
               // bez zmian, tam nagłówek Stołu jest większy niż "Zlecenia".
-              className="font-display text-center text-[1.32rem] font-semibold text-[#fff1dc] sm:text-left sm:text-[2.05rem]"
+              className="font-display text-center text-[1.32rem] font-bold text-[#fff1dc] sm:text-left sm:text-[2.05rem]"
             >
               Zlecenia
             </h2>

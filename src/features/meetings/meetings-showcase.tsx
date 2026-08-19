@@ -82,7 +82,7 @@ export function MeetingsShowcase() {
                 {meeting.status}
               </span>
             </div>
-            <h2 className="font-display mt-5 min-h-14 text-xl leading-7 font-semibold">
+            <h2 className="font-display mt-5 min-h-14 text-xl leading-7 font-bold">
               {meeting.title}
             </h2>
             <div className="border-border text-muted mt-5 flex items-end justify-between gap-3 border-t border-dashed pt-4 text-xs leading-5">
@@ -117,7 +117,7 @@ export function MeetingsShowcase() {
             <p className="text-[0.63rem] font-bold tracking-[0.18em] text-[#d4a566] uppercase">
               Na ten wieczór
             </p>
-            <h2 className="font-display mt-2 text-2xl font-semibold">
+            <h2 className="font-display mt-2 text-2xl font-bold">
               Pudełka już leżą na stole
             </h2>
             <p className="mt-3 text-sm leading-6 text-[#c9b7a5]">
@@ -155,7 +155,7 @@ export function MeetingsShowcase() {
             <p className="text-[0.65rem] font-bold tracking-[0.2em] text-[#d8b773] uppercase">
               Stół Kreatywny · makieta
             </p>
-            <h2 className="font-display mt-2 text-2xl font-semibold sm:text-3xl">
+            <h2 className="font-display mt-2 text-2xl font-bold sm:text-3xl">
               Ankieta i karta oceny
             </h2>
           </div>

@@ -89,7 +89,7 @@ export function AchievementCatalog({
           <p className="text-accent text-[0.62rem] font-bold tracking-[0.18em] uppercase">
             Kolekcja trofeów
           </p>
-          <h2 className="font-display mt-1 text-2xl font-semibold">Odznaki</h2>
+          <h2 className="font-display mt-1 text-2xl font-bold">Odznaki</h2>
         </div>
         <span className="rounded-full bg-[#ead9bc] px-3 py-1.5 text-xs font-bold text-[#785536]">
           {acquiredCount}/{achievements.length} zdobytych

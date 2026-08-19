@@ -107,7 +107,7 @@ function SectionHeading({
         <p className="text-accent text-[0.58rem] font-bold tracking-[0.17em] uppercase">
           {eyebrow}
         </p>
-        <h2 className="font-display mt-1 text-xl font-semibold text-[#4c3528] sm:text-2xl">
+        <h2 className="font-display mt-1 text-xl font-bold text-[#4c3528] sm:text-2xl">
           {title}
         </h2>
       </div>
@@ -229,7 +229,7 @@ export function PlayerProfileShowcase({
               <p className="text-[0.62rem] font-bold tracking-[0.2em] text-[#e5ba70] uppercase">
                 Karta Gracza
               </p>
-              <h1 className="font-display mt-1 truncate text-3xl font-semibold sm:text-4xl">
+              <h1 className="font-display mt-1 truncate text-3xl font-extrabold sm:text-4xl">
                 {member.displayName}
               </h1>
               {heroClass ? (

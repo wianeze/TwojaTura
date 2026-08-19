@@ -17,7 +17,7 @@ export default async function ChroniclePage() {
           <p className="text-xs font-bold tracking-[0.18em] text-[#e3ae67] uppercase">
             Historia stołu
           </p>
-          <h1 className="font-display text-cream mt-2 text-[1.85rem] font-semibold tracking-tight sm:text-[2.2rem]">
+          <h1 className="font-display text-cream mt-2 text-[1.85rem] font-extrabold tracking-tight sm:text-[2.2rem]">
             Kronika
           </h1>
         </div>

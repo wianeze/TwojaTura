@@ -220,7 +220,7 @@ export function PushSettingsPanel() {
       <p className="text-accent text-xs font-bold tracking-[0.16em] uppercase">
         Powiadomienia
       </p>
-      <h2 className="font-display mt-1 text-2xl font-semibold text-[#4c3528]">
+      <h2 className="font-display mt-1 text-2xl font-bold text-[#4c3528]">
         Powiadomienia push
       </h2>
       <div className="mt-4">{renderState(state)}</div>
