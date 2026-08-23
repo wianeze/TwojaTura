@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { buildAppUrl } from "@/lib/app-url";
+import { recordAuditEventSafely } from "@/lib/analytics/server";
 import type { FormState } from "./form-state";
 import {
   isSamePasswordError,
@@ -41,6 +42,14 @@ export async function loginAction(
   }
 
   const memberState = await getCurrentMemberFromClient(supabase);
+  if (memberState.status === "active-member") {
+    await recordAuditEventSafely(supabase, {
+      eventType: "auth.login.success",
+      status: "success",
+      routeKey: "login",
+      requestId: crypto.randomUUID(),
+    });
+  }
   revalidatePath("/", "layout");
   redirect(memberState.status === "active-member" ? "/" : "/brak-dostepu");
 }
@@ -170,6 +179,12 @@ export async function updatePasswordAction(
       ? false // unused by resolvePasswordUpdateRedirectTarget for recovery
       : (await getCurrentMemberFromClient(supabase)).status === "active-member";
   revalidatePath("/", "layout");
+  await recordAuditEventSafely(supabase, {
+    eventType: "auth.password.changed",
+    status: "success",
+    routeKey: "password",
+    requestId: crypto.randomUUID(),
+  });
   redirect(resolvePasswordUpdateRedirectTarget(flow, isActiveMember));
 }
 
@@ -210,6 +225,12 @@ export async function updateProfileAction(
 
 export async function signOutAction() {
   const supabase = await createClient();
+  await recordAuditEventSafely(supabase, {
+    eventType: "auth.logout",
+    status: "success",
+    routeKey: "profile",
+    requestId: crypto.randomUUID(),
+  });
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/logowanie");

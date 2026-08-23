@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { RouteViewTracker } from "@/components/analytics/route-view-tracker";
 import {
   DesktopNavigation,
   MobileNavigation,
@@ -28,6 +29,7 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <MemberRoleProvider role={member.role}>
+      <RouteViewTracker />
       <div className="min-h-screen lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
         <DesktopNavigation member={member} activeClass={activeClass} />
         <div className="cabin-ambient min-w-0">

@@ -53,6 +53,14 @@ export default async function AdminPage() {
         >
           Wyślij powiadomienie push
         </ActionLink>
+        <ActionLink
+          action="neutral"
+          size="compact"
+          href="/admin/statystyki"
+          className="mt-3 ml-2"
+        >
+          Statystyki aplikacji
+        </ActionLink>
       </header>
 
       <Panel

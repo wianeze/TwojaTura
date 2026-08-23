@@ -8,6 +8,7 @@ const AUTH_ROUTES = [
   "/auth/callback",
   "/ustaw-haslo",
   "/potwierdz-reset",
+  "/prywatnosc",
 ];
 const ACCESS_DENIED_ROUTE = "/brak-dostepu";
 

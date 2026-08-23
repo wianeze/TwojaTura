@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import {
+  recordServerActionErrorSafely,
+  recordUsageEventSafely,
+} from "@/lib/analytics/server";
 import type { Database, Json } from "@/types/database.generated";
 import { requireWriteAccess } from "@/features/auth/require-write-access";
 import {
@@ -227,6 +232,11 @@ export async function createGameAction(
   });
 
   if (error) {
+    await recordServerActionErrorSafely(access.supabase, {
+      routeKey: "shelf",
+      action: "game.create",
+      errorCode: error.code,
+    });
     return { status: "error", message: mapGameDatabaseError(error) };
   }
 
@@ -255,6 +265,27 @@ export async function createGameAction(
   }
 
   revalidatePath("/gry");
+  after(async () => {
+    await Promise.all([
+      recordUsageEventSafely(access.supabase, {
+        eventName: "game.added",
+        routeKey: "shelf",
+        componentKey: "game.form",
+        action: "added",
+        entityType: "game",
+        entityId: data,
+        metadata: { game_id: data },
+      }),
+      recordUsageEventSafely(access.supabase, {
+        eventName: "quest.completed",
+        componentKey: "dashboard.quest",
+        action: "completed",
+        entityType: "quest",
+        correlationKey: "shelf-first-game",
+        metadata: { quest_type: "shelf-first-game", game_id: data },
+      }),
+    ]);
+  });
   redirect(`/gry/${data}`);
 }
 
@@ -493,6 +524,11 @@ export async function saveRatingAction(
   const { error } = await mutation;
 
   if (error) {
+    await recordServerActionErrorSafely(access.supabase, {
+      routeKey: "shelf",
+      action: "rating.save",
+      errorCode: error.code,
+    });
     return { status: "error", message: mapRatingDatabaseError(error) };
   }
 
@@ -524,6 +560,19 @@ export async function saveRatingAction(
 
   revalidatePath("/gry");
   revalidatePath(`/gry/${gameId}`);
+
+  after(() =>
+    recordUsageEventSafely(access.supabase, {
+      eventName: "rating.submitted",
+      routeKey: "shelf",
+      componentKey: "rating.form",
+      action: "submitted",
+      entityType: "game",
+      entityId: gameId,
+      correlationKey: `rating:${gameId}`,
+      metadata: { game_id: gameId },
+    }),
+  );
 
   return {
     status: "success",

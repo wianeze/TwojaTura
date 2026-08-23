@@ -6,6 +6,10 @@ import { after } from "next/server";
 import { requireWriteAccess } from "@/features/auth/require-write-access";
 import { dispatchPendingPushDeliveriesInBackground } from "@/features/push/server/dispatch";
 import {
+  recordServerActionErrorSafely,
+  recordUsageEventSafely,
+} from "@/lib/analytics/server";
+import {
   awardSimpleAchievementsAfterMeetingCreate,
   awardSimpleAchievementsAfterRsvpSave,
 } from "@/features/legendarium/achievement-awards";
@@ -108,6 +112,11 @@ export async function createMeetingAction(
   );
 
   if (error || !meetingId) {
+    await recordServerActionErrorSafely(access.supabase, {
+      routeKey: "calendar",
+      action: "meeting.create",
+      errorCode: error?.code,
+    });
     return {
       status: "error",
       message: mapMeetingDatabaseError(error ?? {}),
@@ -131,6 +140,28 @@ export async function createMeetingAction(
   }
 
   revalidatePath("/kalendarium");
+
+  after(async () => {
+    await Promise.all([
+      recordUsageEventSafely(access.supabase, {
+        eventName: "meeting.created",
+        routeKey: "calendar",
+        componentKey: "meeting.form",
+        action: "created",
+        entityType: "meeting",
+        entityId: meetingId,
+        metadata: { meeting_id: meetingId },
+      }),
+      recordUsageEventSafely(access.supabase, {
+        eventName: "quest.completed",
+        componentKey: "dashboard.quest",
+        action: "completed",
+        entityType: "quest",
+        correlationKey: "schedule-meeting",
+        metadata: { quest_type: "schedule-meeting", meeting_id: meetingId },
+      }),
+    ]);
+  });
 
   // Kampania dla zaproszonych (jeśli ktoś został zaproszony) jest już
   // w outboxie — zapisało ją RPC create_meeting_with_invitations w tej samej
@@ -217,6 +248,11 @@ export async function saveMeetingAvailabilityAction(
   );
 
   if (error) {
+    await recordServerActionErrorSafely(access.supabase, {
+      routeKey: "calendar",
+      action: "meeting.rsvp",
+      errorCode: error.code,
+    });
     return {
       status: "error",
       message: "Nie udało się zapisać odpowiedzi RSVP.",
@@ -273,6 +309,28 @@ export async function saveMeetingAvailabilityAction(
 
   revalidatePath("/kalendarium");
   revalidatePath(`/kalendarium/${meetingId}`);
+  after(async () => {
+    await Promise.all([
+      recordUsageEventSafely(access.supabase, {
+        eventName: "meeting.rsvp.submitted",
+        routeKey: "calendar",
+        componentKey: "meeting.rsvp",
+        action: "submitted",
+        entityType: "meeting",
+        entityId: meetingId,
+        correlationKey: `meeting-rsvp:${meetingId}`,
+        metadata: { meeting_id: meetingId },
+      }),
+      recordUsageEventSafely(access.supabase, {
+        eventName: "quest.completed",
+        componentKey: "dashboard.quest",
+        action: "completed",
+        entityType: "quest",
+        correlationKey: `missing-rsvp:${meetingId}`,
+        metadata: { quest_type: "missing-rsvp", meeting_id: meetingId },
+      }),
+    ]);
+  });
   return { status: "success", savedResponse: isAvailable };
 }
 
@@ -334,6 +392,18 @@ export async function proposeMeetingGameAction(
 
   revalidatePath("/kalendarium");
   revalidatePath(`/kalendarium/${meetingId}`);
+  after(() =>
+    recordUsageEventSafely(access.supabase, {
+      eventName: "meeting.game.proposed",
+      routeKey: "calendar",
+      componentKey: "meeting.game_proposal",
+      action: "proposed",
+      entityType: "game",
+      entityId: gameId,
+      correlationKey: `meeting-game:${meetingId}:${gameId}`,
+      metadata: { meeting_id: meetingId, game_id: gameId },
+    }),
+  );
   return { status: "success" };
 }
 
@@ -368,6 +438,18 @@ export async function proposeMeetingContinuationAction(
   revalidatePath("/kalendarium");
   revalidatePath(`/kalendarium/${meetingId}`);
   revalidatePath("/");
+  after(() =>
+    recordUsageEventSafely(access.supabase, {
+      eventName: "meeting.continuation.proposed",
+      routeKey: "calendar",
+      componentKey: "meeting.continuation",
+      action: "proposed",
+      entityType: "play",
+      entityId: playId,
+      correlationKey: `meeting-continuation:${meetingId}:${playId}`,
+      metadata: { meeting_id: meetingId, play_id: playId },
+    }),
+  );
   return { status: "success" };
 }
 
@@ -395,6 +477,28 @@ export async function setMeetingGameResponseAction(
 
   revalidatePath("/kalendarium");
   revalidatePath(`/kalendarium/${meetingId}`);
+  after(async () => {
+    await Promise.all([
+      recordUsageEventSafely(access.supabase, {
+        eventName: "meeting.vote.submitted",
+        routeKey: "calendar",
+        componentKey: "meeting.vote",
+        action: "submitted",
+        entityType: "game",
+        entityId: gameId,
+        correlationKey: `meeting-vote:${meetingId}:${gameId}`,
+        metadata: { meeting_id: meetingId, game_id: gameId },
+      }),
+      recordUsageEventSafely(access.supabase, {
+        eventName: "quest.completed",
+        componentKey: "dashboard.quest",
+        action: "completed",
+        entityType: "quest",
+        correlationKey: `missing-vote:${meetingId}`,
+        metadata: { quest_type: "missing-vote", meeting_id: meetingId },
+      }),
+    ]);
+  });
   return { status: "success" };
 }
 
@@ -426,6 +530,28 @@ export async function setMeetingContinuationResponseAction(
   revalidatePath("/kalendarium");
   revalidatePath(`/kalendarium/${meetingId}`);
   revalidatePath("/");
+  after(async () => {
+    await Promise.all([
+      recordUsageEventSafely(access.supabase, {
+        eventName: "meeting.vote.submitted",
+        routeKey: "calendar",
+        componentKey: "meeting.vote",
+        action: "submitted",
+        entityType: "play",
+        entityId: playId,
+        correlationKey: `meeting-continuation-vote:${meetingId}:${playId}`,
+        metadata: { meeting_id: meetingId, play_id: playId },
+      }),
+      recordUsageEventSafely(access.supabase, {
+        eventName: "quest.completed",
+        componentKey: "dashboard.quest",
+        action: "completed",
+        entityType: "quest",
+        correlationKey: `missing-vote:${meetingId}`,
+        metadata: { quest_type: "missing-vote", meeting_id: meetingId },
+      }),
+    ]);
+  });
   return { status: "success" };
 }
 
@@ -508,10 +634,27 @@ export async function startMeetingPlayAction(
   });
 
   if (error || !data) {
+    await recordServerActionErrorSafely(access.supabase, {
+      routeKey: "table",
+      action: "meeting.play.start",
+      errorCode: error?.code,
+    });
     return { status: "error", message: mapTableSessionError(error ?? {}) };
   }
 
   revalidateTableSession(meetingId);
+  after(() =>
+    recordUsageEventSafely(access.supabase, {
+      eventName: "meeting.table.opened",
+      routeKey: "table",
+      componentKey: "meeting.table",
+      action: "opened",
+      entityType: "meeting",
+      entityId: meetingId,
+      correlationKey: `meeting-table:${meetingId}`,
+      metadata: { meeting_id: meetingId, game_id: gameId, play_id: data },
+    }),
+  );
   return { status: "success", playId: data };
 }
 
@@ -535,10 +678,39 @@ export async function resumeMeetingPlayAction(
   });
 
   if (error || !data) {
+    await recordServerActionErrorSafely(access.supabase, {
+      routeKey: "table",
+      action: "meeting.play.resume",
+      errorCode: error?.code,
+    });
     return { status: "error", message: mapTableSessionError(error ?? {}) };
   }
 
   revalidateTableSession(meetingId);
+  after(async () => {
+    await Promise.all([
+      recordUsageEventSafely(access.supabase, {
+        eventName: "meeting.table.opened",
+        routeKey: "table",
+        componentKey: "meeting.table",
+        action: "opened",
+        entityType: "meeting",
+        entityId: meetingId,
+        correlationKey: `meeting-table:${meetingId}`,
+        metadata: { meeting_id: meetingId, play_id: playId },
+      }),
+      recordUsageEventSafely(access.supabase, {
+        eventName: "meeting.play.resumed",
+        routeKey: "table",
+        componentKey: "meeting.table",
+        action: "resumed",
+        entityType: "play",
+        entityId: playId,
+        correlationKey: `meeting-play:${meetingId}:${playId}`,
+        metadata: { meeting_id: meetingId, play_id: playId },
+      }),
+    ]);
+  });
   return { status: "success", playId: data };
 }
 
@@ -570,10 +742,31 @@ export async function finishMeetingPlayAction(
       });
 
   if (error || !data) {
+    await recordServerActionErrorSafely(access.supabase, {
+      routeKey: "table",
+      action: options.keepForLater
+        ? "meeting.play.pause"
+        : "meeting.play.finish",
+      errorCode: error?.code,
+    });
     return { status: "error", message: mapTableSessionError(error ?? {}) };
   }
 
   revalidateTableSession(meetingId);
+  after(() =>
+    recordUsageEventSafely(access.supabase, {
+      eventName: options.keepForLater
+        ? "meeting.play.paused"
+        : "meeting.play.finished",
+      routeKey: "table",
+      componentKey: "meeting.table",
+      action: options.keepForLater ? "paused" : "finished",
+      entityType: "play",
+      entityId: playId,
+      correlationKey: `meeting-play:${meetingId}:${playId}`,
+      metadata: { meeting_id: meetingId, play_id: playId },
+    }),
+  );
   return { status: "success", playId: data };
 }
 

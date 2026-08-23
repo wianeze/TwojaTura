@@ -324,6 +324,56 @@ export type Database = {
           },
         ]
       }
+      audit_events: {
+        Row: {
+          actor_user_id: string | null
+          browser_family: string | null
+          created_at: string
+          device_class: string | null
+          event_type: string
+          id: string
+          idempotency_key: string | null
+          metadata: Json
+          request_id: string | null
+          route_key: string | null
+          status: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          browser_family?: string | null
+          created_at?: string
+          device_class?: string | null
+          event_type: string
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          request_id?: string | null
+          route_key?: string | null
+          status: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          browser_family?: string | null
+          created_at?: string
+          device_class?: string | null
+          event_type?: string
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          request_id?: string | null
+          route_key?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -1658,6 +1708,68 @@ export type Database = {
           },
         ]
       }
+      usage_events: {
+        Row: {
+          action: string | null
+          app_version: string | null
+          browser_family: string | null
+          component_key: string | null
+          correlation_key: string | null
+          created_at: string
+          device_class: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_name: string
+          id: string
+          metadata: Json
+          route_key: string | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          action?: string | null
+          app_version?: string | null
+          browser_family?: string | null
+          component_key?: string | null
+          correlation_key?: string | null
+          created_at?: string
+          device_class?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_name: string
+          id: string
+          metadata?: Json
+          route_key?: string | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          action?: string | null
+          app_version?: string | null
+          browser_family?: string | null
+          component_key?: string | null
+          correlation_key?: string | null
+          created_at?: string
+          device_class?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_name?: string
+          id?: string
+          metadata?: Json
+          route_key?: string | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_achievements: {
         Row: {
           achievement_key: string
@@ -1832,6 +1944,7 @@ export type Database = {
       }
     }
     Functions: {
+      admin_analytics_snapshot: { Args: { p_days?: number }; Returns: Json }
       admin_award_point_action: {
         Args: {
           p_action_type: string
@@ -2298,6 +2411,38 @@ export type Database = {
           point_event_id: string
           points: number
         }[]
+      }
+      record_audit_event: {
+        Args: {
+          p_browser_family?: string
+          p_device_class?: string
+          p_event_id: string
+          p_event_type: string
+          p_idempotency_key?: string
+          p_metadata?: Json
+          p_request_id?: string
+          p_route_key?: string
+          p_status: string
+        }
+        Returns: boolean
+      }
+      record_usage_event: {
+        Args: {
+          p_action?: string
+          p_app_version?: string
+          p_browser_family?: string
+          p_component_key?: string
+          p_correlation_key?: string
+          p_device_class?: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_event_id: string
+          p_event_name: string
+          p_metadata?: Json
+          p_route_key?: string
+          p_source?: string
+        }
+        Returns: boolean
       }
       reorder_play_photos: {
         Args: { p_photo_ids: string[]; p_play_id: string }

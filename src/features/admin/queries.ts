@@ -8,6 +8,110 @@ import type {
   AdminPointAdjustmentRow,
   AdminReversiblePointEventRow,
 } from "./point-adjustments";
+import type { AnalyticsSnapshot } from "./analytics-types";
+
+function record(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function rows(value: unknown) {
+  return Array.isArray(value) ? value.map(record) : [];
+}
+
+function numberValue(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function nullableString(value: unknown) {
+  return typeof value === "string" ? value : null;
+}
+
+export async function getAdminAnalyticsSnapshot(
+  days = 30,
+): Promise<AnalyticsSnapshot> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_analytics_snapshot", {
+    p_days: days,
+  });
+  if (error) throw new Error("Nie udało się pobrać statystyk aplikacji.");
+
+  const snapshot = record(data);
+  const kpis = record(snapshot.kpis);
+  const questUsage = record(snapshot.quest_usage);
+
+  return {
+    rangeDays: numberValue(snapshot.range_days) || days,
+    generatedAt: stringValue(snapshot.generated_at),
+    kpis: {
+      activeToday: numberValue(kpis.active_today),
+      active7Days: numberValue(kpis.active_7_days),
+      active30Days: numberValue(kpis.active_30_days),
+      loginSuccess: numberValue(kpis.login_success),
+      loginFailure: numberValue(kpis.login_failure),
+      actionErrors: numberValue(kpis.action_errors),
+    },
+    dailyActivity: rows(snapshot.daily_activity).map((item) => ({
+      date: stringValue(item.metric_date),
+      eventsCount: numberValue(item.events_count),
+      activeUsers: numberValue(item.active_users),
+    })),
+    routes: rows(snapshot.routes).map((item) => ({
+      label: stringValue(item.route_key),
+      eventsCount: numberValue(item.events_count),
+      uniqueUsers: numberValue(item.unique_users),
+    })),
+    topComponents: rows(snapshot.top_components).map((item) => ({
+      label: stringValue(item.component_key),
+      action: stringValue(item.action),
+      eventsCount: numberValue(item.events_count),
+      uniqueUsers: numberValue(item.unique_users),
+    })),
+    questUsage: {
+      presented: numberValue(questUsage.presented),
+      clicked: numberValue(questUsage.clicked),
+      completed: numberValue(questUsage.completed),
+      expired: numberValue(questUsage.expired),
+    },
+    funnel: rows(snapshot.funnel).map((item) => ({
+      label: stringValue(item.stage),
+      eventsCount: numberValue(item.events_count),
+    })),
+    continuations: rows(snapshot.continuations).map((item) => ({
+      label: stringValue(item.stage),
+      eventsCount: numberValue(item.events_count),
+    })),
+    recentLogins: rows(snapshot.recent_logins).map((item) => ({
+      displayName: stringValue(item.display_name) || "Nieznany użytkownik",
+      createdAt: stringValue(item.created_at),
+      deviceClass: stringValue(item.device_class) || "unknown",
+      browserFamily: stringValue(item.browser_family) || "Other",
+      status: stringValue(item.status),
+    })),
+    userActivity: rows(snapshot.user_activity).map((item) => ({
+      userId: stringValue(item.user_id),
+      displayName: stringValue(item.display_name),
+      loginCount: numberValue(item.login_count),
+      lastLoginAt: nullableString(item.last_login_at),
+      lastActivityAt: nullableString(item.last_activity_at),
+    })),
+    errors: rows(snapshot.errors).map((item) => ({
+      createdAt: stringValue(item.created_at),
+      displayName: stringValue(item.display_name) || "Nieznany użytkownik",
+      errorAction: stringValue(item.error_action),
+      errorCode: stringValue(item.error_code),
+    })),
+    continuedGames: rows(snapshot.continued_games).map((item) => ({
+      label: stringValue(item.title),
+      eventsCount: numberValue(item.events_count),
+    })),
+  };
+}
 
 /**
  * Every account, unfiltered by role/visibility — this is the one place in

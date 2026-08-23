@@ -2,8 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import type { Database, Json } from "@/types/database.generated";
 import { createClient } from "@/lib/supabase/server";
+import {
+  recordServerActionErrorSafely,
+  recordUsageEventSafely,
+} from "@/lib/analytics/server";
 import { requireWriteAccess } from "@/features/auth/require-write-access";
 import type { PlayFormState } from "./types";
 import { toPlayFormErrorState, validatePlayFormData } from "./validation";
@@ -204,6 +209,11 @@ export async function createPlayAction(
   );
 
   if (error || !data) {
+    await recordServerActionErrorSafely(access.supabase, {
+      routeKey: "chronicle",
+      action: "play.create",
+      errorCode: error?.code,
+    });
     return {
       ok: false,
       formState: {
@@ -226,6 +236,44 @@ export async function createPlayAction(
     participantIds: validation.data.participants.map(
       (participant) => participant.userId,
     ),
+  });
+
+  after(async () => {
+    await Promise.all([
+      recordUsageEventSafely(access.supabase, {
+        eventName: "play.created",
+        routeKey: "chronicle",
+        componentKey: "play.form",
+        action: "created",
+        entityType: "play",
+        entityId: data,
+        correlationKey: `play:${data}`,
+        metadata: {
+          play_id: data,
+          game_id: validation.data.gameId,
+          ...(validation.data.meetingId
+            ? { meeting_id: validation.data.meetingId }
+            : {}),
+        },
+      }),
+      ...(validation.data.meetingId
+        ? [
+            recordUsageEventSafely(access.supabase, {
+              eventName: "quest.completed",
+              componentKey: "dashboard.quest",
+              action: "completed",
+              entityType: "quest",
+              correlationKey: `missing-play:${validation.data.meetingId}`,
+              metadata: {
+                quest_type: "missing-play",
+                meeting_id: validation.data.meetingId,
+                game_id: validation.data.gameId,
+                play_id: data,
+              },
+            }),
+          ]
+        : []),
+    ]);
   });
 
   return { ok: true, playId: data };

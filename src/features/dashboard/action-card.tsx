@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import type { CSSProperties } from "react";
 import {
   formatQuestExpiryLabel,
@@ -13,6 +12,7 @@ import {
   type QuestCardKind,
 } from "./quest-variants";
 import type { DashboardQuest } from "./types";
+import { QuestTrackingLink } from "./quest-tracking-link";
 
 type QuestCardProps = {
   quest: DashboardQuest;
@@ -137,9 +137,11 @@ export function QuestCard({
   const showTukatyReward = kind === "misja" && Boolean(tukatyAmounts?.length);
 
   return (
-    <Link
+    <QuestTrackingLink
+      questId={quest.id}
+      expiresAt={quest.expiresAt}
       href={quest.href}
-      data-quest-kind={kind}
+      questKind={kind}
       className={`quest-card-frame relative flex min-h-[4.75rem] w-full overflow-visible px-2.5 py-1 pl-0 transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#e2a05d] sm:min-h-[5.25rem] sm:px-4 sm:py-1.5 sm:pl-0 ${
         isActiveClickable ? "quest-glow" : ""
       } ${isActiveClickable && isPrimary ? "quest-glow-sheen" : ""}`}
@@ -245,6 +247,6 @@ export function QuestCard({
           textClassName={variant.rewardTextClassName}
         />
       ) : null}
-    </Link>
+    </QuestTrackingLink>
   );
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Panel } from "@/components/ui/panel";
 import { LoginForm } from "@/features/auth/login-form";
 
@@ -33,6 +34,14 @@ export default async function LoginPage({
             : undefined
         }
       />
+      <p className="mt-4 text-center text-xs text-[#8a6c58]">
+        <Link
+          href="/prywatnosc"
+          className="underline decoration-current/30 underline-offset-4"
+        >
+          Prywatność i podstawowe statystyki użycia
+        </Link>
+      </p>
     </Panel>
   );
 }
