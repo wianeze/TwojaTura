@@ -5,6 +5,7 @@ import {
   buildDashboardHeroSummary,
   buildDashboardPointsSummary,
   buildRecentPlayPreviews,
+  formatQuestExpiryLabel,
   formatQuestRenownPreview,
   formatDashboardWinnerSummary,
   getConfirmedMeetingAlert,
@@ -193,10 +194,10 @@ test("renown preview renders the real reward or nothing at all", () => {
 // Pruning: wygasanie, brak Półki, zwołanie ekipy
 // ---------------------------------------------------------------------------
 
-test("rating reminder disappears 30 days after the play", () => {
+test("rating reminder is visible for 7 days and disappears at the deadline", () => {
   const fresh = buildDashboardQuests(
     buildSource({
-      now: new Date("2026-08-08T10:00:00.000Z"),
+      now: new Date("2026-07-17T17:59:59.000Z"),
       unratedGames: [
         {
           playId: "play-1",
@@ -209,7 +210,7 @@ test("rating reminder disappears 30 days after the play", () => {
   );
   const stale = buildDashboardQuests(
     buildSource({
-      now: new Date("2026-08-12T10:00:00.000Z"),
+      now: new Date("2026-07-17T18:00:00.000Z"),
       unratedGames: [
         {
           playId: "play-1",
@@ -226,17 +227,31 @@ test("rating reminder disappears 30 days after the play", () => {
     stale.some((quest) => quest.id === "rate-game:play-1:game-1"),
     false,
   );
-  assert.equal(OPERATIONAL_TASK_POLICY.reminderMaxAgeDays, 30);
+  assert.equal(OPERATIONAL_TASK_POLICY.postPlayDays, 7);
 });
 
-test("chronicle reminder also expires after the configured window", () => {
-  const stale = buildDashboardQuests(
+test("chronicle reminder is visible for 72h and disappears at the deadline", () => {
+  const fresh = buildDashboardQuests(
     buildSource({
-      now: new Date("2026-08-20T10:00:00.000Z"),
+      now: new Date("2026-07-15T20:59:59.000Z"),
       finishedMeetingsWithoutPlay: [
         {
-          id: "meeting-old",
-          title: "Dawno temu",
+          id: "meeting-recent",
+          title: "Niedawno",
+          startsAt: "2026-07-12T18:00:00.000Z",
+          endsAt: "2026-07-12T21:00:00.000Z",
+          status: "confirmed",
+        },
+      ],
+    }),
+  );
+  const stale = buildDashboardQuests(
+    buildSource({
+      now: new Date("2026-07-15T21:00:00.000Z"),
+      finishedMeetingsWithoutPlay: [
+        {
+          id: "meeting-recent",
+          title: "Niedawno",
           startsAt: "2026-07-12T18:00:00.000Z",
           endsAt: "2026-07-12T21:00:00.000Z",
           status: "confirmed",
@@ -245,9 +260,80 @@ test("chronicle reminder also expires after the configured window", () => {
     }),
   );
 
+  assert.ok(fresh.some((quest) => quest.id === "missing-play:meeting-recent"));
   assert.equal(
-    stale.some((quest) => quest.id === "missing-play:meeting-old"),
+    stale.some((quest) => quest.id === "missing-play:meeting-recent"),
     false,
+  );
+  assert.equal(OPERATIONAL_TASK_POLICY.chronicleEntryHours, 72);
+});
+
+test("RSVP and vote tasks expire exactly when the meeting starts", () => {
+  const meeting = buildFutureMeeting({
+    startsAt: "2026-07-20T16:00:00.000Z",
+    endsAt: "2026-07-20T20:00:00.000Z",
+  });
+  const justBefore = new Date("2026-07-20T15:59:59.000Z");
+  const atStart = new Date("2026-07-20T16:00:00.000Z");
+
+  const rsvpBefore = buildDashboardQuests(
+    buildSource({ now: justBefore, futureMeetings: [meeting] }),
+  );
+  const rsvpAfter = buildDashboardQuests(
+    buildSource({ now: atStart, futureMeetings: [meeting] }),
+  );
+  const voteBefore = buildDashboardQuests(
+    buildSource({
+      now: justBefore,
+      futureMeetings: [
+        { ...meeting, ownResponse: true, hasOwnVote: false },
+      ],
+    }),
+  );
+  const voteAfter = buildDashboardQuests(
+    buildSource({
+      now: atStart,
+      futureMeetings: [
+        { ...meeting, ownResponse: true, hasOwnVote: false },
+      ],
+    }),
+  );
+
+  assert.ok(rsvpBefore.some((quest) => quest.id === "missing-rsvp:meeting-1"));
+  assert.ok(voteBefore.some((quest) => quest.id === "missing-vote:meeting-1"));
+  assert.equal(rsvpAfter.some((quest) => quest.id.startsWith("missing-rsvp:")), false);
+  assert.equal(voteAfter.some((quest) => quest.id.startsWith("missing-vote:")), false);
+});
+
+test("quest expiry timer formats days, tomorrow, hours and final minutes", () => {
+  const now = new Date("2026-07-13T10:00:00.000Z");
+
+  assert.equal(
+    formatQuestExpiryLabel("2026-07-16T10:00:00.000Z", now),
+    "Przepada za 3 dni",
+  );
+  assert.equal(
+    formatQuestExpiryLabel("2026-07-14T16:00:00.000Z", now),
+    "Przepada jutro",
+  );
+  assert.equal(
+    formatQuestExpiryLabel("2026-07-14T04:00:00.000Z", now),
+    "Przepada za 18h",
+  );
+  assert.equal(
+    formatQuestExpiryLabel("2026-07-13T12:15:00.000Z", now),
+    "Ostatnie 2h 15m",
+  );
+});
+
+test("quests without expiresAt render no timer", () => {
+  assert.equal(formatQuestExpiryLabel(undefined), null);
+  assert.equal(
+    formatQuestExpiryLabel(
+      "2026-07-13T09:59:59.000Z",
+      new Date("2026-07-13T10:00:00.000Z"),
+    ),
+    null,
   );
 });
 
@@ -661,7 +747,10 @@ test("the table shows at most three operational tasks", () => {
       ],
     }),
   );
-  const visible = pickVisibleDashboardQuests(quests);
+  const visible = pickVisibleDashboardQuests(
+    quests,
+    new Date("2026-07-13T10:00:00.000Z"),
+  );
 
   assert.equal(quests.length, 6);
   assert.equal(visible.length, OPERATIONAL_TASK_POLICY.maxVisibleTasks);

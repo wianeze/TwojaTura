@@ -38,7 +38,7 @@ set local role authenticated;
 create temporary table t_play as
 select public.create_play_with_participants(
   'c1000000-0000-4000-8000-000000000001',
-  '2026-05-01 18:00:00+00'::timestamptz,
+  now() - interval '1 hour',
   null,
   90,
   'Partia rywalizacyjna',
@@ -181,7 +181,7 @@ set local role authenticated;
 select public.update_play_with_participants(
   (select play_id from t_play),
   'c1000000-0000-4000-8000-000000000001',
-  '2026-05-01 18:00:00+00'::timestamptz,
+  now() - interval '1 hour',
   null, 90, 'Partia wraca do toku',
   jsonb_build_array(
     jsonb_build_object('user_id', '10000000-0000-0000-0000-000000000002', 'placement', 1, 'is_winner', false)
@@ -236,7 +236,7 @@ select results_eq(
 select public.update_play_with_participants(
   (select play_id from t_play),
   'c1000000-0000-4000-8000-000000000001',
-  '2026-05-01 18:00:00+00'::timestamptz,
+  now() - interval '1 hour',
   null, 90, 'Partia znów ukończona',
   jsonb_build_array(
     jsonb_build_object('user_id', '10000000-0000-0000-0000-000000000002', 'placement', 1, 'is_winner', true)

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { ProfileRouteLoading } from "@/components/layout/main-route-loading";
 import { Panel } from "@/components/ui/panel";
 import { signOutAction } from "@/features/auth/actions";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
@@ -14,7 +16,7 @@ import { profileServerOperation } from "@/lib/server-performance";
 
 export const metadata: Metadata = { title: "Karta Gracza" };
 
-export default async function ProfilePage() {
+async function ProfileContent() {
   const state = await getCurrentMember();
   if (state.status !== "active-member") redirect("/brak-dostepu");
   const { member } = state;
@@ -68,5 +70,13 @@ export default async function ProfilePage() {
         </Panel>
       </div>
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<ProfileRouteLoading />}>
+      <ProfileContent />
+    </Suspense>
   );
 }

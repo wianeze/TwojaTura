@@ -383,19 +383,27 @@ select lives_ok(
 );
 reset role;
 
--- Partia czekająca na wynik NIE jest tym, do czego się wraca.
+-- result_pending oznacza brak wyniku, a nie blokadę kontynuacji. Wpis można
+-- wznowić i ponownie odłożyć bez tworzenia nowej partii.
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
 set local role authenticated;
-select throws_ok(
+select lives_ok(
   $$
-    select public.resume_meeting_play(
-      (select id from t_ids where name = 'meeting_2'),
-      (select id from t_ids where name = 'play_2')
-    )
+    do $body$
+    begin
+      perform public.resume_meeting_play(
+        (select id from t_ids where name = 'meeting_2'),
+        (select id from t_ids where name = 'play_2')
+      );
+      perform public.pause_meeting_play(
+        (select id from t_ids where name = 'meeting_2'),
+        (select id from t_ids where name = 'play_2'),
+        'Wynik uzupełnimy później'
+      );
+    end;
+    $body$
   $$,
-  '23514',
-  null,
-  '24. partii czekającej tylko na wynik nie da się wznowić'
+  '24. partię czekającą na wynik można wznowić i ponownie odłożyć'
 );
 reset role;
 

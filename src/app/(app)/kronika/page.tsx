@@ -1,12 +1,18 @@
+import { Suspense } from "react";
+import { ChronicleRouteLoading } from "@/components/layout/main-route-loading";
 import { ActionLink } from "@/components/ui/action-button";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { ChronicleFeed } from "@/features/plays/chronicle-feed";
 import { listChroniclePlays } from "@/features/plays/queries";
 import { profileServerOperation } from "@/lib/server-performance";
 
-export default async function ChroniclePage() {
+async function ChronicleFeedContent() {
   const plays = await profileServerOperation("/kronika", listChroniclePlays);
 
+  return <ChronicleFeed items={plays} />;
+}
+
+export default function ChroniclePage() {
   return (
     <div className="space-y-4">
       <header
@@ -35,7 +41,9 @@ export default async function ChroniclePage() {
         </ActionLink>
       </header>
 
-      <ChronicleFeed items={plays} />
+      <Suspense fallback={<ChronicleRouteLoading includeHeader={false} />}>
+        <ChronicleFeedContent />
+      </Suspense>
     </div>
   );
 }

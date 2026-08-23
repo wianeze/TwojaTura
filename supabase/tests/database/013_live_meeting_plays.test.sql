@@ -208,7 +208,9 @@ select throws_ok(
 reset role;
 
 -- ---------------------------------------------------------------------------
--- Aktywna partia nie jest partią „do kontynuacji” ani nie pozwala zamknąć wieczoru
+-- Dopiero odłożona partia jest kandydatem na propozycję kontynuacji. Aktywnie
+-- biegnąca sesja nie może jeszcze trafić do planu kolejnego wieczoru. Nadal nie
+-- można też zamknąć spotkania, na którym partia faktycznie biegnie.
 -- ---------------------------------------------------------------------------
 
 select set_config(
@@ -219,16 +221,16 @@ select set_config(
 set local role authenticated;
 select throws_ok(
   $$
-    select public.create_meeting_with_invitations(
+    select public.create_meeting_plan_with_invitations(
       p_title => 'Kontynuacja biegnącej partii',
       p_starts_at => now() + interval '7 days',
       p_ends_at => now() + interval '7 days 3 hours',
       p_invited_user_ids => '{}'::uuid[],
-      p_continued_play_id => (select id from t_ids where name = 'play_1'))
+      p_proposed_continued_play_id => (select id from t_ids where name = 'play_1'))
   $$,
   '23514',
-  null,
-  '10. partii granej właśnie przy stole nie da się wskazać jako kontynuowanej'
+  'Play cannot be proposed as a continuation',
+  '10. biegnącej partii nie można zaproponować przed jej odłożeniem'
 );
 reset role;
 

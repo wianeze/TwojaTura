@@ -1,7 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { formatQuestRenownPreview } from "./formatting";
+import {
+  formatQuestExpiryLabel,
+  formatQuestRenownPreview,
+  isQuestExpiryUrgent,
+} from "./formatting";
 import {
   QUEST_CARD_BACKGROUND,
   QUEST_CARD_SLICE,
@@ -123,6 +127,8 @@ export function QuestCard({
 }: QuestCardProps) {
   const variant = getQuestVisualVariant(quest);
   const renownPreview = formatQuestRenownPreview(quest);
+  const expiryLabel = formatQuestExpiryLabel(quest.expiresAt);
+  const expiryIsUrgent = isQuestExpiryUrgent(quest.expiresAt);
   const isActiveClickable = quest.type !== "info";
   const showRenownReward =
     kind === "zlecenie" &&
@@ -206,10 +212,23 @@ export function QuestCard({
           </span>
         ) : null}
 
-        <span
-          className={`min-w-0 text-[0.64rem] font-bold ${variant.ctaClassName}`}
-        >
-          {quest.ctaLabel} {"→"}
+        <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+          <span
+            className={`min-w-0 text-[0.64rem] font-bold ${variant.ctaClassName}`}
+          >
+            {quest.ctaLabel} {"→"}
+          </span>
+          {expiryLabel ? (
+            <span
+              className={`rounded-full border px-1.5 py-0.5 text-[0.5rem] leading-none font-semibold tracking-[0.02em] ${
+                expiryIsUrgent
+                  ? "border-[#b75a3d]/45 bg-[#b75a3d]/12 text-[#8b3d2e]"
+                  : "border-[#8f6847]/25 bg-[#8f6847]/8 text-[#75533d]"
+              }`}
+            >
+              {expiryLabel}
+            </span>
+          ) : null}
         </span>
       </span>
 

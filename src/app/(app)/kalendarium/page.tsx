@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import { CalendarRouteLoading } from "@/components/layout/main-route-loading";
 import { ActionLink } from "@/components/ui/action-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Panel } from "@/components/ui/panel";
@@ -31,9 +33,7 @@ function readMonthParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-export default async function CalendarPage({
-  searchParams,
-}: CalendarPageProps) {
+async function CalendarContent({ searchParams }: CalendarPageProps) {
   const memberState = await getCurrentMember();
   if (memberState.status !== "active-member") notFound();
 
@@ -50,19 +50,7 @@ export default async function CalendarPage({
   const todayLabel = getTodayTimelineDateLabel(now);
 
   return (
-    <div className="space-y-3.5 lg:space-y-4">
-      <header
-        style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
-        className="anim-rise-in-fast space-y-1 px-1 py-0.5 sm:py-1"
-      >
-        <p className="text-xs font-bold tracking-[0.22em] text-[#e3ae67] uppercase">
-          Planowanie wieczorów
-        </p>
-        <h1 className="font-display text-cream text-[2.1rem] font-extrabold tracking-tight drop-shadow-[0_2px_12px_rgba(20,10,7,0.28)] sm:text-[2.65rem]">
-          Kalendarium
-        </h1>
-      </header>
-
+    <>
       <Panel
         style={{ animationDelay: `${getEntranceStaggerDelayMs(1)}ms` }}
         className="anim-rise-in-fast premium-edge paper-wash overflow-hidden px-2.5 py-2 sm:px-3 sm:py-2.5"
@@ -208,6 +196,28 @@ export default async function CalendarPage({
           ) : null}
         </div>
       </Panel>
+    </>
+  );
+}
+
+export default function CalendarPage({ searchParams }: CalendarPageProps) {
+  return (
+    <div className="space-y-3.5 lg:space-y-4">
+      <header
+        style={{ animationDelay: `${getEntranceStaggerDelayMs(0)}ms` }}
+        className="anim-rise-in-fast space-y-1 px-1 py-0.5 sm:py-1"
+      >
+        <p className="text-xs font-bold tracking-[0.22em] text-[#e3ae67] uppercase">
+          Planowanie wieczorów
+        </p>
+        <h1 className="font-display text-cream text-[2.1rem] font-extrabold tracking-tight drop-shadow-[0_2px_12px_rgba(20,10,7,0.28)] sm:text-[2.65rem]">
+          Kalendarium
+        </h1>
+      </header>
+
+      <Suspense fallback={<CalendarRouteLoading includeHeader={false} />}>
+        <CalendarContent searchParams={searchParams} />
+      </Suspense>
     </div>
   );
 }

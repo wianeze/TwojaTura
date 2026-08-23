@@ -8,6 +8,7 @@ type WarmLinkProps = ComponentProps<typeof Link>;
 
 export function WarmLink({
   href,
+  onFocus,
   onPointerEnter,
   onTouchStart,
   ...props
@@ -22,6 +23,10 @@ export function WarmLink({
       {...props}
       href={href}
       prefetch={false}
+      onFocus={(event) => {
+        warmRoute();
+        onFocus?.(event);
+      }}
       onPointerEnter={(event) => {
         warmRoute();
         onPointerEnter?.(event);

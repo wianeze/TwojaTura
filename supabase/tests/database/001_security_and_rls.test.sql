@@ -313,8 +313,8 @@ select is(
       and action_type = 'meeting_vote'
       and related_entity_id = '40000000-0000-0000-0000-000000000001'
   ),
-  1::bigint,
-  '16d. the RPC in test 16 also granted the participation reward once'
+  0::bigint,
+  '16d. odpowiedź po starcie spotkania nie przyznaje wygasłej nagrody'
 );
 reset role;
 
@@ -1582,7 +1582,7 @@ set local role authenticated;
 -- pilnuje tego test 89a poniżej.
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (1153::bigint)$$,
+  $$values (1138::bigint)$$,
   '88. user point balance includes idempotent awards and repeatable corrections'
 );
 
@@ -1592,7 +1592,7 @@ select results_eq(
     from public.get_leaderboard()
     where user_id = '10000000-0000-0000-0000-000000000002'
   $$,
-  $$values (1153::bigint)$$,
+  $$values (1138::bigint)$$,
   '89. leaderboard includes the same updated ledger balance'
 );
 reset role;
@@ -1620,9 +1620,8 @@ select results_eq(
   '89a. the retired creator-only reward never appears on legacy plays'
 );
 
--- Test 65 zmienia skład tej partii, więc w księdze są też kompensaty dla osób
--- wypisanych. Sprawdzamy więc SALDO każdego AKTUALNEGO uczestnika, a nie
--- surowe wartości zdarzeń: każdy z nich ma mieć dokładnie 5.
+-- Test 65 zmienia skład starej partii już po deadline. Sama edycja historii
+-- nadal działa, ale nie otwiera ponownie wygasłego Zlecenia ani nagrody.
 select results_eq(
   $$
     select count(*)::bigint
@@ -1636,12 +1635,8 @@ select results_eq(
           and event.related_entity_id = participant.play_id
       ), 0) = 5
   $$,
-  $$
-    select count(*)::bigint
-    from public.play_participants
-    where play_id = '50000000-0000-0000-0000-000000000001'
-  $$,
-  '89b. every current participant of a recomputed legacy play holds exactly 5'
+  $$values (0::bigint)$$,
+  '89b. recompute starej partii nie tworzy nagrody po deadline'
 );
 
 select results_eq(
@@ -1851,7 +1846,7 @@ select results_eq(
 
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (886::bigint)$$,
+  $$values (880::bigint)$$,
   '100. user point balance includes all four shelf milestones exactly once'
 );
 reset role;
@@ -2094,7 +2089,7 @@ select results_eq(
 
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (892::bigint)$$,
+  $$values (886::bigint)$$,
   '112. user point balance includes RSVP and vote rewards exactly once'
 );
 
@@ -2159,6 +2154,42 @@ select throws_ok(
   '117. inactive member cannot award rating points'
 );
 reset role;
+
+-- Rating jest Zleceniem po faktycznie rozegranej partii i wygasa po 7 dniach.
+-- Świeże, samodzielne wpisy utrzymują pierwotny cel testów 120-122:
+-- sprawdzenie idempotencji rating_created.
+insert into public.plays (
+  id, game_id, created_by, played_at, status
+) values
+  (
+    '74000000-0000-0000-0000-000000000011',
+    '74000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000004',
+    statement_timestamp() - interval '1 day',
+    'completed'
+  ),
+  (
+    '74000000-0000-0000-0000-000000000012',
+    '74000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000004',
+    statement_timestamp() - interval '1 day',
+    'completed'
+  );
+
+insert into public.play_participants (play_id, user_id, placement, is_winner)
+values
+  (
+    '74000000-0000-0000-0000-000000000011',
+    '10000000-0000-0000-0000-000000000004',
+    1,
+    true
+  ),
+  (
+    '74000000-0000-0000-0000-000000000012',
+    '10000000-0000-0000-0000-000000000004',
+    1,
+    true
+  );
 
 select set_config(
   'request.jwt.claims',
@@ -2270,7 +2301,7 @@ insert into public.plays (
 
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (898::bigint)$$,
+  $$values (892::bigint)$$,
   '126. user point balance includes the rating reward exactly once'
 );
 
@@ -2383,7 +2414,7 @@ select results_eq(
 
 select results_eq(
   $$select total_points from public.user_point_balances$$,
-  $$values (903::bigint)$$,
+  $$values (897::bigint)$$,
   '134. user point balance includes meeting created reward exactly once'
 );
 

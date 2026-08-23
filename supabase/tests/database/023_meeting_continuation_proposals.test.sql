@@ -240,7 +240,8 @@ select results_eq(
 );
 
 update public.meetings
-set deleted_at = now()
+set deleted_at = now(),
+    deleted_by = '10000000-0000-0000-0000-000000000002'::uuid
 where id = (
   select id from t_continuation_proposal_ids where name = 'deleted_meeting'
 );

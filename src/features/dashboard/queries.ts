@@ -1040,7 +1040,10 @@ export async function getDashboardData(
   // Stół pokazuje wyłącznie czubek listy — reszta czeka, aż zwolni się miejsce.
   // Podsumowania liczymy z tego samego, przyciętego zbioru, żeby nagłówek nie
   // obiecywał Renomy za karty, których nie widać.
-  const quests = pickVisibleDashboardQuests(buildDashboardQuests(questSource));
+  const quests = pickVisibleDashboardQuests(
+    buildDashboardQuests(questSource),
+    now,
+  );
   const pointsSummary = buildDashboardPointsSummary(
     (currentBalanceResult.data as UserPointBalanceRow | null)?.total_points ??
       0,

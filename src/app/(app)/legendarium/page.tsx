@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { LegendariumRouteLoading } from "@/components/layout/main-route-loading";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import {
@@ -9,7 +11,7 @@ import { MobileRewardsSheet } from "@/features/legendarium/mobile-rewards-sheet"
 import { getLegendariumData } from "@/features/legendarium/queries";
 import { profileServerOperation } from "@/lib/server-performance";
 
-export default async function LegendariumPage() {
+async function LegendariumContent() {
   const memberState = await getCurrentMember();
 
   if (memberState.status !== "active-member") {
@@ -20,6 +22,10 @@ export default async function LegendariumPage() {
     getLegendariumData(memberState.member),
   );
 
+  return <LegendariumShowcase data={data} />;
+}
+
+export default function LegendariumPage() {
   return (
     <div className="space-y-5 sm:space-y-6">
       <header
@@ -41,7 +47,9 @@ export default async function LegendariumPage() {
           />
         </div>
       </header>
-      <LegendariumShowcase data={data} />
+      <Suspense fallback={<LegendariumRouteLoading includeHeader={false} />}>
+        <LegendariumContent />
+      </Suspense>
     </div>
   );
 }

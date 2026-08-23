@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { ShelfRouteLoading } from "@/components/layout/main-route-loading";
 import { ActionLink } from "@/components/ui/action-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Panel } from "@/components/ui/panel";
@@ -30,10 +32,12 @@ function pluralizeGames(count: number) {
   return `${count} gier`;
 }
 
-export default async function GamesPage({
+type GamesSearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+async function GamesContent({
   searchParams,
 }: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: GamesSearchParams;
 }) {
   const params = await searchParams;
   const filters = parseGameFilters(params);
@@ -126,5 +130,17 @@ export default async function GamesPage({
         </div>
       )}
     </div>
+  );
+}
+
+export default function GamesPage({
+  searchParams,
+}: {
+  searchParams: GamesSearchParams;
+}) {
+  return (
+    <Suspense fallback={<ShelfRouteLoading />}>
+      <GamesContent searchParams={searchParams} />
+    </Suspense>
   );
 }

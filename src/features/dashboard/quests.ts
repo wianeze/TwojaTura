@@ -1,4 +1,8 @@
-import { formatDashboardDateTime, sortDashboardQuests } from "./formatting.ts";
+import {
+  formatDashboardDateTime,
+  isDashboardQuestActive,
+  sortDashboardQuests,
+} from "./formatting.ts";
 import type { DashboardQuest, DashboardQuestSource } from "./types";
 
 /**
@@ -14,12 +18,10 @@ import type { DashboardQuest, DashboardQuestSource } from "./types";
 export const OPERATIONAL_TASK_POLICY = {
   /** Ile pozycji pokazujemy na Stole. Reszta czeka na swoją kolej. */
   maxVisibleTasks: 3,
-  /**
-   * Maksymalny wiek przypomnienia liczony od zdarzenia, które je wywołało.
-   * Po tym czasie znika z Stołu — sama czynność (np. ocena gry) pozostaje
-   * możliwa bez ograniczeń, wygasa wyłącznie zachęta.
-   */
-  reminderMaxAgeDays: 30,
+  /** Brakujący wpis Kroniki przepada 72 godziny po spotkaniu. */
+  chronicleEntryHours: 72,
+  /** Ocena i rozliczenie partii pozostają Zleceniem przez 7 dni. */
+  postPlayDays: 7,
 } as const;
 
 /**
@@ -34,10 +36,10 @@ export const TASK_PRIORITY = {
 } as const;
 
 const DAY_MS = 86_400_000;
+const HOUR_MS = 3_600_000;
 
-function isWithinReminderWindow(eventIso: string, now: Date) {
-  const age = now.getTime() - new Date(eventIso).getTime();
-  return age <= OPERATIONAL_TASK_POLICY.reminderMaxAgeDays * DAY_MS;
+function addMilliseconds(iso: string, milliseconds: number) {
+  return new Date(new Date(iso).getTime() + milliseconds).toISOString();
 }
 
 /**
@@ -86,9 +88,12 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
   // udział dla nikogo przy stole i nie przeliczą się odznaki.
   for (const meeting of source.finishedMeetingsWithoutPlay) {
     const meetingEnd = meeting.endsAt ?? meeting.startsAt;
+    const expiresAt = addMilliseconds(
+      meetingEnd,
+      OPERATIONAL_TASK_POLICY.chronicleEntryHours * HOUR_MS,
+    );
 
     if (new Date(meetingEnd).getTime() > source.now.getTime()) continue;
-    if (!isWithinReminderWindow(meetingEnd, source.now)) continue;
 
     quests.push({
       id: `missing-play:${meeting.id}`,
@@ -102,7 +107,8 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
       // ale jako gracz, nie za samą operację w UI.
       renownPoints: 5,
       priority: TASK_PRIORITY.blocking,
-      deadlineAt: meetingEnd,
+      deadlineAt: expiresAt,
+      expiresAt,
       createdAt: meetingEnd,
     });
   }
@@ -126,6 +132,7 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
       renownPoints: 2,
       priority: TASK_PRIORITY.deadline,
       deadlineAt: meeting.startsAt,
+      expiresAt: meeting.startsAt,
       createdAt: meeting.startsAt,
     });
   }
@@ -145,16 +152,20 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
       renownPoints: 1,
       priority: TASK_PRIORITY.deadline,
       deadlineAt: meeting.startsAt,
+      expiresAt: meeting.startsAt,
       createdAt: meeting.startsAt,
     });
   }
 
   // --- P3: ocena rozegranej gry --------------------------------------------
-  // Przypomnienie wygasa po 30 dniach od partii. Ocenić grę można nadal —
+  // Przypomnienie wygasa po 7 dniach od partii. Ocenić grę można nadal —
   // w Półce, kiedy tylko przyjdzie ochota.
   for (const play of source.unratedGames) {
     if (new Date(play.playedAt).getTime() > source.now.getTime()) continue;
-    if (!isWithinReminderWindow(play.playedAt, source.now)) continue;
+    const expiresAt = addMilliseconds(
+      play.playedAt,
+      OPERATIONAL_TASK_POLICY.postPlayDays * DAY_MS,
+    );
 
     quests.push({
       id: `rate-game:${play.playId}:${play.gameId}`,
@@ -166,6 +177,7 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
       ctaLabel: "Dodaj opinię",
       renownPoints: 3,
       priority: TASK_PRIORITY.housekeeping,
+      expiresAt,
       createdAt: play.playedAt,
     });
   }
@@ -191,7 +203,9 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
     });
   }
 
-  return sortDashboardQuests(quests);
+  return sortDashboardQuests(
+    quests.filter((quest) => isDashboardQuestActive(quest, source.now)),
+  );
 }
 
 /**
@@ -199,6 +213,11 @@ export function buildDashboardQuests(source: DashboardQuestSource) {
  * (trzy spotkania i cztery nieocenione gry to już siedem kart) — Stół ma być
  * podpowiedzią, nie skrzynką odbiorczą.
  */
-export function pickVisibleDashboardQuests(quests: DashboardQuest[]) {
-  return quests.slice(0, OPERATIONAL_TASK_POLICY.maxVisibleTasks);
+export function pickVisibleDashboardQuests(
+  quests: DashboardQuest[],
+  now = new Date(),
+) {
+  return quests
+    .filter((quest) => isDashboardQuestActive(quest, now))
+    .slice(0, OPERATIONAL_TASK_POLICY.maxVisibleTasks);
 }

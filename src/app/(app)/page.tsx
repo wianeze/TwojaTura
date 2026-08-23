@@ -1,9 +1,13 @@
+import { Suspense } from "react";
+import { DashboardRouteLoading } from "@/components/layout/main-route-loading";
 import { DashboardShowcase } from "@/features/dashboard/dashboard-showcase";
 
-export default async function DashboardPage({
+type DashboardSearchParams = Promise<{ gra?: string; meeting?: string }>;
+
+async function DashboardContent({
   searchParams,
 }: {
-  searchParams: Promise<{ gra?: string; meeting?: string }>;
+  searchParams: DashboardSearchParams;
 }) {
   // `?gra=wybor` ustawia „Zmień grę”: partia została właśnie zamknięta, więc
   // sekcja ma od razu pokazać wybór kolejnej gry. Intencja jedzie w adresie, a
@@ -21,5 +25,17 @@ export default async function DashboardPage({
       autoOpenGamePicker={gra === "wybor"}
       preferredMeetingId={meeting ?? null}
     />
+  );
+}
+
+export default function DashboardPage({
+  searchParams,
+}: {
+  searchParams: DashboardSearchParams;
+}) {
+  return (
+    <Suspense fallback={<DashboardRouteLoading />}>
+      <DashboardContent searchParams={searchParams} />
+    </Suspense>
   );
 }

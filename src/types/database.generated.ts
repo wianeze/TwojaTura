@@ -829,14 +829,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "meeting_continuation_responses_meeting_id_continued_play_id_fkey"
+            foreignKeyName: "meeting_continuation_response_meeting_id_continued_play_id_fkey"
             columns: ["meeting_id", "continued_play_id"]
             isOneToOne: false
             referencedRelation: "meeting_continuation_proposals"
             referencedColumns: ["meeting_id", "continued_play_id"]
           },
           {
-            foreignKeyName: "meeting_continuation_responses_meeting_id_continued_play_id_fkey"
+            foreignKeyName: "meeting_continuation_response_meeting_id_continued_play_id_fkey"
             columns: ["meeting_id", "continued_play_id"]
             isOneToOne: false
             referencedRelation: "meeting_continuation_rankings"
@@ -2124,18 +2124,6 @@ export type Database = {
         }
         Returns: string
       }
-      create_meeting_with_invitations: {
-        Args: {
-          p_continued_play_id?: string
-          p_description?: string
-          p_ends_at: string
-          p_invited_user_ids: string[]
-          p_location?: string
-          p_starts_at: string
-          p_title: string
-        }
-        Returns: string
-      }
       create_meeting_plan_with_invitations: {
         Args: {
           p_description?: string
@@ -2143,6 +2131,18 @@ export type Database = {
           p_invited_user_ids: string[]
           p_location?: string
           p_proposed_continued_play_id?: string
+          p_starts_at: string
+          p_title: string
+        }
+        Returns: string
+      }
+      create_meeting_with_invitations: {
+        Args: {
+          p_continued_play_id?: string
+          p_description?: string
+          p_ends_at: string
+          p_invited_user_ids: string[]
+          p_location?: string
           p_starts_at: string
           p_title: string
         }
@@ -2178,14 +2178,6 @@ export type Database = {
         Args: {
           p_play_id: string
           p_result_pending?: boolean
-          p_state_note?: string
-        }
-        Returns: string
-      }
-      pause_meeting_play: {
-        Args: {
-          p_meeting_id: string
-          p_play_id: string
           p_state_note?: string
         }
         Returns: string
@@ -2234,6 +2226,10 @@ export type Database = {
       }
       loan_game: {
         Args: { p_borrower_user_id: string; p_game_id: string; p_note?: string }
+        Returns: string
+      }
+      pause_meeting_play: {
+        Args: { p_meeting_id: string; p_play_id: string; p_state_note?: string }
         Returns: string
       }
       preview_economy_v2_rebase: {
@@ -2287,16 +2283,16 @@ export type Database = {
           user_id: string
         }[]
       }
-      propose_meeting_game: {
-        Args: { p_game_id: string; p_meeting_id: string }
+      propose_meeting_continuation: {
+        Args: { p_continued_play_id: string; p_meeting_id: string }
         Returns: {
           awarded: boolean
           point_event_id: string
           points: number
         }[]
       }
-      propose_meeting_continuation: {
-        Args: { p_continued_play_id: string; p_meeting_id: string }
+      propose_meeting_game: {
+        Args: { p_game_id: string; p_meeting_id: string }
         Returns: {
           awarded: boolean
           point_event_id: string
@@ -2326,9 +2322,9 @@ export type Database = {
         Args: { p_frame_key: string }
         Returns: string
       }
-      set_meeting_game_response: {
+      set_meeting_continuation_response: {
         Args: {
-          p_game_id: string
+          p_continued_play_id: string
           p_meeting_id: string
           p_wants_to_play: boolean
         }
@@ -2338,9 +2334,9 @@ export type Database = {
           points: number
         }[]
       }
-      set_meeting_continuation_response: {
+      set_meeting_game_response: {
         Args: {
-          p_continued_play_id: string
+          p_game_id: string
           p_meeting_id: string
           p_wants_to_play: boolean
         }
@@ -2380,19 +2376,6 @@ export type Database = {
         }
         Returns: string
       }
-      update_meeting_with_invitations: {
-        Args: {
-          p_continued_play_id?: string
-          p_description?: string
-          p_ends_at: string
-          p_invited_user_ids: string[]
-          p_location?: string
-          p_meeting_id: string
-          p_starts_at: string
-          p_title: string
-        }
-        Returns: string
-      }
       update_meeting_plan_with_invitations: {
         Args: {
           p_description?: string
@@ -2401,6 +2384,19 @@ export type Database = {
           p_location?: string
           p_meeting_id: string
           p_proposed_continued_play_id?: string
+          p_starts_at: string
+          p_title: string
+        }
+        Returns: string
+      }
+      update_meeting_with_invitations: {
+        Args: {
+          p_continued_play_id?: string
+          p_description?: string
+          p_ends_at: string
+          p_invited_user_ids: string[]
+          p_location?: string
+          p_meeting_id: string
           p_starts_at: string
           p_title: string
         }

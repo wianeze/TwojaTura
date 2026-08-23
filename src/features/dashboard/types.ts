@@ -30,6 +30,11 @@ export type DashboardQuest = {
   priority: number;
   /** Moment, względem którego Zlecenie jest pilne (P2) albo wygasa (P1). */
   deadlineAt?: string;
+  /**
+   * Twardy koniec widoczności i nagrody Zlecenia. Po tej chwili sama akcja
+   * biznesowa może nadal działać, ale karta znika ze Stołu.
+   */
+  expiresAt?: string;
   createdAt?: string;
   tone?: DashboardQuestTone;
 };

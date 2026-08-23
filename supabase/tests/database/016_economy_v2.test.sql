@@ -220,6 +220,26 @@ select is(
 -- 3. Ocena gry
 -- ---------------------------------------------------------------------------
 
+-- Rating jest terminowym Zleceniem po partii. Test nadal bada cenę oraz
+-- idempotencję, więc dostaje świeży, rzeczywisty udział użytkownika.
+insert into public.plays (
+  id, game_id, created_by, played_at, status
+) values (
+  'e0000000-0000-4000-8000-000000000011',
+  '30000000-0000-0000-0000-000000000002',
+  '10000000-0000-0000-0000-000000000003',
+  statement_timestamp() - interval '1 day',
+  'completed'
+);
+
+insert into public.play_participants (play_id, user_id, placement, is_winner)
+values (
+  'e0000000-0000-4000-8000-000000000011',
+  '10000000-0000-0000-0000-000000000003',
+  1,
+  true
+);
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated"}',
@@ -266,6 +286,9 @@ select is(
   3::bigint,
   '13. edycja oceny nie przyznaje kolejnej Renomy'
 );
+
+delete from public.plays
+where id = 'e0000000-0000-4000-8000-000000000011';
 
 -- ---------------------------------------------------------------------------
 -- 4. Organizacja spotkania — tylko za spotkanie, które się odbyło
@@ -778,8 +801,9 @@ select is(
   '34. rebase sprowadza historyczne RSVP z 10 do 2'
 );
 
--- Sedno rozdziału legacy reward-engine state od kanonicznego stanu partii:
--- partia ma rewards_managed = FALSE, a mimo to OBAJ uczestnicy dostają po 5.
+-- Rebase zachowuje historyczną nagrodę autora, ale nie dopisuje po terminie
+-- nowej nagrody uczestnikowi, który wcześniej jej nie dostał. Flaga
+-- rewards_managed pozostaje niezależna od tej reguły.
 select results_eq(
   $q$
     select
@@ -797,8 +821,8 @@ select results_eq(
         where id = 'e1000000-0000-4000-8000-000000000001'
       )
   $q$,
-  $q$values (5::bigint, 5::bigint, false)$q$,
-  '35. legacy partia z rewards_managed = false nadal nagradza uczestników'
+  $q$values (5::bigint, 0::bigint, false)$q$,
+  '35. rebase zachowuje legacy nagrodę, ale nie przyznaje nowej po deadline'
 );
 
 -- Kontrprzykład: jedyny powód, dla którego partia NIE dostaje nagrody, to brak

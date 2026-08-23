@@ -79,6 +79,59 @@ export function formatQuestRenownPreview(
   return `+${quest.renownPoints} Renomy`;
 }
 
+const HOUR_MS = 3_600_000;
+const MINUTE_MS = 60_000;
+
+export function isDashboardQuestActive(
+  quest: Pick<DashboardQuest, "expiresAt">,
+  now = new Date(),
+) {
+  return !quest.expiresAt || new Date(quest.expiresAt).getTime() > now.getTime();
+}
+
+/**
+ * Spokojny, minutowy opis terminu Zlecenia. Nie jest countdownem i nie
+ * pokazuje sekund; po terminie zwraca null, bo taka karta nie powinna już
+ * trafić do renderu.
+ */
+export function formatQuestExpiryLabel(
+  expiresAt: string | undefined,
+  now = new Date(),
+) {
+  if (!expiresAt) return null;
+
+  const remainingMs = new Date(expiresAt).getTime() - now.getTime();
+  if (!Number.isFinite(remainingMs) || remainingMs <= 0) return null;
+
+  if (remainingMs > 48 * HOUR_MS) {
+    return `Przepada za ${Math.ceil(remainingMs / (24 * HOUR_MS))} dni`;
+  }
+
+  if (remainingMs >= 24 * HOUR_MS) return "Przepada jutro";
+
+  if (remainingMs >= 3 * HOUR_MS) {
+    return `Przepada za ${Math.ceil(remainingMs / HOUR_MS)}h`;
+  }
+
+  const totalMinutes = Math.ceil(remainingMs / MINUTE_MS);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const parts = [hours > 0 ? `${hours}h` : null, minutes > 0 ? `${minutes}m` : null]
+    .filter(Boolean)
+    .join(" ");
+
+  return `Ostatnie ${parts}`;
+}
+
+export function isQuestExpiryUrgent(
+  expiresAt: string | undefined,
+  now = new Date(),
+) {
+  if (!expiresAt) return false;
+  const remainingMs = new Date(expiresAt).getTime() - now.getTime();
+  return remainingMs > 0 && remainingMs < 3 * HOUR_MS;
+}
+
 /**
  * Kolejność sekcji „Zlecenia”:
  *   P1 blokujące — najstarsze pierwsze, bo najdłużej blokują historię grupy,
