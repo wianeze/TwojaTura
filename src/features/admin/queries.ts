@@ -9,6 +9,10 @@ import type {
   AdminReversiblePointEventRow,
 } from "./point-adjustments";
 import type { AnalyticsSnapshot } from "./analytics-types";
+import {
+  parseHistoricalBusinessSnapshot,
+  type HistoricalBusinessSnapshot,
+} from "./historical-analytics";
 
 function record(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -111,6 +115,20 @@ export async function getAdminAnalyticsSnapshot(
       eventsCount: numberValue(item.events_count),
     })),
   };
+}
+
+export async function getAdminHistoricalBusinessSnapshot(): Promise<HistoricalBusinessSnapshot> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(
+    "admin_historical_business_snapshot",
+  );
+  if (error) {
+    throw new Error(
+      "Nie udało się pobrać historii odtworzonej z danych aplikacji.",
+    );
+  }
+
+  return parseHistoricalBusinessSnapshot(data);
 }
 
 /**

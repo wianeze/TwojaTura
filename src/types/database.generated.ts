@@ -1986,6 +1986,7 @@ export type Database = {
         Args: { p_reason?: string; p_target_user_id: string }
         Returns: undefined
       }
+      admin_historical_business_snapshot: { Args: never; Returns: Json }
       admin_list_accounts: {
         Args: {
           p_role_filter?: Database["public"]["Enums"]["membership_role"]
