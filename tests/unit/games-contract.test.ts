@@ -121,6 +121,7 @@ function buildGameFormData(
   const formData = new FormData();
   const values = {
     title: " Nemesis ",
+    itemKind: "standalone",
     coverUrl: "/games/nemezis.webp",
     bggUrl: "https://boardgamegeek.com/boardgame/167355/nemesis",
     bggRank: "20",
@@ -488,6 +489,7 @@ test("game form values preserve expansion editor state", () => {
     bgg_url: null,
     bgg_rank: 310,
     game_type: "Strategiczna",
+    is_expansion: false,
     min_players: 1,
     max_players: 4,
     play_time_minutes: 135,

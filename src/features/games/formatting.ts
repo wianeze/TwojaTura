@@ -1,3 +1,4 @@
+import { toGameItemKind } from "./item-kind.ts";
 import type {
   GameExpansionFormValue,
   GameFormValues,
@@ -56,6 +57,7 @@ export function getGameFormValues(
 
   return {
     title: game?.title ?? "",
+    itemKind: toGameItemKind(game?.is_expansion),
     coverUrl: game?.cover_url ?? "",
     bggUrl: game?.bgg_url ?? "",
     bggRank: game?.bgg_rank?.toString() ?? "",

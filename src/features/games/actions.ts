@@ -38,6 +38,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 type GameRpcBasePayload = {
   p_title: string;
+  p_is_expansion: boolean | null;
   p_owner_id: string;
   p_current_holder_id: string | null;
   p_cover_url: string | null;
@@ -161,6 +162,7 @@ function toGameRpcPayload(
 ): GameRpcBasePayload {
   return {
     p_title: validation.title,
+    p_is_expansion: validation.isExpansion,
     p_owner_id: validation.ownerId,
     p_current_holder_id: validation.currentHolderId,
     p_cover_url: validation.coverUrl,

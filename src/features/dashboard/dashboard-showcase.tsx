@@ -11,6 +11,10 @@ import {
 } from "@/features/legendarium/leaderboard-presentation";
 import { FeedbackSubmitPanel } from "@/features/feedback/feedback-submit-panel";
 import { formatMeetingDateRange } from "@/features/meetings/formatting";
+import {
+  MISSIONS_EMPTY_STATE,
+  toMissionQuestCard,
+} from "@/features/missions/mission-catalog";
 import { formatPlayShortDate } from "@/features/plays/formatting";
 import { QuestCard } from "./action-card";
 import { getDashboardData } from "./queries";
@@ -728,6 +732,51 @@ export async function DashboardShowcase({
                     }}
                   >
                     <QuestCard quest={quest} isPrimary={index === 0} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/*
+            Misje stoją POD Zleceniami i są osobnym systemem, nie ich odmianą.
+            Zlecenie to przypomnienie operacyjne płacone Renomą; Misja to
+            wyzwanie gameplayowe płacone Tukatami. Pusta sekcja jest poprawnym
+            stanem grupy grającej raz w miesiącu, więc nie chowamy jej ani nie
+            zastępujemy wezwaniem do działania.
+          */}
+          <section
+            aria-labelledby="missions-heading"
+            style={{ animationDelay: `${getEntranceStaggerDelayMs(3)}ms` }}
+            className="anim-rise-in-fast space-y-2.5"
+          >
+            <h2
+              id="missions-heading"
+              className="font-display text-center text-[1.32rem] font-bold text-[#fff1dc] sm:text-left sm:text-[2.05rem]"
+            >
+              Misje
+            </h2>
+
+            {data.missions.length === 0 ? (
+              <Panel className="paper-wash p-4">
+                <p className="text-sm text-[#5f4738]">{MISSIONS_EMPTY_STATE}</p>
+              </Panel>
+            ) : (
+              <div className="grid auto-rows-fr gap-x-2 gap-y-2 md:grid-cols-2">
+                {data.missions.map((mission, index) => (
+                  <div
+                    key={mission.id}
+                    className="anim-rise-in-fast"
+                    style={{
+                      animationDelay: `${getEntranceStaggerDelayMs(index)}ms`,
+                    }}
+                  >
+                    <QuestCard
+                      quest={toMissionQuestCard(mission)}
+                      isPrimary={index === 0}
+                      kind="misja"
+                      tukatyAmounts={[mission.rewardTukats]}
+                    />
                   </div>
                 ))}
               </div>

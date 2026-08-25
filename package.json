@@ -30,7 +30,9 @@
     "qa:classes:check": "node --experimental-strip-types scripts/qa-classes.mts --check",
     "qa:badges": "node --experimental-strip-types scripts/qa-badges.mts",
     "qa:badges:reset": "node --experimental-strip-types scripts/qa-badges.mts --reset",
-    "qa:badges:check": "node --experimental-strip-types scripts/qa-badges.mts --check"
+    "qa:badges:check": "node --experimental-strip-types scripts/qa-badges.mts --check",
+    "backfill:expansions": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/backfill-expansion-classification.mts",
+    "backfill:expansions:apply": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/apply-expansion-classification.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

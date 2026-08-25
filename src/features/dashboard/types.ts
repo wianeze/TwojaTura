@@ -5,6 +5,7 @@ import type {
   TableSessionResultTone,
   TableSessionState,
 } from "@/features/meetings/live-play";
+import type { DashboardMission } from "@/features/missions/types";
 
 export type DashboardQuestType = "action" | "question" | "info";
 
@@ -226,6 +227,12 @@ export type DashboardData = {
   summary: DashboardHeroSummary;
   pointsSummary: DashboardPointsSummary;
   quests: DashboardQuest[];
+  /**
+   * Misje — osobny system wyzwań gameplayowych, NIE Zlecenia. Pusta lista jest
+   * poprawnym stanem: grupa gra około raz w miesiącu, a Misja jest okazją, nie
+   * obowiązkiem.
+   */
+  missions: DashboardMission[];
   tableSession: DashboardTableSession | null;
   /** Patrz TableSessionOption — przełącznik renderuje się przy length > 1. */
   tableSessionOptions: TableSessionOption[];

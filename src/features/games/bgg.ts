@@ -1,3 +1,5 @@
+import { type GameItemKind, toGameItemKindFromBgg } from "./item-kind.ts";
+
 export type BggExpansionSuggestion = {
   id: string;
   name: string;
@@ -5,6 +7,11 @@ export type BggExpansionSuggestion = {
 
 export type BggGameDetails = {
   title: string;
+  /**
+   * Czy BGG opisuje tę pozycję jako dodatek. `null` = BGG nie podało typu i
+   * decyzja należy do człowieka — NIE zakładamy wtedy gry samodzielnej.
+   */
+  isExpansion: boolean | null;
   gameType: string | null;
   coverUrl: string | null;
   bggRank: number | null;
@@ -24,6 +31,7 @@ export type BggGameDetails = {
 
 export type BggAutofillValues = {
   title: string;
+  itemKind: GameItemKind;
   gameType: string;
   coverUrl: string;
   bggRank: string;
@@ -42,6 +50,7 @@ export type BggAutofillValues = {
 
 export const BGG_AUTOFILL_FIELD_NAMES = [
   "title",
+  "itemKind",
   "gameType",
   "coverUrl",
   "bggRank",
@@ -57,6 +66,8 @@ export const BGG_AUTOFILL_FIELD_NAMES = [
   "publisher",
   "description",
 ] as const satisfies readonly (keyof BggAutofillValues)[];
+
+export type BggAutofillFieldName = (typeof BGG_AUTOFILL_FIELD_NAMES)[number];
 
 const ALLOWED_BGG_HOSTS = new Set([
   "boardgamegeek.com",
@@ -117,6 +128,32 @@ function findValueNumber(xml: string, tagName: string) {
   if (!value) return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * Typ pozycji wprost z odpowiedzi BGG — atrybut `type` elementu `<item>`.
+ *
+ * To jest jedyne wiarygodne źródło rozróżnienia gry bazowej od dodatku, jakim
+ * dysponujemy, i przychodzi w TYM SAMYM dokumencie, który i tak pobieramy dla
+ * tytułu, rangi i mechanik. Zero dodatkowych zapytań do BGG.
+ *
+ * Świadomie NIE patrzymy na kategorię „Expansion for Base-game” ani na kształt
+ * adresu — categories to edytowalny wolny tekst, a bgg_url bywa wklejany jako
+ * /boardgame/<id> także dla dodatków.
+ *
+ * `<items>` (korzeń dokumentu) nie zostanie tu złapany: `\b` po „item” wymaga
+ * granicy słowa, której między „m” a „s” nie ma.
+ */
+function parseBggItemKind(xml: string): boolean | null {
+  const itemTag = findOpeningTags(xml, "item")[0];
+  const itemType = itemTag
+    ? readAttribute(itemTag, "type")?.trim().toLowerCase()
+    : null;
+
+  if (itemType === "boardgameexpansion") return true;
+  if (itemType === "boardgame") return false;
+
+  return null;
 }
 
 function findLinkValues(xml: string, type: string) {
@@ -326,6 +363,7 @@ export function parseBggThingXml(xml: string): BggGameDetails {
 
   return {
     title,
+    isExpansion: parseBggItemKind(xml),
     gameType: deriveGameTypeFromBggData(mechanics, categories),
     coverUrl: image
       ? decodeEntities(image)
@@ -357,6 +395,7 @@ export function toBggAutofillValues(
 
   return {
     title: details.title,
+    itemKind: toGameItemKindFromBgg(details.isExpansion),
     gameType: details.gameType ?? "",
     coverUrl: details.coverUrl ?? "",
     bggRank: numberValue(details.bggRank),
@@ -374,16 +413,40 @@ export function toBggAutofillValues(
   };
 }
 
+/**
+ * Czy pole jest „puste”, czyli czy BGG ma prawo je wypełnić bez nadpisywania.
+ *
+ * Dla „Typu pozycji” pustką jest `unknown`, a nie pusty string: to lista wyboru,
+ * która ZAWSZE ma jakąś wartość. Bez tego wyjątku warunek `!value.trim()` nigdy
+ * nie byłby spełniony i podpowiedź z BGG nie trafiłaby do formularza.
+ */
+function isBlankAutofillValue(
+  field: BggAutofillFieldName,
+  value: string,
+): boolean {
+  if (field === "itemKind") {
+    return !value.trim() || value === "unknown";
+  }
+
+  return !value.trim();
+}
+
 export function mergeBggAutofillValues(
   current: BggAutofillValues,
   details: BggGameDetails,
   overwrite = false,
 ) {
   const incoming = toBggAutofillValues(details);
-  const merged = { ...current };
+  const merged: BggAutofillValues = { ...current };
 
   for (const field of BGG_AUTOFILL_FIELD_NAMES) {
-    if (overwrite || !current[field].trim()) {
+    if (!overwrite && !isBlankAutofillValue(field, current[field])) {
+      continue;
+    }
+
+    if (field === "itemKind") {
+      merged.itemKind = incoming.itemKind;
+    } else {
       merged[field] = incoming[field];
     }
   }

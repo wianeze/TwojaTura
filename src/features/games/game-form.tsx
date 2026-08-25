@@ -15,6 +15,12 @@ import {
 import { GameSubmitButton } from "./game-submit-button";
 import { INITIAL_GAME_FORM_STATE } from "./form-state";
 import { GAME_STATUS_LABELS } from "./formatting";
+import {
+  GAME_ITEM_KINDS,
+  GAME_ITEM_KIND_LABELS,
+  isGameItemKind,
+  type GameItemKind,
+} from "./item-kind";
 import type {
   GameExpansionFormValue,
   GameFormState,
@@ -61,17 +67,29 @@ function mapInitialExpansions(
   }));
 }
 
+/**
+ * `HTMLSelectElement` jest tu wymieniony obok inputa i textarei nie na zapas:
+ * „Typ pozycji” to jedyne pole autofillu będące listą wyboru, a bez tej gałęzi
+ * odczyt zwracałby pusty string i BGG kasowałoby wybór użytkownika.
+ */
 function readFormValue(form: HTMLFormElement, name: string) {
   const field = form.elements.namedItem(name);
   return field instanceof HTMLInputElement ||
-    field instanceof HTMLTextAreaElement
+    field instanceof HTMLTextAreaElement ||
+    field instanceof HTMLSelectElement
     ? field.value
     : "";
+}
+
+function readGameItemKind(form: HTMLFormElement): GameItemKind {
+  const raw = readFormValue(form, "itemKind");
+  return isGameItemKind(raw) ? raw : "unknown";
 }
 
 function readBggAutofillValues(form: HTMLFormElement): BggAutofillValues {
   return {
     title: readFormValue(form, "title"),
+    itemKind: readGameItemKind(form),
     gameType: readFormValue(form, "gameType"),
     coverUrl: readFormValue(form, "coverUrl"),
     bggRank: readFormValue(form, "bggRank"),
@@ -97,7 +115,8 @@ function applyBggAutofillValues(
     const field = form.elements.namedItem(name);
     if (
       field instanceof HTMLInputElement ||
-      field instanceof HTMLTextAreaElement
+      field instanceof HTMLTextAreaElement ||
+      field instanceof HTMLSelectElement
     ) {
       field.value = values[name];
     }
@@ -447,6 +466,30 @@ export function GameForm({
               placeholder="np. Kooperacyjna"
             />
             <FieldError error={state.fieldErrors?.gameType} />
+          </label>
+
+          {/*
+            Typ pozycji jest listą wyboru, a nie checkboxem, bo pole ma TRZY
+            stany: gra samodzielna, dodatek i „nierozstrzygnięte”. Ten trzeci to
+            realna wartość domenową (patrz item-kind.ts), a nie brak danych do
+            ukrycia — dopóki tam stoi, pozycja nie generuje Misji „Pierwszy
+            Rozdział”. Przy dodawaniu nowej gry walidacja wymaga świadomego
+            wyboru; przy edycji starego wpisu „nierozstrzygnięte” może zostać.
+          */}
+          <label className="block text-sm font-semibold text-[#503828] md:order-[6]">
+            Typ pozycji
+            <select
+              className={inputClass}
+              name="itemKind"
+              defaultValue={initialValues.itemKind}
+            >
+              {GAME_ITEM_KINDS.map((kind) => (
+                <option key={kind} value={kind}>
+                  {GAME_ITEM_KIND_LABELS[kind]}
+                </option>
+              ))}
+            </select>
+            <FieldError error={state.fieldErrors?.itemKind} />
           </label>
 
           <label className="block text-sm font-semibold text-[#503828] md:order-[6]">

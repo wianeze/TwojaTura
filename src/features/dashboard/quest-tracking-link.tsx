@@ -25,6 +25,11 @@ function questMetadata(
   if (questType === "rate-game") {
     if (firstId) metadata.play_id = firstId;
     if (secondId) metadata.game_id = secondId;
+  } else if (questType?.startsWith("mission-")) {
+    // Karta Misji ma id `mission-<typ>:<gra>`, więc pierwszy segment po
+    // dwukropku to gra, a NIE spotkanie. Bez tej gałęzi telemetria wysyłałaby
+    // identyfikator gry jako `meeting_id`.
+    if (firstId) metadata.game_id = firstId;
   } else if (firstId) {
     metadata.meeting_id = firstId;
   }

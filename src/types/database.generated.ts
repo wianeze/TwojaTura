@@ -697,6 +697,7 @@ export type Database = {
           designer: string | null
           game_type: string | null
           id: string
+          is_expansion: boolean | null
           max_players: number | null
           mechanics: string[]
           min_age: number | null
@@ -722,6 +723,7 @@ export type Database = {
           designer?: string | null
           game_type?: string | null
           id?: string
+          is_expansion?: boolean | null
           max_players?: number | null
           mechanics?: string[]
           min_age?: number | null
@@ -747,6 +749,7 @@ export type Database = {
           designer?: string | null
           game_type?: string | null
           id?: string
+          is_expansion?: boolean | null
           max_players?: number | null
           mechanics?: string[]
           min_age?: number | null
@@ -1708,6 +1711,47 @@ export type Database = {
           },
         ]
       }
+      tukat_events: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          idempotency_key: string
+          reason: string
+          source_id: string | null
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          reason: string
+          source_id?: string | null
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          reason?: string
+          source_id?: string | null
+          source_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tukat_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usage_events: {
         Row: {
           action: string | null
@@ -1822,6 +1866,99 @@ export type Database = {
           },
         ]
       }
+      user_missions: {
+        Row: {
+          completed_at: string | null
+          completed_play_id: string | null
+          context: Json
+          cooldown_key: string
+          created_at: string
+          expires_at: string
+          game_id: string | null
+          generated_at: string
+          id: string
+          meeting_id: string | null
+          mission_type: Database["public"]["Enums"]["mission_type"]
+          reward_amount: number
+          source_play_id: string | null
+          status: Database["public"]["Enums"]["mission_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_play_id?: string | null
+          context?: Json
+          cooldown_key: string
+          created_at?: string
+          expires_at: string
+          game_id?: string | null
+          generated_at?: string
+          id?: string
+          meeting_id?: string | null
+          mission_type: Database["public"]["Enums"]["mission_type"]
+          reward_amount: number
+          source_play_id?: string | null
+          status?: Database["public"]["Enums"]["mission_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_play_id?: string | null
+          context?: Json
+          cooldown_key?: string
+          created_at?: string
+          expires_at?: string
+          game_id?: string | null
+          generated_at?: string
+          id?: string
+          meeting_id?: string | null
+          mission_type?: Database["public"]["Enums"]["mission_type"]
+          reward_amount?: number
+          source_play_id?: string | null
+          status?: Database["public"]["Enums"]["mission_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_missions_completed_play_id_fkey"
+            columns: ["completed_play_id"]
+            isOneToOne: false
+            referencedRelation: "plays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_missions_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_missions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_missions_source_play_id_fkey"
+            columns: ["source_play_id"]
+            isOneToOne: false
+            referencedRelation: "plays"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_missions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_portrait_frames: {
         Row: {
           acquired_at: string
@@ -1923,6 +2060,21 @@ export type Database = {
             columns: ["meeting_id"]
             isOneToOne: false
             referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tukat_balances: {
+        Row: {
+          total_tukats: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2225,6 +2377,7 @@ export type Database = {
           p_designer: string
           p_expansions?: Json
           p_game_type: string
+          p_is_expansion: boolean
           p_max_players: number
           p_mechanics: string[]
           p_min_age: number
@@ -2397,6 +2550,24 @@ export type Database = {
           user_id: string
         }[]
       }
+      preview_mission_generation: {
+        Args: never
+        Returns: {
+          decision: string
+          display_name: string
+          game_id: string
+          game_title: string
+          mission_type: Database["public"]["Enums"]["mission_type"]
+          priority: number
+          proposed_expires_at: string
+          proposed_generated_at: string
+          rank_in_type: number
+          reward_tukats: number
+          skip_reason: string
+          trigger_reason: string
+          user_id: string
+        }[]
+      }
       propose_meeting_continuation: {
         Args: { p_continued_play_id: string; p_meeting_id: string }
         Returns: {
@@ -2411,6 +2582,15 @@ export type Database = {
           awarded: boolean
           point_event_id: string
           points: number
+        }[]
+      }
+      recompute_current_user_missions: {
+        Args: never
+        Returns: {
+          active_count: number
+          completed_count: number
+          expired_count: number
+          generated_count: number
         }[]
       }
       record_audit_event: {
@@ -2509,6 +2689,7 @@ export type Database = {
           p_expansions?: Json
           p_game_id: string
           p_game_type: string
+          p_is_expansion: boolean
           p_max_players: number
           p_mechanics: string[]
           p_min_age: number
@@ -2571,6 +2752,12 @@ export type Database = {
       game_status: "available" | "unavailable" | "loaned"
       meeting_status: "planned" | "confirmed" | "completed"
       membership_role: "member" | "admin" | "observer"
+      mission_status: "active" | "completed" | "expired"
+      mission_type:
+        | "revenge"
+        | "resurrection"
+        | "first_chapter"
+        | "continue_story"
       play_mode: "competitive" | "cooperative"
       play_status: "in_progress" | "completed"
       play_team_result: "win" | "loss"
@@ -2721,6 +2908,13 @@ export const Constants = {
       game_status: ["available", "unavailable", "loaned"],
       meeting_status: ["planned", "confirmed", "completed"],
       membership_role: ["member", "admin", "observer"],
+      mission_status: ["active", "completed", "expired"],
+      mission_type: [
+        "revenge",
+        "resurrection",
+        "first_chapter",
+        "continue_story",
+      ],
       play_mode: ["competitive", "cooperative"],
       play_status: ["in_progress", "completed"],
       play_team_result: ["win", "loss"],

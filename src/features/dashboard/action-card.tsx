@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { CSSProperties } from "react";
+import { formatMissionExpiryLabel } from "@/features/missions/formatting";
 import {
   formatQuestExpiryLabel,
   formatQuestRenownPreview,
@@ -18,10 +19,11 @@ type QuestCardProps = {
   quest: DashboardQuest;
   isPrimary?: boolean;
   /**
-   * Rodzaj karty — "zlecenie" (domyślny, jedyny generowany dziś przez
-   * `buildDashboardQuests`) albo "misja" (nagroda w Tukatach). "misja" jest
-   * na razie czystym wariantem wizualnym: quests.ts nie zna tego pojęcia i
-   * nie przyznaje Tukatów, więc żaden dzisiejszy quest go nie ustawia.
+   * Rodzaj karty — "zlecenie" (domyślny, generowany przez
+   * `buildDashboardQuests`) albo "misja" (nagroda w Tukatach, pochodzi z
+   * silnika Misji w bazie przez `src/features/missions`). Poza wyglądem
+   * przełącza też język terminu ważności: Zlecenie przepada, Misja tylko
+   * przestaje być dostępna.
    */
   kind?: QuestCardKind;
   /**
@@ -127,8 +129,15 @@ export function QuestCard({
 }: QuestCardProps) {
   const variant = getQuestVisualVariant(quest);
   const renownPreview = formatQuestRenownPreview(quest);
-  const expiryLabel = formatQuestExpiryLabel(quest.expiresAt);
-  const expiryIsUrgent = isQuestExpiryUrgent(quest.expiresAt);
+  // Zlecenie faktycznie PRZEPADA — razem z nagrodą za czynność, której nikt nie
+  // zdążył wykonać. Wygaśnięcie Misji nie jest porażką i niczego nie zabiera,
+  // więc dostaje spokojniejszą etykietę i nigdy nie zapala się na czerwono.
+  const isMission = kind === "misja";
+  const expiryLabel =
+    isMission && quest.expiresAt
+      ? formatMissionExpiryLabel(quest.expiresAt)
+      : formatQuestExpiryLabel(quest.expiresAt);
+  const expiryIsUrgent = !isMission && isQuestExpiryUrgent(quest.expiresAt);
   const isActiveClickable = quest.type !== "info";
   const showRenownReward =
     kind === "zlecenie" &&

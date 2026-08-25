@@ -21,6 +21,10 @@ import {
   listContinuablePlays,
 } from "@/features/meetings/queries";
 import { sortMeetingRanking } from "@/features/meetings/validation";
+import {
+  getDashboardMissions,
+  scheduleMissionReconcile,
+} from "@/features/missions/queries";
 import { PLAY_PHASE_LABELS } from "@/features/plays/formatting";
 import {
   listMeetingPlays,
@@ -774,6 +778,7 @@ export async function getDashboardData(
     tableSessionResult,
     classDefinitionsResult,
     activeClassProfilesResult,
+    missions,
   ] = await Promise.all([
     supabase
       .from("meetings")
@@ -808,7 +813,12 @@ export async function getDashboardData(
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
     supabase.rpc("get_public_player_profiles"),
+    getDashboardMissions(supabase, member.id, now),
   ]);
+
+  // Porządki wokół Misji robimy PO wysłaniu odpowiedzi — render Stołu nigdy na
+  // nie nie czeka. Uzasadnienie kosztu i bezpieczeństwa: missions/queries.ts.
+  scheduleMissionReconcile(supabase);
 
   if (
     availableMeetingsResult.error ||
@@ -1128,6 +1138,7 @@ export async function getDashboardData(
     summary,
     pointsSummary,
     quests,
+    missions,
     tableSession,
     tableSessionOptions: tableSessionResult.options,
     upcomingMeeting: nextMeeting,

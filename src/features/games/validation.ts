@@ -1,3 +1,4 @@
+import { isGameItemKind, toIsExpansion } from "./item-kind.ts";
 import type { CurrentMember } from "@/features/auth/types";
 import { parseGameExpansionDrafts } from "./expansions.ts";
 import type {
@@ -15,6 +16,8 @@ type GameValidationResult =
       ok: true;
       data: {
         title: string;
+        /** Patrz item-kind.ts — `null` znaczy „nierozstrzygnięte”. */
+        isExpansion: boolean | null;
         coverUrl: string | null;
         bggUrl: string | null;
         bggRank: number | null;
@@ -341,6 +344,32 @@ export function validateGameFormData(
       fieldErrors,
     ) ?? (mode === "create" ? actor.id : null);
 
+  /*
+   * Typ pozycji (gra samodzielna / dodatek / nierozstrzygnięte).
+   *
+   * Przy DODAWANIU gry wymagamy świadomej decyzji: BGG podpowiada wartość z
+   * atrybutu <item type>, ale gdy jej nie poda, nikt inny nie może jej zgadnąć
+   * — a wpuszczenie dodatku na Półkę bez klasyfikacji wraca potem jako Misja
+   * „rozegraj swoją pierwszą partię” dla czegoś, w co nie da się zagrać osobno.
+   *
+   * Przy EDYCJI „nierozstrzygnięte” zostaje dozwolone. Inaczej poprawka
+   * literówki w tytule starej gry blokowałaby się na decyzji, której autor
+   * edycji może w tej chwili nie umieć podjąć. Taka pozycja nadal nie generuje
+   * Pierwszego Rozdziału — pilnuje tego warunek `is_expansion = false` w bazie.
+   */
+  const rawItemKind = value(formData, "itemKind").trim();
+  const itemKind = isGameItemKind(rawItemKind) ? rawItemKind : null;
+
+  if (!itemKind) {
+    pushError(fieldErrors, "itemKind", "Wybierz typ pozycji.");
+  } else if (mode === "create" && itemKind === "unknown") {
+    pushError(
+      fieldErrors,
+      "itemKind",
+      "Wskaż, czy to gra samodzielna, czy dodatek. BGG nie rozstrzygnęło tego automatycznie.",
+    );
+  }
+
   const mechanics = parseTagList(value(formData, "mechanics"));
   const categories = parseTagList(value(formData, "categories"));
   const gameType = normalizeNullableText(value(formData, "gameType"));
@@ -386,6 +415,7 @@ export function validateGameFormData(
   if (
     Object.keys(fieldErrors).length > 0 ||
     !status ||
+    !itemKind ||
     typeof ownerId !== "string"
   ) {
     return {
@@ -399,6 +429,7 @@ export function validateGameFormData(
     ok: true,
     data: {
       title,
+      isExpansion: toIsExpansion(itemKind),
       coverUrl,
       bggUrl,
       bggRank,

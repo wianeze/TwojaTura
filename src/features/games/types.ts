@@ -1,3 +1,4 @@
+import type { GameItemKind } from "./item-kind.ts";
 import type { Enums, Tables } from "@/types/database.generated";
 
 export type GameStatus = Enums<"game_status">;
@@ -62,6 +63,8 @@ export type ActiveGameLoan = {
 export type GameShelfItem = {
   id: string;
   title: string;
+  /** Patrz item-kind.ts — null oznacza „nierozstrzygnięte”, nie „gra bazowa”. */
+  isExpansion: boolean | null;
   coverUrl: string | null;
   owner: MemberOption;
   currentHolder: MemberOption | null;
@@ -114,6 +117,7 @@ export type GameFilterOptions = {
 
 export type GameFormValues = {
   title: string;
+  itemKind: GameItemKind;
   coverUrl: string;
   bggUrl: string;
   bggRank: string;
@@ -137,6 +141,7 @@ export type GameFormValues = {
 
 export type GameFormFieldName =
   | "title"
+  | "itemKind"
   | "coverUrl"
   | "bggUrl"
   | "bggRank"

@@ -166,6 +166,7 @@ test("BGG expansion suggestions and previews use cleaned, deduplicated names", (
 test("BGG autofill preserves manual values unless overwrite is enabled", () => {
   const current: BggAutofillValues = {
     title: "Mój tytuł",
+    itemKind: "unknown",
     gameType: "Własny typ",
     coverUrl: "",
     bggRank: "",

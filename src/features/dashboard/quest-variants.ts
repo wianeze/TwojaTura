@@ -1,14 +1,17 @@
+import type { MissionType } from "@/features/missions/types";
 import type { DashboardQuest } from "./types";
 
 export type QuestVisualRarity =
   "common" | "uncommon" | "magic" | "epic" | "legendary";
 
 /**
- * Rodzaj karty questa: Zlecenie (nagroda w Renomie, jedyny rodzaj generowany
- * dziś przez `buildDashboardQuests`) albo Misja (nagroda w Tukatach). Misja
- * jest na razie wyłącznie wizualnym wariantem `QuestCard` — quests.ts nie zna
- * tego rozróżnienia i nie przyznaje Tukatów, więc żadna prawdziwa karta go
- * dziś nie używa. Gotowe do podpięcia, gdy powstanie realna logika Misji.
+ * Rodzaj karty: Zlecenie (przypomnienie operacyjne, nagroda w Renomie,
+ * generowane przez `buildDashboardQuests`) albo Misja (wyzwanie gameplayowe,
+ * nagroda w Tukatach, generowana przez silnik Misji w bazie).
+ *
+ * Oba systemy są rozłączne — dzielą wyłącznie tę kartę. `quests.ts` nadal nie
+ * zna pojęcia Misji i nie przyznaje Tukatów; Misje przychodzą z
+ * `src/features/missions`.
  */
 export type QuestCardKind = "zlecenie" | "misja";
 
@@ -29,7 +32,31 @@ export type QuestVisualVariant = {
 };
 
 type QuestVisualCategory =
-  "meeting" | "vote" | "chronicle" | "rating" | "shelf";
+  "meeting" | "vote" | "chronicle" | "rating" | "shelf" | "mission";
+
+/**
+ * Rzadkość karty Misji. Wyłącznie estetyka — reguły, nagrody i priorytety Misji
+ * żyją w SQL (`private.mission_policy`). Mapa stoi tutaj, a nie w katalogu
+ * Misji, żeby WSZYSTKIE decyzje o rzadkości karty były w jednym pliku.
+ */
+const missionRarities: Record<MissionType, QuestVisualRarity> = {
+  revenge: "epic",
+  resurrection: "legendary",
+  first_chapter: "magic",
+  continue_story: "uncommon",
+};
+
+/**
+ * Typ Misji zaszyty w identyfikatorze karty (`mission-<typ>:<gra>`, patrz
+ * `getMissionQuestId`). `null` dla Zleceń i dla nieznanego typu.
+ */
+function getMissionTypeFromQuestId(questId: string): MissionType | null {
+  if (!questId.startsWith("mission-")) return null;
+
+  const missionType = questId.slice("mission-".length).split(":")[0];
+
+  return missionType in missionRarities ? (missionType as MissionType) : null;
+}
 
 /**
  * Tło karty (pergamin) — WSPÓLNE dla wszystkich rarity w danym rodzaju karty
@@ -142,6 +169,10 @@ const rarityExclamationAssets: Record<QuestVisualRarity, string> = {
 export function getQuestVisualCategory(
   quest: Pick<DashboardQuest, "id" | "href">,
 ): QuestVisualCategory {
+  if (getMissionTypeFromQuestId(quest.id)) {
+    return "mission";
+  }
+
   if (quest.id.startsWith("missing-rsvp:") || quest.id === "schedule-meeting") {
     return "meeting";
   }
@@ -164,6 +195,9 @@ export function getQuestVisualCategory(
 export function getQuestVisualRarity(
   quest: Pick<DashboardQuest, "id" | "href">,
 ): QuestVisualRarity {
+  const missionType = getMissionTypeFromQuestId(quest.id);
+  if (missionType) return missionRarities[missionType];
+
   const category = getQuestVisualCategory(quest);
 
   if (category === "meeting") return "legendary";

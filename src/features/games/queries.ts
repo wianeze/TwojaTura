@@ -94,6 +94,7 @@ function mapShelfItem(
     id: game.id,
     title: game.title,
     coverUrl: game.cover_url,
+    isExpansion: game.is_expansion,
     owner,
     currentHolder,
     status: game.status,
@@ -423,7 +424,7 @@ export async function listShelfGames(filters: GameFilters) {
   let query = supabase
     .from("games")
     .select(
-      "id, title, owner_id, current_holder_id, cover_url, bgg_url, bgg_rank, game_type, min_players, max_players, play_time_minutes, release_year, mechanics, categories, bgg_weight, min_age, designer, publisher, description, status, created_at, updated_at, archived_at",
+      "id, title, owner_id, current_holder_id, cover_url, bgg_url, bgg_rank, game_type, min_players, max_players, play_time_minutes, release_year, mechanics, categories, bgg_weight, min_age, designer, publisher, description, status, is_expansion, created_at, updated_at, archived_at",
     )
     .is("archived_at", null)
     .order("title", { ascending: true });
@@ -516,7 +517,7 @@ export async function getGameDetails(
   const { data: game, error } = await supabase
     .from("games")
     .select(
-      "id, title, owner_id, current_holder_id, cover_url, bgg_url, bgg_rank, game_type, min_players, max_players, play_time_minutes, release_year, mechanics, categories, bgg_weight, min_age, designer, publisher, description, status, created_at, updated_at, archived_at",
+      "id, title, owner_id, current_holder_id, cover_url, bgg_url, bgg_rank, game_type, min_players, max_players, play_time_minutes, release_year, mechanics, categories, bgg_weight, min_age, designer, publisher, description, status, is_expansion, created_at, updated_at, archived_at",
     )
     .eq("id", gameId)
     .maybeSingle();
@@ -604,7 +605,7 @@ export async function getGameRecordById(gameId: string) {
   const { data, error } = await supabase
     .from("games")
     .select(
-      "id, title, owner_id, current_holder_id, cover_url, bgg_url, bgg_rank, game_type, min_players, max_players, play_time_minutes, release_year, mechanics, categories, bgg_weight, min_age, designer, publisher, description, status, created_at, updated_at, archived_at",
+      "id, title, owner_id, current_holder_id, cover_url, bgg_url, bgg_rank, game_type, min_players, max_players, play_time_minutes, release_year, mechanics, categories, bgg_weight, min_age, designer, publisher, description, status, is_expansion, created_at, updated_at, archived_at",
     )
     .eq("id", gameId)
     .maybeSingle();
