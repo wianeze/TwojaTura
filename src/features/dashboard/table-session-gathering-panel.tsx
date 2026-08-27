@@ -2,6 +2,7 @@
 
 import { ActionButton } from "@/components/ui/action-button";
 import { PlayerPortraitFrame } from "@/components/ui/player-portrait-frame";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import { formatMeetingDateRange } from "@/features/meetings/formatting";
 import {
   FinishMeetingButton,
@@ -45,8 +46,13 @@ function GatheringHeroes({ members }: { members: TableSessionMember[] }) {
             name={member.displayName}
             size="medium"
           />
-          <p className="w-full truncate text-center text-[0.66rem] font-bold text-[#f0dcb8]">
-            {member.displayName}
+          <PlayerDisplayName
+            variant="compact"
+            displayName={member.displayName}
+            title={member.equippedTitle}
+            className="w-full text-center text-[0.66rem] font-bold text-[#f0dcb8]"
+          />
+          <p className="text-center text-[0.66rem] font-bold text-[#f0dcb8]">
             {member.isViewer ? (
               <span className="text-[#c9a463]"> (Ty)</span>
             ) : null}

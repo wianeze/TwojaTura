@@ -11,7 +11,10 @@ test("Economy V2 patch notes describe prestige, not shop currency", () => {
     .join(" ");
 
   // Najnowsze wydanie stoi na czele listy — aktualizowane z każdym wpisem.
-  assert.equal(PATCH_NOTES[0]?.title, "Wielki buff oprawy Stołu");
+  assert.equal(
+    PATCH_NOTES[0]?.title,
+    "Aktualizacja: Statystyki, Zlecenia i lepsze kontynuacje partii",
+  );
   assert.ok(economyRelease);
   assert.match(copy ?? "", /trwałym prestiżem gracza/);
   assert.match(copy ?? "", /nie wydajesz jej w Sklepie/);

@@ -1,10 +1,32 @@
+import { cache } from "react";
 import { after } from "next/server";
-import type { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { isMissionActive } from "./formatting";
 import { sortDashboardMissions } from "./mission-catalog";
 import type { DashboardMission } from "./types";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Saldo Tukatów gracza — waluta wypłacana przez Misje.
+ *
+ * Odczyt z widoku `tukat_balances`, czyli z sumy append-only ledgera. Gracz bez
+ * ani jednej wypłaty NIE ma tam wiersza i to jest poprawny stan: zwracamy 0 z
+ * `?? 0` po stronie wywołującego, zamiast zakładać ledger zdarzeniem na zero.
+ *
+ * `cache` z Reacta, dokładnie jak przy saldzie Renomy
+ * (`getUserPointBalanceResult`) — layout renderuje się raz na żądanie, więc
+ * saldo po ukończeniu Misji odświeża się przy kolejnym renderze/revalidate,
+ * bez żadnych doliczeń po stronie klienta.
+ */
+export const getUserTukatBalanceResult = cache(async (userId: string) => {
+  const supabase = await createClient();
+  return supabase
+    .from("tukat_balances")
+    .select("total_tukats")
+    .eq("user_id", userId)
+    .maybeSingle();
+});
 
 const MISSION_SELECT =
   "id, mission_type, game_id, generated_at, expires_at, reward_amount, games ( title )";

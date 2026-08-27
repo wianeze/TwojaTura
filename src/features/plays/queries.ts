@@ -1,4 +1,5 @@
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
+import type { PlayerTitle } from "@/components/ui/player-display-name";
 import type { MemberRole } from "@/features/auth/types";
 import { getViewerMeetingParticipation } from "@/features/meetings/participation";
 import { createClient } from "@/lib/supabase/server";
@@ -32,7 +33,9 @@ type PlayParticipantRow = Tables<"play_participants">;
 type ProfileRow = Pick<
   Tables<"profiles">,
   "id" | "display_name" | "avatar_url"
->;
+> & {
+  equipped_title?: Pick<Tables<"title_definitions">, "id" | "name" | "rarity"> | null;
+};
 type HistoricalProfileRow = {
   id: string;
   display_name: string;
@@ -56,10 +59,14 @@ type LinkedMeetingRow = Pick<
 >;
 
 function toMember(profile: ProfileRow): PlayMember {
+  const title = profile.equipped_title;
   return {
     id: profile.id,
     displayName: profile.display_name,
     avatarUrl: profile.avatar_url,
+    equippedTitle: title
+      ? { id: title.id, name: title.name, rarity: title.rarity as PlayerTitle["rarity"] }
+      : null,
   };
 }
 
@@ -79,7 +86,9 @@ async function getProfilesMap(
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url")
+    .select(
+      "id, display_name, avatar_url, equipped_title:title_definitions!profiles_equipped_title_id_fkey(id, name, rarity)",
+    )
     .in("id", ids);
 
   if (error) {
@@ -683,7 +692,9 @@ export async function getVisibleMemberProfile(memberId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url")
+    .select(
+      "id, display_name, avatar_url, equipped_title:title_definitions!profiles_equipped_title_id_fkey(id, name, rarity)",
+    )
     .eq("id", memberId)
     .maybeSingle();
 
@@ -693,9 +704,5 @@ export async function getVisibleMemberProfile(memberId: string) {
 
   if (!data) return null;
 
-  return {
-    id: data.id,
-    displayName: data.display_name,
-    avatarUrl: data.avatar_url,
-  };
+  return toMember(data as ProfileRow);
 }

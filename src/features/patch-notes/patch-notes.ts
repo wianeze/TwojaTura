@@ -16,6 +16,47 @@ export type PatchNotesRelease = {
  */
 export const PATCH_NOTES: readonly PatchNotesRelease[] = [
   {
+    date: "28 sierpnia 2026",
+    title: "Aktualizacja: Statystyki, Zlecenia i lepsze kontynuacje partii",
+    categories: [
+      {
+        category: "Nowości",
+        items: [
+          "Zlecenia mają teraz terminy ważności i pokazują, ile czasu zostało na zdobycie nagrody.",
+          "Ruszył pierwszy rozdział Misji, w których można zdobywać Tukaty na kosmetyczne dodatki.",
+          "Na Profilu pojawiła się Personalizacja z Ekwipunkiem ramek i Tytułów oraz Sklepem, w którym pierwsze Tytuły można zdobywać za Tukaty.",
+          "Dodano stronę Prywatność z jasną informacją o logach bezpieczeństwa i statystykach aktywności — bez zewnętrznych trackerów i analitycznych cookies.",
+        ],
+      },
+      {
+        category: "Usprawnienia",
+        items: [
+          "Dokończenie odłożonej partii można zaproponować i przegłosować tak samo jak zwykłą grę, bez blokowania innych propozycji.",
+          "Stół lepiej rozróżnia wybór gry, wznowienie partii, odłożenie jej na później i zakończenie rozgrywki.",
+          "Wybieranie godziny w formularzach korzysta teraz z wygodnego selektora czasu, szczególnie przydatnego na telefonach.",
+          "Karta Gracza dostała bardziej przejrzysty układ, wybór aktywnej klasy i spójną prezentację Tytułów graczy w aplikacji.",
+        ],
+      },
+      {
+        category: "Naprawione",
+        items: [
+          "Kontynuowanie partii nie tworzy już zbędnych, podwójnych wpisów w Kronice.",
+          "Partie czekające na uzupełnienie wyniku można ponownie wznowić i prawidłowo rozliczyć.",
+          "Po odłożeniu jednej partii można bez problemu wybrać i wznowić inną.",
+          "Wygasłe Zlecenia nie przyznają już Renomy, ale związane z nimi podstawowe akcje nadal pozostają dostępne.",
+        ],
+      },
+      {
+        category: "Dla administratora",
+        items: [
+          "Dodano panel statystyk aktywności: logowania, użycie ekranów i akcji, Zlecenia, przebieg spotkań oraz kontynuacje partii.",
+          "Historia odtworzona z danych aplikacji jest pokazana osobno i nie udaje dawnych kliknięć ani wejść na ekrany.",
+          "Panel administratora został podzielony na czytelne moduły, a korekty Renomy i Tukatów mają teraz wspólne, uporządkowane miejsce.",
+        ],
+      },
+    ],
+  },
+  {
     date: "17 sierpnia 2026",
     title: "Wielki buff oprawy Stołu",
     categories: [

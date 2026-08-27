@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { getMemberInitial } from "@/features/auth/current-member";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import {
   addParticipantDraft,
   applyTeamResultToDrafts,
@@ -146,7 +147,7 @@ export function PlayParticipantsField({
                   {getMemberInitial(member.displayName)}
                 </span>
               )}
-              <span>{member.displayName}</span>
+              <PlayerDisplayName variant="compact" displayName={member.displayName} title={member.equippedTitle} className="max-w-[13rem]" />
             </button>
           );
         })}
@@ -184,9 +185,7 @@ export function PlayParticipantsField({
                         {getMemberInitial(member.displayName)}
                       </span>
                     )}
-                    <span className="min-w-0 text-sm font-semibold break-words text-[#4d3528]">
-                      {member.displayName}
-                    </span>
+                    <PlayerDisplayName variant="compact" displayName={member.displayName} title={member.equippedTitle} className="text-sm font-semibold text-[#4d3528]" />
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">

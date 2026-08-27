@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { PlayerTitle } from "@/components/ui/player-display-name";
 import type { Tables } from "@/types/database.generated";
 import { mapGameExpansionRecord } from "./expansions";
 import { filterShelfItemsByActiveLoan } from "./filters";
@@ -23,7 +24,9 @@ type GameLoanRow = Tables<"game_loans">;
 type ProfileRow = Pick<
   Tables<"profiles">,
   "id" | "display_name" | "avatar_url" | "active_portrait_frame_key"
->;
+> & {
+  equipped_title: Pick<Tables<"title_definitions">, "id" | "name" | "rarity"> | null;
+};
 type AppMemberRow = Pick<
   Tables<"app_members">,
   "user_id" | "role" | "is_active"
@@ -34,11 +37,15 @@ function toMemberOption(
   profile: ProfileRow,
   role?: "member" | "admin",
 ): MemberOption {
+  const title = profile.equipped_title;
   return {
     id: profile.id,
     displayName: profile.display_name,
     avatarUrl: profile.avatar_url,
     activePortraitFrameKey: profile.active_portrait_frame_key,
+    equippedTitle: title
+      ? { id: title.id, name: title.name, rarity: title.rarity as PlayerTitle["rarity"] }
+      : null,
     role,
   };
 }
@@ -197,7 +204,9 @@ async function getProfilesMap(ids: string[]) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url, active_portrait_frame_key")
+    .select(
+      "id, display_name, avatar_url, active_portrait_frame_key, equipped_title:title_definitions!profiles_equipped_title_id_fkey(id, name, rarity)",
+    )
     .in("id", ids);
 
   if (error) {
@@ -218,7 +227,9 @@ async function getProfilesMapFromClient(
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url, active_portrait_frame_key")
+    .select(
+      "id, display_name, avatar_url, active_portrait_frame_key, equipped_title:title_definitions!profiles_equipped_title_id_fkey(id, name, rarity)",
+    )
     .in("id", ids);
 
   if (error) {

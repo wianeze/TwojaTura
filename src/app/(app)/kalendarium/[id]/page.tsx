@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import { notFound } from "next/navigation";
 import { ActionButton, ActionLink } from "@/components/ui/action-button";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
@@ -277,9 +278,12 @@ export default async function MeetingDetailsPage({
                 }
               >
                 Organizuje{" "}
-                <span className="font-semibold text-[#4e3528]">
-                  {meeting.createdBy.displayName}
-                </span>
+                <PlayerDisplayName
+                  variant="compact"
+                  displayName={meeting.createdBy.displayName}
+                  title={meeting.createdBy.equippedTitle}
+                  className="inline-block align-bottom font-semibold text-[#4e3528]"
+                />
               </p>
 
               {meeting.description ? (

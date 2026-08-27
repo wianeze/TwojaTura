@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { ActionButton } from "@/components/ui/action-button";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import { GameCover } from "@/components/ui/game-cover";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import {
@@ -235,7 +236,7 @@ export function MeetingGameProposals({
                   {game.title}
                 </p>
                 <p className="text-muted mt-0.5 text-[0.66rem]">
-                  Właściciel: {game.owner.displayName}
+                  Właściciel: <PlayerDisplayName variant="compact" displayName={game.owner.displayName} title={game.owner.equippedTitle} className="inline-block max-w-[12rem] align-bottom" />
                 </p>
                 <p className="mt-0.5 text-[0.62rem] font-semibold text-[#75552e]">
                   {formatMeetingGameResponseCounts(game.yesCount, game.noCount)}
@@ -516,7 +517,7 @@ export function MeetingGameProposals({
                           {game.title}
                         </p>
                         <p className="mt-0.5 text-[0.68rem] text-[#e6cfa8] [text-shadow:0_1px_3px_rgba(10,5,2,0.85)]">
-                          Właściciel: {game.owner.displayName}
+                          Właściciel: <PlayerDisplayName variant="compact" displayName={game.owner.displayName} title={game.owner.equippedTitle} className="inline-block max-w-[12rem] align-bottom" />
                         </p>
                       </div>
 

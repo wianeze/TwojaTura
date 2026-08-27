@@ -216,26 +216,21 @@ export function PushSettingsPanel() {
   }
 
   return (
-    <div>
-      <p className="text-accent text-xs font-bold tracking-[0.16em] uppercase">
-        Powiadomienia
-      </p>
-      <h2 className="font-display mt-1 text-2xl font-bold text-[#4c3528]">
-        Powiadomienia push
-      </h2>
-      <div className="mt-4">{renderState(state)}</div>
+    /*
+      Bez własnego nagłówka sekcji — panel jest jedyną treścią swojego kafla, a
+      przycisk („Włącz powiadomienia push” / „Wyłącz na tym urządzeniu”) sam
+      nazywa akcję. Kolejność: najpierw akcja, pod nią stan urządzenia i
+      ewentualny komunikat zwrotny.
 
-      {message ? (
-        <p
-          role={isError ? "alert" : "status"}
-          className={`mt-3 rounded-xl px-4 py-3 text-sm ${
-            isError ? "bg-[#8f3528]/10 text-[#8f3528]" : "bg-moss/12 text-moss"
-          }`}
-        >
-          {message}
-        </p>
-      ) : null}
-
+      Na telefonie blok jest wyśrodkowany w kaflu — plakietka stanu i
+      .action-btn są `inline-flex`, więc samo `text-center` je centruje, bez
+      dokładania flexboxa. Od sm w górę wraca wyrównanie do lewej, wspólne z
+      sąsiednim kaflem „Dane Karty Gracza”. `space-y-3` zamiast `mt-*` na
+      poszczególnych elementach: przy stanach bez przycisku (odmowa zgody, iOS,
+      brak obsługi) pierwszym dzieckiem jest status i nie ma wtedy sierocego
+      odstępu u góry.
+    */
+    <div className="space-y-3 text-center sm:text-left">
       {state === "disabled" ? (
         <ActionButton
           action="meeting"
@@ -245,7 +240,6 @@ export function PushSettingsPanel() {
           disabled={isBusy}
           loading={isBusy}
           loadingLabel="Włączamy powiadomienia…"
-          className="mt-4"
         >
           Włącz powiadomienia push
         </ActionButton>
@@ -261,10 +255,22 @@ export function PushSettingsPanel() {
           disabled={isBusy}
           loading={isBusy}
           loadingLabel="Wyłączamy powiadomienia…"
-          className="mt-4"
         >
           Wyłącz na tym urządzeniu
         </ActionButton>
+      ) : null}
+
+      <div>{renderState(state)}</div>
+
+      {message ? (
+        <p
+          role={isError ? "alert" : "status"}
+          className={`rounded-xl px-4 py-3 text-sm ${
+            isError ? "bg-[#8f3528]/10 text-[#8f3528]" : "bg-moss/12 text-moss"
+          }`}
+        >
+          {message}
+        </p>
       ) : null}
     </div>
   );

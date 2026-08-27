@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Panel } from "@/components/ui/panel";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import { getMemberInitial } from "@/features/auth/current-member";
@@ -51,9 +52,12 @@ export default async function FriendProfilePage({
             <p className="text-accent text-xs font-bold tracking-[0.16em] uppercase">
               Przy stole
             </p>
-            <h1 className="font-display mt-1 text-3xl font-semibold">
-              {profile.displayName}
-            </h1>
+            <PlayerDisplayName
+              displayName={profile.displayName}
+              title={profile.equippedTitle}
+              variant="hero"
+              className="font-display mt-1 text-3xl font-semibold"
+            />
           </div>
         </div>
       </Panel>

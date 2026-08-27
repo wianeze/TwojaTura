@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { PlayerPortraitFrame } from "@/components/ui/player-portrait-frame";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { AchievementCatalog } from "./achievement-catalog";
 import { ClassCatalog } from "./class-catalog";
@@ -365,14 +366,15 @@ function RankingEntry({
             {entry.activeClass.name}
           </span>
         ) : null}
-        <span
-          className={`block truncate font-bold text-[#fff1dc] ${
+        <PlayerDisplayName
+          displayName={entry.displayName}
+          title={entry.equippedTitle}
+          variant="standard"
+          className={`font-bold text-[#fff1dc] ${
             isPodium ? "text-base sm:text-lg" : "text-sm sm:text-base"
           }`}
-        >
-          {entry.displayName}
-          {entry.isCurrentMember ? " (Ty)" : ""}
-        </span>
+        />
+        {entry.isCurrentMember ? <span className="text-xs">(Ty)</span> : null}
         <span
           className={`mt-0.5 block font-semibold text-[#efd8b7] ${
             isPodium ? "text-sm sm:text-base" : "text-xs sm:text-sm"

@@ -2,7 +2,9 @@
 
 import { usePathname } from "next/navigation";
 import { LogoMark } from "@/components/ui/logo-mark";
+import { PlayerCurrencyBar } from "@/components/ui/player-currency-bar";
 import { PlayerPortraitFrame } from "@/components/ui/player-portrait-frame";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import { ClassTextureLayer } from "@/components/layout/class-texture-layer";
 import { WarmLink } from "@/components/layout/warm-link";
 import {
@@ -89,9 +91,13 @@ function DesktopNavItem({
 export function DesktopNavigation({
   member,
   activeClass,
+  currentPoints,
+  currentTukats,
 }: {
   member: CurrentMember;
   activeClass: ActiveClassView | null;
+  currentPoints: number;
+  currentTukats: number;
 }) {
   const pathname = usePathname();
   const items = useNavigationItems();
@@ -142,6 +148,17 @@ export function DesktopNavigation({
             </span>
           </div>
         ) : null}
+        {/*
+          Salda tuż nad kartą gracza. Desktop nie ma górnego paska — układ to
+          sidebar + treść — więc „obok awatara/profilu” znaczy tu: bezpośrednio
+          nad blokiem profilowym, w tej samej kolumnie.
+        */}
+        <PlayerCurrencyBar
+          renown={currentPoints}
+          tukats={currentTukats}
+          size="sidebar"
+          className="mb-2.5 justify-center"
+        />
         <div className="rounded-2xl border border-white/10 bg-white/5 p-2.5">
           <WarmLink
             href="/profil"
@@ -155,9 +172,12 @@ export function DesktopNavigation({
               className="w-10"
             />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold">
-                {member.displayName}
-              </span>
+              <PlayerDisplayName
+                displayName={member.displayName}
+                title={member.equippedTitle}
+                variant="compact"
+                className="text-sm font-semibold"
+              />
               <span className="block text-xs text-[#aa9a8a]">Karta Gracza</span>
             </span>
           </WarmLink>

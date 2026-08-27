@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
 import type { ActiveClassView } from "@/features/legendarium/achievement-view-model";
 import { getUserPointBalanceResult } from "@/features/points/queries";
+import { getUserTukatBalanceResult } from "@/features/missions/queries";
 
 export default async function AuthenticatedAppLayout({
   children,
@@ -23,10 +24,12 @@ export default async function AuthenticatedAppLayout({
         .eq("is_active", true)
         .maybeSingle()
     : Promise.resolve({ data: null });
-  const [balanceResult, classDefinitionResult] = await Promise.all([
-    getUserPointBalanceResult(memberState.member.id),
-    activeClassPromise,
-  ]);
+  const [balanceResult, tukatBalanceResult, classDefinitionResult] =
+    await Promise.all([
+      getUserPointBalanceResult(memberState.member.id),
+      getUserTukatBalanceResult(memberState.member.id),
+      activeClassPromise,
+    ]);
   let activeClass: ActiveClassView | null = null;
 
   if (classDefinitionResult.data) {
@@ -43,6 +46,9 @@ export default async function AuthenticatedAppLayout({
     <AppShell
       member={memberState.member}
       currentPoints={balanceResult.data?.total_points ?? 0}
+      // Brak wiersza w tukat_balances = gracz nie dostał jeszcze żadnej
+      // wypłaty. To zwykłe zero, nie brak danych — ledger zostaje pusty.
+      currentTukats={Number(tukatBalanceResult.data?.total_tukats ?? 0)}
       activeClass={activeClass}
     >
       {children}

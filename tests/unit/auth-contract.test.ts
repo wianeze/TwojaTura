@@ -7,7 +7,10 @@ import {
   getProvisioningState,
   parseRole,
 } from "../../scripts/invite-user-lib.mjs";
-import { mapCurrentMember } from "../../src/features/auth/current-member.ts";
+import {
+  assertCurrentMemberQuerySuccess,
+  mapCurrentMember,
+} from "../../src/features/auth/current-member.ts";
 import { getSafeInternalPath } from "../../src/features/auth/safe-redirect.ts";
 import {
   buildAppUrl,
@@ -293,6 +296,59 @@ test("maps an active observer", () => {
     assert.equal(state.member.role, "observer");
 });
 
+test("active member with no equipped title remains active", () => {
+  const state = mapCurrentMember(
+    "user-1",
+    { role: "admin", is_active: true },
+    { ...profile, equipped_title: null },
+  );
+
+  assert.equal(state.status, "active-member");
+  if (state.status === "active-member") {
+    assert.equal(state.member.equippedTitle, null);
+  }
+});
+
+test("active member with an equipped title remains active", () => {
+  const state = mapCurrentMember(
+    "user-1",
+    { role: "admin", is_active: true },
+    {
+      ...profile,
+      equipped_title: {
+        id: "title-1",
+        name: "Mistrzyni Kości",
+        rarity: "epic",
+      },
+    },
+  );
+
+  assert.equal(state.status, "active-member");
+  if (state.status === "active-member") {
+    assert.equal(state.member.equippedTitle?.name, "Mistrzyni Kości");
+  }
+});
+
+test("profile query errors do not masquerade as missing membership", () => {
+  const originalConsoleError = console.error;
+  console.error = () => undefined;
+
+  try {
+    assert.throws(
+      () =>
+        assertCurrentMemberQuerySuccess("profile", "user-1", {
+          code: "PGRST201",
+          message: "Could not embed because more than one relationship was found",
+          details: null,
+          hint: "Use an explicit relationship.",
+        }),
+      /Nie udało się pobrać profilu użytkownika/,
+    );
+  } finally {
+    console.error = originalConsoleError;
+  }
+});
+
 test("missing membership denies access", () => {
   assert.equal(
     mapCurrentMember("user-1", null, profile).status,
@@ -310,6 +366,12 @@ test("inactive membership denies access", () => {
 
 test("profile validation rejects an empty name", () => {
   assert.equal(validateProfileInput("   ", "").ok, false);
+});
+
+test("profile validation requires a one-part player name on edit", () => {
+  assert.equal(validateProfileInput("M", "").ok, false);
+  assert.equal(validateProfileInput("Marta Legacy", "").ok, false);
+  assert.equal(validateProfileInput("Marta", "").ok, true);
 });
 
 test("profile validation rejects an invalid avatar URL", () => {

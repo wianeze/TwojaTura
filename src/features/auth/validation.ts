@@ -1,5 +1,5 @@
 export const PASSWORD_MIN_LENGTH = 8;
-export const DISPLAY_NAME_MAX_LENGTH = 80;
+export const DISPLAY_NAME_MAX_LENGTH = 24;
 
 export type ValidationResult<T> =
   { ok: true; data: T } | { ok: false; error: string };
@@ -32,6 +32,18 @@ export function validateProfileInput(
 
   if (!displayName) {
     return { ok: false, error: "Nazwa gracza nie może być pusta." };
+  }
+  if (displayName.length < 2) {
+    return {
+      ok: false,
+      error: "Nazwa gracza musi mieć co najmniej 2 znaki.",
+    };
+  }
+  if (/\s/.test(displayName)) {
+    return {
+      ok: false,
+      error: "Nazwa gracza musi być jednym członem i nie może zawierać spacji.",
+    };
   }
   if (displayName.length > DISPLAY_NAME_MAX_LENGTH) {
     return {

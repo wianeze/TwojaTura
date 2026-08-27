@@ -1,4 +1,5 @@
 import { GameCover } from "@/components/ui/game-cover";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import { getPlayTablePhase } from "@/features/meetings/live-play";
 import {
   formatChronicleChipScore,
@@ -87,15 +88,16 @@ function PlayerCapsule({
         />
       )}
 
-      <span
+      <PlayerDisplayName
+        variant="compact"
+        displayName={participant.member.displayName}
+        title={participant.member.equippedTitle}
         className={`min-w-0 flex-1 truncate text-[0.68em] leading-[1.35] ${
           isHighlighted
             ? "font-extrabold text-[#3d2612]"
             : "font-semibold text-[#4a3122]"
         }`}
-      >
-        {participant.member.displayName}
-      </span>
+      />
 
       {scoreLabel ? (
         <span

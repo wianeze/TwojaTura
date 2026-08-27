@@ -46,10 +46,10 @@
      (Cinzel + EB Garamond) — patrz src/lib/fonts.ts dla next/font/google.
      Stare stosy zostają jako fallback (nie usuwam ich na twardo), gdyby
      wczytanie fontu się nie powiodło. */
-  --font-sans: var(--font-eb-garamond), "Aptos", "Segoe UI", system-ui,
-    sans-serif;
-  --font-display: var(--font-cinzel), "Iowan Old Style", "Palatino Linotype",
-    Georgia, serif;
+  --font-sans:
+    var(--font-eb-garamond), "Aptos", "Segoe UI", system-ui, sans-serif;
+  --font-display:
+    var(--font-cinzel), "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --shadow-soft: 0 18px 50px rgba(62, 39, 27, 0.1);
   --shadow-warm: 0 22px 70px rgba(68, 39, 23, 0.18);
 }
@@ -634,6 +634,125 @@ body {
 */
 .nav-tile-desktop {
   --nav-tile-frame: 9px;
+}
+
+/*
+  Ramki sald gracza — Renoma i Tukaty.
+
+  Oba assety mają 2172×724 i są poziomymi ramami fantasy z NIEROZCIĄGLIWYMI
+  zakończeniami: po lewej puchar z laurem (Renoma) albo sakwa z tarczą „T” i
+  monetami (Tukaty), po prawej ornament z liściem. Rozciąganie ich zniszczyłoby
+  rysunek, więc idą przez 9-slice — ten sam mechanizm co .nav-tile i
+  .quest-card-frame.
+
+  Zmierzone krawędzie (piksele źródła):
+
+    Renoma  — listwy y 124–176 i 523–575, lewa ozdoba do x 578, prawa od 1848,
+              ŚRODEK PRZEZROCZYSTY, więc slice BEZ `fill`: liczba leży wprost
+              na tle paska, między dwiema listwami.
+    Tukaty  — listwy y 158–197 i 505–549, lewa ozdoba do x 774, prawa od 1843,
+              ŚRODEK WYPEŁNIONY brązową płytką, więc slice `fill` — inaczej
+              liczba wisiałaby w dziurze.
+
+  KLUCZOWE: każda grubość ramki to `slice / 724 × wysokość`. Dzięki tej jednej
+  proporcji wszystkie cztery rogi renderują się w skali 1:1 względem źródła, a
+  rozciąga się WYŁĄCZNIE środkowy segment listew. Nie ma tu miejsca na ręcznie
+  dobrane piksele — zmiana --currency-frame-h przelicza całość i puchar, tarcza
+  ani monety nigdy się nie deformują.
+*/
+/*
+  Wysokość idzie przez FALLBACK w var(), a nie przez własną deklarację
+  `--currency-frame-h` na tym selektorze. Deklaracja na .currency-frame
+  wygrywałaby z wartością odziedziczoną po rodzicu i wariant rozmiaru dałoby się
+  ustawić już tylko stylem inline — co cicho psuje każde użycie ustawiające
+  zmienną na kontenerze.
+
+  box-sizing jawnie: wysokość ma OBEJMOWAĆ ramkę. Bez tego (content-box) element
+  urósłby o grubość obu listew i przestał pasować do wiersza nagłówka.
+*/
+.currency-frame {
+  box-sizing: border-box;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  height: var(--currency-frame-h, 2.6rem);
+  border-style: solid;
+  border-color: transparent;
+  border-image-repeat: stretch;
+}
+
+.currency-frame--renown {
+  border-image-source: url("/assets/Renoma-frame.png");
+  border-image-slice: 177 324 201 579;
+  border-width: calc(177 / 724 * var(--currency-frame-h, 2.6rem))
+    calc(324 / 724 * var(--currency-frame-h, 2.6rem))
+    calc(201 / 724 * var(--currency-frame-h, 2.6rem))
+    calc(579 / 724 * var(--currency-frame-h, 2.6rem));
+}
+
+.currency-frame--tukats {
+  border-image-source: url("/assets/Tukaty-frame.png");
+  border-image-slice: 198 329 219 775 fill;
+  border-width: calc(198 / 724 * var(--currency-frame-h, 2.6rem))
+    calc(329 / 724 * var(--currency-frame-h, 2.6rem))
+    calc(219 / 724 * var(--currency-frame-h, 2.6rem))
+    calc(775 / 724 * var(--currency-frame-h, 2.6rem));
+}
+
+/*
+  Liczba. `tabular-nums` trzyma stałą szerokość cyfr, więc saldo rosnące z 9 na
+  10 nie przesuwa sąsiada — to jedyne miejsce w pasku, które zmienia się w
+  trakcie sesji. `nowrap` pilnuje, żeby „9 999” (pl-PL wstawia separator od
+  czterech cyfr) nigdy nie złamało się na dwie linie.
+*/
+/*
+  Treść wnętrza ramy. Wysokość wnętrza to tylko ~45% wysokości ramy (reszta to
+  listwy), więc podpis i liczba idą JEDNĄ linią — stackowanie ich pionowo nie
+  ma tu fizycznie miejsca. `nowrap` na całości pilnuje, żeby „Twoja Renoma” nie
+  zjechało pod liczbę na najwęższym ekranie.
+*/
+.currency-frame__content {
+  min-width: 0;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/*
+  Nazwa waluty NAD ramą, nie w środku.
+
+  Wnętrze ramy ma tylko ~42–45% jej wysokości, więc podpis i liczba dzielące tę
+  szczelinę wzajemnie się ograniczały: im dłuższy podpis, tym szersza rama i tym
+  mniejsza mogła być przy danym budżecie. Wyprowadzenie podpisu na zewnątrz
+  oddaje całe wnętrze liczbie i pozwala powiększyć samą ramę.
+
+  Rozmiar wiązany z wysokością ramy, a nie z rem — rama skaluje się przez clamp
+  razem z szerokością telefonu, więc podpis ma skalować się razem z nią.
+*/
+.currency-frame__label {
+  font-size: calc(0.26 * var(--currency-frame-h, 2.6rem));
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #f3c07a;
+  text-shadow: 0 1px 2px rgba(24, 10, 4, 0.75);
+}
+
+/*
+  Liczba. Górny limit to wnętrze ramy Tukatów — (724−198−219)/724 ≈ 0.424
+  wysokości. 0.4 zostawia margines na zaokrąglenia, a jednocześnie wypełnia
+  szczelinę, bo liczba jest już tam sama.
+*/
+.currency-frame__value {
+  min-width: 1.5ch;
+  font-size: calc(0.34 * var(--currency-frame-h, 2.6rem));
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .material-panel {
@@ -2509,6 +2628,7 @@ a {
   --act-bright: #e9bd86;
   --act-ink: #7a4712;
   --act-plate: url("/assets/buttons/bronze.png");
+  --act-corner: rgba(34, 16, 7, 0.45);
 }
 
 .act-vote {
@@ -2517,6 +2637,7 @@ a {
   --act-bright: #a6c9e0;
   --act-ink: #235a80;
   --act-plate: url("/assets/buttons/blue.png");
+  --act-corner: rgba(1, 19, 49, 0.45);
 }
 
 .act-chronicle {
@@ -2525,6 +2646,7 @@ a {
   --act-bright: #c6b2dc;
   --act-ink: #59407f;
   --act-plate: url("/assets/buttons/purple.png");
+  --act-corner: rgba(38, 20, 52, 0.45);
 }
 
 .act-rating {
@@ -2533,6 +2655,7 @@ a {
   --act-bright: #b3cdac;
   --act-ink: #3c6039;
   --act-plate: url("/assets/buttons/green.png");
+  --act-corner: rgba(16, 39, 21, 0.45);
 }
 
 /*
@@ -2546,6 +2669,7 @@ a {
   --act-bright: #eddcbc;
   --act-ink: #5c3d21;
   --act-plate: url("/assets/buttons/bronze.png");
+  --act-corner: rgba(34, 16, 7, 0.45);
 }
 
 .act-neutral {
@@ -2561,6 +2685,7 @@ a {
   --act-bright: #e5ac9b;
   --act-ink: #7d2c1f;
   --act-plate: url("/assets/buttons/red.png");
+  --act-corner: rgba(60, 8, 11, 0.45);
 }
 
 /*
@@ -2580,6 +2705,7 @@ a {
   --act-bright: #b3cdac;
   --act-ink: #3c6039;
   --act-plate: url("/assets/buttons/green.png");
+  --act-corner: rgba(16, 39, 21, 0.45);
 }
 
 /*
@@ -2594,6 +2720,7 @@ a {
   --act-bright: #ffdcae;
   --act-ink: #7a3c12;
   --act-plate: url("/assets/buttons/orange.png");
+  --act-corner: rgba(126, 43, 1, 0.45);
 }
 
 /*
@@ -2613,6 +2740,7 @@ a {
   --act-bright: #ffdcae;
   --act-ink: #7a3c12;
   --act-plate: url("/assets/buttons/orange.png");
+  --act-corner: rgba(126, 43, 1, 0.45);
 }
 
 /*
@@ -2630,6 +2758,7 @@ a {
   --act-bright: #e5ac9b;
   --act-ink: #7d2c1f;
   --act-plate: url("/assets/buttons/red.png");
+  --act-corner: rgba(60, 8, 11, 0.45);
 }
 
 /*
@@ -2661,6 +2790,7 @@ a {
   --act-bright: #e5ac9b;
   --act-ink: #7d2c1f;
   --act-plate: url("/assets/buttons/red.png");
+  --act-corner: rgba(60, 8, 11, 0.45);
 }
 
 /*
@@ -2675,6 +2805,7 @@ a {
   --act-bright: #ddb98c;
   --act-ink: #5c3a1c;
   --act-plate: url("/assets/buttons/bronze-wood.png");
+  --act-corner: rgba(52, 23, 8, 0.45);
 }
 
 /*
@@ -2694,6 +2825,7 @@ a {
   --act-bright: #4a3a22;
   --act-ink: #4a3a22;
   --act-plate: url("/assets/buttons/white.png");
+  --act-corner: rgba(160, 151, 138, 0.45);
 }
 
 /*
@@ -2829,6 +2961,15 @@ a {
   border-image-width: var(--action-frame);
   border-image-outset: 0;
   border-image-repeat: stretch;
+  /*
+   * `background: transparent` - ZADNEGO koloru ani obrazu pod rama. Tam, gdzie
+   * asset ma prawdziwa przezroczystosc (sciete rogi plakietki), ma byc
+   * NAPRAWDE przezroczyscie - widac to, co jest za przyciskiem, nie zaden
+   * fallback. Na ciemnym drewnie (domyslne tlo aplikacji) to jest wlasciwe
+   * zachowanie i tak ma zostac: prześwit jest ciemny, wiec sciecie czyta sie
+   * jako sciecie. Podklad wlacza sie WYLACZNIE na jasnych powierzchniach -
+   * patrz regula .paper-wash .action-btn nizej.
+   */
   background: transparent;
   /* Cinzel, nie dziedziczone --font-sans — przyciski w docelowej hierarchii
      mają być brandingowym akcentem (Cinzel 500–600), nie tekstem body. */
@@ -3062,6 +3203,9 @@ a {
  * plakietkę pergaminową z reguły wyżej.
  */
 .act-neutral:not(.action-emph-secondary):not(.action-emph-ghost) {
+  /* Bez plakietki, wiec i bez podkladu narożnika - patrz --act-corner w
+     .action-btn wyzej. Jawnie, zeby nie liczyc na sam fallback. */
+  --act-corner: transparent;
   border-width: 1.5px;
   border-color: rgba(var(--act-rgb), calc(0.42 + 0.24 * var(--action-glow)));
 }
@@ -3278,4 +3422,318 @@ a {
   .action-btn-spinner::after {
     animation-duration: 2s;
   }
+}
+
+/*
+ * Kafle „Ekwipunek” i „Sklep” na Karcie Gracza.
+ *
+ * Całą oprawę wizualną niosą gotowe assety (Ekwipunek-bkg.png,
+ * Sklep-bkg.png) — mają WŁASNĄ ramę, drewno, pergamin i własną ikonę
+ * (plecak / stragan z monetami). Dlatego kafel nie rysuje tu już nic
+ * własnego: znika jasne tło (.paper-wash), border, border-radius,
+ * box-shadow i osobny brązowy kwadracik z emoji po lewej. Każdy z tych
+ * elementów dublowałby rysunek z PNG i obrysowywał PROSTOKĄT tam, gdzie
+ * asset ma wcięte, przezroczyste narożniki — dokładnie ten sam błąd, co
+ * opisany wyżej przy .quest-glow i .action-btn. Z tego samego powodu cień i
+ * poświata idą przez `filter: drop-shadow` (liczony z kanału alfa obrazka),
+ * a nie przez `box-shadow`.
+ *
+ * Oba assety mają RÓŻNE proporcje (1680×936 = 1.795 i 1604×981 = 1.635), a
+ * kafle mają wyglądać na równe. Kontener dostaje więc jedną, wspólną
+ * `aspect-ratio` pośrodku obu wartości, a sam obraz `object-fit: contain` —
+ * czyli każdy asset zachowuje WŁASNE proporcje (zero rozciągania) i mieści
+ * się w kadrze w całości (zero ucinania ornamentów). Różnica ląduje w ~2%
+ * przezroczystego marginesu, którego na PNG z alfą i tak nie widać.
+ */
+.customization-launcher {
+  container-type: inline-size;
+  aspect-ratio: 1.72;
+  filter: drop-shadow(0 6px 14px rgba(24, 11, 6, 0.34));
+  transition:
+    transform 150ms ease,
+    filter 150ms ease;
+}
+
+.customization-launcher:hover {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 10px 20px rgba(24, 11, 6, 0.42));
+}
+
+/*
+ * Focus BEZ prostokątnego `outline` — obrys leciałby po border-boxie, a nie
+ * po sylwetce assetu (patrz wyżej). Zamiast tego wyraźna, ciepła poświata
+ * po krawędzi rysunku: ta sama technika i ta sama paleta co focus w
+ * .quest-glow, tylko mocniejsza od stanu hover, żeby fokus klawiaturowy
+ * pozostał jednoznacznie odróżnialny od najechania myszą.
+ */
+.customization-launcher:focus-visible {
+  outline: none;
+  transform: translateY(-2px);
+  filter: drop-shadow(0 10px 20px rgba(24, 11, 6, 0.42))
+    drop-shadow(0 0 10px rgba(240, 190, 96, 0.95));
+}
+
+.customization-launcher:active {
+  transform: translateY(0);
+}
+
+/*
+ * Napis na pergaminie assetu. Rozmiar w `cqi`, czyli względem szerokości
+ * SAMEGO kafla (stąd container-type wyżej), a nie viewportu — kafle stoją w
+ * gridzie 2×1, więc na telefonie mają ~45vw, a na desktopie kilkanaście
+ * rem; clamp trzyma oba krańce. Ciemny atrament + jasny relief pod literami
+ * to odwrócony wariant zabiegu z .legend-board-cta (tam jasny tekst na
+ * ciemniejszej plakietce).
+ */
+.customization-launcher__label {
+  color: #3f2a1a;
+  font-size: clamp(0.62rem, 6.8cqi, 1.5rem);
+  letter-spacing: 0.02em;
+  text-shadow:
+    0 1px 0 rgba(255, 246, 224, 0.85),
+    0 0 6px rgba(255, 244, 220, 0.55),
+    0 2px 3px rgba(74, 30, 6, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .customization-launcher {
+    transition: none;
+  }
+
+  .customization-launcher:hover,
+  .customization-launcher:focus-visible {
+    transform: none;
+  }
+}
+
+/*
+ * Ozdobna rama SEKCJI informacyjnych Karty Gracza — asset
+ * public/assets/Statistics-bkg.png.
+ *
+ * INNA TECHNIKA NIŻ Ekwipunek/Sklep, i to celowo. Tamte assety to pełne
+ * PLAKIETKI (rysunek + gotowe pole pergaminu), więc idą przez <Image> z
+ * object-contain. Statistics-bkg to RAMA z pustym środkiem — zmierzone na
+ * pikselach: alfa środka 0, otwór 5.6→94.3% szerokości i 10.4→86.9%
+ * wysokości, narożne tarcze sięgają 193×184 px. Do ramy właściwe jest
+ * 9-slice `border-image`, dokładnie jak wyżej w tym pliku .quest-card-frame,
+ * .legend-frame-overlay i .legend-board-cta: rogi rysują się z wycinka
+ * 200×200 px w pasie bordera i nie są skalowane osobno w poziomie i w
+ * pionie, więc żaden ornament nie zostaje ucięty ani zdeformowany.
+ *
+ * Rama obejmuje CAŁĄ sekcję (Panel), a nie pojedyncze kafle statystyk:
+ * ornamenty tego assetu (tarcze w narożnikach, romby na krawędziach) mają
+ * masę policzoną na duży kadr i na kaflu ~100 px zamieniają się w nieczytelną
+ * kaszę, a same narożniki zjadają całą jego wysokość.
+ *
+ * Sekcja składa się z trzech warstw, w kolejności malowania:
+ *   __surface  — pergamin (paper-wash), wcięty do OTWORU ramy,
+ *   __art      — 9-slice ramy,
+ *   __body     — treść.
+ */
+.section-frame {
+  position: relative;
+  container-type: inline-size;
+  /*
+   * Panel oddaje własną oprawę: tło, promień i cienie przechodzą na warstwy
+   * niżej. Bez tego nieprzezroczyste `bg-surface` z komponentu Panel malowało
+   * PROSTOKĄT na całym border-boksie, a asset ma dookoła ramy 13% pasa
+   * przezroczystego marginesu — spod ornamentu wystawała jasna obwódka
+   * (dokładnie ten „stary jasny box pod spodem”, który miał zniknąć). Ten sam
+   * zabieg co przy .legend-board.premium-edge i .meeting-board.premium-edge.
+   */
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.section-frame.premium-edge::after {
+  content: none;
+}
+
+.section-frame__surface,
+.section-frame__art,
+.section-frame__body {
+  /*
+   * --section-frame-band deklarowany na DZIECIACH, nie na .section-frame:
+   * element nie może odpytywać samego siebie jako kontenera, więc `cqi`
+   * policzone tutaj odnosi się do szerokości .section-frame (na samym
+   * .section-frame odnosiłoby się do kontenera-przodka i pas przestałby
+   * nadążać za panelem).
+   *
+   * Naturalna skala assetu to 200/1672 = 11.9% szerokości. Tutaj jest celowo
+   * mniej (8cqi): przy pełnej skali rama na sekcji 735 px miałaby 87 px pasa i
+   * zjadałaby jedną czwartą szerokości treści. Clamp domyka oba krańce —
+   * dolny, żeby na telefonie ornament został czytelny, górny, żeby na
+   * najszerszej sekcji (xl:col-span-12) rama nie urosła ponad jej wysokość.
+   */
+  --section-frame-band: clamp(1.75rem, 8cqi, 3.5rem);
+}
+
+/*
+ * Pergamin sekcji. Wcięty o 0.40× pasa, czyli odrobinę PŁYCIEJ niż zaczyna
+ * się otwór ramy (0.47× pasa w poziomie, 0.49× w pionie) — dzięki temu
+ * powierzchnia wsuwa się kilka pikseli pod nieprzezroczyste drewno i między
+ * nią a ramą nie ma włosowej szczeliny, a jednocześnie nigdzie nie wychodzi
+ * poza sylwetkę assetu. Promień celowo mniejszy niż zaokrąglenie otworu:
+ * narożne tarcze są tu i tak grubsze niż pergamin, więc lepiej zaokrąglić za
+ * mało (róg schowa się pod tarczą) niż za dużo (w narożniku otworu
+ * prześwitywałoby tło strony).
+ */
+.section-frame__surface {
+  position: absolute;
+  inset: calc(var(--section-frame-band) * 0.4);
+  z-index: 0;
+  border-radius: calc(var(--section-frame-band) * 0.35);
+  pointer-events: none;
+}
+
+.section-frame__art {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  box-sizing: border-box;
+  border-style: solid;
+  border-color: transparent;
+  /*
+   * Pas rysowany = 1.28x wartosci referencyjnej, bo slice urosl z 200 do 256
+   * (256/200 = 1.28). Ten wspolczynnik NIE jest kosmetyczny - trzyma skale
+   * rysunku bez zmian: piksel zrodla renderuje sie dalej jako band/200, wiec
+   * grubosc listwy, wielkosc naroznych tarcz i polozenie otworu zostaja
+   * dokladnie tam, gdzie byly. Dzieki temu --section-frame-band pozostaje
+   * wspolna referencja geometrii dla __surface i __body i nie trzeba bylo
+   * przeliczac ich wciec.
+   */
+  border-width: calc(var(--section-frame-band) * 1.28);
+  border-image-source: url("/assets/Statistics-bkg.png");
+  /*
+   * 256, nie 200. Przy 200 linia ciecia 9-slice przechodzila przez SRODEK
+   * naroznego akantu - zmierzone na pikselach, ornament siega 247 px w
+   * poziomie i 255 px w pionie, liczac od kazdego rogu. Ucieta reszta liscia
+   * zostawala w wycinku KRAWEDZI, wiec przy powtarzaniu (repeat: round)
+   * powielala sie razem z nim: w polowie listwy wyskakiwaly zlepione,
+   * lustrzane ogonki liscia - te artefakty. Przy 256 ciecie wypada juz w
+   * gladkiej listwie, caly akant miesci sie w narozniku, a powtarzany wycinek
+   * zaczyna sie i konczy tym samym drewnem, wiec styki sa niewidoczne. Romby
+   * i cwieki na krawedziach zostaja nietkniete.
+   *
+   * Dlaczego akurat 256, a nie wiecej "na zapas": slice steruje TEZ gestoscia
+   * akcentow. Wycinek krawedzi to (1672 - 2*slice) i (941 - 2*slice), wiec im
+   * wiekszy slice, tym krotszy wycinek i tym wiecej powtorzen upycha
+   * `repeat: round`. Zmierzone na wysokim panelu 331x640 px: slice 200 dawal
+   * 8 rombow na bocznej szynie, 256 daje 9, 264 juz 10, a 300 az 12 - przy
+   * 300 boki robily sie wyraznie przegadane. 256 to najmniejsza wartosc, przy
+   * ktorej styk jest czysty (sprawdzone renderem stykow pionowego i
+   * poziomego), a rytm akcentow zostaje praktycznie taki jak byl.
+   */
+  border-image-slice: 256;
+  border-image-width: calc(var(--section-frame-band) * 1.28);
+  border-image-outset: 0;
+  /*
+   * `round`, nie `stretch`: krawędzie tego assetu niosą w połowie długości
+   * złoty romb. `stretch` rozciągałby go tym mocniej, im dłuższy bok — na
+   * sekcji o proporcjach zbliżonych do assetu bez różnicy, ale na
+   * xl:col-span-12 romb rozjechałby się kilkukrotnie. `round` skaluje wycinek
+   * tak, żeby zmieściła się CAŁKOWITA liczba powtórzeń: romb zachowuje
+   * proporcje, a na długim boku zamienia się w regularny rytm.
+   *
+   * Cień liczony z KANAŁU ALFA ramy (drop-shadow), nie box-shadow — jak przy
+   * .customization-launcher i .quest-glow: asset ma ścięte, przezroczyste
+   * narożniki, więc prostokątny cień rysowałby halo tam, gdzie nic nie ma.
+   */
+  border-image-repeat: round;
+  filter: drop-shadow(0 14px 30px rgba(17, 8, 5, 0.28));
+}
+
+/*
+ * Treść nad ramą. Wcięcie liczone z pasa: drewno kończy się na 0.47× pasa od
+ * lewej i 0.49× od góry (otwór assetu), a narożne tarcze sięgają 0.97× pasa —
+ * 0.72× pasa plus stały margines trzyma treść poza jednym i drugim, nie
+ * oddając przy tym całej szerokości przezroczystej części pasa.
+ */
+.section-frame__body {
+  position: relative;
+  z-index: 2;
+  padding: calc(var(--section-frame-band) * 0.72 + 0.35rem);
+}
+
+/*
+ * Ciemniejszy pergamin WEWNĄTRZ ramy sekcji.
+ *
+ * Ta sama architektura warstw co bazowe .paper-wash wyżej (poświata złota od
+ * prawego górnego rogu, gradient tonujący, ziarno papieru przez `multiply`) —
+ * zmieniają się wyłącznie barwy, więc powierzchnia zostaje w tej samej
+ * rodzinie materiałowej, tylko o ~7% głębsza w luminancji (zmierzone:
+ * #fcf6eb → #f2e5cd). Nadpisanie celowo
+ * łapie się na .paper-wash: warstwa nadal deklaruje tę klasę w JSX, żeby z
+ * markupu było widać, że to pergamin, a nie nowy materiał (ten sam zabieg co
+ * .legend-board.premium-edge wyżej).
+ *
+ * Po co ciemniej: rama Statistics-bkg to ciemne drewno ze złotem, a bazowy,
+ * niemal biały #fffaf0 wypłaszczał kontrast na styku z jej wewnętrzną
+ * krawędzią. Głębszy ton daje ramie o co się oprzeć i przy okazji odcina od
+ * tła jasne kafle statystyk (bg-white/62), które wcześniej wtapiały się w
+ * powierzchnię.
+ */
+.section-frame__surface.paper-wash {
+  background-color: #f7ecd8;
+  background-image:
+    radial-gradient(
+      circle at top right,
+      rgba(214, 160, 68, 0.18),
+      transparent 16rem
+    ),
+    linear-gradient(
+      140deg,
+      rgba(252, 246, 234, 0.6),
+      rgba(239, 225, 201, 0.62)
+    ),
+    url("/textures/paper-grain-light.webp");
+  background-size:
+    auto,
+    auto,
+    680px 680px;
+  background-blend-mode: normal, normal, multiply;
+}
+
+/*
+ * PODKLAD SCIETEGO NAROZNIKA - tylko na JASNYCH powierzchniach.
+ *
+ * Plakietki buttons/*.png maja rogi wyciete w ogee i naprawde przezroczyste
+ * (zmierzone: 32-49% powierzchni kwadratu 92x92 w kazdym rogu ma alfe 0). Na
+ * drewnie prześwituje przez nie ciemne tlo i wyglada to dokladnie tak, jak
+ * powinno. Problem pojawia sie na pergaminie (panele .paper-wash,
+ * .parchment-card, sekcje Karty Gracza w ramie Statistics-bkg): tam przez ogee
+ * widac krem i rogi czytaja sie jako "biale".
+ *
+ * Dlatego podklad jest ZAWEZONY do jasnych kontenerow, a nie wpisany w bazowe
+ * .action-btn. Pierwsza wersja tej poprawki ustawiala go globalnie i zepsula
+ * przypadek, ktory wczesniej byl poprawny: na drewnie podklad okazywal sie
+ * CIEMNIEJSZY od tla, wiec rogi z bialych zrobily sie czarne.
+ *
+ * --act-corner to lico danej plakietki (srednia z jej srodka, zmierzona osobno
+ * dla kazdej z osmiu) przyciemnione do 0.75, podane z kryciem 0.45.
+ *
+ * Krycie jest tu rownie wazne jak sam kolor. Wersja z pelnym kryciem usuwala
+ * biel, ale na pergaminie dawala niemal czarny klin: rog byl duzo ciemniejszy
+ * od plakietki i czytal sie jako plama, nie jako sciecie. Przy 0.45 podklad
+ * PODBIERA czesc tla spod spodu, wiec sam dostraja sie do powierzchni - na
+ * pergaminie wychodzi cieply srodkowy ton (miekki cien w sciciu), a nie plama.
+ * Sprawdzone renderem przy 0.30 / 0.45 / 0.60 / 1.00 na plakietce czerwonej
+ * i brazowej.
+ *
+ * Podklad jest prostokatem, wiec wychodzi poza plakietke tam, gdzie asset ma
+ * przezroczysty margines. Zmierzone: marginesy krawedziowe to 1-8 px zrodla,
+ * co przy pasie 9.1 px (slice 92) daje 0.1-0.8 px na ekranie - ponizej progu
+ * widocznosci.
+ *
+ * Wykluczenia w selektorze sa KONIECZNE, nie ozdobne. Selektor potomny ma
+ * wyzsza specyficznosc (0,2,0) niz .action-emph-secondary i .action-emph-ghost
+ * (0,1,0), wiec bez :not(...) nadpisalby ich wlasne tla - pergaminowy "Wroc"
+ * stracilby kremowy gradient. .act-neutral na poziomie primary nie ma
+ * plakietki i ma --act-corner: transparent, wiec fallback zalatwia go sam.
+ */
+.paper-wash .action-btn:not(.action-emph-secondary):not(.action-emph-ghost),
+.parchment-card .action-btn:not(.action-emph-secondary):not(.action-emph-ghost) {
+  background-color: var(--act-corner, transparent);
 }

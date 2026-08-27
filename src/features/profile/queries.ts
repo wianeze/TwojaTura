@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getUserPointBalanceResult } from "@/features/points/queries";
+import { getUserTukatBalanceResult } from "@/features/missions/queries";
 import type { Tables } from "@/types/database.generated";
 import {
   buildPlayerProfileStatistics,
@@ -22,21 +23,28 @@ export type PlayerProfileData = ReturnType<
   typeof buildPlayerProfileStatistics
 > & {
   totalPoints: number;
+  /** Saldo Tukatów — waluta Misji. 0, gdy gracz nie ma jeszcze wypłat. */
+  totalTukats: number;
 };
 
 export async function getPlayerProfileData(
   userId: string,
 ): Promise<PlayerProfileData> {
   const supabase = await createClient();
-  const [ownParticipantsResult, ratingsResult, balanceResult] =
-    await Promise.all([
-      supabase
-        .from("play_participants")
-        .select("play_id, user_id, placement, score, is_winner")
-        .eq("user_id", userId),
-      supabase.from("ratings").select("game_id, overall").eq("user_id", userId),
-      getUserPointBalanceResult(userId),
-    ]);
+  const [
+    ownParticipantsResult,
+    ratingsResult,
+    balanceResult,
+    tukatBalanceResult,
+  ] = await Promise.all([
+    supabase
+      .from("play_participants")
+      .select("play_id, user_id, placement, score, is_winner")
+      .eq("user_id", userId),
+    supabase.from("ratings").select("game_id, overall").eq("user_id", userId),
+    getUserPointBalanceResult(userId),
+    getUserTukatBalanceResult(userId),
+  ]);
 
   if (
     ownParticipantsResult.error ||
@@ -140,5 +148,6 @@ export async function getPlayerProfileData(
       games: [...games.values()],
     }),
     totalPoints: Number(balanceResult.data?.total_points ?? 0),
+    totalTukats: Number(tukatBalanceResult.data?.total_tukats ?? 0),
   };
 }

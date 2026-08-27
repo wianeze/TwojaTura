@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { PlayerPortraitFrame } from "@/components/ui/player-portrait-frame";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import { canUseNextImageOptimization } from "@/lib/image-sources";
 import { getLiveElapsedMs } from "@/features/meetings/live-play";
 import { formatDashboardTime } from "./formatting";
@@ -76,9 +77,12 @@ function PlayingRoster({ members }: { members: TableSessionMember[] }) {
             name={member.displayName}
             size="medium"
           />
-          <p className="w-full truncate text-center text-[0.66rem] font-bold text-[#fff3e0] [text-shadow:0_1px_2px_rgba(0,0,0,0.65)]">
-            {member.displayName}
-          </p>
+          <PlayerDisplayName
+            variant="compact"
+            displayName={member.displayName}
+            title={member.equippedTitle}
+            className="w-full text-center text-[0.66rem] font-bold text-[#fff3e0] [text-shadow:0_1px_2px_rgba(0,0,0,0.65)]"
+          />
         </div>
       ))}
     </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { GameCover } from "@/components/ui/game-cover";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import { Panel } from "@/components/ui/panel";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import {
@@ -36,11 +37,14 @@ export function GameRecentPlaysList({ items }: { items: PlayListItem[] }) {
                 {getPlayResultLabel(item.status, item.winners)}
               </span>
             </div>
-            <p className="text-muted mt-1 text-xs">
-              {item.participants
-                .map((participant) => participant.member.displayName)
-                .join(", ")}
-            </p>
+            <div className="text-muted mt-1 flex flex-wrap gap-x-1 text-xs">
+              {item.participants.map((participant, participantIndex) => (
+                <span key={participant.member.id} className="min-w-0">
+                  <PlayerDisplayName variant="compact" displayName={participant.member.displayName} title={participant.member.equippedTitle} className="inline-block max-w-[12rem] align-bottom" />
+                  {participantIndex < item.participants.length - 1 ? "," : null}
+                </span>
+              ))}
+            </div>
           </div>
         </Link>
       ))}

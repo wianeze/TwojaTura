@@ -5,11 +5,20 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentMemberFromClient } from "@/features/auth/queries/get-current-member";
 import type { MemberRole } from "@/features/auth/types";
 import type { FeedbackStatus } from "@/features/feedback/types";
-import type { AdminActionResult, AdminPointActionResult } from "./types";
+import type {
+  AdminActionResult,
+  AdminPointActionResult,
+  AdminTukatActionResult,
+} from "./types";
 import {
   validateAdminPointAward,
   validateAdminPointReversal,
 } from "./point-adjustments";
+import {
+  translateTukatAdjustmentError,
+  validateAdminTukatAdjustment,
+  type AdminTukatOperation,
+} from "./tukat-adjustments";
 
 /**
  * Independent of the /admin route's own layout guard — Server Actions can
@@ -57,6 +66,7 @@ export async function adminChangeRoleAction(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/admin/konta");
   return { ok: true };
 }
 
@@ -77,6 +87,7 @@ export async function adminDeactivateAccountAction(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/admin/konta");
   return { ok: true };
 }
 
@@ -102,6 +113,7 @@ export async function adminUpdateFeedbackSubmissionAction(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/admin/zgloszenia");
   return { ok: true };
 }
 
@@ -130,6 +142,8 @@ export async function adminAwardPointAction(input: {
   if (error) return { ok: false, message: error.message };
 
   revalidatePath("/admin");
+  revalidatePath("/admin/korekty");
+  revalidatePath("/admin/statystyki");
   revalidatePath("/");
   revalidatePath("/legendarium");
   revalidatePath("/profil");
@@ -159,8 +173,54 @@ export async function adminReversePointEventAction(input: {
   if (error) return { ok: false, message: error.message };
 
   revalidatePath("/admin");
+  revalidatePath("/admin/korekty");
+  revalidatePath("/admin/statystyki");
   revalidatePath("/");
   revalidatePath("/legendarium");
   revalidatePath("/profil");
   return { ok: true, delta: data?.[0]?.delta ?? 0 };
+}
+
+/**
+ * Korekta Tukatów. Znak kwoty wyznacza operacja wybrana w panelu, a saldo
+ * po operacji wraca prosto z bazy — panel nigdy nie dolicza niczego lokalnie.
+ *
+ * `requestId` przychodzi z panelu (jedno `crypto.randomUUID()` na kliknięcie),
+ * więc retry tego samego żądania trafia w idempotencję RPC, a druga świadoma
+ * korekta ma własny klucz i wchodzi normalnie.
+ */
+export async function adminAdjustTukatsAction(input: {
+  targetUserId: string;
+  operation: AdminTukatOperation;
+  amount: string;
+  reason?: string;
+  requestId: string;
+}): Promise<AdminTukatActionResult> {
+  const parsed = validateAdminTukatAdjustment(input);
+  if (!parsed.ok) return parsed;
+
+  const access = await requireAdminAccess();
+  if (!access.ok) return access;
+
+  const { data, error } = await access.supabase.rpc("admin_adjust_tukats", {
+    p_target_user_id: parsed.value.targetUserId,
+    p_amount: parsed.value.delta,
+    p_reason: parsed.value.reason,
+    p_request_id: parsed.value.requestId,
+  });
+
+  if (error) {
+    return { ok: false, message: translateTukatAdjustmentError(error) };
+  }
+
+  const row = data?.[0];
+  if (!row) {
+    return { ok: false, message: "Nie udało się zapisać korekty Tukatów." };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/korekty");
+  revalidatePath("/");
+  revalidatePath("/profil");
+  return { ok: true, delta: row.delta, balanceAfter: row.balance_after };
 }

@@ -1,4 +1,5 @@
 import type { Enums, Tables } from "@/types/database.generated";
+import type { PlayerTitle } from "@/components/ui/player-display-name";
 import type { MeetingGameRecommendationScore } from "./game-recommendations";
 
 export type MeetingStatus = Enums<"meeting_status">;
@@ -9,6 +10,7 @@ export type MeetingMember = {
   id: string;
   displayName: string;
   avatarUrl: string | null;
+  equippedTitle?: PlayerTitle | null;
 };
 
 export type MeetingFormValues = {

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { useCanWrite } from "@/features/auth/member-role-context";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import { INITIAL_MEETING_AVAILABILITY_STATE } from "./form-state";
 import { segmentedOptionClasses, segmentedOptionStyle } from "./segmented-tone";
 import type {
@@ -134,9 +135,12 @@ export function MeetingAvailabilityForm({
               }`}
             >
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[#4e3528]">
-                  {row.member.displayName}
-                </p>
+                <PlayerDisplayName
+                  variant="compact"
+                  displayName={row.member.displayName}
+                  title={row.member.equippedTitle}
+                  className="text-sm font-semibold text-[#4e3528]"
+                />
                 {isSelf ? (
                   <p className="mt-0.5 text-[0.6rem] font-bold tracking-[0.14em] text-[#a06b43] uppercase">
                     Twoja odpowiedź

@@ -1,4 +1,5 @@
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
+import type { PlayerTitle } from "@/components/ui/player-display-name";
 import { mapActiveClassesByUser } from "@/features/legendarium/achievement-view-model";
 import {
   getMeetingVisualLabel,
@@ -93,7 +94,9 @@ type PlayParticipantRow = Pick<
 type ProfileRow = Pick<
   Tables<"profiles">,
   "id" | "display_name" | "avatar_url"
->;
+> & {
+  equipped_title: Pick<Tables<"title_definitions">, "id" | "name" | "rarity"> | null;
+};
 type UserPointBalanceRow = Tables<"user_point_balances">;
 
 async function getProfilesMap(
@@ -104,7 +107,9 @@ async function getProfilesMap(
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url")
+    .select(
+      "id, display_name, avatar_url, equipped_title:title_definitions!profiles_equipped_title_id_fkey(id, name, rarity)",
+    )
     .in("id", ids);
 
   if (error) {
@@ -304,6 +309,7 @@ function toTableSessionMember(
     id: string;
     displayName: string;
     avatarUrl: string | null;
+    equippedTitle?: PlayerTitle | null;
   },
   viewerId: string,
 ): TableSessionMember {
@@ -311,6 +317,7 @@ function toTableSessionMember(
     id: member.id,
     displayName: member.displayName,
     avatarUrl: member.avatarUrl,
+    equippedTitle: member.equippedTitle,
     isViewer: member.id === viewerId,
     // Uzupełniane w getDashboardData z tego samego get_leaderboard, którego
     // już woła podgląd rankingu — getTableSession nie dubluje tego zapytania.
@@ -1121,17 +1128,35 @@ export async function getDashboardData(
       activeClassKey: profile.active_class_key,
     })),
   );
+  const publicProfilesByUser = new Map(
+    (activeClassProfilesResult.data ?? []).map((profile) => [
+      profile.user_id,
+      profile,
+    ]),
+  );
 
   const leaderboardEntries: DashboardLeaderboardEntry[] = (
     leaderboardResult.data ?? []
-  ).map((entry) => ({
-    userId: entry.user_id,
-    displayName: entry.display_name,
-    avatarUrl: entry.avatar_url,
-    totalPoints: entry.total_points,
-    rank: entry.rank,
-    activeClass: activeClassesByUser[entry.user_id] ?? null,
-  }));
+  ).map((entry) => {
+    const publicProfile = publicProfilesByUser.get(entry.user_id);
+    const rarity = publicProfile?.equipped_title_rarity;
+    return {
+      userId: entry.user_id,
+      displayName: entry.display_name,
+      avatarUrl: entry.avatar_url,
+      totalPoints: entry.total_points,
+      rank: entry.rank,
+      activeClass: activeClassesByUser[entry.user_id] ?? null,
+      equippedTitle:
+        publicProfile?.equipped_title_id && publicProfile.equipped_title_name
+          ? {
+              id: publicProfile.equipped_title_id,
+              name: publicProfile.equipped_title_name,
+              rarity: (["common", "rare", "epic", "legendary"].includes(rarity ?? "") ? rarity : "common") as "common" | "rare" | "epic" | "legendary",
+            }
+          : null,
+    };
+  });
 
   return {
     memberName: member.displayName,

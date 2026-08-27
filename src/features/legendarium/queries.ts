@@ -33,6 +33,11 @@ export type LegendariumLeaderboardEntry = {
   badges: ReturnType<typeof mapLeaderboardBadges>[string];
   activeClass: ActiveClassView | null;
   activePortraitFrameKey: string | null;
+  equippedTitle: {
+    id: string;
+    name: string;
+    rarity: "common" | "rare" | "epic" | "legendary";
+  } | null;
 };
 
 export type LegendariumPointEvent = {
@@ -60,6 +65,10 @@ export type AchievementClassData = {
   badgesByUser: ReturnType<typeof mapLeaderboardBadges>;
   activeClassesByUser: Record<string, ActiveClassView>;
   activePortraitFramesByUser: Record<string, string | null>;
+  playerTitlesByUser: Record<
+    string,
+    { id: string | null; name: string | null; rarity: "common" | "rare" | "epic" | "legendary" }
+  >;
   currentActiveClass: ActiveClassView | null;
 };
 
@@ -195,6 +204,19 @@ export async function getAchievementClassData(
       profile.user_id,
       profile.active_portrait_frame_key,
     ]),
+  );
+  const playerTitlesByUser = Object.fromEntries(
+    (profilesResult.data ?? []).map((profile) => {
+      const rarity = profile.equipped_title_rarity;
+      return [
+        profile.user_id,
+        {
+          id: profile.equipped_title_id,
+          name: profile.equipped_title_name,
+          rarity: (["common", "rare", "epic", "legendary"].includes(rarity ?? "") ? rarity : "common") as "common" | "rare" | "epic" | "legendary",
+        },
+      ];
+    }),
   );
   const ownMeetingIds = (ownedMeetingsResult.data ?? []).map(
     (meeting) => meeting.id,
@@ -415,6 +437,7 @@ export async function getAchievementClassData(
     badgesByUser: mapLeaderboardBadges(definitions, awards),
     activeClassesByUser,
     activePortraitFramesByUser,
+    playerTitlesByUser,
     currentActiveClass,
   };
 }
@@ -451,17 +474,24 @@ export async function getLegendariumData(
   }
 
   const leaderboard = mapLegendariumLeaderboard(
-    (leaderboardResult.data ?? []).map((entry) => ({
-      userId: entry.user_id,
-      displayName: entry.display_name,
-      avatarUrl: entry.avatar_url,
-      totalPoints: Number(entry.total_points ?? 0),
-      rank: Number(entry.rank ?? 0),
-      badges: achievementData.badgesByUser[entry.user_id] ?? [],
-      activeClass: achievementData.activeClassesByUser[entry.user_id] ?? null,
-      activePortraitFrameKey:
-        achievementData.activePortraitFramesByUser[entry.user_id] ?? null,
-    })),
+    (leaderboardResult.data ?? []).map((entry) => {
+      const title = achievementData.playerTitlesByUser[entry.user_id];
+      return {
+        userId: entry.user_id,
+        displayName: entry.display_name,
+        avatarUrl: entry.avatar_url,
+        totalPoints: Number(entry.total_points ?? 0),
+        rank: Number(entry.rank ?? 0),
+        badges: achievementData.badgesByUser[entry.user_id] ?? [],
+        activeClass: achievementData.activeClassesByUser[entry.user_id] ?? null,
+        activePortraitFrameKey:
+          achievementData.activePortraitFramesByUser[entry.user_id] ?? null,
+        equippedTitle:
+          title?.id && title.name
+            ? { id: title.id, name: title.name, rarity: title.rarity }
+            : null,
+      };
+    }),
     member.id,
   );
 

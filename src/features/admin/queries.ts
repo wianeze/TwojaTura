@@ -8,6 +8,10 @@ import type {
   AdminPointAdjustmentRow,
   AdminReversiblePointEventRow,
 } from "./point-adjustments";
+import type {
+  AdminTukatAdjustmentRow,
+  AdminTukatBalanceRow,
+} from "./tukat-adjustments";
 import type { AnalyticsSnapshot } from "./analytics-types";
 import {
   parseHistoricalBusinessSnapshot,
@@ -241,4 +245,59 @@ export async function listAdminReversiblePointEvents(): Promise<
     description: row.description,
     createdAt: row.created_at,
   }));
+}
+
+export async function listAdminTukatAdjustments(): Promise<
+  AdminTukatAdjustmentRow[]
+> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_list_tukat_adjustments", {
+    p_limit: 40,
+  });
+
+  if (error) {
+    throw new Error("Nie udało się pobrać historii korekt Tukatów.");
+  }
+
+  return (data ?? []).map((row) => ({
+    adjustmentId: row.adjustment_id,
+    adminUserId: row.admin_user_id,
+    adminDisplayName: row.admin_display_name,
+    targetUserId: row.target_user_id,
+    targetDisplayName: row.target_display_name,
+    operation: row.operation as AdminTukatAdjustmentRow["operation"],
+    delta: row.delta,
+    reason: row.reason,
+    createdAt: row.created_at,
+  }));
+}
+
+/**
+ * Salda Tukatów wszystkich aktywnych kont.
+ *
+ * Czytane z widoku `tukat_balances`, czyli z sumy append-only ledgera — nie ma
+ * drugiego, mutowalnego źródła salda, które mogłoby się z nim rozjechać. Widok
+ * jest `security_invoker`, a jego własny warunek wpuszcza administratora do
+ * wszystkich wierszy; zwykły gracz zobaczyłby przez niego wyłącznie siebie.
+ *
+ * Gracz bez ani jednej wypłaty nadal ma tam wiersz z zerem (widok startuje od
+ * `app_members`), ale panel i tak domyka brak wpisu zerem po stronie mapy.
+ */
+export async function listAdminTukatBalances(): Promise<
+  AdminTukatBalanceRow[]
+> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tukat_balances")
+    .select("user_id, total_tukats");
+
+  if (error) {
+    throw new Error("Nie udało się pobrać sald Tukatów.");
+  }
+
+  return (data ?? []).flatMap((row) =>
+    row.user_id === null
+      ? []
+      : [{ userId: row.user_id, totalTukats: row.total_tukats ?? 0 }],
+  );
 }

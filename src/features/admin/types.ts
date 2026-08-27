@@ -14,3 +14,7 @@ export type AdminActionResult = { ok: true } | { ok: false; message: string };
 
 export type AdminPointActionResult =
   { ok: true; delta: number } | { ok: false; message: string };
+
+export type AdminTukatActionResult =
+  | { ok: true; delta: number; balanceAfter: number }
+  | { ok: false; message: string };

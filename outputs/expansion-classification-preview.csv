@@ -1,0 +1,115 @@
+game_id,local_title,bgg_id,bgg_primary_name,bgg_item_type,proposed_is_expansion,current_url_kind,has_expansion_category,current_is_expansion,confidence,requires_manual_review,reason
+72f2a920-b46e-43e6-8640-5ee80fbda542,Alchemicy,161970,Alchemists,boardgame,false,boardgame,false,,medium,true,lokalny tytuł „Alchemicy” nie pokrywa się z pozycją BGG „Alchemists”
+411983fa-13d8-4cfa-9c62-99decb56c2df,Andromeda's Edge,358661,Andromeda's Edge,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+ae4c4351-b89b-4cd8-91e6-f525e3067ada,Ark Nova,342942,Ark Nova,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+d489883a-f3a7-4096-aad6-1522acbff7b9,Article 27: The UN Security Council Game,113293,Article 27: The UN Security Council Game,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+4b60f62d-2339-405d-88fa-4803d980487e,Black Mirror: NOSEDIVE,265316,Black Mirror: NOSEDIVE,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+23867ee6-70e6-4653-822d-07db901042ef,Black Rose Wars: Rebirth,342444,Black Rose Wars: Rebirth,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+0cbe9ee8-4def-4a7e-a7b7-a69a9b8cf82b,Black Rose Wars: Rebirth,342444,Black Rose Wars: Rebirth,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+8cae347c-efb1-49f6-89be-fd5f316b2056,Boss Monster: The Dungeon Building Card Game,131835,Boss Monster: The Dungeon Building Card Game,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+2d81e2f1-09ed-4d04-81f3-e761cec37415,Brass: Birmingham,224517,Brass: Birmingham,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+bf76ccfd-26cd-48b3-baab-acf3d8cc92aa,Castles of Mad King Ludwig,155426,Castles of Mad King Ludwig,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+a9de5367-7b56-448c-9f1c-4057758c0a39,Caverna: The Cave Farmers,102794,Caverna: The Cave Farmers,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+138f6a0b-083a-4c6f-a2b2-4f6da8177fdb,Chaos in the Old World,43111,Chaos in the Old World,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+65975ae5-20e6-44fe-9b1b-dc02c7d91ff3,Chronicles of Crime,239188,Chronicles of Crime,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+70458e76-30e4-413a-a265-15a9f476ea88,Chronicles of Crime: 2400,302312,Chronicles of Crime: 2400,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+b560cd2a-38f3-4ccf-9ce7-aad47eeaf318,Chronicles of Crime: Noir,249811,Chronicles of Crime: Noir,boardgameexpansion,true,boardgame,true,,medium,true,"BGG mówi boardgameexpansion, mimo linku /boardgame/"
+75cb1f28-6765-4b8f-a9ed-d307524efd33,Clank!: A Deck-Building Adventure,201808,Clank!: A Deck-Building Adventure,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+7ad5c64d-9a74-4b50-adb2-18109a957fac,Cluedo Classic,40083,Cluedo: Chocolate Edition,boardgame,false,boardgame,false,,medium,true,lokalny tytuł „Cluedo Classic” nie pokrywa się z pozycją BGG „Cluedo: Chocolate Edition”
+47aabd0a-908f-4add-a578-4b1739f4cfbe,Codenames: Pictures,198773,Codenames: Pictures,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+2a491a6c-a8b5-4e6e-b0a7-86032ee7ce86,Darkest Dungeon: The Board Game,317321,Darkest Dungeon: The Board Game,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+570ad486-2f70-49b1-bca4-271130bc2426,Darkest Dungeon: The Board Game – Musketeer Hero,379863,Darkest Dungeon: The Board Game – Musketeer Hero,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+ee665c7b-dd65-4705-9f99-6561137dcb93,Darkest Dungeon: The Board Game – The Crimson Court,323854,Darkest Dungeon: The Board Game – The Crimson Court,boardgameexpansion,true,boardgameexpansion,false,,high,false,BGG jednoznacznie: boardgameexpansion
+d1dcaf87-695f-4e9b-888c-ad679739493b,Dead of Winter: A Crossroads Game,150376,Dead of Winter: A Crossroads Game,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+50337c5b-1c8f-4794-b654-a74b08d1896d,Dead of Winter: The Long Night,193037,Dead of Winter: The Long Night,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+94a7f81b-3536-4998-91cd-f4379021df75,Dead of Winter: Warring Colonies,206094,Dead of Winter: Warring Colonies,boardgameexpansion,true,boardgame,true,,medium,true,"BGG mówi boardgameexpansion, mimo linku /boardgame/"
+2b768b60-8e5e-4814-a178-ad0972fbd004,Deep Regrets,397931,Deep Regrets,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+0913abee-cc3a-4663-b94f-fb7f31541407,Descent: Journeys in the Dark (Second Edition),104162,Descent: Journeys in the Dark (Second Edition),boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+6bd48fc6-f11a-4760-8744-28d2ab496d8a,Descent: Journeys in the Dark (Second Edition) – Shadow of Nerekhall,149915,Descent: Journeys in the Dark (Second Edition) – Shadow of Nerekhall,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+313107e6-c7e9-4730-b514-8db30892de27,Detective: A Modern Crime Board Game,223321,Detective: A Modern Crime Board Game,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+1790527a-dc9e-43b8-8933-a0d1c133c1bb,Everdell,199792,Everdell,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+4ec6571c-dc7c-48ca-8c7a-6dcd25b1c133,Exploding Kittens: NSFW Edition,172242,Exploding Kittens: NSFW Edition,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+ac55a1f3-d845-489d-92b6-64206bdfaa1c,Fallout,232918,Fallout,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+9defbd40-48c0-45b4-b3e3-d1c869300532,First Martians: Adventures on the Red Planet,192455,First Martians: Adventures on the Red Planet,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+4576d7eb-71d8-41c2-8d60-a5fc73b84ba2,Frostpunk: The Board Game,311988,Frostpunk: The Board Game,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+f2297a63-4618-4b3f-888a-189ddc3246b0,Gierki Małżeńskie: Znamy się,305587,Gierki Małżeńskie: Znamy się,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+bb95c98f-789e-455e-b530-e654aff7b783,Gloom,12692,Gloom,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+ff38c37a-2989-424d-b8e9-14ebf2a6c070,Gloomhaven: Jaws of the Lion,291457,Gloomhaven: Jaws of the Lion,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+93aaf7b6-5dab-4a94-bb88-56378f7247ef,Hegemony: Lead Your Class to Victory,321608,Hegemony: Lead Your Class to Victory,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+7151416f-6581-4640-b303-42e7ae994b45,Hegemony: Lead Your Class to Victory,321608,Hegemony: Lead Your Class to Victory,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+17725e0b-35c6-4a65-b21f-117afda70da4,Hegemony: Lead Your Class to Victory – Crisis & Control,374250,Hegemony: Lead Your Class to Victory – Crisis & Control,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+b6aca7a6-b6bf-425f-981e-72fcb899261e,Heroes of Might and Magic III: The Board Game –  Big Box,355326,Heroes of Might and Magic III: The Board Game,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+f9e96585-c6dd-4c2a-8ada-58654f34ad9b,Heroes of Might and Magic III: The Board Game – Battlefield Expansion,413367,Heroes of Might and Magic III: The Board Game – Battlefield Expansion,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+7b5213d2-5a77-4907-9df9-98e25af8ebe9,Heroes of Might and Magic III: The Board Game – Conflux Expansion,423895,Heroes of Might and Magic III: The Board Game – Conflux Expansion,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+42358f67-e717-49a2-b42a-ae78c306d192,Heroes of Might and Magic III: The Board Game – Cove Expansion,423897,Heroes of Might and Magic III: The Board Game – Cove Expansion,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+770653c6-fd29-4f1a-96f1-5244f82e86cb,Heroes of Might and Magic III: The Board Game – Fortress Expansion,412071,Heroes of Might and Magic III: The Board Game – Fortress Expansion,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+d76fa786-5dbb-4cf8-a907-c64a3abeb778,Heroes of Might and Magic III: The Board Game – Inferno Expansion,412073,Heroes of Might and Magic III: The Board Game – Inferno Expansion,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+9de3a6c3-f98a-4658-9760-b8f51398cd6b,Heroes of Might and Magic III: The Board Game – Rampart Expansion,412072,Heroes of Might and Magic III: The Board Game – Rampart Expansion,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+1ba96d1c-208a-421d-9930-93bcb4d45683,Heroes of Might and Magic III: The Board Game – Stretch Goals Regular,467792,Heroes of Might and Magic III: The Board Game – Stretch Goals Regular,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+04e752a3-019b-4588-99b0-d5f4b886e735,Heroes of Might and Magic III: The Board Game – Stronghold Expansion,423894,Heroes of Might and Magic III: The Board Game – Stronghold Expansion,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+bc5902a4-c1ce-4d15-a33f-d05008e121cd,Heroes of Might and Magic III: The Board Game – Tower Expansion,411654,Heroes of Might and Magic III: The Board Game – Tower Expansion,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+0bc3c4f7-3ce1-4b3e-ba1d-c19f2face7cd,Hitster,318243,Hitster,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+524d4261-8d47-42d7-80ae-e03916607608,Jeju Island,183643,Jeju Island,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+8bb9b2ed-67b6-44c8-ac9d-e1e0f514556d,Karak II,393530,Karak II,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+57209b1c-f232-4957-801c-525169bf2da0,Karty Dżentelmenów,188347,Karty Dżentelmenów,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+43e23893-d1b0-4054-b1e0-d3575c610cd1,Letters from Whitechapel,59959,Letters from Whitechapel,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+20253cdb-627e-4f90-9a0e-bf75314e9c15,Mansions of Madness: Second Edition,205059,Mansions of Madness: Second Edition,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+ce6a8dd4-5cf2-4884-a991-35bcd4ef27a6,Mansions of Madness: Second Edition – Beyond the Threshold: Expansion,210674,Mansions of Madness: Second Edition – Beyond the Threshold: Expansion,boardgameexpansion,true,boardgame,true,,medium,true,"BGG mówi boardgameexpansion, mimo linku /boardgame/"
+e836cd70-c176-4390-93f7-c8b77c44336d,Mansions of Madness: Second Edition – Path of the Serpent: Expansion,283094,Mansions of Madness: Second Edition – Path of the Serpent: Expansion,boardgameexpansion,true,boardgame,true,,medium,true,"BGG mówi boardgameexpansion, mimo linku /boardgame/"
+2e916182-b9f8-4340-9009-0a10e9dc925b,Mansions of Madness: Second Edition – Streets of Arkham: Expansion,229987,Mansions of Madness: Second Edition – Streets of Arkham: Expansion,boardgameexpansion,true,boardgame,true,,medium,true,"BGG mówi boardgameexpansion, mimo linku /boardgame/"
+1c109976-4196-4873-bb2e-a7841f4e9a04,Mechs vs. Minions,209010,Mechs vs. Minions,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+5a1040a9-54bc-4d57-ba7d-56c89a6d12a7,Merchants Cove,277700,Merchants Cove,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+f3b41f71-869f-49d7-9379-7434059d7ecd,Merchants Cove: Master Craft,364640,Merchants Cove: Master Craft,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+ae866a53-871a-4449-aeff-c25a380a0837,Merchants Cove: The Dragon Rancher,295361,Merchants Cove: The Dragon Rancher,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+02173c1d-e52b-4d30-b92b-1d68450d3fcb,Merchants Cove: The Innkeeper,286985,Merchants Cove: The Innkeeper,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+b3ea1f35-2de1-491c-91e8-c96f163771c8,Merchants Cove: The Oracle,286986,Merchants Cove: The Oracle,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+9c8709f8-f1f8-40d8-acf5-df322b3a7756,Monopoly: Fallout Collector's Edition,183508,Monopoly: Fallout Collector's Edition,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+752f0258-e3d6-4a15-b55d-9c41dfdf8c4e,Nemesis,167355,Nemesis,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+98a56254-191f-4d06-b4f1-2cebc153d07f,Nemesis: Lockdown,310100,Nemesis: Lockdown,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+4fd75e3b-3f04-4acd-b42d-366a99c811c4,Nemesis: Retaliation,381248,Nemesis: Retaliation,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+e5b36929-c1df-46c2-ae9e-53b00183e3a7,Northgard: Uncharted Lands,274124,Northgard: Uncharted Lands,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+0c9a5916-8215-436e-9589-f756ff541f11,Nova Aetas Renaissance,311823,Nova Aetas Renaissance,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+938f40a0-6f7a-4bcb-befd-99cc7a3f358d,Pandemic,30549,Pandemic,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+f74449bd-ece9-4759-97c1-d91126f87da5,Pandemic,30549,Pandemic,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+a1eeee58-5b30-4f43-a278-3f4a18169a8f,Patchwork,163412,Patchwork,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+6090d8df-8806-40c5-b1ba-e7ed33aa7203,Planet Unknown,258779,Planet Unknown,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+1c4d467d-af85-4653-b8e9-5404b7cd8d25,Planet Unknown: Supermoon,393509,Planet Unknown: Supermoon,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+c7078771-ef44-4c1f-b8e7-47d2a5d61d67,Puerto Rico 1897: Special Edition,415843,Puerto Rico 1897: Special Edition,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+30cfb654-2558-45b2-948f-59f43702ab85,Robinson Crusoe: Adventures on the Cursed Island,121921,Robinson Crusoe: Adventures on the Cursed Island,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+3c6c2992-6211-427e-8a4f-ecf7d3cd329c,Roll Player,169426,Roll Player,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+999ebdeb-25fd-4ce6-ae82-cf521ea9b41a,Roll Player: Fiends & Familiars,255601,Roll Player: Fiends & Familiars,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+aa96b5a2-9396-49cb-b45c-b69a0811aebb,Santorini,194655,Santorini,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+01783034-9b5c-4a9a-acd6-2b9bdaf2fac5,Scythe,169786,Scythe,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+227e9e00-041a-4acc-8ae5-0db045be8487,SETI: Search for Extraterrestrial Intelligence,418059,SETI: Search for Extraterrestrial Intelligence,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+bae6e0c5-4808-4546-929d-0017bab64e14,SETI: Search for Extraterrestrial Intelligence,418059,SETI: Search for Extraterrestrial Intelligence,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+d1830950-09c2-42d2-a8f4-c5838987de19,Speakeasy,375459,Speakeasy,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+27761281-4116-4a43-a104-f0906353862d,Tainted Grail: Kings of Ruin,360366,Tainted Grail: Kings of Ruin,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+5af3e566-c6bd-4476-aa43-fcacc4eb6488,Talisman (Revised 4th Edition): The City Expansion,131816,Talisman (Revised 4th Edition): The City Expansion,boardgameexpansion,true,boardgame,true,,medium,true,"BGG mówi boardgameexpansion, mimo linku /boardgame/"
+ff115ac9-c49e-4e3d-b088-74f7cb9fb68e,Talisman (Revised 4th Edition): The Highland Expansion,67051,Talisman (Revised 4th Edition): The Highland Expansion,boardgameexpansion,true,boardgame,true,,medium,true,"BGG mówi boardgameexpansion, mimo linku /boardgame/"
+77ea363f-031a-4579-92c1-d565f70ea1ea,Talisman (Revised 4th Edition): The Reaper Expansion,38025,Talisman (Revised 4th Edition): The Reaper Expansion,boardgameexpansion,true,boardgame,true,,medium,true,"BGG mówi boardgameexpansion, mimo linku /boardgame/"
+ea224824-a83f-48ab-bb97-eef5ba337c72,Talisman: Revised 4th Edition,27627,Talisman: Revised 4th Edition,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+b7273188-66cb-4748-a333-c002ab0e2380,Terraforming Mars Big Box,167791,Terraforming Mars,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+15e37652-d37b-466f-8e5c-61f082ebf5ce,Terraforming Mars: Colonies,255681,Terraforming Mars: Colonies,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+8946cdb0-1c46-4fd2-bf99-66d06de973bd,Terraforming Mars: Hellas & Elysium,218127,Terraforming Mars: Hellas & Elysium,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+4c743437-62f8-44ce-aa97-111964e9b3b7,Terraforming Mars: Penguins Promo Card,230241,Terraforming Mars: Penguins Promo Card,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+668fe35e-0741-44dc-8afa-515da3df645c,Terraforming Mars: Prelude,247030,Terraforming Mars: Prelude,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+075622ed-cc21-4997-9055-674ba24559f8,Terraforming Mars: Venus Next,231965,Terraforming Mars: Venus Next,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+8d2179d4-3f0b-4f80-868b-d8272f792929,The Castles of Burgundy: Special Edition,363622,The Castles of Burgundy: Special Edition,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+876be6c3-745c-499e-a9c4-2a5987a25080,The Old King's Crown,357873,The Old King's Crown,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+dde6eb21-b719-4247-9fef-baeaed492d46,The Witcher: Old World,331106,The Witcher: Old World,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+07bd63c4-4df9-4115-9b15-96653307411a,The Witcher: Path of Destiny,401325,The Witcher: Path of Destiny,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+75ea191a-a385-4b87-aed2-4059deb25882,This War of Mine: Days of the Siege,288901,This War of Mine: Days of the Siege,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+8a899279-ca0e-41d2-b7ca-6f0293b74efc,This War of Mine: Tales from the Ruined City,247665,This War of Mine: Tales from the Ruined City,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+04a492ab-b494-4c7a-947a-d518616872b4,This War of Mine: The Board Game,188920,This War of Mine: The Board Game,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+2d7cc593-f862-4ab7-af09-bb151500c3ad,Ticket to Ride: Europe,14996,Ticket to Ride: Europe,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+d2b353c6-deab-4197-b671-bbe7ce62909c,Trial by Trolley,282171,Trial by Trolley,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+24317e5e-bfd1-4e20-8de2-2690ee15656f,Twister,5894,Twister,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+9c813ae2-9ace-4f0e-8b18-98c64e342873,Unmatched Adventures: Tales to Amaze,381297,Unmatched Adventures: Tales to Amaze,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+db197f87-d70b-4ee5-96f1-19e746d1be66,Voidfall,337627,Voidfall,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+0f85a752-2a82-40b3-b1d6-fb779abde400,Western Legends,232405,Western Legends,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+da18b01e-441b-46ed-8b6a-f9df3798afa2,Western Legends: Fistful of Extras,244936,Western Legends: Fistful of Extras,boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+d60a51a6-c5aa-427a-bcac-1bdbb4a3bfc1,"Western Legends: The Good, the Bad, and the Handsome",244935,"Western Legends: The Good, the Bad, and the Handsome",boardgameexpansion,true,boardgameexpansion,true,,high,false,BGG jednoznacznie: boardgameexpansion
+0dbd1b8e-3e96-4f48-9a28-79291d8dee45,World Order,403150,World Order,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+4dcf1160-0bc2-4f38-a2b5-655e14e46bf1,XCOM: The Board Game,163602,XCOM: The Board Game,boardgame,false,boardgame,false,,high,false,BGG jednoznacznie: boardgame
+d251d845-ab08-4232-b5b7-7c058cc1cca2,XCOM: The Board Game – Evolution,205938,XCOM: The Board Game – Evolution,boardgameexpansion,true,boardgame,true,,medium,true,"BGG mówi boardgameexpansion, mimo linku /boardgame/"
+0e5e77da-cca6-4eec-bb9c-64c3c38b29cb,XCOM: The Board Game – Evolution,205938,XCOM: The Board Game – Evolution,boardgameexpansion,true,boardgame,true,,medium,true,"BGG mówi boardgameexpansion, mimo linku /boardgame/"

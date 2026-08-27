@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import test from "node:test";
 import {
   defaultPlayerPortraitFrameType,
@@ -25,7 +26,7 @@ const catalog = [
     frame_key: "magic-frame-1",
     name: "Rare",
     rarity: "rare",
-    asset_path: "/Frames/magic-frame-1.png",
+    asset_path: "/Frames/magic-frame-1-dopasowanie.png",
     is_shop_available: true,
   },
   {
@@ -33,7 +34,7 @@ const catalog = [
     frame_key: "epic-frame-1",
     name: "Epic",
     rarity: "epic",
-    asset_path: "/Frames/epic-frame-1.png",
+    asset_path: "/Frames/epic-frame-1-dopasowanie.png",
     is_shop_available: true,
   },
 ];
@@ -41,6 +42,13 @@ const catalog = [
 test("portrait renderer supports every configured real frame asset", () => {
   assert.equal(playerPortraitFrameTypes.length, 13);
   assert.equal(Object.keys(playerPortraitFrameAssetPaths).length, 13);
+  for (const assetPath of Object.values(playerPortraitFrameAssetPaths)) {
+    assert.equal(
+      existsSync(join(process.cwd(), "public", assetPath.replace(/^\//, ""))),
+      true,
+      `missing portrait frame asset: ${assetPath}`,
+    );
+  }
 });
 
 test("portrait and frame share the 850 x 1450 canvas contract", () => {
@@ -111,7 +119,7 @@ test("purchased frame moves from shop to owned inventory", () => {
 
 test("shop is a preview without point prices or a purchase action", () => {
   const source = readFileSync(
-    "src/features/profile/portrait-frame-store.tsx",
+    "src/features/profile/player-customization-store.tsx",
     "utf8",
   );
   assert.match(source, /Wkrótce/i);

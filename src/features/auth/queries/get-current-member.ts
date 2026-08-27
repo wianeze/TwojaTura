@@ -2,7 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.generated";
-import { mapCurrentMember } from "../current-member";
+import {
+  assertCurrentMemberQuerySuccess,
+  mapCurrentMember,
+} from "../current-member";
 import type { CurrentMemberState } from "../types";
 
 export async function getCurrentMemberFromClient(
@@ -20,9 +23,7 @@ export async function getCurrentMemberFromClient(
     "get_own_membership_status",
   );
 
-  if (membershipError) {
-    return { status: "authenticated-but-not-member", userId };
-  }
+  assertCurrentMemberQuerySuccess("membership", userId, membershipError);
 
   const membership = membershipRows?.[0] ?? null;
 
@@ -30,13 +31,15 @@ export async function getCurrentMemberFromClient(
     return mapCurrentMember(userId, membership, null);
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, email, avatar_url, active_portrait_frame_key, active_class_key",
+      "id, display_name, email, avatar_url, active_portrait_frame_key, active_class_key, equipped_title:title_definitions!profiles_equipped_title_id_fkey(id, name, rarity)",
     )
     .eq("id", userId)
     .maybeSingle();
+
+  assertCurrentMemberQuerySuccess("profile", userId, profileError);
 
   return mapCurrentMember(userId, membership, profile);
 }

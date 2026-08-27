@@ -84,6 +84,7 @@ export async function adminSendPushCampaignAction(
   // prawa zmienić rezultatu tej akcji — kampania jest już zacommitowana.
   after(() => dispatchPendingPushDeliveriesInBackground());
 
+  revalidatePath("/admin/push");
   revalidatePath("/admin/powiadomienia");
 
   const userCount = summary?.user_count ?? 0;
@@ -148,11 +149,13 @@ export async function adminRunPushQueueAction(): Promise<PushQueueActionResult> 
   } catch (dispatchError) {
     // Przesunięcie terminów już się zapisało, więc odświeżamy widok mimo
     // awarii — administrator ma zobaczyć aktualne liczniki i komunikat błędu.
+    revalidatePath("/admin/push");
     revalidatePath("/admin/powiadomienia");
 
     return { ok: false, message: pushDispatchErrorMessage(dispatchError) };
   }
 
+  revalidatePath("/admin/push");
   revalidatePath("/admin/powiadomienia");
 
   return {

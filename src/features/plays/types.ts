@@ -1,10 +1,12 @@
 import type { MemberRole } from "@/features/auth/types";
+import type { PlayerTitle } from "@/components/ui/player-display-name";
 import type { Tables } from "@/types/database.generated";
 
 export type PlayMember = {
   id: string;
   displayName: string;
   avatarUrl: string | null;
+  equippedTitle?: PlayerTitle | null;
   role?: MemberRole;
 };
 

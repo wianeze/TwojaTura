@@ -1,13 +1,25 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
+import { ActionButton } from "@/components/ui/action-button";
 import type { CurrentMember } from "./types";
 import { updateProfileAction } from "./actions";
-import { AuthSubmitButton } from "./auth-submit-button";
 import { INITIAL_FORM_STATE } from "./form-state";
 
-export function ProfileForm({ member }: { member: CurrentMember }) {
-  const [state, formAction] = useActionState(
+export function ProfileForm({
+  member,
+  secondaryAction,
+}: {
+  member: CurrentMember;
+  /**
+   * Akcja poboczna w rzędzie przycisków, po LEWEJ stronie zapisu. Wstrzykiwana
+   * z zewnątrz, bo „Wyloguj się” ma własną Server Action i własny <form>, a
+   * formularzy nie wolno zagnieżdżać — strona renderuje ten <form> obok, a tu
+   * trafia sam przycisk powiązany z nim atrybutem `form`.
+   */
+  secondaryAction?: ReactNode;
+}) {
+  const [state, formAction, isPending] = useActionState(
     updateProfileAction,
     INITIAL_FORM_STATE,
   );
@@ -23,7 +35,8 @@ export function ProfileForm({ member }: { member: CurrentMember }) {
             className={inputClass}
             name="displayName"
             defaultValue={member.displayName}
-            maxLength={80}
+            minLength={2}
+            maxLength={24}
             required
           />
         </label>
@@ -73,9 +86,39 @@ export function ProfileForm({ member }: { member: CurrentMember }) {
           {state.message}
         </p>
       )}
-      <AuthSubmitButton pendingLabel="Zapisujemy…" glow>
-        Zapisz Kartę Gracza
-      </AuthSubmitButton>
+      {/*
+        Jeden rząd: akcja poboczna („Wyloguj się”) z lewej, zapis z prawej —
+        stąd justify-between. flex-wrap to zabezpieczenie, nie domyślny układ:
+        zmierzone na telefonie 375 px oba przyciski zajmują dokładnie tyle, ile
+        ma pole treści kafla (113 + 154 + 12 px odstępu = 279 px), więc na
+        węższych ekranach mają się przełamać zamiast wyjść poza ramę.
+
+        Zapis nosi tę samą plakietkę co „Włącz powiadomienia push” w sąsiednim
+        kaflu (action="meeting", size="default") — oba kafle stoją obok siebie
+        w tej samej siatce, więc miały wyglądać spójnie. Bez ikony w obu
+        przyciskach: piktogram wariantu meeting to kalendarz z plusem, a
+        wariantu danger — kosz; przy zapisie profilu i wylogowaniu żaden z nich
+        nic nie znaczy.
+
+        Świadomie ActionButton, a nie ActionSubmitButton: ten drugi bramkuje
+        się na useCanWrite i przy roli tylko-do-odczytu podmieniłby przycisk na
+        komunikat, czyli zmieniłby zachowanie formularza. Stan „zapisujemy”
+        bierzemy z useActionState, tak jak wcześniej brał go useFormStatus.
+      */}
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+        {secondaryAction}
+        <ActionButton
+          type="submit"
+          action="meeting"
+          size="default"
+          withIcon={false}
+          disabled={isPending}
+          loading={isPending}
+          loadingLabel="Zapisujemy…"
+        >
+          Zapisz Kartę Gracza
+        </ActionButton>
+      </div>
     </form>
   );
 }

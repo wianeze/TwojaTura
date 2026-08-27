@@ -434,8 +434,8 @@ where id = '10000000-0000-0000-0000-000000000005';
 -- Kontrakt kolumn: jawna lista bez adresu e-mail i bez pól administracyjnych.
 select is(
   pg_get_function_result('public.get_public_player_profiles()'::regprocedure),
-  'TABLE(user_id uuid, display_name text, avatar_url text, active_class_key text, active_portrait_frame_key text)',
-  '40a. the public projection exposes only leaderboard-safe columns'
+  'TABLE(user_id uuid, display_name text, avatar_url text, active_class_key text, active_portrait_frame_key text, equipped_title_id uuid, equipped_title_name text, equipped_title_rarity text)',
+  '40a. publiczna projekcja zawiera wyłącznie bezpieczne pola rankingu i kosmetycznego Tytułu'
 );
 
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}', true);

@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { GameCover } from "@/components/ui/game-cover";
 import { Panel } from "@/components/ui/panel";
 import { PlayerPortraitFrame } from "@/components/ui/player-portrait-frame";
+import { SectionFrame } from "@/components/ui/section-frame";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import { getActiveClassTexture } from "@/config/class-textures";
 import type { CurrentMember } from "@/features/auth/types";
 import { ActiveClassEmblem } from "@/features/legendarium/active-class-emblem";
@@ -23,7 +25,6 @@ import {
   type ProfileRecord,
 } from "./profile-statistics";
 import { ProfileClassSelector } from "./profile-class-selector";
-import { PortraitFrameStore } from "./portrait-frame-store";
 import type { PortraitFrameStoreData } from "./portrait-frames";
 
 const rarityLabels: Record<AchievementRarity, string> = {
@@ -92,30 +93,6 @@ function HeroClassEmblem({
   );
 }
 
-function SectionHeading({
-  eyebrow,
-  title,
-  action,
-}: {
-  eyebrow: string;
-  title: string;
-  action?: ReactNode;
-}) {
-  return (
-    <div className="flex items-end justify-between gap-3">
-      <div>
-        <p className="text-accent text-[0.58rem] font-bold tracking-[0.17em] uppercase">
-          {eyebrow}
-        </p>
-        <h2 className="font-display mt-1 text-xl font-bold text-[#4c3528] sm:text-2xl">
-          {title}
-        </h2>
-      </div>
-      {action}
-    </div>
-  );
-}
-
 function formatHighlightValue(highlight: ProfileGameHighlight) {
   if (highlight.kind === "most-played") {
     return `${highlight.value} ${highlight.value === 1 ? "partia" : "partii"}`;
@@ -162,6 +139,7 @@ export function PlayerProfileShowcase({
   classes,
   activeClass,
   portraitFrameData,
+  customization,
 }: {
   member: CurrentMember;
   profile: PlayerProfileData;
@@ -169,6 +147,7 @@ export function PlayerProfileShowcase({
   classes: CharacterClassView[];
   activeClass: ActiveClassView | null;
   portraitFrameData: PortraitFrameStoreData;
+  customization?: ReactNode;
 }) {
   const topClasses = selectTopProfileClasses(classes);
   const heroClass =
@@ -213,25 +192,28 @@ export function PlayerProfileShowcase({
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_85%_10%,rgba(236,169,69,0.2),transparent_38%)]"
         />
-        <div className="grid grid-cols-[35%_minmax(0,1fr)] gap-3 sm:gap-5 lg:grid-cols-[minmax(13.75rem,17.5rem)_minmax(0,1fr)] lg:items-stretch">
-          <div className="flex justify-center lg:justify-start">
+        <div className="grid items-start grid-cols-[35%_minmax(0,1fr)] gap-3 sm:gap-5 lg:grid-cols-[minmax(11rem,13rem)_minmax(0,1fr)]">
+          <div className="flex self-start justify-center lg:justify-start">
             <PlayerPortraitFrame
               avatarUrl={member.avatarUrl}
               name={member.displayName}
               frameType={portraitFrameData.activeFrameKey}
               size="large"
-              className="w-full max-w-[9rem] sm:max-w-[11rem] lg:w-[clamp(13.75rem,16vw,16.5rem)] lg:max-w-[16.5rem]"
+              className="w-full max-w-[9rem] sm:max-w-[11rem] lg:w-[clamp(11rem,13vw,12.5rem)] lg:max-w-[12.5rem]"
             />
           </div>
 
-          <div className="flex min-w-0 flex-col justify-center gap-3 sm:gap-4 lg:py-2">
+          <div className="flex min-w-0 flex-col gap-3 self-start sm:gap-4 lg:py-2">
             <div>
               <p className="text-[0.62rem] font-bold tracking-[0.2em] text-[#e5ba70] uppercase">
                 Karta Gracza
               </p>
-              <h1 className="font-display mt-1 truncate text-3xl font-extrabold sm:text-4xl">
-                {member.displayName}
-              </h1>
+              <PlayerDisplayName
+                displayName={member.displayName}
+                title={member.equippedTitle}
+                variant="hero"
+                className="font-display mt-1 text-3xl font-extrabold sm:text-4xl"
+              />
               {heroClass ? (
                 <div className="mt-2 flex min-w-0 items-center gap-2">
                   <HeroClassEmblem activeClass={heroActiveClass} />
@@ -259,268 +241,260 @@ export function PlayerProfileShowcase({
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
               <HeroStat label="Renoma" value={`${profile.totalPoints} pkt`} />
-              <HeroStat label="Partie" value={String(profile.playsCount)} />
-              <HeroStat label="Zwycięstwa" value={String(profile.wins)} />
               <HeroStat
-                label="Przy stole"
-                value={formatProfileDuration(profile.totalMinutes) ?? "—"}
+                label="Tukaty"
+                value={profile.totalTukats.toLocaleString("pl-PL")}
               />
             </div>
+
+            <ProfileClassSelector classes={classes} />
           </div>
         </div>
       </Panel>
 
-      <PortraitFrameStore
-        data={portraitFrameData}
-        avatarUrl={member.avatarUrl}
-        displayName={member.displayName}
-      />
+      {customization}
 
       <div className="grid items-start gap-4 xl:grid-cols-12">
-        <Panel className="paper-wash anim-rise-in-fast p-4 sm:p-5 xl:col-span-6">
-          <SectionHeading
-            eyebrow="Historia bohatera"
-            title="Statystyki gracza"
-          />
-          <div className="mt-3 grid grid-cols-3 gap-1.5 sm:gap-2 xl:gap-1.5">
-            {[
-              ["Partie", String(profile.playsCount)],
-              ["Wygrane", String(profile.wins)],
-              ["Porażki", String(profile.losses)],
-              [
-                "Łączny czas",
-                formatProfileDuration(profile.totalMinutes) ?? "—",
-              ],
-              [
-                "Średnia partia",
-                formatProfileDuration(profile.averageMinutes) ?? "—",
-              ],
-              [
-                "Średnia Twoich ocen",
-                profile.averageRating === null
-                  ? "—"
-                  : `★ ${profile.averageRating.toFixed(1)}`,
-              ],
-              ["Różne gry", String(profile.uniqueGames)],
-              ["Współgracze", String(profile.uniqueCoPlayers)],
-              ["Skuteczność", `${profile.winRate ?? 0}%`],
-            ].map(([label, value]) => (
-              <div
-                key={label}
-                className="flex min-h-[3.8rem] flex-col justify-center rounded-xl bg-white/62 px-2 py-1.5 sm:min-h-[4.4rem] sm:px-3 sm:py-2 xl:min-h-[3.25rem] xl:py-1"
-              >
-                <p className="text-[0.5rem] leading-3 font-bold tracking-[0.08em] text-[#9a6846] uppercase sm:text-[0.6rem] sm:leading-normal sm:tracking-[0.12em]">
-                  {label}
-                </p>
-                <p className="mt-0.5 text-xs font-bold text-[#4e372a] sm:text-base">
-                  {value}
-                </p>
+        <Panel className="section-frame anim-rise-in-fast xl:col-span-6">
+          <SectionFrame>
+            <h2 className="font-display select-none bg-transparent text-center text-xl font-bold text-[#4c3528] sm:text-left sm:text-2xl">
+              Historia bohatera
+            </h2>
+            <div className="mt-3 grid grid-cols-3 gap-1.5 sm:gap-2 xl:gap-1.5">
+              {[
+                ["Partie", String(profile.playsCount)],
+                ["Wygrane", String(profile.wins)],
+                ["Porażki", String(profile.losses)],
+                [
+                  "Łączny czas",
+                  formatProfileDuration(profile.totalMinutes) ?? "—",
+                ],
+                [
+                  "Średnia partia",
+                  formatProfileDuration(profile.averageMinutes) ?? "—",
+                ],
+                [
+                  "Średnia Twoich ocen",
+                  profile.averageRating === null
+                    ? "—"
+                    : `★ ${profile.averageRating.toFixed(1)}`,
+                ],
+                ["Różne gry", String(profile.uniqueGames)],
+                ["Współgracze", String(profile.uniqueCoPlayers)],
+                ["Skuteczność", `${profile.winRate ?? 0}%`],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="flex min-h-[3.8rem] flex-col justify-center rounded-xl bg-white/62 px-2 py-1.5 sm:min-h-[4.4rem] sm:px-3 sm:py-2 xl:min-h-[3.25rem] xl:py-1"
+                >
+                  <p className="text-[0.5rem] leading-3 font-bold tracking-[0.08em] text-[#9a6846] uppercase sm:text-[0.6rem] sm:leading-normal sm:tracking-[0.12em]">
+                    {label}
+                  </p>
+                  <p className="mt-0.5 text-xs font-bold text-[#4e372a] sm:text-base">
+                    {value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </SectionFrame>
+        </Panel>
+
+        <Panel className="section-frame anim-rise-in-fast xl:col-span-6">
+          <SectionFrame>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 sm:flex sm:items-end sm:justify-between sm:gap-3">
+              <h2 className="font-display text-center text-xl font-bold text-[#4c3528] sm:text-left sm:text-2xl">
+                Ostatnie trofea
+              </h2>
+              <div className="text-right">
+                <Link
+                  href="/legendarium"
+                  className="text-accent whitespace-nowrap text-xs font-bold underline underline-offset-4"
+                >
+                  Legendarium →
+                </Link>
               </div>
-            ))}
-          </div>
-        </Panel>
-
-        <Panel className="paper-wash anim-rise-in-fast p-4 sm:p-5 xl:col-span-6">
-          <SectionHeading
-            eyebrow="Ścieżki bohatera"
-            title="Wybierz aktywną klasę"
-            action={
-              <Link
-                href="/legendarium"
-                className="text-accent text-xs font-bold underline underline-offset-4"
-              >
-                Legendarium
-              </Link>
-            }
-          />
-          <ProfileClassSelector classes={classes} />
-        </Panel>
-
-        <Panel className="paper-wash anim-rise-in-fast p-4 sm:p-5 xl:col-span-5">
-          <SectionHeading
-            eyebrow="Łupy i legendy"
-            title="Ostatnie trofea"
-            action={
-              <Link
-                href="/legendarium"
-                className="text-accent text-xs font-bold underline underline-offset-4"
-              >
-                Zobacz Legendarium
-              </Link>
-            }
-          />
-          {recentAchievements.length === 0 ? (
-            <p className="mt-3 rounded-xl bg-white/55 px-3 py-3 text-sm text-[#705b49]">
-              Pierwsze trofeum wciąż czeka na zdobycie.
-            </p>
-          ) : (
-            <div className="mt-3 grid grid-cols-2 items-start gap-1.5 sm:gap-2">
-              {recentAchievements.map((achievement) => (
-                <article
-                  key={achievement.key}
-                  className="flex min-w-0 items-center gap-1.5 rounded-xl border border-[#d6ba91]/45 bg-white/55 px-2 py-1.5 sm:gap-2 sm:px-2.5 sm:py-2"
-                >
-                  <MiniAchievementBadge
-                    iconPath={achievement.iconPath}
-                    name={achievement.name}
-                    rarity={achievement.rarity}
-                    sizeClass="size-9 shrink-0 sm:size-10"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-xs leading-4 font-bold text-[#4e372a] sm:text-sm">
-                      {achievement.name}
-                    </p>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[0.54rem] sm:text-[0.62rem]">
-                      <span
-                        className={`rounded-full px-2 py-0.5 font-bold ${rarityClasses[achievement.rarity]}`}
-                      >
-                        {rarityLabels[achievement.rarity]}
-                      </span>
-                      {achievement.awardedAt ? (
-                        <span className="text-[#806b58]">
-                          {trophyDateFormatter.format(
-                            new Date(achievement.awardedAt),
-                          )}
+            </div>
+            {recentAchievements.length === 0 ? (
+              <p className="mt-3 rounded-xl bg-white/55 px-3 py-3 text-sm text-[#705b49]">
+                Pierwsze trofeum wciąż czeka na zdobycie.
+              </p>
+            ) : (
+              <div className="mt-3 grid grid-cols-2 items-start gap-1.5 sm:gap-2">
+                {recentAchievements.map((achievement) => (
+                  <article
+                    key={achievement.key}
+                    className="flex min-w-0 items-center gap-1.5 rounded-xl border border-[#d6ba91]/45 bg-white/55 px-2 py-1.5 sm:gap-2 sm:px-2.5 sm:py-2"
+                  >
+                    <MiniAchievementBadge
+                      iconPath={achievement.iconPath}
+                      name={achievement.name}
+                      rarity={achievement.rarity}
+                      sizeClass="size-9 shrink-0 sm:size-10"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 text-xs leading-4 font-bold text-[#4e372a] sm:text-sm">
+                        {achievement.name}
+                      </p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[0.54rem] sm:text-[0.62rem]">
+                        <span
+                          className={`rounded-full px-2 py-0.5 font-bold ${rarityClasses[achievement.rarity]}`}
+                        >
+                          {rarityLabels[achievement.rarity]}
                         </span>
-                      ) : null}
+                        {achievement.awardedAt ? (
+                          <span className="text-[#806b58]">
+                            {trophyDateFormatter.format(
+                              new Date(achievement.awardedAt),
+                            )}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
+                  </article>
+                ))}
+              </div>
+            )}
+          </SectionFrame>
         </Panel>
 
-        <Panel className="paper-wash anim-rise-in-fast p-4 sm:p-5 xl:col-span-7">
-          <SectionHeading
-            eyebrow="Półka bohatera"
-            title="Moje gry przy stole"
-          />
-          {profile.gameHighlights.length === 0 ? (
-            <p className="mt-3 rounded-xl bg-white/55 px-3 py-3 text-sm text-[#705b49]">
-              Zapisz pierwszą partię, aby odkryć swoje planszówkowe
-              specjalizacje.
-            </p>
-          ) : (
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              {profile.gameHighlights.map((highlight) => (
+        <Panel className="section-frame anim-rise-in-fast xl:col-span-12">
+          <SectionFrame>
+            <h2 className="font-display text-center text-xl font-bold text-[#4c3528] sm:text-left sm:text-2xl">
+              Moje gry przy stole
+            </h2>
+            {profile.gameHighlights.length === 0 ? (
+              <p className="mt-3 rounded-xl bg-white/55 px-3 py-3 text-sm text-[#705b49]">
+                Zapisz pierwszą partię, aby odkryć swoje planszówkowe
+                specjalizacje.
+              </p>
+            ) : (
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {profile.gameHighlights.map((highlight) => (
+                  <Link
+                    key={highlight.kind}
+                    href={`/gry/${highlight.game.id}`}
+                    className="flex min-w-0 items-center gap-2 rounded-xl border border-[#d6ba91]/45 bg-white/58 p-2 transition hover:bg-white/78"
+                  >
+                    <GameCover
+                      title={highlight.game.title}
+                      coverUrl={highlight.game.coverUrl}
+                      size="micro"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-[0.56rem] font-bold tracking-[0.09em] text-[#9a6846] uppercase">
+                        {highlightTitle(highlight.kind)}
+                      </span>
+                      <span className="mt-0.5 block truncate text-sm font-bold text-[#4e372a]">
+                        {highlight.game.title}
+                      </span>
+                      <span className="block text-xs text-[#80624a]">
+                        {formatHighlightValue(highlight)}
+                      </span>
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </SectionFrame>
+        </Panel>
+
+        <Panel className="section-frame anim-rise-in-fast xl:col-span-8">
+          <SectionFrame>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 sm:flex sm:items-end sm:justify-between sm:gap-3">
+              <h2 className="font-display text-center text-xl font-bold text-[#4c3528] sm:text-left sm:text-2xl">
+                Ostatnio przy stole
+              </h2>
+              <div className="text-right">
                 <Link
-                  key={highlight.kind}
-                  href={`/gry/${highlight.game.id}`}
-                  className="flex min-w-0 items-center gap-2 rounded-xl border border-[#d6ba91]/45 bg-white/58 p-2 transition hover:bg-white/78"
+                  href="/kronika"
+                  className="text-accent whitespace-nowrap text-xs font-bold underline underline-offset-4"
                 >
-                  <GameCover
-                    title={highlight.game.title}
-                    coverUrl={highlight.game.coverUrl}
-                    size="micro"
-                  />
-                  <span className="min-w-0">
-                    <span className="block text-[0.56rem] font-bold tracking-[0.09em] text-[#9a6846] uppercase">
-                      {highlightTitle(highlight.kind)}
-                    </span>
-                    <span className="mt-0.5 block truncate text-sm font-bold text-[#4e372a]">
-                      {highlight.game.title}
-                    </span>
-                    <span className="block text-xs text-[#80624a]">
-                      {formatHighlightValue(highlight)}
-                    </span>
-                  </span>
+                  Kronika →
                 </Link>
-              ))}
+              </div>
             </div>
-          )}
-        </Panel>
-
-        <Panel className="paper-wash anim-rise-in-fast p-4 sm:p-5 xl:col-span-8">
-          <SectionHeading
-            eyebrow="Kronika"
-            title="Ostatnio przy stole"
-            action={
-              <Link
-                href="/kronika"
-                className="text-accent text-xs font-bold underline underline-offset-4"
-              >
-                Pełna Kronika
-              </Link>
-            }
-          />
-          {profile.recentPlays.length === 0 ? (
-            <p className="mt-3 rounded-xl bg-white/55 px-3 py-3 text-sm text-[#705b49]">
-              Nie masz jeszcze zapisanych partii w Kronice.
-            </p>
-          ) : (
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {profile.recentPlays.map((play) => (
-                <Link
-                  key={play.id}
-                  href={`/kronika/${play.id}`}
-                  className="flex min-w-0 items-center gap-2 rounded-xl border border-[#d6ba91]/45 bg-white/58 p-2 transition hover:bg-white/78"
-                >
-                  <GameCover
-                    title={play.game.title}
-                    coverUrl={play.game.coverUrl}
-                    size="micro"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-bold text-[#4e372a]">
-                      {play.game.title}
+            {profile.recentPlays.length === 0 ? (
+              <p className="mt-3 rounded-xl bg-white/55 px-3 py-3 text-sm text-[#705b49]">
+                Nie masz jeszcze zapisanych partii w Kronice.
+              </p>
+            ) : (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {profile.recentPlays.map((play) => (
+                  <Link
+                    key={play.id}
+                    href={`/kronika/${play.id}`}
+                    className="flex min-w-0 items-center gap-2 rounded-xl border border-[#d6ba91]/45 bg-white/58 p-2 transition hover:bg-white/78"
+                  >
+                    <GameCover
+                      title={play.game.title}
+                      coverUrl={play.game.coverUrl}
+                      size="micro"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold text-[#4e372a]">
+                        {play.game.title}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-[#80624a]">
+                        {formatPlayShortDate(play.playedAt)}
+                        {play.durationMinutes
+                          ? ` · ${formatProfileDuration(play.durationMinutes)}`
+                          : ""}
+                      </span>
                     </span>
-                    <span className="mt-0.5 block text-xs text-[#80624a]">
-                      {formatPlayShortDate(play.playedAt)}
-                      {play.durationMinutes
-                        ? ` · ${formatProfileDuration(play.durationMinutes)}`
-                        : ""}
-                    </span>
-                  </span>
-                  <span
-                    className={`rounded-full px-2 py-1 text-[0.62rem] font-black ${
-                      play.result === "win"
-                        ? "bg-[#dbe8d7] text-[#35603b]"
+                    <span
+                      className={`rounded-full px-2 py-1 text-[0.62rem] font-black ${
+                        play.result === "win"
+                          ? "bg-[#dbe8d7] text-[#35603b]"
+                          : play.result === "loss"
+                            ? "bg-[#ecd7d2] text-[#8a3e35]"
+                            : "bg-[#e7dcc9] text-[#6d5846]"
+                      }`}
+                    >
+                      {play.result === "win"
+                        ? "WIN"
                         : play.result === "loss"
-                          ? "bg-[#ecd7d2] text-[#8a3e35]"
-                          : "bg-[#e7dcc9] text-[#6d5846]"
-                    }`}
-                  >
-                    {play.result === "win"
-                      ? "WIN"
-                      : play.result === "loss"
-                        ? "LOST"
-                        : "UDZIAŁ"}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          )}
+                          ? "LOST"
+                          : "UDZIAŁ"}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </SectionFrame>
         </Panel>
 
-        <Panel className="paper-wash anim-rise-in-fast p-4 sm:p-5 xl:col-span-4">
-          <SectionHeading eyebrow="Najlepsze historie" title="Rekordy" />
-          {profile.records.length === 0 ? (
-            <p className="mt-3 rounded-xl bg-white/55 px-3 py-3 text-sm text-[#705b49]">
-              Rekordy pojawią się wraz z kolejnymi wpisami w Kronice.
-            </p>
-          ) : (
-            <div className="mt-3 space-y-2">
-              {profile.records.map((record) => {
-                const content = recordContent(record);
-                return (
-                  <div
-                    key={record.kind}
-                    className="rounded-xl border border-[#d6ba91]/45 bg-white/58 px-3 py-2"
-                  >
-                    <p className="text-[0.58rem] font-bold tracking-[0.1em] text-[#9a6846] uppercase">
-                      {content.title}
-                    </p>
-                    <p className="mt-0.5 text-sm font-bold text-[#4e372a]">
-                      {content.value}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <Panel className="section-frame anim-rise-in-fast xl:col-span-4">
+          <SectionFrame>
+            <h2 className="font-display text-center text-xl font-bold text-[#4c3528] sm:text-left sm:text-2xl">
+              Najlepsze historie
+            </h2>
+            {profile.records.length === 0 ? (
+              <p className="mt-3 rounded-xl bg-white/55 px-3 py-3 text-sm text-[#705b49]">
+                Rekordy pojawią się wraz z kolejnymi wpisami w Kronice.
+              </p>
+            ) : (
+              <div className="mt-3 space-y-2">
+                {profile.records.map((record) => {
+                  const content = recordContent(record);
+                  return (
+                    <div
+                      key={record.kind}
+                      className="rounded-xl border border-[#d6ba91]/45 bg-white/58 px-3 py-2"
+                    >
+                      <p className="text-[0.58rem] font-bold tracking-[0.1em] text-[#9a6846] uppercase">
+                        {content.title}
+                      </p>
+                      <p className="mt-0.5 text-sm font-bold text-[#4e372a]">
+                        {content.value}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </SectionFrame>
         </Panel>
       </div>
     </div>

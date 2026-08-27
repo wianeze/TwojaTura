@@ -1,5 +1,6 @@
 import type { GameItemKind } from "./item-kind.ts";
 import type { Enums, Tables } from "@/types/database.generated";
+import type { PlayerTitle } from "@/components/ui/player-display-name";
 
 export type GameStatus = Enums<"game_status">;
 
@@ -7,6 +8,7 @@ export type MemberOption = {
   id: string;
   displayName: string;
   avatarUrl: string | null;
+  equippedTitle?: PlayerTitle | null;
   activePortraitFrameKey?: string | null;
   role?: "member" | "admin";
 };

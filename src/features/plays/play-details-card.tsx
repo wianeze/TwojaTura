@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ActionLink } from "@/components/ui/action-button";
 import { GameCover } from "@/components/ui/game-cover";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import { isUnfinishedPlay } from "@/features/meetings/continuation";
 import { deletePlayAction } from "./actions";
 import { DeletePlayButton } from "./delete-play-button";
@@ -235,15 +236,16 @@ function ParticipantRow({
       )}
 
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
-        <span
-          className={`max-w-full min-w-0 truncate text-[0.92rem] leading-5 ${
+        <PlayerDisplayName
+          variant="compact"
+          displayName={participant.member.displayName}
+          title={participant.member.equippedTitle}
+          className={`max-w-full min-w-0 text-[0.92rem] leading-5 ${
             isHighlighted
               ? "font-extrabold text-[#3d2612]"
               : "font-semibold text-[#4a3018]"
           }`}
-        >
-          {participant.member.displayName}
-        </span>
+        />
         {participant.isWinner && mode !== "cooperative" ? (
           <MetaChip tone="gold">Zwycięzca</MetaChip>
         ) : null}
@@ -406,7 +408,13 @@ export function PlayDetailsCard({ play }: { play: PlayDetails }) {
         </div>
 
         <dl className="mt-4 space-y-1.5">
-          <MetaRow label="Zapisana przez">{play.createdBy.displayName}</MetaRow>
+          <MetaRow label="Zapisana przez">
+            <PlayerDisplayName
+              variant="compact"
+              displayName={play.createdBy.displayName}
+              title={play.createdBy.equippedTitle}
+            />
+          </MetaRow>
 
           {play.meeting ? (
             <MetaRow label="Spotkanie">

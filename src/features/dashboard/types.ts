@@ -1,4 +1,5 @@
 import type { ActiveClassView } from "@/features/legendarium/achievement-view-model";
+import type { PlayerTitle } from "@/components/ui/player-display-name";
 import type {
   PlayTablePhase,
   TableSessionGameChoice,
@@ -118,6 +119,11 @@ export type DashboardLeaderboardEntry = {
   totalPoints: number;
   rank: number;
   activeClass: ActiveClassView | null;
+  equippedTitle: {
+    id: string;
+    name: string;
+    rarity: "common" | "rare" | "epic" | "legendary";
+  } | null;
 };
 
 export type DashboardLeaderboardPreview = {
@@ -140,6 +146,7 @@ export type TableSessionMember = {
   id: string;
   displayName: string;
   avatarUrl: string | null;
+  equippedTitle?: PlayerTitle | null;
   isViewer: boolean;
   /** Aktualna Renoma z rankingu (get_leaderboard) — 0, gdy członek go nie ma. */
   points: number;

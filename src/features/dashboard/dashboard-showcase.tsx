@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import Link from "next/link";
 import { ActionLink } from "@/components/ui/action-button";
 import { Panel } from "@/components/ui/panel";
@@ -166,23 +167,43 @@ function LegendBoardRow({
     <li
       className={`flex items-center gap-2.5 py-2 first:pt-0 last:pb-0 ${isLast ? "" : "legend-board-row"}`}
     >
-      {rankAsset ? (
-        <Image
-          src={rankAsset}
-          alt={getLeaderboardRankLabel(entry.rank)}
-          width={36}
-          height={36}
-          className="size-7 shrink-0 object-contain sm:size-8"
-        />
-      ) : (
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-black/30 text-[0.62rem] font-bold text-[#f0cf9f] sm:size-8">
-          {entry.rank}
-        </span>
-      )}
+      <span className="relative isolate grid size-7 shrink-0 place-items-center sm:size-8">
+        {entry.activeClass?.iconPath ? (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-2.5 z-0 opacity-50 sm:-inset-3"
+          >
+            <Image
+              src={entry.activeClass.iconPath}
+              alt=""
+              fill
+              sizes="56px"
+              className="object-contain"
+            />
+          </span>
+        ) : null}
 
-      <p className="legend-board-name min-w-0 flex-1 truncate text-[0.78rem] font-semibold sm:text-[0.86rem]">
-        {entry.displayName}
-      </p>
+        {rankAsset ? (
+          <Image
+            src={rankAsset}
+            alt={getLeaderboardRankLabel(entry.rank)}
+            width={36}
+            height={36}
+            className="relative z-10 size-7 object-contain sm:size-8"
+          />
+        ) : (
+          <span className="relative z-10 flex size-7 items-center justify-center rounded-full bg-black/30 text-[0.62rem] font-bold text-[#f0cf9f] sm:size-8">
+            {entry.rank}
+          </span>
+        )}
+      </span>
+
+      <PlayerDisplayName
+        displayName={entry.displayName}
+        title={entry.equippedTitle}
+        variant="compact"
+        className="legend-board-name flex-1 text-[0.78rem] font-semibold sm:text-[0.86rem]"
+      />
 
       <p className="shrink-0 text-[0.76rem] font-bold text-[#f2d8b8] sm:text-[0.84rem]">
         {entry.totalPoints.toLocaleString("pl-PL")}

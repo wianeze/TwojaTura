@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActionLink } from "@/components/ui/action-button";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import { ArchiveGameButton } from "@/features/games/archive-game-button";
 import { GameCover } from "@/components/ui/game-cover";
 import { Panel } from "@/components/ui/panel";
@@ -36,7 +38,7 @@ function MetaItem({
   subtle = false,
 }: {
   label: string;
-  value: string | null;
+  value: ReactNode;
   subtle?: boolean;
 }) {
   if (!value) return null;
@@ -266,10 +268,10 @@ export default async function GameDetailsPage({
             </div>
 
             <div className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-dashed border-[#b99d72] pt-2 sm:grid-cols-3 xl:grid-cols-3">
-              <MetaItem label="Właściciel" value={game.owner.displayName} />
+              <MetaItem label="Właściciel" value={<PlayerDisplayName variant="compact" displayName={game.owner.displayName} title={game.owner.equippedTitle} />} />
               <MetaItem
                 label="Aktualnie u"
-                value={game.currentHolder?.displayName ?? "nieustalone"}
+                value={game.currentHolder ? <PlayerDisplayName variant="compact" displayName={game.currentHolder.displayName} title={game.currentHolder.equippedTitle} /> : "nieustalone"}
               />
               <MetaItem
                 label="Gracze"
@@ -368,9 +370,12 @@ export default async function GameDetailsPage({
                   className="anim-rise-in-fast material-panel rounded-[1.15rem] p-3.5"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2.5">
-                    <p className="font-semibold text-[#503828]">
-                      {comment.author.displayName}
-                    </p>
+                    <PlayerDisplayName
+                      variant="compact"
+                      displayName={comment.author.displayName}
+                      title={comment.author.equippedTitle}
+                      className="font-semibold text-[#503828]"
+                    />
                     <p className="text-muted text-xs">
                       ogólna {comment.overall}/10 · klimat {comment.theme}/10 ·
                       regrywalność {comment.replayability}/10

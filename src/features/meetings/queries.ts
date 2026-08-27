@@ -1,4 +1,5 @@
 import { getCurrentMember } from "@/features/auth/queries/get-current-member";
+import type { PlayerTitle } from "@/components/ui/player-display-name";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database.generated";
 import {
@@ -37,16 +38,22 @@ type GameRow = Tables<"games">;
 type ProfileRow = Pick<
   Tables<"profiles">,
   "id" | "display_name" | "avatar_url"
->;
+> & {
+  equipped_title: Pick<Tables<"title_definitions">, "id" | "name" | "rarity"> | null;
+};
 type RankingRow = Tables<"meeting_game_rankings">;
 type ContinuationRankingRow = Tables<"meeting_continuation_rankings">;
 type RatingRow = Tables<"ratings">;
 
 function mapMember(profile: ProfileRow): MeetingMember {
+  const title = profile.equipped_title;
   return {
     id: profile.id,
     displayName: profile.display_name,
     avatarUrl: profile.avatar_url,
+    equippedTitle: title
+      ? { id: title.id, name: title.name, rarity: title.rarity as PlayerTitle["rarity"] }
+      : null,
   };
 }
 
@@ -66,7 +73,9 @@ async function getProfilesMap(
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_url")
+    .select(
+      "id, display_name, avatar_url, equipped_title:title_definitions!profiles_equipped_title_id_fkey(id, name, rarity)",
+    )
     .in("id", ids);
 
   if (error) {

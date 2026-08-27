@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { GameCover } from "@/components/ui/game-cover";
 import { PlayerPortraitFrame } from "@/components/ui/player-portrait-frame";
+import { PlayerDisplayName } from "@/components/ui/player-display-name";
 import { getEntranceStaggerDelayMs } from "@/lib/animation";
 import { getBggExpansionPreview } from "./bgg";
 import { getOwnedExpansionNames } from "./expansions";
@@ -200,16 +201,16 @@ function ShelfSegment({
                         {game.activeLoan ? (
                           <div className="flex justify-between gap-2 text-[#8f4b31]">
                             <dt>Wypożyczona</dt>
-                            <dd className="text-right font-bold">
-                              u {game.activeLoan.borrower.displayName}
+                            <dd className="min-w-0 text-right font-bold">
+                              <PlayerDisplayName variant="compact" displayName={game.activeLoan.borrower.displayName} title={game.activeLoan.borrower.equippedTitle} />
                             </dd>
                           </div>
                         ) : null}
                         <div className="flex justify-between gap-2">
                           <dt>Właściciel / u kogo</dt>
-                          <dd className="text-right font-semibold">
-                            {game.owner.displayName} /{" "}
-                            {game.currentHolder?.displayName ?? "nieustalone"}
+                          <dd className="min-w-0 text-right font-semibold">
+                            <PlayerDisplayName variant="compact" displayName={game.owner.displayName} title={game.owner.equippedTitle} />
+                            {game.currentHolder ? <><span> / </span><PlayerDisplayName variant="compact" displayName={game.currentHolder.displayName} title={game.currentHolder.equippedTitle} className="inline-block max-w-[8rem] align-bottom" /></> : "nieustalone"}
                           </dd>
                         </div>
                         <div className="flex justify-between gap-2">
@@ -457,18 +458,13 @@ export function ShelfShowcase({
                       <p className="text-muted text-[0.58rem] font-bold tracking-wider uppercase">
                         Właściciel
                       </p>
-                      <p className="mt-1 text-sm font-semibold text-[#503828]">
-                        {selectedGame.owner.displayName}
-                      </p>
+                      <PlayerDisplayName variant="compact" displayName={selectedGame.owner.displayName} title={selectedGame.owner.equippedTitle} className="mt-1 text-sm font-semibold text-[#503828]" />
                     </div>
                     <div className="paper-wash rounded-xl px-3 py-2">
                       <p className="text-muted text-[0.58rem] font-bold tracking-wider uppercase">
                         Aktualnie u
                       </p>
-                      <p className="mt-1 text-sm font-semibold text-[#503828]">
-                        {selectedGame.currentHolder?.displayName ??
-                          "nieustalone"}
-                      </p>
+                      {selectedGame.currentHolder ? <PlayerDisplayName variant="compact" displayName={selectedGame.currentHolder.displayName} title={selectedGame.currentHolder.equippedTitle} className="mt-1 text-sm font-semibold text-[#503828]" /> : <p className="mt-1 text-sm font-semibold text-[#503828]">nieustalone</p>}
                     </div>
                   </div>
 

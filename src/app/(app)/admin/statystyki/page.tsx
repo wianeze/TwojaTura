@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { WarmLink } from "@/components/layout/warm-link";
 import { AdminAnalyticsDashboard } from "@/features/admin/admin-analytics-dashboard";
 import { AdminHistoricalAnalyticsDashboard } from "@/features/admin/admin-historical-analytics-dashboard";
+import { AdminPageHeader } from "@/features/admin/admin-page-header";
 import {
   getAdminAnalyticsSnapshot,
   getAdminHistoricalBusinessSnapshot,
@@ -24,19 +25,12 @@ export default async function AdminStatisticsPage({
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold tracking-[0.2em] text-[#e3ae67] uppercase">
-            Dane aplikacji
-          </p>
-          <h1 className="font-display text-cream mt-1.5 text-4xl font-semibold tracking-tight sm:text-[2.8rem]">
-            Statystyki
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-[#d8c3ad]">
-            Bez trackerów reklamowych, nagrywania sesji i treści wpisywanych
-            przez graczy.
-          </p>
-        </div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <AdminPageHeader
+          eyebrow="Dane aplikacji"
+          title="Statystyki"
+          description="Bez trackerów reklamowych, nagrywania sesji i treści wpisywanych przez graczy."
+        />
         <nav className="flex gap-2" aria-label="Zakres statystyk">
           {[7, 30, 90].map((value) => (
             <WarmLink
@@ -48,7 +42,7 @@ export default async function AdminStatisticsPage({
             </WarmLink>
           ))}
         </nav>
-      </header>
+      </div>
       <AdminAnalyticsDashboard data={data} />
       <AdminHistoricalAnalyticsDashboard data={historicalData} />
     </div>

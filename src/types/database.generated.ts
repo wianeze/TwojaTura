@@ -263,6 +263,64 @@ export type Database = {
           },
         ]
       }
+      admin_tukat_adjustments: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          delta: number
+          id: string
+          operation: string
+          reason: string | null
+          request_id: string
+          target_user_id: string
+          tukat_event_id: string
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          delta: number
+          id?: string
+          operation: string
+          reason?: string | null
+          request_id: string
+          target_user_id: string
+          tukat_event_id: string
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          delta?: number
+          id?: string
+          operation?: string
+          reason?: string | null
+          request_id?: string
+          target_user_id?: string
+          tukat_event_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_tukat_adjustments_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_tukat_adjustments_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_tukat_adjustments_tukat_event_id_fkey"
+            columns: ["tukat_event_id"]
+            isOneToOne: true
+            referencedRelation: "tukat_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_content: {
         Row: {
           content_key: string
@@ -1447,6 +1505,7 @@ export type Database = {
           created_at: string
           display_name: string
           email: string
+          equipped_title_id: string | null
           id: string
           updated_at: string
         }
@@ -1457,6 +1516,7 @@ export type Database = {
           created_at?: string
           display_name: string
           email: string
+          equipped_title_id?: string | null
           id: string
           updated_at?: string
         }
@@ -1467,6 +1527,7 @@ export type Database = {
           created_at?: string
           display_name?: string
           email?: string
+          equipped_title_id?: string | null
           id?: string
           updated_at?: string
         }
@@ -1484,6 +1545,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "portrait_frames"
             referencedColumns: ["frame_key"]
+          },
+          {
+            foreignKeyName: "profiles_equipped_title_id_fkey"
+            columns: ["equipped_title_id"]
+            isOneToOne: false
+            referencedRelation: "title_definitions"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1710,6 +1778,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      title_definitions: {
+        Row: {
+          acquisition_kind: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_purchasable: boolean
+          name: string
+          price_tukats: number | null
+          rarity: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          acquisition_kind?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_purchasable?: boolean
+          name: string
+          price_tukats?: number | null
+          rarity: string
+          slug: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          acquisition_kind?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_purchasable?: boolean
+          name?: string
+          price_tukats?: number | null
+          rarity?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       tukat_events: {
         Row: {
@@ -1995,6 +2105,55 @@ export type Database = {
           },
         ]
       }
+      user_titles: {
+        Row: {
+          acquired_at: string
+          acquisition_kind: string
+          purchase_request_id: string | null
+          title_id: string
+          tukat_event_id: string | null
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string
+          acquisition_kind?: string
+          purchase_request_id?: string | null
+          title_id: string
+          tukat_event_id?: string | null
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string
+          acquisition_kind?: string
+          purchase_request_id?: string | null
+          title_id?: string
+          tukat_event_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_titles_title_id_fkey"
+            columns: ["title_id"]
+            isOneToOne: false
+            referencedRelation: "title_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_titles_tukat_event_id_fkey"
+            columns: ["tukat_event_id"]
+            isOneToOne: true
+            referencedRelation: "tukat_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_titles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       game_rating_summaries: {
@@ -2096,6 +2255,21 @@ export type Database = {
       }
     }
     Functions: {
+      admin_adjust_tukats: {
+        Args: {
+          p_amount: number
+          p_reason?: string
+          p_request_id?: string
+          p_target_user_id: string
+        }
+        Returns: {
+          adjustment_id: string
+          balance_after: number
+          created_at: string
+          delta: number
+          tukat_event_id: string
+        }[]
+      }
       admin_analytics_snapshot: { Args: { p_days?: number }; Returns: Json }
       admin_award_point_action: {
         Args: {
@@ -2220,6 +2394,20 @@ export type Database = {
           description: string
           point_event_id: string
           points: number
+          target_display_name: string
+          target_user_id: string
+        }[]
+      }
+      admin_list_tukat_adjustments: {
+        Args: { p_limit?: number }
+        Returns: {
+          adjustment_id: string
+          admin_display_name: string
+          admin_user_id: string
+          created_at: string
+          delta: number
+          operation: string
+          reason: string
           target_display_name: string
           target_user_id: string
         }[]
@@ -2488,6 +2676,9 @@ export type Database = {
           active_portrait_frame_key: string
           avatar_url: string
           display_name: string
+          equipped_title_id: string
+          equipped_title_name: string
+          equipped_title_rarity: string
           user_id: string
         }[]
       }
@@ -2584,6 +2775,16 @@ export type Database = {
           points: number
         }[]
       }
+      purchase_title: {
+        Args: { p_request_id?: string; p_title_id: string }
+        Returns: {
+          balance_after: number
+          price_tukats: number
+          purchased_at: string
+          title_id: string
+          title_name: string
+        }[]
+      }
       recompute_current_user_missions: {
         Args: never
         Returns: {
@@ -2648,6 +2849,7 @@ export type Database = {
         Args: { p_frame_key: string }
         Returns: string
       }
+      set_equipped_title: { Args: { p_title_id?: string }; Returns: string }
       set_meeting_continuation_response: {
         Args: {
           p_continued_play_id: string

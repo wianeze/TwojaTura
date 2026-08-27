@@ -7,6 +7,11 @@ export type CurrentMember = {
   avatarUrl: string | null;
   activePortraitFrameKey?: string | null;
   activeClassKey?: string | null;
+  equippedTitle?: {
+    id: string;
+    name: string;
+    rarity: "common" | "rare" | "epic" | "legendary";
+  } | null;
   role: MemberRole;
 };
 
